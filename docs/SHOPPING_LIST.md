@@ -13,7 +13,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | NEMA 17 stepper ×4 | STEPPERONLINE 17HS19-2004S1, 59 N·cm, 2 A, 5 mm shaft (**4-pack**) | https://www.amazon.com/Stepper-Bipolar-Printer-Machine-Robotics/dp/B07BKRWK1Q | 54 |
+| ☐ | NEMA 17 stepper ×4 (+1 spare) | SIMAX3D NEMA 17 **42-38** size, ~36 N·cm, 1.5 A, 5 mm shaft (**5-pack**) — select the **42-38** option | https://www.amazon.com/s?k=SIMAX3D+Nema+17+42-38+5pcs | 33 |
 | ☐ | Cable/line | 9KM-DWLIFE UHMWPE braid (or emma kites 1 mm, ~350 lb) | https://www.amazon.com/9KM-DWLIFE-Anti-Bite-Freshwater-Saltwater/dp/B0DLNQFQKK | 13 |
 
 *Note: at 0.8–1.2 mm, UHMWPE line naturally rates ~200–350 lb (not 100) — that's a bonus: more abrasion life, still low-stretch.*
@@ -25,7 +25,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 | ☐ | Controller + drivers (kit) | **kuman K75**: Arduino Uno + CNC Shield V3 + 4× A4988 + heatsinks | https://www.amazon.com/kuman-Expansion-Stepper-Heatsink-Arduino/dp/B06XHKSVTG | 24 |
 | ☐ | Home switches | HiLetgo KW12-3 micro limit switch (10-pack) | https://www.amazon.com/HiLetgo-KW12-3-Roller-Switch-Normally/dp/B07X142VGC | 8 |
 
-*Driver note: your motors are 2 A; A4988 (in the kit) practically tops out ~1.2–1.4 A, which still gives ~4 kg·cm — above the ~3 kg·cm this build needs, so the cheap kit is fine. For full torque/quieter motion, see the DRV8825 upgrade below.*
+*Driver note: the 42-38 motors are **1.5 A**, so the A4988 drivers in the kit run them at essentially full torque — no throttling. (This is why the 1.5 A motor beats a 2 A one here: the A4988 can actually drive it fully.) The DRV8825 upgrade below is optional, for quieter motion only.*
 
 ## Power + protection
 
@@ -75,9 +75,11 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | Scenario | ~$ |
 |----------|----|
-| **Everything above (primary picks, single-servo, incl. structural PLA)** | **~$256** |
-| If you already own PLA/PETG filament | **~$236** |
-| Trimmed (cut PSU barrel instead of adapter −$8, reuse some wire −$15) | **~$215** |
+| **Everything above (primary picks, single-servo, incl. structural PLA)** | **~$235** |
+| If you already own PLA/PETG filament | **~$215** |
+| Trimmed (cut PSU barrel instead of adapter −$8, reuse some wire −$15) | **~$194** |
+
+*(The 42-38 5-pack for $33 replaced the $54 4-pack — saves ~$21 and throws in a spare motor.)*
 
 Honest note: this is **above the earlier ~$184 estimate**. The estimate was rough;
 itemizing real products added up — the control *kit* is $24 (not $18), plus a

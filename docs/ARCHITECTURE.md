@@ -52,6 +52,21 @@ and replay.
 depends only on the interface. The end-effector is treated the same way, so the
 claw-vs-suction decision stays open without code churn.
 
+### Fan safety is geometric and conservative
+The ceiling fan is a vertical keep-out **cylinder** (`config.FanZone`). Reachability
+requires that *every* cable segment (anchor → effector) misses that cylinder AND
+the effector itself is outside it (`geometry.cables_clear_of_fan`). The
+intersection test (`segment_intersects_cylinder`) is exact — it solves for the
+segment's in-radius interval and its in-height interval and checks they overlap —
+not sampled, so a thin cable can't "tunnel" between samples. The cylinder includes
+a safety margin, and the controller additionally cruises *below* the fan band. Full
+per-waypoint path checking (vs. endpoints + cruise height) is a Phase 2 item.
+
+### Perception mappers are interchangeable
+`localization.FloorMapper` has two implementations — a zero-calibration overhead
+mapper and a homography mapper — behind one `pixel_to_floor` method, so the
+detector and everything downstream are agnostic to how the camera is mounted.
+
 ### Simulator is a monitor, not the system
 `simulator.py` only *draws* positions the controller produces. It never drives
 logic. In Phase 3 it becomes an optional live monitor next to the real robot.

@@ -4,8 +4,10 @@ An autonomous robot that scans your room, spots dirty laundry on the floor,
 picks it up, and drops it in the hamper — using four winch motors in the
 ceiling corners and a downward-facing gripper on cables.
 
-> **Status:** Phase 0 (simulation) — the kinematics, motion planning, and the
-> full scan→grab→deliver control loop run today with **zero hardware**.
+> **Status:** Phase 0 complete + Phase 1 scaffolded. The kinematics, fan-aware
+> motion planning, auto rest-pose, and the full scan→grab→deliver loop run today
+> with **zero hardware**; a real open-vocabulary laundry detector runs on a
+> webcam. You only need to fill in your room dimensions and ceiling-fan location.
 
 ![A cleaning run in simulation](docs/images/run.gif)
 
@@ -36,6 +38,16 @@ That pink border is a real design constraint: **laundry pushed right against a
 wall is a hard case** we'll have to handle (e.g. a longer-reach end-effector, or
 just accepting a small dead-zone).
 
+### The ceiling fan is a hard no-go zone
+If you have a ceiling fan, the robot's cables must **never** touch it. RoomCleaner
+models the fan as a vertical keep-out cylinder and geometrically checks *every
+cable* against it — a point is only reachable if all four cables clear the fan and
+the claw stays out of it. The claw also **cruises below the fan** and **parks at
+an auto-computed rest pose** out of the way between jobs. You just enter the fan's
+center, blade radius, and how far it hangs down; the math does the rest. Good
+news from the workspace map: laundry *under* the fan is still reachable, because
+when the claw drops low the cables splay out to the corners and clear the blades.
+
 ---
 
 ## Quick start
@@ -43,11 +55,17 @@ just accepting a small dead-zone).
 ```bash
 pip install -r requirements.txt
 python -m scripts.demo_sim      # writes images + a GIF into ./output/
-python -m pytest                # run the kinematics tests
+python -m pytest                # run the kinematics/geometry/vision tests
+
+# Phase 1 — real laundry detection on a webcam (heavier deps):
+pip install -r requirements-vision.txt
+python -m scripts.detect_webcam # detects laundry + prints floor coordinates
 ```
 
-The demo scatters fake laundry, then runs the real control loop to clear the
-floor and animates the result.
+The sim demo scatters fake laundry, then runs the real control loop to clear the
+floor and animates the result. **Before anything else, open
+`roomcleaner/config.py` and fill in the two "EDIT ME" blocks** — your room
+dimensions and your ceiling-fan location/size.
 
 ---
 
@@ -66,10 +84,13 @@ The core math, and it's simpler than it looks:
   pull but never push, so this is the constraint that carves out those pink edges.
 
 ### 2. Perception — `roomcleaner/perception/`
-Finds laundry and locates it in 3D. Phase 0 ships a `SimulatedDetector` that
-invents laundry so the rest of the system has something to chase. Phase 1 swaps
-in a real object-detection model (YOLO-class) behind the **exact same
-interface**, so nothing downstream changes.
+Finds laundry and locates it on the floor. A `SimulatedDetector` invents laundry
+for the sim, and `YoloWorldDetector` does the real thing on a webcam using an
+**open-vocabulary** model (detects "sock", "towel", … from *words*, no training).
+Both share the **exact same interface**, so the control loop never changes.
+`localization.py` maps a camera pixel to a floor `(x, y)` — zero-calibration for a
+straight-down ceiling camera, or a precise 4-point homography for a tilted one.
+See **[docs/VISION.md](docs/VISION.md)**.
 
 ### 3. Motion planning — `roomcleaner/control/trajectory.py`
 Turns "go to point X" into a smooth, ease-in/ease-out path. The `safe_transit`
@@ -88,23 +109,32 @@ item at a time, nearest first. Keeping it an explicit state machine (not tangled
 
 ```
 roomcleaner/
-  config.py               # room size, motor limits, safety margins — EDIT THIS for your room
-  kinematics.py           # inverse/forward kinematics + workspace/statics
+  config.py               # ROOM + FAN dimensions, motor limits, margins — the ONLY file you edit
+  kinematics.py           # inverse/forward kinematics + statics/workspace + rest-pose finder
+  geometry.py             # fan keep-out: exact cable-vs-cylinder intersection tests
   simulator.py            # 3D visualiser (renders to PNG/GIF, no display needed)
   perception/
-    detector.py           # Detector interface + SimulatedDetector (Phase 1 goes here)
+    detector.py           # Detector interface + SimulatedDetector
+    vision_detector.py    # real open-vocabulary laundry detector (YOLO-World)
+    localization.py       # pixel → floor (x,y): overhead-linear + homography mappers
+    camera.py             # webcam capture wrapper (OpenCV)
   control/
     trajectory.py         # smooth path generation
-    state_machine.py      # the scan→grab→deliver brain
-  hardware/               # (Phase 3) motor drivers, camera, e-stop live here
+    state_machine.py      # the scan→grab→deliver brain (fan-aware, parks at rest)
+  hardware/               # (Phase 3) motor drivers, e-stop live here
 scripts/
   demo_sim.py             # end-to-end simulation demo
+  detect_webcam.py        # live laundry detection from a webcam
 tests/
   test_kinematics.py      # the math we must trust
+  test_geometry.py        # fan keep-out safety tests
+  test_localization.py    # pixel → floor mapping tests
 docs/
   ROADMAP.md              # phase-by-phase build plan
-  HARDWARE.md             # parts list & wiring for when you go physical
+  HARDWARE.md             # BOM (cheap Amazon parts) + gripper recommendation
+  VISION.md               # perception & camera calibration guide
   ARCHITECTURE.md         # how the pieces fit + the design decisions
+  RESEARCH.md             # sources behind the hardware/gripper choices
 ```
 
 ---
@@ -115,10 +145,10 @@ See **[docs/ROADMAP.md](docs/ROADMAP.md)** for the full plan. The short version:
 
 | Phase | What | Cost |
 |------|------|------|
-| **0** ✅ | Kinematics + simulator + control loop | Free (software) |
-| **1** | Real laundry detection & 3D localization | Free–cheap (a webcam) |
-| **2** | Motion planning polish, safety logic, sim tuning | Free |
-| **3** | Hardware bring-up: motors, drivers, camera, e-stop | 💰 the build |
+| **0** ✅ | Kinematics + simulator + control loop + fan safety + rest pose | Free (software) |
+| **1** 🚧 | Real laundry detection & floor localization (runs on a webcam) | Free–cheap (a webcam) |
+| **2** | Motion planning polish, full-path safety, sim tuning | Free |
+| **3** | Hardware bring-up: motors, drivers, camera, e-stop | 💰 the build (~$250–515, see BOM) |
 | **4** | The grasp — actually picking cloth off the floor | 💰 the experiment |
 
 The two genuinely hard, risky parts are called out honestly in the docs:
@@ -128,10 +158,12 @@ software first.
 
 ---
 
-## A note on the gripper
+## A note on the gripper (mechanical, no vacuum)
 
-A rigid claw grabbing flat, crumpled cloth off a hard floor is the classic
-failure point of projects like this. Before committing to a claw, seriously
-consider a **suction / vacuum end-effector** — it grabs flat fabric far more
-reliably. The code treats the end-effector as swappable, so this decision stays
-open. See [docs/HARDWARE.md](docs/HARDWARE.md).
+Grabbing flat, crumpled cloth off a hard floor is the classic failure point.
+After researching the options, the recommendation is a **spatula-scoop + Fin Ray
+flap**: a thin leading edge slides under the cloth (or pins it to the floor) while
+a soft 3D-printed finger folds it up. The key trick is to **pinch/scoop against
+the floor rather than close in mid-air**. A **needle/pin gripper** is the fallback
+for thin flat socks. Full comparison and parts in
+**[docs/HARDWARE.md](docs/HARDWARE.md)**.

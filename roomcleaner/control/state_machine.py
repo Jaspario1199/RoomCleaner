@@ -50,12 +50,22 @@ class Controller:
         self.robot = robot
         self.detector = detector
         self.hamper = np.array([hamper_xy[0], hamper_xy[1], SAFE_MIN_Z + 0.3])
-        self.cruise_z = cruise_z if cruise_z is not None else robot.cfg.room_height - 0.6
+
+        # Choose a cruise height that is (a) well below the ceiling, where a
+        # cable robot has GOOD tension/stiffness -- near the ceiling the cables
+        # go almost horizontal and can't hold the weight -- and (b) below the
+        # fan's keep-out band so horizontal transits never enter the fan.
+        default_cruise = 0.55 * robot.cfg.room_height
+        fan = robot.cfg.fan
+        if fan is not None and fan.enabled:
+            default_cruise = min(default_cruise, fan.z_low - 0.15)
+        self.cruise_z = cruise_z if cruise_z is not None else max(default_cruise, SAFE_MIN_Z + 0.4)
+
+        # A safe, out-of-the-way parking pose (auto-computed, fan-aware).
+        self.rest = robot.find_rest_position(prefer_xy=hamper_xy)
 
         self.state = State.IDLE
-        self.position = np.array(
-            [robot.cfg.room_width / 2, robot.cfg.room_depth / 2, self.cruise_z]
-        )
+        self.position = self.rest.copy()
         self.target: Detection | None = None
         self.picked_up = 0
         self._log: list[str] = []
@@ -111,14 +121,24 @@ class Controller:
         self.position = self.hamper.copy()
         return np.vstack([path_to_item, descent, lift, to_hamper])
 
-    def run(self, max_items: int = 20) -> list[np.ndarray]:
-        """Run cycles until the floor is clear; return the list of paths taken."""
+    def run(self, max_items: int = 20, return_to_rest: bool = True) -> list[np.ndarray]:
+        """Run cycles until the floor is clear; return the list of paths taken.
+
+        When done, the effector transits back to its safe parking pose so it
+        sits out of the way (and clear of the fan) between jobs.
+        """
         paths = []
         for _ in range(max_items):
             path = self.plan_next_cycle()
             if path is None:
                 break
             paths.append(path)
+        if return_to_rest and np.linalg.norm(self.position - self.rest) > 1e-3:
+            self.state = State.IDLE
+            park = safe_transit(self.position, self.rest, self.cruise_z)
+            self.position = self.rest.copy()
+            self.log(f"Parked at rest pose {self.rest.round(2)}.")
+            paths.append(park)
         return paths
 
 

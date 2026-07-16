@@ -21,28 +21,30 @@ dimensions and re-run the demo to see the workspace change.
 
 ---
 
-## Phase 1 — Perception (mostly free; needs a webcam eventually)
+## Phase 1 — Perception 🚧 (scaffolded; runs on a webcam today)
 
 Give the robot eyes. All of this can be prototyped on your laptop with a webcam
-or even a folder of phone photos — no robot required.
+or even a folder of phone photos — no robot required. See **[VISION.md](VISION.md)**.
 
-- [ ] Collect/annotate a small dataset of *your* laundry on *your* floor
-      (a few hundred phone photos goes a long way).
-- [ ] Fine-tune or prompt an object detector (start with a pretrained
-      YOLO-class model; "clothing"/"sock"/"towel" classes).
-- [ ] Implement a real `Detector` subclass with the same interface as
-      `SimulatedDetector` — drop-in, nothing downstream changes.
-- [ ] **2D → 3D:** map a pixel detection to a floor coordinate.
-      - Easiest: one fixed, calibrated ceiling camera → a homography maps floor
-        pixels directly to (x, y) world coordinates.
-      - Or: a camera on the moving claw, combined with the known claw position.
-- [ ] Confidence thresholding + "is this actually laundry or is it the cat?"
-      sanity checks.
+- [x] Real `Detector` subclass with the same interface as `SimulatedDetector` —
+      drop-in, nothing downstream changes (`perception/vision_detector.py`).
+- [x] **Open-vocabulary** detection (YOLO-World): detects laundry from *words*
+      (`"sock"`, `"towel"`, …) with **no training** required.
+- [x] **2D → 3D localization** (`perception/localization.py`): pixel → floor
+      `(x, y)`, both a zero-calibration overhead mapper and a precise 4-point
+      homography.
+- [x] Webcam capture wrapper + a live demo (`scripts/detect_webcam.py`).
+- [ ] Validate accuracy on YOUR camera: place items at known spots, confirm the
+      reported `(x, y)` matches a tape measure. Undistort a wide-angle lens if the
+      edges drift (OpenCV `calibrateCamera`).
+- [ ] Optionally fine-tune on a few hundred phone photos of *your* laundry/floor
+      for higher precision than the zero-shot model.
+- [ ] Confidence thresholding + "is this laundry or the cat?" sanity checks.
 
-**Decision to make:** fixed overhead camera(s) vs. a camera riding on the claw.
-Fixed is simpler to calibrate and scan; onboard gives close-up confirmation
-before a grab. A hybrid (wide fixed camera to find, onboard camera to confirm)
-is likely best.
+**Decision made:** start with a **fixed overhead camera** (simplest to calibrate
+and scan). A camera on the claw for close-up grab confirmation is a good later
+addition; a hybrid (wide fixed to *find*, claw cam to *confirm*) is the long-term
+best.
 
 ---
 
@@ -50,8 +52,17 @@ is likely best.
 
 Harden the brain before it can move real motors.
 
+- [x] **Fan keep-out:** every cable segment is tested against the fan cylinder;
+      unreachable points are rejected (`geometry.py`, `is_reachable`).
+- [x] **Geofencing (endpoints):** commands outside the safe workspace (walls,
+      floor clearance, tension limits, fan) are rejected.
+- [x] **Auto rest pose:** the effector parks out of the way, below the fan,
+      between jobs (`find_rest_position`).
+- [x] **Fan-aware cruise height:** transits stay in the good-tension band and
+      below the fan.
+- [ ] **Full-path** fan/workspace checking (currently endpoints + cruise height;
+      validate every waypoint of a transit, not just its ends).
 - [ ] Velocity/acceleration limits and cable-length-rate limits per motor.
-- [ ] Geofencing: never command a point outside the verified safe workspace.
 - [ ] Failure/recovery states: `GRAB` can fail — add `VERIFY_GRAB` and `RETRY`.
 - [ ] Multi-item route optimization (currently nearest-first; fine to start).
 - [ ] Soft-start / soft-stop and an emergency-stop path modeled in sim.

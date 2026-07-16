@@ -1,0 +1,5 @@
+# Phase 1 vision extras (heavy -- install on the machine with the camera/GPU).
+# The core package works without these; they're imported lazily only when you
+# run the real detector or webcam capture.
+ultralytics>=8.1     # YOLO-World open-vocabulary object detection
+opencv-python>=4.8   # webcam capture + image ops

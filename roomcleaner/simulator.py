@@ -37,6 +37,25 @@ def _draw_room(ax, cfg):
         ax.plot([cx, cx], [cy, cy], [0, h], color="0.85", lw=0.8)
 
 
+def _draw_fan(ax, fan):
+    """Draw the fan keep-out cylinder as a translucent red no-go volume."""
+    if fan is None or not getattr(fan, "enabled", False):
+        return
+    theta = np.linspace(0, 2 * np.pi, 40)
+    zc = np.linspace(fan.z_low, fan.z_high, 2)
+    th, zz = np.meshgrid(theta, zc)
+    xx = fan.cx + fan.radius * np.cos(th)
+    yy = fan.cy + fan.radius * np.sin(th)
+    ax.plot_surface(xx, yy, zz, color="tab:red", alpha=0.15, linewidth=0)
+    # Rim circle at the bottom so the keep-out is easy to see.
+    ax.plot(
+        fan.cx + fan.radius * np.cos(theta),
+        fan.cy + fan.radius * np.sin(theta),
+        np.full_like(theta, fan.z_low),
+        color="tab:red", lw=1.2, alpha=0.6,
+    )
+
+
 def _style_axes(ax, cfg):
     ax.set_xlim(0, cfg.room_width)
     ax.set_ylim(0, cfg.room_depth)
@@ -55,6 +74,7 @@ def render_frame(
     effector: np.ndarray,
     detector: Detector | None = None,
     hamper_xy=None,
+    rest_xyz=None,
     ax=None,
     title: str = "RoomCleaner",
 ):
@@ -66,6 +86,11 @@ def render_frame(
     ax.clear()
 
     _draw_room(ax, cfg)
+    _draw_fan(ax, cfg.fan)
+
+    # Rest / parking pose.
+    if rest_xyz is not None:
+        ax.scatter(*rest_xyz, color="tab:purple", s=70, marker="^", label="rest pose")
 
     # Winches at the ceiling corners.
     ax.scatter(
@@ -114,6 +139,7 @@ def animate_run(
     detector: Detector,
     hamper_xy,
     out_path: str = "run.gif",
+    rest_xyz=None,
     max_frames: int = 120,
     fps: int = 20,
 ):
@@ -133,7 +159,7 @@ def animate_run(
 
     def update(i):
         render_frame(
-            robot, all_points[i], detector, hamper_xy, ax=ax,
+            robot, all_points[i], detector, hamper_xy, rest_xyz=rest_xyz, ax=ax,
             title=f"RoomCleaner  (step {i}/{len(all_points)})",
         )
         return []

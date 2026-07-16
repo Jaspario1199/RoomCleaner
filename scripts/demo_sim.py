@@ -44,26 +44,39 @@ def main() -> None:
 
     hamper_xy = (cfg.room_width - 0.5, 0.5)
 
+    rest = robot.find_rest_position(prefer_xy=hamper_xy)
+
     # ---- 1. Static "before" frame -----------------------------------------
     ax = simulator.render_frame(
         robot,
-        effector=np.array([cfg.room_width / 2, cfg.room_depth / 2, cfg.room_height - 0.6]),
+        effector=rest,
         detector=detector,
         hamper_xy=hamper_xy,
-        title="RoomCleaner -- before cleaning",
+        rest_xyz=rest,
+        title="RoomCleaner -- before cleaning (fan keep-out in red)",
     )
     plt.savefig(os.path.join(OUT, "scene_before.png"), dpi=110, bbox_inches="tight")
     plt.close("all")
     print(f"wrote {OUT}/scene_before.png")
+    print(f"auto rest pose: {rest.round(2)}")
 
-    # ---- 2. Workspace reachability map at grab height ----------------------
-    z = 0.3
-    xs, ys, mask = reachable_workspace_slice(robot, z=z, resolution=45)
-    plt.figure(figsize=(6, 4.5))
-    plt.contourf(xs, ys, mask.astype(float), levels=[0, 0.5, 1], colors=["#f4cccc", "#d9ead3"])
-    plt.scatter(robot.anchors[:, 0], robot.anchors[:, 1], color="black", marker="s", label="winch")
-    plt.title(f"Safe workspace at z = {z} m  (green = reachable)")
-    plt.xlabel("x (m)"); plt.ylabel("y (m)"); plt.legend(); plt.axis("equal")
+    # ---- 2. Workspace reachability maps: grab height vs. near-fan height ----
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.5))
+    fan = robot.cfg.fan
+    heights = [0.3, round(fan.z_low - 0.05, 2) if fan.enabled else 2.0]
+    for axp, z in zip(axes, heights):
+        xs, ys, mask = reachable_workspace_slice(robot, z=z, resolution=45)
+        axp.contourf(xs, ys, mask.astype(float), levels=[0, 0.5, 1],
+                     colors=["#f4cccc", "#d9ead3"])
+        axp.scatter(robot.anchors[:, 0], robot.anchors[:, 1], color="black",
+                    marker="s", label="winch")
+        if fan.enabled:
+            axp.add_patch(plt.Circle((fan.cx, fan.cy), fan.radius, color="tab:red",
+                                     alpha=0.35, label="fan"))
+        axp.set_title(f"Reachable at z = {z} m")
+        axp.set_xlabel("x (m)"); axp.set_ylabel("y (m)")
+        axp.legend(fontsize=7); axp.set_aspect("equal")
+    fig.suptitle("Safe workspace (green = reachable). Note the fan carves a hole up high.")
     plt.savefig(os.path.join(OUT, "workspace.png"), dpi=110, bbox_inches="tight")
     plt.close("all")
     print(f"wrote {OUT}/workspace.png")
@@ -80,7 +93,8 @@ def main() -> None:
     if paths:
         gif = simulator.animate_run(
             robot, paths, initial_detector, hamper_xy,
-            out_path=os.path.join(OUT, "run.gif"), max_frames=100, fps=15,
+            out_path=os.path.join(OUT, "run.gif"), rest_xyz=rest,
+            max_frames=100, fps=15,
         )
         print(f"wrote {gif}")
 

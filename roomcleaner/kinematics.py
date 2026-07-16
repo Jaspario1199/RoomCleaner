@@ -29,6 +29,7 @@ import numpy as np
 from scipy.linalg import null_space
 
 from .config import RobotConfig, DEFAULT_CONFIG
+from .geometry import cables_clear_of_fan
 
 
 class CableRobot:
@@ -159,10 +160,16 @@ class CableRobot:
         return tensions, feasible
 
     def is_reachable(self, point: np.ndarray) -> bool:
-        """True if `point` is inside the safe, statically-feasible workspace."""
+        """True if `point` is inside the safe, statically-feasible workspace.
+
+        A point is reachable only if ALL of these hold:
+          * inside the room, respecting wall margins and the floor clearance;
+          * a valid set of cable tensions exists (statics);
+          * every cable to it clears the ceiling fan, and the point itself is
+            not inside the fan's keep-out cylinder.
+        """
         x, y, z = point
         m = self.cfg
-        # Geometric box with wall margins.
         from .config import WALL_MARGIN, SAFE_MIN_Z
 
         if not (WALL_MARGIN <= x <= m.room_width - WALL_MARGIN):
@@ -171,8 +178,69 @@ class CableRobot:
             return False
         if not (SAFE_MIN_Z <= z <= m.room_height - 0.1):
             return False
+        if not cables_clear_of_fan(self.anchors, np.asarray(point, float), m.fan):
+            return False
         _, feasible = self.solve_tensions(point)
         return feasible
+
+    # ------------------------------------------------------------------
+    # A safe "park" / resting pose out of the way
+    # ------------------------------------------------------------------
+    def find_rest_position(
+        self, prefer_xy: tuple[float, float] | None = None
+    ) -> np.ndarray:
+        """Pick a safe, out-of-the-way resting position for the effector.
+
+        Strategy: park HIGH (just under the fan's keep-out height, or near the
+        ceiling if there's no fan) and tucked toward a corner, so the effector
+        sits above the normal walking area and out of the fan. We search corner
+        regions for the highest reachable point furthest from both the room
+        center and the fan, and return the best candidate.
+
+        `prefer_xy` biases the choice toward a specific corner (e.g. the hamper
+        corner). If nothing is reachable (misconfigured room), returns the room
+        center at mid-height as a last resort.
+        """
+        from .config import WALL_MARGIN, SAFE_MIN_Z
+
+        m = self.cfg
+        # The highest we may travel (stay just below the fan cylinder if present).
+        top = m.room_height - 0.1
+        if m.fan is not None and m.fan.enabled:
+            top = min(top, m.fan.z_low - 0.05)
+        top = max(top, SAFE_MIN_Z + 0.3)
+
+        center = np.array([m.room_width / 2, m.room_depth / 2])
+        fan_xy = (
+            np.array([m.fan.cx, m.fan.cy])
+            if (m.fan is not None and m.fan.enabled)
+            else center
+        )
+
+        best, best_score = None, -np.inf
+        margin = WALL_MARGIN + 0.10
+        xs = np.linspace(margin, m.room_width - margin, 9)
+        ys = np.linspace(margin, m.room_depth - margin, 9)
+        zs = np.linspace(top, SAFE_MIN_Z + 0.3, 6)  # prefer higher first
+        for z in zs:
+            for xx in xs:
+                for yy in ys:
+                    p = np.array([xx, yy, z])
+                    if not self.is_reachable(p):
+                        continue
+                    # Score: high up, far from center, far from fan, near preferred.
+                    score = (
+                        3.0 * z
+                        + 1.0 * np.linalg.norm(p[:2] - center)
+                        + 1.0 * np.linalg.norm(p[:2] - fan_xy)
+                    )
+                    if prefer_xy is not None:
+                        score -= 1.5 * np.linalg.norm(p[:2] - np.asarray(prefer_xy))
+                    if score > best_score:
+                        best, best_score = p, score
+        if best is None:
+            return np.array([m.room_width / 2, m.room_depth / 2, m.room_height * 0.5])
+        return best
 
 
 def reachable_workspace_slice(

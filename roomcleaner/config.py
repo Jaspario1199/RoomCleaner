@@ -13,23 +13,52 @@ The coordinate frame:
 
 So the four ceiling corners are at height z = ROOM_HEIGHT, and the floor
 (where laundry lives) is the plane z = 0.
+
+============================================================================
+  >>> YOU ONLY NEED TO EDIT THE TWO BLOCKS MARKED "EDIT ME" BELOW <<<
+      (your room dimensions, and your ceiling-fan location/size)
+  Everything else is computed for you.
+============================================================================
 """
 
 from dataclasses import dataclass, field
 import numpy as np
 
 
-# ---------------------------------------------------------------------------
-# Room geometry  (measure YOUR room and change these three numbers)
-# ---------------------------------------------------------------------------
-ROOM_WIDTH = 4.0    # meters, along +x
-ROOM_DEPTH = 3.0    # meters, along +y
+# ===========================================================================
+#  EDIT ME (1/2) --- ROOM GEOMETRY.  Measure your room in meters.
+# ===========================================================================
+ROOM_WIDTH = 4.0    # meters, along +x  (wall-to-wall)
+ROOM_DEPTH = 3.0    # meters, along +y  (wall-to-wall)
 ROOM_HEIGHT = 2.6   # meters, floor to ceiling
+
+
+# ===========================================================================
+#  EDIT ME (2/2) --- CEILING FAN.  The robot's cables must NEVER touch it.
+#
+#  Model the fan as a vertical no-go CYLINDER hanging from the ceiling:
+#    - center it at the fan's mounting point (x, y) on the ceiling
+#    - radius = half the fan's blade span (tip-to-tip diameter / 2)
+#    - it spans from the LOWEST point of the fan up to the ceiling
+#
+#  Measure: stand under the fan, drop a plumb line (or just eyeball the
+#  center), measure how far each blade tip reaches, and how far the lowest
+#  part of the fan hangs below the ceiling.
+#
+#  If you have NO ceiling fan, set HAS_FAN = False and ignore the rest.
+# ===========================================================================
+HAS_FAN = True
+FAN_CENTER_X = 2.0            # meters, fan center along +x  (often room center)
+FAN_CENTER_Y = 1.5           # meters, fan center along +y
+FAN_BLADE_RADIUS = 0.55      # meters, blade tip reach from center (blade span / 2)
+FAN_DROP = 0.35              # meters, how far the LOWEST part hangs below the ceiling
+FAN_SAFETY_MARGIN = 0.15     # meters, extra keep-out padding around the whole fan
 
 
 # ---------------------------------------------------------------------------
 # Winch anchor points -- one motor in each ceiling corner.
 # Order matters and is fixed everywhere: A, B, C, D going counter-clockwise.
+# (Derived from the room dimensions above -- normally no need to edit.)
 # ---------------------------------------------------------------------------
 ANCHORS = np.array(
     [
@@ -43,9 +72,9 @@ ANCHORS = np.array(
 
 
 # ---------------------------------------------------------------------------
-# End-effector (the "claw" assembly) physical properties
+# End-effector (the servo-driven GRABBER assembly) physical properties
 # ---------------------------------------------------------------------------
-EFFECTOR_MASS = 0.6           # kg, the claw + camera + suction head hanging on the cables
+EFFECTOR_MASS = 0.6           # kg, grabber + camera + servo hanging on the cables
 GRAVITY = 9.81                # m/s^2
 MAX_CABLE_TENSION = 40.0      # N, the most force one motor may pull with (safety limit)
 MIN_CABLE_TENSION = 0.5       # N, keep a little tension so cables never go slack
@@ -54,7 +83,37 @@ MIN_CABLE_TENSION = 0.5       # N, keep a little tension so cables never go slac
 # and cannot go below this height except during a deliberate "reach down to grab".
 WALL_MARGIN = 0.20            # meters
 SAFE_MIN_Z = 0.15            # meters -- normal travel height floor clearance
-GRAB_Z = 0.03               # meters -- how low the head descends to pick up cloth
+GRAB_Z = 0.03               # meters -- how low the grabber descends to pick up cloth
+
+
+@dataclass
+class FanZone:
+    """A vertical no-go cylinder for a ceiling fan (or any ceiling obstacle).
+
+    The cylinder is centered at (cx, cy), has radius `radius`, and spans
+    z in [z_low, z_high]. `radius` and `z_low` already include the safety
+    margin (see `from_config`).
+    """
+
+    cx: float
+    cy: float
+    radius: float
+    z_low: float
+    z_high: float
+    enabled: bool = True
+
+    @classmethod
+    def from_config(cls, room_height: float = ROOM_HEIGHT) -> "FanZone":
+        # Lowest point of the keep-out volume = ceiling minus drop, minus margin.
+        z_low = room_height - FAN_DROP - FAN_SAFETY_MARGIN
+        return cls(
+            cx=FAN_CENTER_X,
+            cy=FAN_CENTER_Y,
+            radius=FAN_BLADE_RADIUS + FAN_SAFETY_MARGIN,
+            z_low=max(0.0, z_low),
+            z_high=room_height + 0.01,       # up to (just past) the ceiling
+            enabled=HAS_FAN,
+        )
 
 
 @dataclass
@@ -69,6 +128,7 @@ class RobotConfig:
     room_width: float = ROOM_WIDTH
     room_depth: float = ROOM_DEPTH
     room_height: float = ROOM_HEIGHT
+    fan: FanZone = field(default_factory=lambda: FanZone.from_config(ROOM_HEIGHT))
 
     @property
     def num_cables(self) -> int:

@@ -98,22 +98,25 @@ against the floor, then a finger/flap/pins trap the cloth against that anvil. A
 shallow (~10–20°) ramped leading edge driven forward-and-down scoops a crumpled
 pile far more reliably than any symmetric squeeze.
 
-### Recommendation (mechanical, no vacuum)
+### Chosen design — a tentacle gripper (a ring of curling fingers)
 
-1. **Primary — Spatula-scoop + Fin Ray flap (all 3D-printable).**
-   A thin spring-steel/PLA leading edge wedges under the cloth (or pins it to the
-   floor); a servo-driven **Fin Ray Effect** finger folds the cloth up onto the
-   spatula. The spatula does the *capturing* (the hard part), the soft flap does
-   the *holding* (the easy part). Forgiving of crumpled vs. flat. One MG996R servo.
-2. **Fallback — Needle/pin gripper.** Two opposed sets of thin angled pins
-   (0.8–1.5 mm) that drive a few mm into the fabric and lock it mechanically —
-   the best pure "straight-down onto a flat sock" grabber. Add a stripper plate to
-   push cloth off on release. Tiny pinholes are irrelevant on laundry about to be
-   washed; watch for lint/grit buildup.
+A ring of soft, tendon-driven **curling "tentacle" fingers** that descend and
+curl **inward and under**, raking and wrapping crumpled laundry toward the
+center. For real-world laundry (which is crumpled, not flat), this beats a rigid
+claw: it doesn't need a feature to pinch — it gathers. One servo pulls all the
+tendons at once, so the whole hand closes together. **This is what's modeled in
+`cad/`** (`tentacle_finger` + `tentacle_hub` + `effector_frame`), print-ready.
 
-**Skip:** plain parallel jaws alone and plain Fin Ray alone (nothing to grab on
-flat cloth), and jamming/granular grippers (they need the vacuum pump you ruled
-out).
+- Each finger: a TPU strip with a continuous dorsal skin and ventral V-notches +
+  a tendon channel. Pull the tendon → the notches close → the finger curls.
+- The "press to the floor and rake inward" motion still matters for a *perfectly
+  flat* sock (nothing to get under otherwise) — mount fingers ventral-side-in.
+- **Fallback for thin flat items:** a needle/pin gripper (opposed angled pins that
+  pierce a few mm and lock the fabric — best pure straight-down grabber). Add a
+  stripper plate for release. Pinholes don't matter on laundry about to be washed.
+
+**Skip:** plain parallel jaws / plain Fin Ray *alone* (nothing to grab on flat
+cloth), and jamming/granular grippers (they need the vacuum pump you ruled out).
 
 **Payload is not the constraint** — a wet towel/jeans is ~300–700 g, well within
 an MG996R (~9–11 kg·cm) or an off-the-shelf metal claw (~500 g). *Capturing the

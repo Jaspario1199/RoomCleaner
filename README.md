@@ -158,12 +158,22 @@ software first.
 
 ---
 
-## A note on the gripper (mechanical, no vacuum)
+## The gripper — a tentacle hand (mechanical, no vacuum)
 
-Grabbing flat, crumpled cloth off a hard floor is the classic failure point.
-After researching the options, the recommendation is a **spatula-scoop + Fin Ray
-flap**: a thin leading edge slides under the cloth (or pins it to the floor) while
-a soft 3D-printed finger folds it up. The key trick is to **pinch/scoop against
-the floor rather than close in mid-air**. A **needle/pin gripper** is the fallback
-for thin flat socks. Full comparison and parts in
+Grabbing crumpled cloth off a hard floor is the classic failure point. The chosen
+design is a **ring of tendon-driven curling "tentacle" fingers** that descend and
+curl **inward and under**, raking and wrapping the laundry toward the center — one
+servo closes them all. For real, crumpled laundry this beats a rigid claw because
+it gathers rather than needing something to pinch. It's fully modeled and
+print-ready in **[`cad/`](cad/)** (`tentacle_finger` × 5 + `tentacle_hub` +
+`effector_frame`). Full reasoning and the needle-gripper fallback are in
 **[docs/HARDWARE.md](docs/HARDWARE.md)**.
+
+## 3D-printed parts (CAD)
+
+Everything mechanical that can be printed is provided as **parametric CadQuery
+scripts** exporting genuine **STEP** + **STL** files: winch spools, motor mounts,
+corner guides, the end-effector frame, and the whole tentacle gripper. Edit your
+dimensions in `cad/params.py` and run `python -m cad.export_all` to regenerate.
+See **[cad/README.md](cad/README.md)** for print settings and assembly. (The
+load-bearing ceiling anchors stay **metal** — never printed.)

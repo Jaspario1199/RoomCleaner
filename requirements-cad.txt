@@ -1,0 +1,6 @@
+# CAD toolchain -- only needed to REGENERATE the STEP/STL files.
+# The generated files in cad/step and cad/stl are committed, so you can print
+# without installing any of this.
+cadquery>=2.4     # parametric CAD, exports STEP + STL (built on OpenCASCADE)
+trimesh>=4.0      # loads STL for the preview renderer
+# numpy + matplotlib (already in requirements.txt) render the preview PNGs.

@@ -1,88 +1,84 @@
 """
-Motor mount -- cradles a round gear-motor body in a ceiling corner.
+Motor mount -- an L-bracket that face-mounts a NEMA 17 stepper in a ceiling
+corner. The motor bolts to the vertical face (4x M3), shaft pointing out toward
+the room with the winch spool on it; the base plate screws up into the ceiling
+(into a joist / solid block).
 
-Design notes:
-  * A base plate screws to the ceiling / a corner block (4 holes).
-  * A saddle with a half-cylinder cradle holds the motor body.
-  * Zip-tie slots strap the motor firmly into the cradle (simple + strong).
-  * Print with the base flat on the bed; the cradle overhang is < 45 deg so it
-    needs no supports.
-NOTE: this holds the MOTOR. The load-bearing CEILING anchors themselves must be
-metal screws into a joist -- never a printed part (see cad/README.md).
+Print with the base flat on the bed and the face standing up; the gussets keep
+it from needing supports. Use PETG for strength.
+
+NOTE: the load-bearing CEILING screws that hold this bracket up must be METAL
+into solid wood -- never a printed part (see cad/README.md).
 """
 
 from __future__ import annotations
 
 import cadquery as cq
 
-from ..params import MOTOR_BODY_DIA, CLEARANCE, WALL, SCREW_M3
+from ..params import (
+    NEMA17_FACE, NEMA17_HOLES, NEMA17_BOSS_DIA, SCREW_M3, CLEARANCE,
+)
 
-BASE_L = 70.0
-BASE_W = 50.0
-BASE_T = 5.0
-STRAP_SLOT_W = 4.0     # zip-tie slot width
-STRAP_SLOT_T = 2.5     # zip-tie slot thickness
+BASE_L = 56.0          # along X (width)
+BASE_W = 52.0          # along Y (depth, into the corner)
+T = 5.0                # plate thickness
+FACE_H = 54.0          # vertical face height
+PATTERN_Z = 30.0       # height of the NEMA 17 hole-pattern centre on the face
+CEIL_SCREW = 4.5       # ceiling mounting screws (M4/lag clearance)
 
 
 def make() -> cq.Workplane:
-    cradle_r = MOTOR_BODY_DIA / 2 + CLEARANCE
-    saddle_h = cradle_r + WALL          # top of the saddle above the base
-    saddle_len = BASE_W                 # cradle runs across the base width
+    half = NEMA17_HOLES / 2  # 15.5
 
-    # Base plate with 4 mounting holes.
-    part = cq.Workplane("XY").box(BASE_L, BASE_W, BASE_T, centered=(True, True, False))
-    hx, hy = BASE_L / 2 - 7, BASE_W / 2 - 7
-    part = (
-        part.faces(">Z").workplane()
-        .pushPoints([(hx, hy), (-hx, hy), (hx, -hy), (-hx, -hy)])
-        .hole(SCREW_M3 + 0.6)
+    # Base plate.
+    base = cq.Workplane("XY").box(BASE_L, BASE_W, T, centered=(True, True, False))
+    # Ceiling mounting holes (4, near the front, away from the face).
+    base = (
+        base.faces(">Z").workplane()
+        .pushPoints([(BASE_L / 2 - 8, BASE_W / 2 - 8), (-BASE_L / 2 + 8, BASE_W / 2 - 8),
+                     (BASE_L / 2 - 8, -BASE_W / 2 + 20), (-BASE_L / 2 + 8, -BASE_W / 2 + 20)])
+        .hole(CEIL_SCREW)
     )
 
-    # Saddle block sitting on one half of the base, cradle axis along Y.
-    saddle_cx = -BASE_L / 4 + 4
-    saddle = (
+    # Vertical face at the back edge (y = -BASE_W/2), plate thickness T in Y.
+    face = (
         cq.Workplane("XY")
-        .center(saddle_cx, 0)
-        .box(MOTOR_BODY_DIA + 2 * WALL, saddle_len, saddle_h + cradle_r,
-             centered=(True, True, False))
+        .box(BASE_L, T, FACE_H, centered=(True, True, False))
+        .translate((0, -BASE_W / 2 + T / 2, 0))
     )
-    # Hollow the cradle: a horizontal cylinder (axis Y) at height saddle_h.
-    cradle = (
-        cq.Workplane("XZ")
-        .workplane(offset=saddle_len / 2)
-        .center(saddle_cx, saddle_h)
-        .circle(cradle_r)
-        .extrude(-saddle_len)
-    )
-    saddle = saddle.cut(cradle)
-    # Open the top: chop everything above the cradle center so the motor drops in.
-    lid = (
-        cq.Workplane("XY")
-        .center(saddle_cx, 0)
-        .box(MOTOR_BODY_DIA + 2 * WALL, saddle_len, cradle_r,
-             centered=(True, True, False))
-        .translate((0, 0, saddle_h))
-    )
-    saddle = saddle.cut(lid)
 
-    # Zip-tie slots: two pairs of thin vertical slots through the saddle walls.
-    for sx in (saddle_cx - MOTOR_BODY_DIA / 3, saddle_cx + MOTOR_BODY_DIA / 3):
-        slot = (
-            cq.Workplane("XY")
-            .center(sx, 0)
-            .box(STRAP_SLOT_T, saddle_len + 2, STRAP_SLOT_W)
-            .translate((0, 0, saddle_h - STRAP_SLOT_W))
-        )
-        # place slots through the side walls only (near +Y and -Y edges)
-        for sy in (saddle_len / 2 - WALL / 2, -saddle_len / 2 + WALL / 2):
-            wall_slot = (
-                cq.Workplane("XY").center(sx, sy)
-                .box(STRAP_SLOT_T, STRAP_SLOT_W, saddle_h + cradle_r)
-                .translate((0, 0, 0))
+    # NEMA 17 pattern on the face: central boss clearance + 4 M3 corners.
+    boss = (
+        cq.Workplane("XZ").workplane(offset=BASE_W)
+        .center(0, PATTERN_Z).circle((NEMA17_BOSS_DIA + CLEARANCE) / 2)
+        .extrude(-BASE_W * 2)
+    )
+    face = face.cut(boss)
+    for dx in (-half, half):
+        for dz in (-half, half):
+            hole = (
+                cq.Workplane("XZ").workplane(offset=BASE_W)
+                .center(dx, PATTERN_Z + dz).circle((SCREW_M3 + 0.4) / 2)
+                .extrude(-BASE_W * 2)
             )
-            saddle = saddle.cut(wall_slot)
+            face = face.cut(hole)
 
-    return part.union(saddle)
+    part = base.union(face)
+
+    # Two side gussets (right triangles) bracing the face to the base.
+    for sx in (BASE_L / 2 - T / 2, -BASE_L / 2 + T / 2):
+        gusset = (
+            cq.Workplane("YZ")
+            .polyline([(-BASE_W / 2, 0),
+                       (-BASE_W / 2 + 28, 0),
+                       (-BASE_W / 2, 34)])
+            .close()
+            .extrude(T)
+            .translate((sx - T / 2, 0, 0))
+        )
+        part = part.union(gusset)
+
+    return part
 
 
 if __name__ == "__main__":

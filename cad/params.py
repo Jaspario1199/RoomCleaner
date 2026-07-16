@@ -7,9 +7,14 @@ especially MOTOR_SHAFT_DIA (measure your gear motor's shaft) and DYNEEMA_DIA.
 """
 
 # --- Your hardware -- MEASURE THESE and edit ------------------------------
-MOTOR_SHAFT_DIA = 6.0     # mm, gear-motor output shaft diameter
+# This build uses NEMA 17 stepper motors (see docs/BOM_ORDER.md). NEMA 17 has a
+# 5 mm round shaft and a 42.3 mm square face with an M3 hole pattern.
+MOTOR = "NEMA17"          # winch motor type
+MOTOR_SHAFT_DIA = 5.0     # mm, NEMA 17 output shaft diameter
 MOTOR_SHAFT_FLAT = 0.5    # mm, depth of the D-shaft flat (0 = round shaft)
-MOTOR_BODY_DIA = 37.0     # mm, round gear-motor body diameter (37mm is common)
+NEMA17_FACE = 42.3        # mm, NEMA 17 body/face width (square)
+NEMA17_HOLES = 31.0       # mm, M3 mounting-hole square pattern
+NEMA17_BOSS_DIA = 22.0    # mm, raised pilot boss on the motor face
 DYNEEMA_DIA = 1.0         # mm, braided line diameter (100-200 lb ~ 0.8-1.2 mm)
 SERVO = "MG996R"          # gripper servo (horn/mount sized for MG996R)
 

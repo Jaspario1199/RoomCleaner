@@ -1,98 +1,91 @@
-# RoomCleaner — BOM: what to print, what to buy (base vs. upgrade)
+# RoomCleaner — Final BOM (the "shirts & jeans" build)
 
-Structure:
-- **§0 Printed parts** — free (you have a printer). Files in `cad/`.
-- **§1–5 Bought parts** — each line has a **Base** (the minimum that does the job
-  well) and, where it's worth it, an **Upgrade → why**.
+The locked-in parts list, sized for the real job: picking up **shirts, pants, and
+jeans** (heaviest item ≈ average Levi's, ~2 lb / 0.9 kg) off the floor and
+dropping them in a hamper. Reuses a computer you own; the 12 V motor supply is
+killed by a **switched power strip you already have** (no e-stop button needed).
 
 Prices are 2026 US estimates (±20%); Amazon blocks automated price checks, so
-confirm at checkout. Product links + search terms are in `docs/RESEARCH.md` and
-`docs/HARDWARE.md`.
+confirm at checkout. Why these sizes: see "Sizing" at the bottom.
 
 ---
 
 ## §0 — Print these (free)
 
-Everything mechanical that can be printed, is. STEP + STL are in `cad/`. See
-`cad/README.md` for materials and print settings.
+STEP + STL in `cad/`. Print settings & assembly in `cad/README.md`.
+The `motor_mount` is the **NEMA 17** L-bracket; `winch_spool` bore is 5 mm.
 
-| Part | Qty | Material | Replaces buying |
-|------|-----|----------|-----------------|
-| `winch_spool` | 4 | PLA/PETG | winch drums |
-| `motor_mount` | 4 | PETG | motor brackets |
-| `corner_guide` | 4 | PETG | pulley brackets |
-| `effector_frame` | 1 | PETG | end-effector body |
-| `tentacle_hub` | 1 | PETG | gripper base |
-| `tentacle_finger` | 5 | **TPU 95A** | the whole gripper |
-| `camera_mount` | 1 | PLA/PETG | camera bracket |
-
-**Still buy even though you print:** the *pulley wheels* (printed pulleys add
-friction — buy bearing pulleys), all *fasteners*, and — critically — the *metal
-ceiling anchors* (never printed, see §3).
+| Part | Qty | Material |
+|------|-----|----------|
+| `winch_spool` | 4 | PLA/PETG |
+| `motor_mount` (NEMA 17 bracket) | 4 | **PETG** |
+| `corner_guide` | 4 | PETG |
+| `effector_frame` | 1 | PETG |
+| `tentacle_hub` | 1 | PETG |
+| `tentacle_finger` | 5 | **TPU 95A** |
+| `camera_mount` | 1 | PLA/PETG |
 
 ---
 
-## §1 — Motion (motors + winches)
+## §1 — Buy this
 
-| Item | Base pick | ~$ (×qty) | Upgrade → why |
-|------|-----------|-----------|---------------|
-| **Winch motor ×4** | 12V worm-gear **self-locking** DC, ~30 kg·cm, w/ encoder | 32 (×4=128) | **50 kg·cm** version (~$45) → more payload margin, holds heavier/wet loads without straining. *Cheaper-but-risky alt:* NEMA 17 stepper ($12) — **loses steps & drops the load**, only for a bench test. |
-| **Motor driver ×4** | BTS7960 / IBT-2 | 10 (×4=40) | Base is genuinely enough. Only upgrade to a closed-loop controller (ODrive/SimpleFOC ~$50) if you later want silky velocity control. |
-| **Cable (line)** | Braided Dyneema 100 lb | 13 | **200 lb coated Dyneema** (~$20) → less stretch & abrasion = position stays accurate longer. Line stretch is a top accuracy killer, so this upgrade earns its keep. |
-| **Corner pulley ×4** | Small bearing pulley (steel) | 3 (×4=12) | **Ceramic-bearing pulley** (~$8) → lower friction at the redirect point directly improves position accuracy and lasts longer. Worth it. |
+| ✓ | Item | Spec / search term | Qty | ~$ |
+|---|------|--------------------|-----|----|
+| ☐ | **Winch motor** | NEMA 17 stepper, **≥50 N·cm** (high-torque) — "NEMA 17 stepper 59Ncm 4 pack" | 4 | 50 |
+| ☐ | **Controller + drivers** | Arduino Uno (or CNC-shield clone) + **CNC shield** + 4× A4988/DRV8825 — "Arduino CNC shield kit A4988" | 1 kit | 18 |
+| ☐ | **Line** | Braided Dyneema 100 lb — "hollow braid dyneema 100lb" | 1 | 10 |
+| ☐ | **Home switches** | KW12-3 micro limit switch (10-pk) — "KW12-3 limit switch" | 1 pk | 8 |
+| ☐ | **Power supply** | 12V **5A** 60W — "12V 5A power supply barrel" | 1 | 12 |
+| ☐ | **Inline fuse + holder** | 5–10 A automotive — "inline blade fuse holder 5A" | 1 | 3 |
+| ☐ | **Overhead camera** | 1080p USB webcam — "1080p USB webcam" (or Logitech C920 ~$55 for autofocus) | 1 | 22 |
+| ☐ | **Gripper servo** | MG996R metal-gear — "MG996R servo" | 1 | 6 |
+| ☐ | **Ceiling anchors** ⚠️ | 304 stainless eye/lag screws **into joists** — "304 stainless lag eye screw" | 1 pk | 8 |
+| ☐ | **M3 screw/nut kit** | Assorted M3 — "M3 screw nut assortment kit" | 1 | 12 |
+| ☐ | **TPU filament** | TPU 95A (for the fingers) — "TPU 95A filament 1kg" | 1 | 20 |
+| ☐ | **Wiring** | Dupont jumpers + 22 AWG hookup + zip ties | — | 15 |
 
-## §2 — Compute + control
+**Total ≈ $184** (≈ **$164** if you already own some PLA/PETG/TPU filament).
 
-| Item | Base pick | ~$ | Upgrade → why |
-|------|-----------|----|----|
-| **Vision brain** | Raspberry Pi 5 **4 GB** + PSU + 32 GB SD | 101 | **Pi 5 8 GB** (~$120+) or a mini-PC → run a bigger/faster detector, more headroom for the hybrid two-camera setup. Only if the 4 GB feels tight. |
-| **Motor MCU** | ESP32 DevKit | 13 | **Teensy 4.1** (~$32) → far faster, hardware quadrature decoders for all 4 encoders, rock-solid timing. Worth it if you run high-rate closed-loop on all four motors. |
-| **Home switches ×4** | KW12-3 microswitches (10-pk) | 8 | Optical/Hall endstops (~$10) → no mechanical wear, more repeatable homing. Minor; base is fine. |
-
-## §3 — Power + safety (do not skimp — mandatory)
-
-| Item | Base pick | ~$ | Upgrade → why |
-|------|-----------|----|----|
-| **Power supply** | 12V 30A 360W enclosed SMPS | 28 | **Mean Well 12V 30A** (~$55) → trusted regulation & protection, quieter, safer for an always-on system. Recommended upgrade — cheap PSUs are a fire/reliability risk running 24/7. |
-| **E-STOP button** ⚠️ | 22 mm latching mushroom, NC | 10 | Industrial-rated (~$18) → more reliable contacts. Base is acceptable **if** it drives the contactor below. |
-| **Power contactor** ⚠️ | 40A relay/DC contactor (e-stop cuts motor rail through this) | 12 | Proper safety contactor (~$25) → rated for many cycles, positive-guided contacts. |
-| **Fuse + holder** | Inline 30A automotive | 8 | — (base is correct) |
-| **5V buck converter** | LM2596 / MP1584 | 8 | Higher-current buck (5V 5A, ~$10) → headroom if the gripper servo stalls. |
-
-> The e-stop **must physically cut the motor power rail through the contactor** —
-> not just signal the MCU. This is non-negotiable regardless of tier.
-
-## §4 — Perception + gripper
-
-| Item | Base pick | ~$ | Upgrade → why |
-|------|-----------|----|----|
-| **Overhead "find" camera** | Logitech C920 1080p USB | 55 | Wider-FOV / C922 (~$70) → see the whole floor from a lower ceiling; better low-light. *Cheaper alt:* generic 1080p USB ($22) — poorer optics/autofocus. |
-| **Effector "confirm" camera** | Raspberry Pi Camera Module 3 | 25 | **Camera Module 3 Wide** (~$35) → wider close-up view so laundry doesn't fall outside frame as the claw descends. Worth it. |
-| **Gripper servo** | MG996R metal-gear | 3–11 | **DS3218 20 kg digital** (~$15) → much more grip force to curl the tentacles through a wet towel, metal gears, better centering. Recommended if grip feels weak. |
-
-## §5 — Fasteners, filament, misc
-
-| Item | Base pick | ~$ | Upgrade → why |
-|------|-----------|----|----|
-| **Threaded inserts** | *(skip — self-tap M3 into plastic)* | 0 | **M3 brass heat-set inserts + soldering-iron tip** (~$12) → **the single best reliability upgrade for printed parts.** Screwing repeatedly into plastic strips out; heat-set inserts give real metal threads. Strongly recommended. |
-| **Metal ceiling anchors** ⚠️ | 304 stainless eye screws into joists | 8 | Rated lag eye-bolts (~$15) → higher load rating & safety margin. Always metal, into solid wood — **never printed.** |
-| **M3 screw/nut kit** | Assorted M3 bolts/nuts/washers | 12 | Stainless kit (~$18) → won't rust, cleaner. |
-| **Filament** | PETG (structural) + TPU 95A (fingers) + a little PLA | ~40 | Brand-name TPU (e.g., 95A) → more consistent flexible prints; the fingers depend on good TPU. |
-| **Zip ties, wire, dupont, project box** | Assortment (box can be printed) | ~25 | — |
+### Reused / not needed (why)
+| Item | Why it's out |
+|------|--------------|
+| Raspberry Pi + PSU + SD (~$101) | You're reusing a computer for vision. |
+| E-stop button + contactor (~$22) | Your **switched power strip** cuts the 12 V motor supply — same job. |
+| Corner pulleys (~$12) | Printed `corner_guide` handles 15 N tension fine. |
+| Buck converter (~$8) | Reuse a **5 V phone charger** to power the servo. |
+| Effector close-up camera (~$25) | Deferred to Phase 4; the overhead camera gets you picking up. |
+| Worm-gear DC + encoders (~$128) | Overkill for 2 lb; steppers are cheaper, faster, plenty strong. |
 
 ---
 
-## Totals
+## §2 — Optional upgrades (only if you want to spend more)
 
-| Tier | Rough cost | Notes |
-|------|-----------|-------|
-| **Base build** (print everything printable, base bought parts) | **~$430** | Fully functional; safe (worm-gear motors, real e-stop). |
-| **+ Worthwhile upgrades** (heat-set inserts, Mean Well PSU, ceramic pulleys, coated line, DS3218 servo, wide effector cam) | **+~$90** | Best bang-for-buck reliability/accuracy gains. |
-| **Cheapest bench prototype** (1 motor, reuse a laptop, stepper) | **~$90** | Prove one winch + the gripper before committing. |
+| Upgrade | +$ | Why |
+|---------|----|----|
+| **M3 brass heat-set inserts** + iron tip | 12 | **Best reliability upgrade** — real metal threads in printed parts instead of self-tapping into plastic. |
+| Ceramic-bearing corner pulleys (×4) | 12 | Lower friction → better position accuracy over time. |
+| Logitech C920 webcam | +33 | Autofocus + better optics vs. a generic cam. |
+| Coated 200 lb Dyneema | +7 | Less stretch = position holds accurate longer. |
+| TMC2209 drivers (quiet) | +10 | Near-silent steppers vs. A4988 whine. |
 
-## The three upgrades I'd actually pay for first
-1. **M3 heat-set inserts (~$12)** — printed threads strip; this fixes it everywhere.
-2. **Mean Well PSU (~+$27)** — it runs 24/7; don't cheap out on the power.
-3. **Coated 200 lb Dyneema (~+$7)** — line stretch is the #1 accuracy killer.
+---
 
-Everything else, the base pick is genuinely fine to start.
+## Sizing (why these numbers)
+
+Computed from our own kinematics for the loaded effector (0.45 kg assembly +
+0.9 kg jeans = 1.35 kg):
+
+- **Peak cable tension across the whole workspace: 15 N.** → ~3 kg·cm drum torque
+  with a 2× dynamic margin. A ≥50 N·cm NEMA 17 (~5 kg·cm) gives ~2× on top of
+  that — comfortable.
+- **Line:** 15 N ≈ 3.4 lb → 100 lb Dyneema has ~30× margin.
+- **Power:** ~12 W mechanical total → a 12 V 5 A (60 W) supply is ample.
+
+If you later want a **heavier** capacity (e.g. wet towels or bedding), you'd step
+back up to higher-torque motors, a bigger supply, and stronger line — and, for
+horizontal pulling tasks like straightening bedding, a different cable geometry
+(the current one can't apply much sideways force near the floor).
+
+## The one thing that stays regardless of budget
+The **metal ceiling anchors** (into joists) and the **switched power strip** kill
+path. Everything else can flex; those two keep the rig up and stoppable.

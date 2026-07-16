@@ -12,8 +12,16 @@ realistic ballparks, not quotes.
 
 ## The two decisions that make or break the build
 
-### 1. Motor choice — use self-locking **worm-gear DC + encoder**, not bare steppers
-This is a *lifting* job: a dropped end-effector = a camera smashing on the floor.
+> **This build's decision (light payload):** for shirts/pants/**jeans** (~2 lb max)
+> where a dropped item is harmless and the 12 V supply is killed by a switched
+> power strip, we use **NEMA 17 steppers** — cheaper, faster, simpler (one CNC
+> shield drives all four), and computed to have ~2× torque margin. See
+> `docs/BOM_ORDER.md`. The worm-gear discussion below applies if you scale up to
+> **heavier loads** (wet towels, bedding), where a self-locking motor earns its
+> keep. Both are valid; pick by payload.
+
+### 1. Motor choice — self-locking **worm-gear DC + encoder** vs. steppers
+For a *heavy* lifting job, a dropped end-effector = a camera smashing on the floor.
 
 - **NEMA 17 steppers** — cheap and simple (one RAMPS board drives all four), but
   they hold load *only while powered*, run hot doing it, and **silently lose

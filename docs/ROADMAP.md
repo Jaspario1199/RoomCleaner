@@ -94,21 +94,60 @@ The hardest, least-certain part. Budget time to iterate.
 - [ ] Choose the end-effector. Strong recommendation: **start with suction**
       (a small vacuum + solenoid valve) — it grabs flat cloth far more reliably
       than a claw. Keep fingers/claw as a fallback.
+      Decision made: a **tentacle gripper** (a ring of tendon-driven curling TPU
+      fingers, one servo) — see `cad/` and HARDWARE.md.
 - [ ] The vertical "reach down and touch the floor" motion — a pure cable robot
       is weak straight down; consider a short spring-loaded or servo Z-stage on
       the claw for the final few centimeters.
-- [ ] Grab confirmation: did we actually pick it up? (Suction pressure sensor,
-      onboard camera, or a load check.)
+- [ ] Grab confirmation: did we actually pick it up? (onboard camera or a load
+      check on cable tension.)
 - [ ] Release over the hamper and confirm the drop.
+- [ ] Tune the tentacle curl on real laundry — stiff denim (jeans) is the hardest
+      case; may want deeper notches or an extra finger.
 - [ ] Close the loop with Phase 1–3 and let it run a full room.
+
+---
+
+## Phase 5 — Future directions (someday / maybe)
+
+Ideas the mechanism opens up once the laundry version works. Not committed, just
+captured so they're not lost.
+
+### Turn it into a large-format 3D printer
+Cable-driven robots are a real approach to room/building-scale additive
+manufacturing (e.g. ORNL's cable-suspended large-format printer). The bones carry
+over — **our inverse kinematics, winches, motion control, and homing are exactly
+what a cable printer needs.** What would have to change:
+
+- **Precision & stiffness:** printing needs ~0.1–0.2 mm; a hanging effector sags,
+  stretches, and sways. Fight it with low-stretch (steel) cable, higher tension,
+  slower moves.
+- **More cables — 8, not 4:** four cables fix a point's *position* but can't hold
+  the toolhead *level*. Full 6-DOF rigidity uses 8 cables (upgrade the point-mass
+  model to a rigid body).
+- **A real toolhead:** extruder + hot end (small scale) or a paste/concrete pump
+  (room scale — plastic is impractical past ~1 m³).
+- **Cables vs. the growing print:** the descending cables can collide with the
+  object as it builds up — a genuine open problem.
+
+Realistic path: after the laundry robot, swap the gripper for a light toolhead and
+try a **~1 m³ paste/clay printer** (or even a pen-plotter) to prove precision
+before a hot end. Nail the forgiving laundry version first.
+
+### Other ideas
+- Fetch-and-carry for other light objects (toys, TV remote).
+- Overhead camera doubling as a room monitor / time-lapse.
+- Multiple hampers / sorting (lights vs. darks) using the detector's labels.
 
 ---
 
 ## Guardrails (apply from Phase 3 onward)
 
-- **Safety is not optional.** Motors that can move a payload across your ceiling
-  can injure a person or pet and damage the room. Hardware e-stop, force limits,
-  and geofencing come *before* the first powered move.
+- **A hardware power cut is not optional.** Even a light rig has motors that can
+  run away or swing the effector. This build uses a **switched power strip on the
+  12 V motor supply** as the kill switch (slap it / flip it → motors dead),
+  backed by an inline fuse. Software limits and geofencing (walls + fan) come
+  *before* the first powered move — but they can't replace the physical cut.
 - **Never run it unattended** until it has earned that trust over many
   supervised runs.
 - Keep humans, pets, and fragile things out of the workspace during operation.

@@ -72,9 +72,13 @@ ANCHORS = np.array(
 
 
 # ---------------------------------------------------------------------------
-# End-effector (the servo-driven GRABBER assembly) physical properties
+# End-effector (the servo-driven tentacle GRABBER) + payload
 # ---------------------------------------------------------------------------
-EFFECTOR_MASS = 0.6           # kg, grabber + camera + servo hanging on the cables
+# The workspace/tension math validates the WORST case: the effector carrying its
+# heaviest payload. Target payload is a pair of average Levi's jeans (~0.9 kg).
+EFFECTOR_ASSEMBLY = 0.45      # kg, printed frame + hub + 5 TPU fingers + servo + camera
+MAX_PAYLOAD = 0.90           # kg, heaviest item to carry (jeans ~2 lb)
+EFFECTOR_MASS = EFFECTOR_ASSEMBLY + MAX_PAYLOAD   # kg, loaded mass used for statics
 GRAVITY = 9.81                # m/s^2
 MAX_CABLE_TENSION = 40.0      # N, the most force one motor may pull with (safety limit)
 MIN_CABLE_TENSION = 0.5       # N, keep a little tension so cables never go slack

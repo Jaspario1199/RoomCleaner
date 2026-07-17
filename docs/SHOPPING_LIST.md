@@ -51,10 +51,18 @@ WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | Effector brain | ESP32 dev board (a 2-pack gives one for the effector + a spare) | https://www.amazon.com/s?k=ESP32+devkit+board+2+pack | 12 |
-| ☐ | Battery | 1S/2S LiPo ~1000 mAh + JST — search "1000mAh 2S lipo battery jst" | https://www.amazon.com/s?k=1000mAh+2S+lipo+battery | 9 |
-| ☐ | LiPo charger | TP4056 (1S) or 2S balance charge board (5-pack) | https://www.amazon.com/s?k=TP4056+charging+module | 7 |
-| ☐ | Servo 5–6V buck | Mini DC-DC buck (MP1584, from your earlier pack) or a 5V UBEC | https://www.amazon.com/s?k=mini+buck+converter+5v | 4 |
+| ☐ | Effector brain | MELIFE ESP32-DevKitC (2-pack: one for the claw + a spare) | https://www.amazon.com/MELIFE-ESP32-DevKitC-Development-ESP32-WROOM-32U-Arduino/dp/B0811KLGDD | 13 |
+| ☐ | Battery | OVONIC 2S 7.4V 1000 mAh LiPo, JST (2-pack) | https://www.amazon.com/OVONIC-1000mAh-Battery-Truck-Truggy/dp/B07CVBJ3SL | 16 |
+| ☐ | Servo 5–6V buck | EBOOT MP1584EN buck (6-pack) — set output to 6.0 V for the servo | https://www.amazon.com/MP1584EN-DC-DC-Converter-Adjustable-Module/dp/B01MQGMOKI | 9 |
+| ☐ | LiPo charger | Simple **2S USB LiPo charge board** (8.4 V) — search; ~$8. *(Or, if you get a hobby balance charger like an iMax B6, a parallel board works.)* | https://www.amazon.com/s?k=2S+lipo+USB+charger+board+8.4V | 8 |
+
+### Full-room-rig wiring additions (measure your room first!)
+| ✓ | Item | Product | Link | ~$ |
+|---|------|---------|------|----|
+| ☐ | Cord raceway (hide the wires) | D-Line paintable self-adhesive raceway, 157" — buy enough for your ceiling perimeter | https://www.amazon.com/D-Line-Self-Adhesive-Channels-Accessories-Management/dp/B08563XMS5 | 25 |
+| ☐ | Stepper extension | R REIFENG 4× 2 M NEMA 17 extension cables — *verify the connector matches your SIMAX motor cable; for runs > 3 m use bulk 20–22 AWG 4-conductor wire instead* | https://www.amazon.com/REIFENG-Setpper-Motor-Cable-Connectors/dp/B07SHK9YZ5 | 12 |
+| ☐ | Limit-switch wire | EvZ 24 AWG 2-conductor, 33 ft (thin, low-current; get more if your runs are long) | https://www.amazon.com/EvZ-Conductor-Temperature-Resistant-Extension/dp/B07GGJDPPJ | 8 |
+| ☐/⚙️ | Structural filament | HATCHBOX PLA 1 kg (only if you don't already have PLA/PETG) | https://www.amazon.com/HATCHBOX-3D-Filament-Dimensional-Accuracy/dp/B00J0ECR5I | 20 |
 | ⚙️ | Vision computer | **Reuse your laptop/PC** | — | 0 |
 | ⚙️ | 5 V for servo | **Reuse a 5 V phone charger** | — | 0 |
 

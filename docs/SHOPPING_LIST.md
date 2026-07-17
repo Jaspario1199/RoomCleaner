@@ -33,7 +33,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 |---|------|---------|------|----|
 | ☐ | 12 V power supply | ALITOVE 12V **6A** 72W barrel adapter (4.6★, extra headroom) — *or Chanzon 12V 5A if you want a UL-listed unit (~$20)* | https://www.amazon.com/s?k=ALITOVE+12V+6A+72W+power+supply | 16 |
 | ✅ | Barrel → screw-terminal | **Covered by the DAOKI kit's DC power cable.** (The ALITOVE 6A ships only a power cord, so rely on the kit cable; if its plug doesn't fit the shield, a $2 barrel→terminal adapter closes the gap.) | — | 0 |
-| ☐ | Inline fuse + fuses | SIM&NAT inline holder + 50 blade fuses (use a **5 A** fuse) | https://www.amazon.com/SIM-NAT-Automotive-Standard-Replacement/dp/B07FQCBSJ5 | 9 |
+| ☐ | Inline fuse + fuses | SIM&NAT inline holder + 50 blade fuses (4.7★) — install a **7.5 A** fuse (matches the 6 A supply) | https://www.amazon.com/SIM-NAT-Automotive-Standard-Replacement/dp/B07FQCBSJ5 | 12 |
 | ⚙️ | Kill switch | **Your switched power strip** — plug the 12 V PSU into it | — | 0 |
 
 *Wiring order: PSU → barrel adapter → **fuse on the + lead** → CNC-shield power terminal. (You can also just cut the PSU barrel off and skip the adapter → save $8.)*
@@ -75,9 +75,9 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | Scenario | ~$ |
 |----------|----|
-| **Everything above (primary picks, single-servo, incl. structural PLA)** | **~$216** |
-| If you already own PLA/PETG filament | **~$196** |
-| Trimmed (reuse some wire; barrel adapter already free) | **~$181** |
+| **Everything above (primary picks, single-servo, incl. structural PLA)** | **~$219** |
+| If you already own PLA/PETG filament | **~$199** |
+| Trimmed (reuse some wire; barrel adapter already free) | **~$184** |
 
 *(Running savings: the 42-38 5-pack ($33) beat the $54 4-pack (−$21, +spare); the DAOKI DRV8825 kit ($17) beat the A4988 kit (−$7, better drivers) and bundles the DC power cable that likely makes the $8 barrel adapter redundant.)*
 

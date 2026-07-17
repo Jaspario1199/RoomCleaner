@@ -51,7 +51,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | Ceiling anchors ⚠️ | 5" M10 self-tapping **closed-eye** lag hooks, 700 lb, 4-pack (screw into JOISTS, no nut). Zinc is fine indoors — closed eye + lag thread + load rating matter most | https://www.amazon.com/s?k=5+inch+heavy+duty+eye+hooks+M10+self+tapping+700lbs | 15 |
+| ☐ | Ceiling anchors ⚠️ | QXSKSLH 5" M10 **stainless, fully-closed-eye** self-tapping hooks, 700 lb, 4-pack (screw into JOISTS, no nut; pilot-drill first) | https://www.amazon.com/s?k=QXSKSLH+5+inch+eye+hooks+M10+stainless | 14 |
 | ☐ | M3 screw/nut kit | MroMax 640-pc M3 button-head, 304 stainless (6–30 mm + nuts + washers) — also provides the NEMA 17 mount screws | https://www.amazon.com/MroMax-Stainless-Button-Socket-Screws/dp/B0BZP89FQT | 10 |
 
 ## Wiring
@@ -75,9 +75,9 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | Scenario | ~$ |
 |----------|----|
-| **Everything above (primary picks, MG996R 4-pack, incl. structural PLA)** | **~$220** |
-| If you already own PLA/PETG filament | **~$200** |
-| Trimmed (reuse some wire; barrel adapter already free) | **~$185** |
+| **Everything above (primary picks, MG996R 4-pack, incl. structural PLA)** | **~$219** |
+| If you already own PLA/PETG filament | **~$199** |
+| Trimmed (reuse some wire; barrel adapter already free) | **~$184** |
 
 *(Running savings: the 42-38 5-pack ($33) beat the $54 4-pack (−$21, +spare); the DAOKI DRV8825 kit ($17) beat the A4988 kit (−$7, better drivers) and bundles the DC power cable that likely makes the $8 barrel adapter redundant.)*
 

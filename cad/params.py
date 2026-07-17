@@ -26,6 +26,14 @@ SCREW_M3_TAP = 2.8        # mm, M3 self-tap / thread-forming hole
 NUT_M3_AF = 5.5           # mm, M3 nut across-flats (for captive nut pockets)
 NUT_M3_THK = 2.4          # mm, M3 nut thickness
 
+# Heat-set inserts: when True, holes that a screw THREADS INTO (i.e. into the
+# printed plastic) are widened to the brass insert's melt-in size. Holes that
+# only PASS a screw (clearance), thread into METAL (motor/servo), or go into
+# flexible TPU (inserts don't hold in TPU) are left alone.
+USE_HEATSET_INSERTS = True
+INSERT_M3_HOLE = 4.0      # mm, melt-in hole for a standard M3 brass heat-set insert
+M3_THREAD_HOLE = INSERT_M3_HOLE if USE_HEATSET_INSERTS else SCREW_M3_TAP
+
 # --- Winch spool -----------------------------------------------------------
 SPOOL_DRUM_DIA = 20.0     # mm, core the line winds onto (keep small for torque)
 SPOOL_LEN = 26.0          # mm, winding length between flanges

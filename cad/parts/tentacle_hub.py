@@ -20,7 +20,7 @@ from __future__ import annotations
 import math
 import cadquery as cq
 
-from ..params import SCREW_M3, SCREW_M3_TAP
+from ..params import SCREW_M3, M3_THREAD_HOLE
 
 N_FINGERS = 5
 HUB_DIA = 88.0
@@ -84,7 +84,9 @@ def make() -> cq.Workplane:
         (mount_r * math.cos(a), mount_r * math.sin(a))
         for a in [math.radians(45 + 90 * k) for k in range(4)]
     ]
-    hub = hub.faces(">Z").workplane().pushPoints(pts).hole(SCREW_M3_TAP)
+    # These 4 holes receive the screws that bolt the hub up to the effector
+    # frame -> size them for heat-set inserts (or self-tap if disabled).
+    hub = hub.faces(">Z").workplane().pushPoints(pts).hole(M3_THREAD_HOLE)
 
     return hub
 

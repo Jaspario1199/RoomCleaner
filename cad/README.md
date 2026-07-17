@@ -61,6 +61,23 @@ python -m cad.export_all
 Mount fingers with their **notched (ventral) side facing inward** so they curl
 toward the center and wrap the laundry.
 
+## Heat-set inserts (brass threaded inserts)
+
+`params.py` has `USE_HEATSET_INSERTS` (default **True**). It controls only the
+holes where a screw threads **into printed plastic**:
+
+- **Insert holes (widened to ~4 mm):** the 4 holes in `tentacle_hub` that bolt it
+  up to the `effector_frame` — the joint carrying the whole gripper. Melt an M3
+  insert into each with a soldering iron + insert tip, then bolt through the frame.
+- **Left as clearance / screw-through:** most holes (frame, motor mount, corner
+  guide) — screws pass through and thread into the motor/servo's own metal, or
+  take a nut. No insert needed.
+- **TPU parts stay self-tap / use a screw + nut:** heat-set inserts do **not** hold
+  in flexible TPU, so the `tentacle_finger` base is not insert-drilled.
+
+Set `USE_HEATSET_INSERTS = False` and re-run `python -m cad.export_all` if you'd
+rather self-tap screws straight into the plastic (holes shrink to ~2.8 mm).
+
 ## ⚠️ Safety: do NOT print these
 
 The **load-bearing ceiling anchors** (the eye screws / lag bolts into your

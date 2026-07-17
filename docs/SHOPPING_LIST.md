@@ -31,8 +31,8 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | 12 V power supply | Chanzon 12V 5A 60W, **UL-listed**, includes a screw-terminal barrel adapter | https://www.amazon.com/110V-220V-Converter-Lighting-Transformer-Flexible/dp/B073QTNF9F | 20 |
-| ✅ | Barrel → screw-terminal | **Not needed** — included with both the Chanzon PSU (green adapter) and the DAOKI kit's DC cable | — | 0 |
+| ☐ | 12 V power supply | ALITOVE 12V **6A** 72W barrel adapter (4.6★, extra headroom) — *or Chanzon 12V 5A if you want a UL-listed unit (~$20)* | https://www.amazon.com/s?k=ALITOVE+12V+6A+72W+power+supply | 16 |
+| ✅ | Barrel → screw-terminal | **Covered by the DAOKI kit's DC power cable.** (The ALITOVE 6A ships only a power cord, so rely on the kit cable; if its plug doesn't fit the shield, a $2 barrel→terminal adapter closes the gap.) | — | 0 |
 | ☐ | Inline fuse + fuses | SIM&NAT inline holder + 50 blade fuses (use a **5 A** fuse) | https://www.amazon.com/SIM-NAT-Automotive-Standard-Replacement/dp/B07FQCBSJ5 | 9 |
 | ⚙️ | Kill switch | **Your switched power strip** — plug the 12 V PSU into it | — | 0 |
 
@@ -75,9 +75,9 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | Scenario | ~$ |
 |----------|----|
-| **Everything above (primary picks, single-servo, incl. structural PLA)** | **~$220** |
-| If you already own PLA/PETG filament | **~$200** |
-| Trimmed (reuse some wire; barrel adapter already free) | **~$185** |
+| **Everything above (primary picks, single-servo, incl. structural PLA)** | **~$216** |
+| If you already own PLA/PETG filament | **~$196** |
+| Trimmed (reuse some wire; barrel adapter already free) | **~$181** |
 
 *(Running savings: the 42-38 5-pack ($33) beat the $54 4-pack (−$21, +spare); the DAOKI DRV8825 kit ($17) beat the A4988 kit (−$7, better drivers) and bundles the DC power cable that likely makes the $8 barrel adapter redundant.)*
 

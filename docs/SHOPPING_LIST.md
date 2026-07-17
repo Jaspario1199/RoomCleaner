@@ -43,7 +43,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | Overhead webcam | innomaker 1080P **130° wide** USB UVC (OpenCV plug-and-play). Bare 32×32 board — print `cad/camera_mount_overhead` (no $14 case needed) + one-time lens-undistort calibration | https://www.amazon.com/innomaker-Computer-Raspberry-Support-Windows/dp/B0CNCSFQC1 | 19 |
-| ☐ | Gripper servo | **STANDARD 180° MG996R** metal-gear — ⚠️ **NOT** the "360°"/continuous-rotation version (that can't hold a grip position). Deegoo 4-pack is standard | https://www.amazon.com/4-Pack-MG996R-Torque-Digital-Helicopter/dp/B07MFK266B | 10 |
+| ☐ | Gripper servo | **STANDARD 180° MG996R** (Deegoo-FPV 2-pack, confirmed positional) — ⚠️ **NOT** the "360°"/continuous-rotation version. Power from a **separate 5V 2–3A** source (stall ~3A), not the Arduino 5V pin | https://www.amazon.com/s?k=Deegoo-FPV+MG996R+2+pack | 14 |
 | ⚙️ | Vision computer | **Reuse your laptop/PC** | — | 0 |
 | ⚙️ | 5 V for servo | **Reuse a 5 V phone charger** | — | 0 |
 
@@ -75,9 +75,9 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | Scenario | ~$ |
 |----------|----|
-| **Everything above (primary picks, single-servo, incl. structural PLA)** | **~$213** |
-| If you already own PLA/PETG filament | **~$193** |
-| Trimmed (reuse some wire; barrel adapter already free) | **~$178** |
+| **Everything above (primary picks, single-servo, incl. structural PLA)** | **~$217** |
+| If you already own PLA/PETG filament | **~$197** |
+| Trimmed (reuse some wire; barrel adapter already free) | **~$182** |
 
 *(Running savings: the 42-38 5-pack ($33) beat the $54 4-pack (−$21, +spare); the DAOKI DRV8825 kit ($17) beat the A4988 kit (−$7, better drivers) and bundles the DC power cable that likely makes the $8 barrel adapter redundant.)*
 

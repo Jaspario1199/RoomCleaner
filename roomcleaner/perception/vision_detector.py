@@ -115,4 +115,7 @@ class YoloWorldDetector(Detector):
         p_tl = self.mapper.pixel_to_floor(x1, y1)
         p_br = self.mapper.pixel_to_floor(x2, y2)
         area = float(abs(p_br[0] - p_tl[0]) * abs(p_br[1] - p_tl[1]))
-        return Detection(position=pos, label=str(label), confidence=conf, area=area)
+        return Detection(
+            position=pos, label=str(label), confidence=conf, area=area,
+            bbox=(float(x1), float(y1), float(x2), float(y2)),
+        )

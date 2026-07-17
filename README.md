@@ -59,8 +59,14 @@ python -m pytest                # run the kinematics/geometry/vision tests
 
 # Phase 1 — real laundry detection on a webcam (heavier deps):
 pip install -r requirements-vision.txt
-python -m scripts.detect_webcam # detects laundry + prints floor coordinates
+python -m scripts.detect_webcam                    # detect + print floor coordinates
+python -m scripts.detect_and_plan --image floor.jpg  # full pipeline: detect -> localize -> PLAN
 ```
+
+`detect_and_plan` is the end-to-end brain: it takes a top-down photo (or
+`--webcam 0`), detects the laundry, maps each item to a floor coordinate, runs
+the real pickup planner, and saves an annotated image + a 3D scene. Test it on a
+phone photo today — no camera or robot required.
 
 The sim demo scatters fake laundry, then runs the real control loop to clear the
 floor and animates the result. **Before anything else, open

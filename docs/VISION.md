@@ -81,6 +81,29 @@ for d in detector.detect(frame):
 
 `scripts/detect_webcam.py` is a ready-to-run version of exactly this.
 
+## The full pipeline (detect → localize → plan)
+
+`scripts/detect_and_plan.py` runs the whole software brain end to end and is the
+best way to test everything **before hardware**:
+
+```bash
+python -m scripts.detect_and_plan --image floor.jpg   # a top-down phone photo
+python -m scripts.detect_and_plan --webcam 0           # live, once the cam is up
+```
+
+It (1) loads a frame, (2) detects laundry, (3) maps each item to a floor (x, y),
+(4) feeds them to the **same `Controller`** that drives the simulator and plans
+the scan → nearest-first → grab → deliver order, and (5) writes two pictures to
+`./output/`:
+- `detected_image.png` — your frame with boxes, labels, and floor coordinates
+- `detected_scene.png` — the 3D room showing the detected laundry + the plan
+
+The glue is `perception/live.py::LiveDetector`, which snapshots one frame and
+serves it to the planner as the current floor contents. Because the planner is
+unchanged, the detections the camera produces are exactly what the real robot
+will act on — the only thing that changes at hardware time is that motor commands
+go to the winches instead of the simulator.
+
 ## Fixed overhead vs. camera-on-the-claw
 
 - **Fixed overhead (recommended to start):** one camera sees the whole floor —

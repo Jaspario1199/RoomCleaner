@@ -29,6 +29,7 @@ class Detection:
     label: str                # e.g. "sock", "shirt", "towel"
     confidence: float         # 0..1
     area: float = 0.0         # rough footprint in m^2 (helps pick a grab strategy)
+    bbox: tuple | None = None  # (x1, y1, x2, y2) pixel box, when it came from a camera
 
 
 class Detector:

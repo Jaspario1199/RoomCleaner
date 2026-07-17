@@ -23,7 +23,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | Controller + drivers (kit) | **DAOKI CNC Shield V3.0 kit**: Arduino Uno + CNC Shield V3 + **4× DRV8825** + heatsinks + USB + DC power cable + jumpers | https://www.amazon.com/s?k=DAOKI+CNC+Shield+V3.0+kit+DRV8825+Arduino | 17 |
-| ☐ | Home switches | HiLetgo KW12-3 micro limit switch (10-pack) | https://www.amazon.com/HiLetgo-KW12-3-Roller-Switch-Normally/dp/B07X142VGC | 8 |
+| ☐ | Home switches | HiLetgo KW12-3 micro limit switch, 1NO 1NC roller lever (10-pack) — wire Common + NC for fail-safe homing | https://www.amazon.com/HiLetgo-KW12-3-Roller-Switch-Normally/dp/B07X142VGC | 6 |
 
 *Driver note: this kit ships **DRV8825** drivers — cooler-running, finer microstepping, and they drive the 1.5 A motors at full torque. Set each driver's current limit (Vref ≈ 0.75 V for ~1.5 A) before running. **4-axis caveat (any CNC shield):** the stock 4th "A" slot clones another axis; our custom firmware drives all 4 independently via the step/dir pins (incl. D12/D13), so this is fine for us.*
 

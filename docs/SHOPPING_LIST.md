@@ -43,7 +43,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | Overhead webcam | innomaker 1080P **130° wide** USB UVC (OpenCV plug-and-play). Bare 32×32 board — print `cad/camera_mount_overhead` (no $14 case needed) + one-time lens-undistort calibration | https://www.amazon.com/innomaker-Computer-Raspberry-Support-Windows/dp/B0CNCSFQC1 | 19 |
-| ☐ | Gripper servo | MG996R metal-gear — Treedix 2-pack (spare) *(or Deegoo 4-pack ~$25)* | https://www.amazon.com/Treedix-MG996R-Servo-High-Torque-Helicopter/dp/B08743N181 | 10 |
+| ☐ | Gripper servo | **STANDARD 180° MG996R** metal-gear — ⚠️ **NOT** the "360°"/continuous-rotation version (that can't hold a grip position). Deegoo 4-pack is standard | https://www.amazon.com/4-Pack-MG996R-Torque-Digital-Helicopter/dp/B07MFK266B | 10 |
 | ⚙️ | Vision computer | **Reuse your laptop/PC** | — | 0 |
 | ⚙️ | 5 V for servo | **Reuse a 5 V phone charger** | — | 0 |
 

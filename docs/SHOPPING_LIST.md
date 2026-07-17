@@ -52,7 +52,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | Ceiling anchors ⚠️ | 304 stainless lag **eye** screws (into joists) ×4 — National Hardware lag eye (confirm stainless SKU) | https://www.amazon.com/National-Hardware-N220-806-Lag-Screw/dp/B01E60C2X2 | 12 |
-| ☐ | M3 screw/nut kit | MroMax 640-pc M3 button-head, 304 stainless (6–30 mm + nuts + washers) | https://www.amazon.com/MroMax-Stainless-Button-Socket-Screws/dp/B0BZP89FQT | 14 |
+| ☐ | M3 screw/nut kit | MroMax 640-pc M3 button-head, 304 stainless (6–30 mm + nuts + washers) — also provides the NEMA 17 mount screws | https://www.amazon.com/MroMax-Stainless-Button-Socket-Screws/dp/B0BZP89FQT | 10 |
 
 ## Wiring
 
@@ -75,9 +75,9 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | Scenario | ~$ |
 |----------|----|
-| **Everything above (primary picks, MG996R 4-pack, incl. structural PLA)** | **~$221** |
-| If you already own PLA/PETG filament | **~$201** |
-| Trimmed (reuse some wire; barrel adapter already free) | **~$186** |
+| **Everything above (primary picks, MG996R 4-pack, incl. structural PLA)** | **~$217** |
+| If you already own PLA/PETG filament | **~$197** |
+| Trimmed (reuse some wire; barrel adapter already free) | **~$182** |
 
 *(Running savings: the 42-38 5-pack ($33) beat the $54 4-pack (−$21, +spare); the DAOKI DRV8825 kit ($17) beat the A4988 kit (−$7, better drivers) and bundles the DC power cable that likely makes the $8 barrel adapter redundant.)*
 

@@ -1,0 +1,3 @@
+# Phase 3 hardware bridge -- only needed to talk to the real Arduino.
+# The dry-run (scripts/hardware_dryrun.py) and all tests work without this.
+pyserial>=3.5    # USB serial link to the Arduino firmware

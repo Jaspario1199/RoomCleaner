@@ -74,12 +74,15 @@ class Controller:
         self._log.append(f"[{self.state.name}] {msg}")
 
     # ------------------------------------------------------------------
-    # One full pickup cycle, yielding the path so a simulator can animate it.
+    # One full pickup cycle, as a list of structured ACTIONS.
     # ------------------------------------------------------------------
-    def plan_next_cycle(self) -> np.ndarray | None:
-        """Advance the state machine by one item and return the path to follow.
+    def _plan_cycle(self) -> list[tuple] | None:
+        """Advance one item; return a list of actions, or None when done.
 
-        Returns an (N, 3) waypoint array for the move, or None when done.
+        Actions are tuples the sim and the hardware both understand:
+            ("move", path)   -- follow this (N,3) waypoint array
+            ("grip", point)  -- close the gripper (at `point`)
+            ("release", point) -- open the gripper (at `point`)
         """
         self.state = State.SCAN
         items = self.detector.detect()
@@ -100,26 +103,38 @@ class Controller:
         )
         self.log(f"Selected {self.target.label} (conf {self.target.confidence:.2f}).")
 
-        # APPROACH + GRAB: transit to a point above the item, then descend.
+        # Geometry: transit above the item, descend, grip, lift, carry, release.
         approach_pt = _above(self.target, SAFE_MIN_Z)
         grab_pt = _above(self.target, GRAB_Z)
         path_to_item = safe_transit(self.position, approach_pt, self.cruise_z)
         descent = safe_transit(approach_pt, grab_pt, cruise_z=SAFE_MIN_Z)
-
-        self.state = State.GRAB
-        self.log(f"Grabbing at {grab_pt.round(2)}.")
-
-        # DELIVER: lift and carry to the hamper, then release.
         lift = safe_transit(grab_pt, approach_pt, cruise_z=self.cruise_z)
         to_hamper = safe_transit(approach_pt, self.hamper, self.cruise_z)
 
-        self.state = State.DELIVER
+        self.state = State.GRAB
+        self.log(f"Grabbing at {grab_pt.round(2)}.")
         self.detector.remove(self.target) if hasattr(self.detector, "remove") else None
         self.picked_up += 1
+        self.state = State.DELIVER
         self.log(f"Delivered to hamper. Total: {self.picked_up}.")
-
         self.position = self.hamper.copy()
-        return np.vstack([path_to_item, descent, lift, to_hamper])
+
+        return [
+            ("move", path_to_item),
+            ("move", descent),
+            ("grip", grab_pt),
+            ("move", lift),
+            ("move", to_hamper),
+            ("release", self.hamper.copy()),
+        ]
+
+    def plan_next_cycle(self) -> np.ndarray | None:
+        """Advance one item; return the concatenated (N,3) path (for the sim)."""
+        actions = self._plan_cycle()
+        if actions is None:
+            return None
+        moves = [payload for kind, payload in actions if kind == "move"]
+        return np.vstack(moves)
 
     def run(self, max_items: int = 20, return_to_rest: bool = True) -> list[np.ndarray]:
         """Run cycles until the floor is clear; return the list of paths taken.
@@ -140,6 +155,24 @@ class Controller:
             self.log(f"Parked at rest pose {self.rest.round(2)}.")
             paths.append(park)
         return paths
+
+    def iter_actions(self, max_items: int = 20, return_to_rest: bool = True):
+        """Yield every action across the whole run -- what HARDWARE executes.
+
+        Same plan as run(), but as a stream of ("move"|"grip"|"release", payload)
+        so a hardware backend can move the winches and work the gripper in order.
+        """
+        for _ in range(max_items):
+            actions = self._plan_cycle()
+            if actions is None:
+                break
+            yield from actions
+        if return_to_rest and np.linalg.norm(self.position - self.rest) > 1e-3:
+            self.state = State.IDLE
+            park = safe_transit(self.position, self.rest, self.cruise_z)
+            self.position = self.rest.copy()
+            self.log(f"Parked at rest pose {self.rest.round(2)}.")
+            yield ("move", park)
 
 
 def _above(detection: Detection, z: float) -> np.ndarray:

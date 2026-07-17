@@ -126,11 +126,18 @@ roomcleaner/
     camera.py             # webcam capture wrapper (OpenCV)
   control/
     trajectory.py         # smooth path generation
-    state_machine.py      # the scan→grab→deliver brain (fan-aware, parks at rest)
-  hardware/               # (Phase 3) motor drivers, e-stop live here
+    state_machine.py      # the scan→grab→deliver brain (emits move/grip/release actions)
+  hardware/
+    driver.py             # positions → winch steps + serial protocol (Serial/Mock)
+    executor.py           # stream a plan to the Arduino
+    hw_config.py          # steps/rev, microstepping, drum dia, serial port
+firmware/
+  roomcleaner_firmware/   # Arduino sketch: 4 steppers + servo + homing
 scripts/
   demo_sim.py             # end-to-end simulation demo
   detect_webcam.py        # live laundry detection from a webcam
+  detect_and_plan.py      # full pipeline: image/webcam → detect → localize → plan
+  hardware_dryrun.py      # print the serial command stream (no Arduino needed)
 tests/
   test_kinematics.py      # the math we must trust
   test_geometry.py        # fan keep-out safety tests

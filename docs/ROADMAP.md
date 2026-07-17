@@ -104,6 +104,11 @@ The hardest, least-certain part. Budget time to iterate.
 - [ ] Release over the hamper and confirm the drop.
 - [ ] Tune the tentacle curl on real laundry — stiff denim (jeans) is the hardest
       case; may want deeper notches or an extra finger.
+- [ ] **Effector power end-state: a charging dock at the rest pose.** The claw is
+      wireless (ESP32 + LiPo, gripper over WiFi). Start with a power switch (on per
+      session); then add charging contacts (pogo pins) at the rest position so it
+      tops up whenever it parks — solving the ESP32's always-on WiFi drain and
+      making the claw maintenance-free.
 - [ ] Close the loop with Phase 1–3 and let it run a full room.
 
 ---

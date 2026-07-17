@@ -55,6 +55,12 @@ WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
 | ☐ | Battery | OVONIC 2S 7.4V 1000 mAh LiPo, JST (2-pack) | https://www.amazon.com/OVONIC-1000mAh-Battery-Truck-Truggy/dp/B07CVBJ3SL | 16 |
 | ☐ | Servo 5–6V buck | EBOOT MP1584EN buck (6-pack) — set output to 6.0 V for the servo | https://www.amazon.com/MP1584EN-DC-DC-Converter-Adjustable-Module/dp/B01MQGMOKI | 9 |
 | ☐ | LiPo charger | Simple **2S USB LiPo charge board** (8.4 V) — search; ~$8. *(Or, if you get a hobby balance charger like an iMax B6, a parallel board works.)* | https://www.amazon.com/s?k=2S+lipo+USB+charger+board+8.4V | 8 |
+| ☐ | Power switch | Small SPST slide/rocker switch (multipack) — flip the effector on per session | https://www.amazon.com/s?k=mini+SPST+slide+switch | 5 |
+
+> **Power strategy:** start with the switch above (on for a session, off when
+> idle). The long-run end-state is a **charging dock at the rest pose** so the
+> claw tops up whenever it parks — build that in Phase 4 once your layout is set.
+> This solves the ESP32's ~100 mA always-on WiFi drain by charging while idle.
 
 ### Full-room-rig wiring additions (measure your room first!)
 | ✓ | Item | Product | Link | ~$ |
@@ -62,7 +68,7 @@ WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
 | ☐ | Cord raceway (hide the wires) | D-Line paintable self-adhesive raceway, 157" — buy enough for your ceiling perimeter | https://www.amazon.com/D-Line-Self-Adhesive-Channels-Accessories-Management/dp/B08563XMS5 | 25 |
 | ☐ | Stepper extension | R REIFENG 4× 2 M NEMA 17 extension cables — *verify the connector matches your SIMAX motor cable; for runs > 3 m use bulk 20–22 AWG 4-conductor wire instead* | https://www.amazon.com/REIFENG-Setpper-Motor-Cable-Connectors/dp/B07SHK9YZ5 | 12 |
 | ☐ | Limit-switch wire | EvZ 24 AWG 2-conductor, 33 ft (thin, low-current; get more if your runs are long) | https://www.amazon.com/EvZ-Conductor-Temperature-Resistant-Extension/dp/B07GGJDPPJ | 8 |
-| ☐/⚙️ | Structural filament | HATCHBOX PLA 1 kg (only if you don't already have PLA/PETG) | https://www.amazon.com/HATCHBOX-3D-Filament-Dimensional-Accuracy/dp/B00J0ECR5I | 20 |
+| ⚙️ | Structural filament | **You have PLA — skip.** (PLA is fine for all the structural parts at ~15 N indoors.) | — | 0 |
 | ⚙️ | Vision computer | **Reuse your laptop/PC** | — | 0 |
 | ⚙️ | 5 V for servo | **Reuse a 5 V phone charger** | — | 0 |
 

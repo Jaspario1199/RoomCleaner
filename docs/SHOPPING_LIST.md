@@ -14,7 +14,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | NEMA 17 stepper ×4 (+1 spare) | SIMAX3D NEMA 17 **42-38** size, ~36 N·cm, 1.5 A, 5 mm shaft (**5-pack**) — select the **42-38** option | https://www.amazon.com/s?k=SIMAX3D+Nema+17+42-38+5pcs | 33 |
-| ☐ | Cable/line | 9KM-DWLIFE UHMWPE braid (or emma kites 1 mm, ~350 lb) | https://www.amazon.com/9KM-DWLIFE-Anti-Bite-Freshwater-Saltwater/dp/B0DLNQFQKK | 13 |
+| ☐ | Cable/line | 9KM DWLIFE X8 braided Dyneema, **50 lb**, 150 m (select 50 lb, not 8 lb) | https://www.amazon.com/9KM-DWLIFE-Anti-Bite-Freshwater-Saltwater/dp/B0DLNQFQKK | 8 |
 
 *Note: at 0.8–1.2 mm, UHMWPE line naturally rates ~200–350 lb (not 100) — that's a bonus: more abrasion life, still low-stretch.*
 
@@ -75,9 +75,9 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | Scenario | ~$ |
 |----------|----|
-| **Everything above (primary picks, single-servo, incl. structural PLA)** | **~$220** |
-| If you already own PLA/PETG filament | **~$200** |
-| Trimmed (skip the now-redundant barrel adapter, reuse some wire) | **~$180** |
+| **Everything above (primary picks, single-servo, incl. structural PLA)** | **~$215** |
+| If you already own PLA/PETG filament | **~$195** |
+| Trimmed (skip the now-redundant barrel adapter, reuse some wire) | **~$175** |
 
 *(Running savings: the 42-38 5-pack ($33) beat the $54 4-pack (−$21, +spare); the DAOKI DRV8825 kit ($17) beat the A4988 kit (−$7, better drivers) and bundles the DC power cable that likely makes the $8 barrel adapter redundant.)*
 

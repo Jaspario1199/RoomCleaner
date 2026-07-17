@@ -43,7 +43,18 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | Overhead webcam | innomaker 1080P **130° wide** USB UVC (OpenCV plug-and-play). Bare 32×32 board — print `cad/camera_mount_overhead` (no $14 case needed) + one-time lens-undistort calibration | https://www.amazon.com/innomaker-Computer-Raspberry-Support-Windows/dp/B0CNCSFQC1 | 19 |
-| ☐ | Gripper servo | **STANDARD 180° MG996R, 4-pack** (best value, 3 spares — servo is the most wear-prone part). ⚠️ NOT "360°"/continuous. Power from a **separate 5V 2–3A** source (stall ~3A), not the Arduino 5V pin | https://www.amazon.com/s?k=Deegoo-FPV+MG996R+4+pack | 18 |
+| ☐ | Gripper servo | **STANDARD 180° MG996R, 4-pack** (best value, 3 spares — servo is the most wear-prone part). ⚠️ NOT "360°"/continuous. On the **wireless effector**, powered from its onboard battery via a buck | https://www.amazon.com/s?k=Deegoo-FPV+MG996R+4+pack | 18 |
+
+### Wireless effector (the claw is a self-contained WiFi node — no wire to it)
+The gripper servo lives on the effector with an ESP32 + battery, commanded over
+WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
+
+| ✓ | Item | Product | Link | ~$ |
+|---|------|---------|------|----|
+| ☐ | Effector brain | ESP32 dev board (a 2-pack gives one for the effector + a spare) | https://www.amazon.com/s?k=ESP32+devkit+board+2+pack | 12 |
+| ☐ | Battery | 1S/2S LiPo ~1000 mAh + JST — search "1000mAh 2S lipo battery jst" | https://www.amazon.com/s?k=1000mAh+2S+lipo+battery | 9 |
+| ☐ | LiPo charger | TP4056 (1S) or 2S balance charge board (5-pack) | https://www.amazon.com/s?k=TP4056+charging+module | 7 |
+| ☐ | Servo 5–6V buck | Mini DC-DC buck (MP1584, from your earlier pack) or a 5V UBEC | https://www.amazon.com/s?k=mini+buck+converter+5v | 4 |
 | ⚙️ | Vision computer | **Reuse your laptop/PC** | — | 0 |
 | ⚙️ | 5 V for servo | **Reuse a 5 V phone charger** | — | 0 |
 
@@ -75,9 +86,11 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | Scenario | ~$ |
 |----------|----|
-| **Everything above (primary picks, MG996R 4-pack, incl. structural PLA)** | **~$219** |
-| If you already own PLA/PETG filament | **~$199** |
-| Trimmed (reuse some wire; barrel adapter already free) | **~$184** |
+| **Everything above (incl. wireless-effector parts + structural PLA)** | **~$249** |
+| If you already own PLA/PETG filament | **~$229** |
+| Trimmed (reuse some wire; barrel adapter already free) | **~$214** |
+
+*(The wireless claw adds ~$30 — ESP32 + LiPo + charger + buck — to keep any wire from crossing the room to the effector.)*
 
 *(Running savings: the 42-38 5-pack ($33) beat the $54 4-pack (−$21, +spare); the DAOKI DRV8825 kit ($17) beat the A4988 kit (−$7, better drivers) and bundles the DC power cable that likely makes the $8 barrel adapter redundant.)*
 

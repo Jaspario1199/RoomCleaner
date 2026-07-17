@@ -26,5 +26,11 @@ BAUD = 115200
 GRIP_ANGLE = 120             # tendon pulled -> tentacles curled (grip)
 RELEASE_ANGLE = 20           # tendon slack -> tentacles open (release)
 
+# --- Wireless effector (ESP32 on the claw) --------------------------------
+# The gripper servo lives on an ESP32 on the effector, commanded over WiFi.
+# Set EFFECTOR_HOST to the ESP32's IP (or mDNS name) once it's on your network.
+EFFECTOR_HOST = "roomcleaner-claw.local"   # or e.g. "192.168.1.50"
+EFFECTOR_PORT = 80
+
 # --- Motion ----------------------------------------------------------------
 MOVE_STEP_M = 0.15           # how finely to sample a path into hardware moves

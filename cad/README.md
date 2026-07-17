@@ -21,7 +21,7 @@ cad/
 | `winch_spool` | Drum the Dyneema winds onto; mounts on the motor shaft | ×4 | PLA/PETG |
 | `motor_mount` | Cradles the gear motor in a ceiling corner | ×4 | PETG |
 | `corner_guide` | U-bracket holding the corner pulley | ×4 | PETG |
-| `effector_frame` | Body that hangs on the 4 cables; holds servo + camera | ×1 | PETG |
+| `effector_frame` | Hangs on the 4 cables; holds servo, camera, + strap slots for the ESP32 & LiPo (wireless claw) | ×1 | PETG |
 | `tentacle_hub` | Disc carrying the ring of fingers; routes tendons | ×1 | PETG |
 | `tentacle_finger` | Tendon-driven curling "tentacle" finger | ×5 | **TPU 95A** |
 | `camera_mount` | Pi Camera bracket for the effector (close-up cam, Phase 4) | ×1 | PLA/PETG |

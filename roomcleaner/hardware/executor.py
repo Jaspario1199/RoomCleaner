@@ -29,13 +29,19 @@ def subsample_path(path: np.ndarray, step_m: float = MOVE_STEP_M) -> np.ndarray:
     return np.array(kept)
 
 
-def run_on_hardware(robot, controller, driver, *, home: bool = True,
-                    step_m: float = MOVE_STEP_M):
-    """Execute the controller's full plan on hardware via `driver`.
+def run_on_hardware(robot, controller, driver, gripper=None, *,
+                    home: bool = True, step_m: float = MOVE_STEP_M):
+    """Execute the controller's full plan on hardware.
 
-    `driver` is an opened Driver (SerialDriver in production, MockDriver in tests).
+    `driver`  drives the winch motors (SerialDriver in production, MockDriver in
+              tests) -- home() + move_to_point().
+    `gripper` works the claw. Pass a WiFiGripper for the wireless effector; if
+              None, the gripper falls back to the motor driver's own G command
+              (the wired-servo setup). MockGripper for tests.
+
     Returns the number of (move/grip/release) actions executed.
     """
+    grip_target = gripper if gripper is not None else driver
     if home:
         driver.home()
     count = 0
@@ -44,8 +50,8 @@ def run_on_hardware(robot, controller, driver, *, home: bool = True,
             for wp in subsample_path(payload, step_m):
                 driver.move_to_point(wp)
         elif kind == "grip":
-            driver.grip()
+            grip_target.grip()
         elif kind == "release":
-            driver.release()
+            grip_target.release()
         count += 1
     return count

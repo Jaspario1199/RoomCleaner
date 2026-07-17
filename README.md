@@ -129,10 +129,12 @@ roomcleaner/
     state_machine.py      # the scan→grab→deliver brain (emits move/grip/release actions)
   hardware/
     driver.py             # positions → winch steps + serial protocol (Serial/Mock)
-    executor.py           # stream a plan to the Arduino
-    hw_config.py          # steps/rev, microstepping, drum dia, serial port
+    gripper.py            # gripper backends: WiFiGripper (wireless claw) / Serial / Mock
+    executor.py           # stream a plan to the motors + gripper
+    hw_config.py          # steps/rev, microstepping, drum dia, serial port, effector IP
 firmware/
-  roomcleaner_firmware/   # Arduino sketch: 4 steppers + servo + homing
+  roomcleaner_firmware/   # Arduino sketch: 4 winch steppers + homing (wired)
+  effector_esp32/         # ESP32 sketch: wireless gripper servo over WiFi
 scripts/
   demo_sim.py             # end-to-end simulation demo
   detect_webcam.py        # live laundry detection from a webcam

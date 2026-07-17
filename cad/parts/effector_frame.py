@@ -76,6 +76,20 @@ def make() -> cq.Workplane:
     ]
     plate = plate.faces(">Z").workplane(centerOption="CenterOfBoundBox").pushPoints(pts).hole(SCREW_M3 + 0.4)
 
+    # Wireless-effector payload: zip-tie strap slots on the TOP face to mount the
+    # ESP32 board (+y band) and the LiPo battery (-y band). One strap = 2 slots a
+    # zip tie threads through; works with any board/pack size.
+    def strap_slots(cy):
+        prism = None
+        for sx in (-14, 14):
+            s = (cq.Workplane("XY").center(sx, cy)
+                 .slot2D(6.5, 2.6, 90).extrude(THK + 3).translate((0, 0, -1)))
+            prism = s if prism is None else prism.union(s)
+        return prism
+
+    for cy in (31, -31):
+        plate = plate.cut(strap_slots(cy))
+
     return plate
 
 

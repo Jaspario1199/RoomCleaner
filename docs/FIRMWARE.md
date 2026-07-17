@@ -13,7 +13,45 @@ motor executor.
   └───────────────────────────┘  HOMED/DONE/OK   └────────────────────────┘
 ```
 
-## The two pieces
+## Wireless effector — the claw has no wire to it
+
+The gripper servo does **not** run to the central Arduino. Instead the effector
+carries its own **ESP32 + LiPo battery**, and the host commands it over WiFi. Only
+the 4 Dyneema cables touch the claw — nothing electrical crosses the room.
+
+```
+  computer ──USB──▶ Arduino (4 winch motors, wired)
+      │
+      └──WiFi──▶ ESP32 on the claw ──▶ gripper servo (on battery)
+```
+
+- **Firmware:** `firmware/effector_esp32/effector_esp32.ino` — joins your WiFi,
+  serves `GET /grip` / `GET /release`, drives the servo. Set your SSID/password
+  and the servo pin at the top. Needs the **ESP32Servo** library.
+- **Host:** `hardware/gripper.py::WiFiGripper` sends those HTTP requests. Point
+  `EFFECTOR_HOST` in `hw_config.py` at the ESP32's IP or `roomcleaner-claw.local`.
+- **Why this is safe to do wirelessly:** grip/release are just "close now" /
+  "open now" — not the tightly-synchronized motion the winches need — so WiFi
+  latency is invisible here.
+
+Wiring it together in code (motors wired, gripper wireless):
+
+```python
+from roomcleaner.hardware.driver import SerialDriver
+from roomcleaner.hardware.gripper import WiFiGripper
+from roomcleaner.hardware.executor import run_on_hardware
+
+driver = SerialDriver(robot, port="COM3", home_lengths=measured).open()
+claw = WiFiGripper(host="roomcleaner-claw.local")
+run_on_hardware(robot, controller, driver, gripper=claw)   # motors serial, grip WiFi
+```
+
+Power on the effector: a ~1000 mAh LiPo feeds the servo through a 5–6 V buck; a
+TP4056/2S board charges it. A full session runs on one charge; optionally add
+charging contacts at the rest/dock pose so it tops up whenever it parks.
+(Wired fallback: `SerialGripper(driver)` keeps the servo on the Arduino instead.)
+
+## The two pieces (winch side)
 
 - **Firmware** — `firmware/roomcleaner_firmware/roomcleaner_firmware.ino`. Flash
   it with the Arduino IDE (install the **AccelStepper** library first). It drives

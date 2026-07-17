@@ -11,6 +11,7 @@ from roomcleaner.kinematics import CableRobot
 from roomcleaner.perception.detector import SimulatedDetector
 from roomcleaner.control.state_machine import Controller
 from roomcleaner.hardware.driver import MockDriver
+from roomcleaner.hardware.gripper import MockGripper
 from roomcleaner.hardware.executor import run_on_hardware, subsample_path
 from roomcleaner.hardware.hw_config import STEPS_PER_M
 
@@ -62,3 +63,21 @@ def test_full_plan_streams_expected_commands():
     for c in drv.commands:
         if c.startswith("M "):
             assert len(c.split()) == 5
+
+
+def test_wireless_gripper_gets_grip_release_not_the_motor_driver():
+    """With a separate gripper, grip/release go to IT, not the motor driver."""
+    cfg = DEFAULT_CONFIG
+    robot = CableRobot(cfg)
+    det = SimulatedDetector(cfg, n_items=2, seed=1)
+    ctrl = Controller(robot, det, hamper_xy=(cfg.room_width - 0.5, 0.5))
+    drv = MockDriver(robot)
+    claw = MockGripper()
+
+    run_on_hardware(robot, ctrl, drv, gripper=claw)
+
+    # The wireless claw received the grips/releases...
+    assert claw.calls.count("grip") >= 1
+    assert claw.calls.count("release") >= 1
+    # ...and the motor driver got NO gripper commands (no "G ..." over serial).
+    assert not any(c.startswith("G ") for c in drv.commands)

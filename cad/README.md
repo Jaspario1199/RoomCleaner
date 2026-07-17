@@ -24,7 +24,8 @@ cad/
 | `effector_frame` | Body that hangs on the 4 cables; holds servo + camera | ×1 | PETG |
 | `tentacle_hub` | Disc carrying the ring of fingers; routes tendons | ×1 | PETG |
 | `tentacle_finger` | Tendon-driven curling "tentacle" finger | ×5 | **TPU 95A** |
-| `camera_mount` | Pi Camera bracket for the effector | ×1 | PLA/PETG |
+| `camera_mount` | Pi Camera bracket for the effector (close-up cam, Phase 4) | ×1 | PLA/PETG |
+| `camera_mount_overhead` | Ceiling bracket for the innomaker 32×32 overhead cam | ×1 | PLA/PETG |
 
 ## Regenerate after changing dimensions
 

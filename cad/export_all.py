@@ -27,6 +27,7 @@ PARTS = [
     "tentacle_hub",
     "tentacle_finger",
     "camera_mount",
+    "camera_mount_overhead",
 ]
 
 

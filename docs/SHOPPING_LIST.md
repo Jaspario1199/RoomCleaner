@@ -22,17 +22,17 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | Controller + drivers (kit) | **kuman K75**: Arduino Uno + CNC Shield V3 + 4× A4988 + heatsinks | https://www.amazon.com/kuman-Expansion-Stepper-Heatsink-Arduino/dp/B06XHKSVTG | 24 |
+| ☐ | Controller + drivers (kit) | **DAOKI CNC Shield V3.0 kit**: Arduino Uno + CNC Shield V3 + **4× DRV8825** + heatsinks + USB + DC power cable + jumpers | https://www.amazon.com/s?k=DAOKI+CNC+Shield+V3.0+kit+DRV8825+Arduino | 17 |
 | ☐ | Home switches | HiLetgo KW12-3 micro limit switch (10-pack) | https://www.amazon.com/HiLetgo-KW12-3-Roller-Switch-Normally/dp/B07X142VGC | 8 |
 
-*Driver note: the 42-38 motors are **1.5 A**, so the A4988 drivers in the kit run them at essentially full torque — no throttling. (This is why the 1.5 A motor beats a 2 A one here: the A4988 can actually drive it fully.) The DRV8825 upgrade below is optional, for quieter motion only.*
+*Driver note: this kit ships **DRV8825** drivers — cooler-running, finer microstepping, and they drive the 1.5 A motors at full torque. Set each driver's current limit (Vref ≈ 0.75 V for ~1.5 A) before running. **4-axis caveat (any CNC shield):** the stock 4th "A" slot clones another axis; our custom firmware drives all 4 independently via the step/dir pins (incl. D12/D13), so this is fine for us.*
 
 ## Power + protection
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | 12 V power supply | Chanzon 12V 5A 60W (UL) — *or Signcomplex 12V 6A for headroom (~$16)* | https://www.amazon.com/110V-220V-Converter-Lighting-Transformer-Flexible/dp/B073QTNF9F | 13 |
-| ☐ | Barrel → screw-terminal | Cctv4Less 5.5×2.1 mm female → terminal (multipack) | https://www.amazon.com/Cctv4Less-Connectors-Terminal-Adapter-Security/dp/B077QD4G3Q | 8 |
+| ☐ | Barrel → screw-terminal | *Likely NOT needed — the DAOKI kit includes a DC power cable.* Buy only if that cable isn't a female-barrel-to-wires: Cctv4Less 5.5×2.1 mm | https://www.amazon.com/Cctv4Less-Connectors-Terminal-Adapter-Security/dp/B077QD4G3Q | 0–8 |
 | ☐ | Inline fuse + fuses | SIM&NAT inline holder + 50 blade fuses (use a **5 A** fuse) | https://www.amazon.com/SIM-NAT-Automotive-Standard-Replacement/dp/B07FQCBSJ5 | 9 |
 | ⚙️ | Kill switch | **Your switched power strip** — plug the 12 V PSU into it | — | 0 |
 
@@ -75,11 +75,11 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | Scenario | ~$ |
 |----------|----|
-| **Everything above (primary picks, single-servo, incl. structural PLA)** | **~$235** |
-| If you already own PLA/PETG filament | **~$215** |
-| Trimmed (cut PSU barrel instead of adapter −$8, reuse some wire −$15) | **~$194** |
+| **Everything above (primary picks, single-servo, incl. structural PLA)** | **~$220** |
+| If you already own PLA/PETG filament | **~$200** |
+| Trimmed (skip the now-redundant barrel adapter, reuse some wire) | **~$180** |
 
-*(The 42-38 5-pack for $33 replaced the $54 4-pack — saves ~$21 and throws in a spare motor.)*
+*(Running savings: the 42-38 5-pack ($33) beat the $54 4-pack (−$21, +spare); the DAOKI DRV8825 kit ($17) beat the A4988 kit (−$7, better drivers) and bundles the DC power cable that likely makes the $8 barrel adapter redundant.)*
 
 Honest note: this is **above the earlier ~$184 estimate**. The estimate was rough;
 itemizing real products added up — the control *kit* is $24 (not $18), plus a
@@ -91,7 +91,7 @@ hadn't line-itemed. Nothing changed in scope; the parts just cost what they cost
 | Upgrade | Product | Link | +$ |
 |---------|---------|------|----|
 | Heat-set inserts (best reliability upgrade) | INCLY 130-pc M3 inserts + iron tip | https://www.amazon.com/INCLY-Threaded-Insert-Set/dp/B0GXV9XTXC | 12 |
-| DRV8825 drivers (full 2 A torque, quieter) | HiLetgo DRV8825 5-pack (swap into the CNC shield) | https://www.amazon.com/HiLetgo-DRV8825-Stepper-RAMPS1-4-StepStick/dp/B0FRCQN1P9 | 11 |
+| ~~DRV8825 drivers~~ | **Already included** in the DAOKI kit above | — | 0 |
 | Autofocus webcam | Logitech C920x | *search "Logitech C920x"* | +30 |
 | Higher-torque servo | ANNIMOS DS3218 20 kg | https://www.amazon.com/ANNIMOS-Digital-Waterproof-DS3218MG-Control/dp/B076CNKQX4 | +5 |
 | Ceramic-bearing corner pulleys ×4 | *search "ceramic bearing pulley 3mm bore"* | — | +12 |

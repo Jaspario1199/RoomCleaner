@@ -28,11 +28,11 @@ PARTS = [
     "tentacle_finger",
     "camera_mount",
     "camera_mount_overhead",
-    # --- tri-ball flywheel intake (push / launch / pull / hold) ------------
-    "flywheel",
-    "intake_side_plate",
-    "launch_hood",
-    "cradle_roller",
+    # --- tri-ball belt accelerator (push / launch / pull / hold) -----------
+    "belt_pulley",
+    "drive_belt",
+    "accel_side_plate",
+    "throat_lip",
     "front_plow",
     "motor_plate",
 ]
@@ -84,20 +84,21 @@ def build_assembly() -> str:
                       "end-effector (tentacle gripper) assembled")
 
 
-def _place_intake():
-    """Return (named_solids, ball) for the tri-ball flywheel intake.
+def _place_accelerator():
+    """Return (named_solids, ball) for the tri-ball belt accelerator.
 
-    World frame: X = shaft axis (left/right), +Y = forward (intake mouth),
-    +Z = up. Each part is modelled in its own print orientation, then rotated
-    and translated into place here. The flywheel shaft sits at the origin.
-    Returns a list of (label, cq_solid, rgb_hex) plus (ball_center, ball_radius).
+    World frame: X = shaft axis (left/right, between the side plates),
+    +Y = forward (the muzzle), +Z = up. Each part is modelled in its own print
+    orientation, then rotated/translated into place. The barrel centre is the
+    origin. Returns [(label, cq_solid, rgb_hex)] + (ball_centre, ball_radius).
     """
     from . import params as P
 
-    fly = importlib.import_module("cad.parts.flywheel").make()
-    plate = importlib.import_module("cad.parts.intake_side_plate").make()
-    hood = importlib.import_module("cad.parts.launch_hood").make()
-    roller = importlib.import_module("cad.parts.cradle_roller").make()
+    bp_mod = importlib.import_module("cad.parts.belt_pulley")
+    pulley = bp_mod.make()
+    belt = importlib.import_module("cad.parts.drive_belt").make()
+    plate = importlib.import_module("cad.parts.accel_side_plate").make()
+    lip = importlib.import_module("cad.parts.throat_lip").make()
     plow = importlib.import_module("cad.parts.front_plow").make()
     motor = importlib.import_module("cad.parts.motor_plate").make()
 
@@ -105,36 +106,68 @@ def _place_intake():
         # local (forward=+X, up=+Y, thickness=+Z) -> world (Y, Z, X)
         return wp.rotate((0, 0, 0), (0, 0, 1), 90).rotate((0, 0, 0), (0, 1, 0), 90)
 
-    g = P.VEX_GRID
+    PLEN = P.BELT_WIDTH + 2 * bp_mod.FLANGE_THK           # pulley length
+    XO = P.BARREL_LEN / 2.0                               # muzzle/breach offset
+    ZO = P.BELT_GAP / 2.0 + P.PULLEY_PITCH_DIA / 2.0 + P.BELT_THK  # belt-centre height
+    ZG = P.BELT_GAP / 2.0                                 # inner belt surface (grip)
+
     named = []
 
     named.append(("Side plate (x2)",
-                  to_plate_frame(plate).translate((P.PLATE_GAP / 2, 0, 0)), "#8a97a8"))
+                  to_plate_frame(plate).translate((P.SIDE_INNER_HALF, 0, 0)), "#8f9bad"))
     named.append(("_plate_L",
-                  to_plate_frame(plate).translate((-(P.PLATE_GAP / 2 + P.PLATE_THK), 0, 0)), "#8a97a8"))
+                  to_plate_frame(plate).translate((-(P.SIDE_INNER_HALF + P.PLATE_THK), 0, 0)), "#8f9bad"))
 
-    for i, s in enumerate((+1, -1)):
-        f = (fly.rotate((0, 0, 0), (0, 1, 0), 90)
-             .translate((-P.FLYWHEEL_WIDTH / 2 + s * P.FLYWHEEL_SPACING / 2, 0, 0)))
-        named.append(("Flywheel (x2)" if i == 0 else "_fly2", f, "#e0872f"))
+    # Four pulleys (front/rear x top/bottom).
+    first = True
+    for py in (+XO, -XO):
+        for pz in (+ZO, -ZO):
+            pw = (pulley.rotate((0, 0, 0), (0, 1, 0), 90)
+                  .translate((-PLEN / 2, 0, 0)).translate((0, py, pz)))
+            named.append(("Belt pulley (x4)" if first else "_pul", pw, "#e0872f"))
+            first = False
 
-    named.append(("Cradle roller",
-                  roller.rotate((0, 0, 0), (0, 1, 0), 90)
-                  .translate((-(P.PLATE_GAP - 4) / 2, 0, 0))
-                  .translate((0, -3 * g, 2 * g)), "#3fae6a"))
+    # Two belts (top + bottom).
+    named.append(("Drive belt (x2)", belt.translate((0, 0, +ZO)), "#3b3f47"))
+    named.append(("_belt2", belt.translate((0, 0, -ZO)), "#3b3f47"))
 
-    named.append(("Launch hood", hood.translate((0, 26, 58)), "#4f86d6"))
-    named.append(("Front plow", plow.translate((0, 54, -32)), "#c24234"))
-    named.append(("V5 motor plate",
-                  to_plate_frame(motor).translate((P.PLATE_GAP / 2 + P.PLATE_THK + 8, 0, -P.GEAR_CD)),
+    # Two flared throat lips at the muzzle (top + bottom).
+    named.append(("Throat lip (x2)", lip.translate((0, XO, ZG)), "#41b06a"))
+    named.append(("_lip2", lip.mirror("XY").translate((0, XO, -ZG)), "#41b06a"))
+
+    # Front plow at the muzzle floor (push mode + cross-brace).
+    named.append(("Front plow", plow.translate((0, XO + 6, -ZG - 30)), "#c24234"))
+
+    # V5 motor plate outboard, geared to the top-rear drive pulley.
+    named.append(("V5 motor plate (x2)",
+                  to_plate_frame(motor).translate(
+                      (P.SIDE_INNER_HALF + P.PLATE_THK + 8, -XO, ZO - P.GEAR_CD)),
                   "#586170"))
 
-    ball = ((0.0, 14.0, 108.0), P.TRIBALL_DIA / 2.0)
+    ball = ((0.0, -10.0, 0.0), P.TRIBALL_DIA / 2.0)
     return named, ball
 
 
-def build_intake_assembly() -> str:
-    """Compose + render the tri-ball flywheel intake (colored, with the ball)."""
+def _smooth_facecolors(V, F, base_hex):
+    """Gouraud-style face colours from averaged vertex normals (two lights)."""
+    import numpy as np
+    base = np.array([int(base_hex[i:i + 2], 16) / 255 for i in (1, 3, 5)])
+    fn = np.cross(V[F[:, 1]] - V[F[:, 0]], V[F[:, 2]] - V[F[:, 0]])
+    fn /= (np.linalg.norm(fn, axis=1, keepdims=True) + 1e-9)
+    vn = np.zeros_like(V)
+    for k in range(3):
+        np.add.at(vn, F[:, k], fn)
+    vn /= (np.linalg.norm(vn, axis=1, keepdims=True) + 1e-9)
+    sn = (vn[F[:, 0]] + vn[F[:, 1]] + vn[F[:, 2]]) / 3.0
+    sn /= (np.linalg.norm(sn, axis=1, keepdims=True) + 1e-9)
+    key = np.array([0.4, -0.5, 0.78]); key = key / np.linalg.norm(key)
+    fill = np.array([-0.6, 0.3, 0.4]); fill = fill / np.linalg.norm(fill)
+    s = 0.34 + 0.56 * np.clip(sn @ key, 0, 1) + 0.16 * np.clip(sn @ fill, 0, 1)
+    return np.clip(s[:, None] * base[None, :], 0, 1)
+
+
+def build_accelerator_assembly() -> str:
+    """Compose + render the tri-ball belt accelerator (smooth, colour-coded)."""
     import numpy as np
     import matplotlib
     matplotlib.use("Agg")
@@ -142,51 +175,38 @@ def build_intake_assembly() -> str:
     from matplotlib.patches import Patch
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-    named, (ball_c, ball_r) = _place_intake()
+    named, (ball_c, ball_r) = _place_accelerator()
 
-    # Also commit a merged STL so the whole mechanism opens as one mesh.
+    # Commit a merged STL so the whole mechanism opens as one mesh.
     comp = cq.Compound.makeCompound([wp.val() for (_, wp, _) in named])
-    cq.exporters.export(comp, os.path.join(STL_DIR, "_intake_assembly.stl"),
+    cq.exporters.export(comp, os.path.join(STL_DIR, "_accel_assembly.stl"),
                         tolerance=0.1, angularTolerance=0.3)
 
-    light = np.array([0.35, -0.55, 0.78])
-    light = light / np.linalg.norm(light)
-
-    def shade(polys, base_hex):
-        base = np.array([int(base_hex[i:i + 2], 16) / 255 for i in (1, 3, 5)])
-        n = np.cross(polys[:, 1] - polys[:, 0], polys[:, 2] - polys[:, 0])
-        ln = np.linalg.norm(n, axis=1, keepdims=True)
-        ln[ln == 0] = 1
-        n = n / ln
-        s = 0.5 + 0.5 * np.clip(np.abs(n @ light), 0, 1)
-        return np.clip(s[:, None] * base[None, :], 0, 1)
-
-    fig = plt.figure(figsize=(7.2, 6.4))
+    fig = plt.figure(figsize=(7.6, 6.8))
     ax = fig.add_subplot(111, projection="3d")
     allpts = []
     for (_, wp, color) in named:
-        verts, tris = wp.val().tessellate(0.15)
+        verts, tris = wp.val().tessellate(0.04)      # fine mesh -> smooth curves
         V = np.array([[p.x, p.y, p.z] for p in verts])
         F = np.array(tris)
-        polys = V[F]
         allpts.append(V)
         ax.add_collection3d(Poly3DCollection(
-            polys, facecolors=shade(polys, color),
-            edgecolors=(0, 0, 0, 0.05), linewidths=0.08))
+            V[F], facecolors=_smooth_facecolors(V, F, color),
+            edgecolors="none", linewidths=0, shade=False))
 
-    # Translucent tri-ball proxy resting in the pocket.
-    u = np.linspace(0, 2 * np.pi, 26)
-    v = np.linspace(0, np.pi, 14)
+    # Translucent tri-ball in the barrel.
+    u = np.linspace(0, 2 * np.pi, 40)
+    v = np.linspace(0, np.pi, 22)
     bx = ball_c[0] + ball_r * np.outer(np.cos(u), np.sin(v))
     by = ball_c[1] + ball_r * np.outer(np.sin(u), np.sin(v))
     bz = ball_c[2] + ball_r * np.outer(np.ones_like(u), np.cos(v))
-    ax.plot_surface(bx, by, bz, color="#f0c02a", alpha=0.16, linewidth=0, shade=False)
+    ax.plot_surface(bx, by, bz, color="#f0c02a", alpha=0.14, linewidth=0, shade=False)
     allpts.append(np.array([[ball_c[0] - ball_r, ball_c[1] - ball_r, ball_c[2] - ball_r],
                             [ball_c[0] + ball_r, ball_c[1] + ball_r, ball_c[2] + ball_r]]))
 
-    P = np.vstack(allpts)
-    ctr = P.mean(axis=0)
-    r = (P.max(axis=0) - P.min(axis=0)).max() / 2 or 1.0
+    pts = np.vstack(allpts)
+    ctr = pts.mean(axis=0)
+    r = (pts.max(axis=0) - pts.min(axis=0)).max() / 2 or 1.0
     ax.set_xlim(ctr[0] - r, ctr[0] + r)
     ax.set_ylim(ctr[1] - r, ctr[1] + r)
     ax.set_zlim(ctr[2] - r, ctr[2] + r)
@@ -194,18 +214,18 @@ def build_intake_assembly() -> str:
         ax.set_box_aspect((1, 1, 1))
     except Exception:
         pass
-    ax.view_init(elev=16, azim=-72)
+    ax.view_init(elev=15, azim=-66)
     ax.set_axis_off()
-    ax.set_title("Tri-ball flywheel intake  —  push / launch / pull / hold",
-                 fontsize=12, pad=2)
+    ax.set_title("Tri-ball belt accelerator  —  push / launch / pull / hold",
+                 fontsize=12.5, pad=0)
 
     legend = [(l, c) for (l, _, c) in named if not l.startswith("_")]
-    legend.append(("Tri-ball (held)", "#f0c02a"))
+    legend.append(("Tri-ball", "#f0c02a"))
     ax.legend(handles=[Patch(facecolor=c, edgecolor="none", label=l) for (l, c) in legend],
-              loc="upper left", fontsize=8, framealpha=0.85)
+              loc="upper left", fontsize=8.5, framealpha=0.9)
     fig.tight_layout()
-    png = os.path.join(PREVIEW_DIR, "intake_assembly.png")
-    fig.savefig(png, dpi=120, bbox_inches="tight")
+    png = os.path.join(PREVIEW_DIR, "accel_assembly.png")
+    fig.savefig(png, dpi=125, bbox_inches="tight")
     plt.close(fig)
     return png
 
@@ -215,5 +235,5 @@ if __name__ == "__main__":
     build_all()
     print("Building assembly previews...")
     print(" ", build_assembly())
-    print(" ", build_intake_assembly())
+    print(" ", build_accelerator_assembly())
     print("Done. STEP files in cad/step, STLs in cad/stl, previews in cad/previews.")

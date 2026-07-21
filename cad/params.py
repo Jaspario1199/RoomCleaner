@@ -53,3 +53,43 @@ SPATULA_RAMP_DEG = 15.0   # deg, shallow ramp angle at the leading edge
 FINGER_LEN = 70.0         # mm, Fin Ray finger length
 FINGER_BASE = 26.0        # mm, Fin Ray base width
 FINGER_RIBS = 6           # number of internal ribs
+
+# ==========================================================================
+# VEX build standard -- the dual push/launch/pull/hold tri-ball mechanism
+# ==========================================================================
+# This mechanism is a SEPARATE subsystem from the ceiling gripper above. It is
+# a single flywheel-intake that gets three behaviours out of one driven wheel:
+#   PULL  -- flywheel spins inward slowly, friction draws the tri-ball up into
+#            the cradle pocket.
+#   HOLD  -- motor stalls/creeps, the ball rests in the pocket against the hood
+#            and the back roller (control, no launch).
+#   LAUNCH-- flywheel spins UP to speed, the same wheel now throws the ball over
+#            the hood lip and across the field.
+#   PUSH  -- the whole rigid frame (side plates + front plow) is driven forward,
+#            plowing a ball through a contested zone with no launch at all.
+# It targets the VEX system: 1/2" high-strength HEX shafts, the 0.5" (12.7 mm)
+# hole grid, and #8-32 hardware, so it bolts to VEX C-channel and V5 motors.
+
+# --- VEX hardware ----------------------------------------------------------
+VEX_GRID = 12.7           # mm, 0.5" structure hole-grid pitch
+VEX_HOLE = 4.9            # mm, structure hole (0.181" clearance for a #8-32 screw)
+VEX_HEX_AF = 12.70        # mm, 1/2" high-strength hex shaft, across-flats
+VEX_HEX_CLEAR = 0.35      # mm, added to a hex bore across-flats (slip fit on shaft)
+VEX_SHAFT_CLEAR = 16.0    # mm, round hole for a hex shaft to pass / a bearing to seat
+GEAR_CD = 3 * VEX_GRID    # mm, motor<->flywheel gear centre distance (VEX-legal, 1.5")
+
+# --- Tri-ball game element (VEX Over Under) --------------------------------
+TRIBALL_DIA = 178.0       # mm, nominal tri-ball capture diameter (~7 in)
+
+# --- Flywheel intake geometry ---------------------------------------------
+FLYWHEEL_DIA = 100.0      # mm, driven flywheel outer diameter
+FLYWHEEL_WIDTH = 28.0     # mm, flywheel rim width (ball-contact band)
+FLYWHEEL_SPACING = 88.0   # mm, centre-to-centre of the two flywheels on the shaft
+FLY_SPOKES = 5            # lightening windows / spokes in the flywheel web
+FLY_GROOVES = 2           # circumferential traction-band grooves in the rim
+PLATE_THK = 6.0           # mm, intake side-plate thickness
+PLATE_GAP = 120.0         # mm, inside distance between the two side plates
+HOOD_THK = 3.0            # mm, launch-hood wall thickness
+HOOD_RADIUS = 74.0        # mm, launch-hood inner arc radius
+ROLLER_DIA = 34.0         # mm, driven back cradle-roller diameter
+PLOW_DEG = 22.0           # deg, front plow-blade rake (down-and-forward)

@@ -27,6 +27,73 @@ cad/
 | `camera_mount` | Pi Camera bracket for the effector (close-up cam, Phase 4) | ×1 | PLA/PETG |
 | `camera_mount_overhead` | Ceiling bracket for the innomaker 32×32 overhead cam | ×1 | PLA/PETG |
 
+## The tri-ball flywheel intake — one mechanism, four behaviours
+
+A **separate subsystem** from the ceiling gripper above: a VEX-standard flywheel
+intake that gets **push / launch / pull / hold** out of a *single driven wheel*.
+One motor stands in for an intake **and** a puncher **and** a pusher — fewer
+subsystems, less weight, faster cycle times.
+
+![Tri-ball flywheel intake](previews/intake_assembly.png)
+
+| Mode | The flywheel… | …and the ball |
+|------|---------------|---------------|
+| **PULL** (intake) | spins inward, **slow** | friction rolls the tri-ball up into the pocket |
+| **HOLD** (control) | stalls / creeps | rests in the pocket, trapped by the hood + back roller |
+| **LAUNCH** | spins **up to speed** | the *same wheel* throws it over the hood lip, across the field |
+| **PUSH** | off | drive forward — the front plow shoves it through a contested zone |
+
+The piece that makes one wheel do both intake and launch is the **launch hood**:
+at low wheel speed its concave face keeps the ball trapped in the pocket (hold);
+spin the wheel up and the ball carries enough energy to ride up and off the hood
+lip (launch). Slide the hood's slotted flanges along the grid to trim the launch
+angle for near vs. far shots. PUSH never runs the flywheel at all — it's pure
+drivetrain, with the rigid frame + plow doing the work.
+
+### Parts
+
+| Part | What it is | Print | Material |
+|------|-----------|-------|----------|
+| `flywheel` | Heavy-rim driven wheel, ½" hex bore, traction-band grooves — the one wheel that pulls/holds/launches | ×2 | PLA/PETG |
+| `intake_side_plate` | Grid-perforated scoop plate carrying both shaft bores; **flip-symmetric (one part, both sides)** | ×2 | PLA/PETG |
+| `launch_hood` | Adjustable curved deflector — sets hold-vs-launch and the launch angle | ×1 | PLA/PETG |
+| `cradle_roller` | Driven back roller, ½" hex bore, fluted — 2nd intake contact + pocket backstop | ×1 | PLA/PETG |
+| `front_plow` | Raked push blade **and** front cross-brace, in one part | ×1 | PLA/PETG |
+| `motor_plate` | V5 Smart Motor mount, geared up to the flywheel shaft (1.5" centre distance) | ×1 | PLA/PETG |
+
+### Built to the VEX system
+
+- **½" high-strength hex** bores on the flywheel and roller (`VEX_HEX_AF`); lock a
+  wheel on with a shaft collar or the set-screw access hole.
+- The **0.5" (12.7 mm) hole grid** perforates every plate, so a bearing flat, the
+  hood, the plow, the V5 motor, and the drivetrain C-channel all bolt anywhere —
+  and you re-pick bores to change gear ratio or geometry. Holes are **#8-32**
+  clearance (`VEX_HOLE`).
+- Sized for the VEX Over-Under **tri-ball** via `TRIBALL_DIA` in `params.py`. Tune
+  `FLYWHEEL_DIA`, `FLYWHEEL_SPACING`, `HOOD_RADIUS`, and `PLATE_GAP` there and
+  re-run the export to fit a different element or a tighter robot.
+
+> The printed parts are the *custom* geometry (plates, hood, plow, flywheel core,
+> roller). The motor, ½" hex shafts, bearing flats, gears, and shaft collars are
+> stock VEX metal — don't print those.
+
+### Assembly
+
+1. Press a **½" hex shaft** through the flywheel bore of each side plate (snap a
+   VEX **bearing flat** over each bore, screws on the flanking grid holes).
+2. Slide the two **flywheels** onto the shaft, spaced `FLYWHEEL_SPACING` apart, and
+   lock them with shaft collars / set screws. Wrap the rim grooves with traction
+   bands (or press on flex-wheel tyres).
+3. Mount the **cradle roller** on its hex shaft in the upper-back bores; band or
+   gear it to the flywheel shaft so both spin together on intake.
+4. Bolt the **motor plate** outboard of one side plate; gear the **V5 motor** up to
+   the flywheel shaft (e.g. 12T→36T) for launch RPM.
+5. Bolt the **launch hood** across the top-front grid holes; set its angle with the
+   slotted flanges.
+6. Bolt the **front plow** across the front-bottom grid holes — it also ties the
+   two side plates into a rigid frame.
+7. Bolt the whole frame to your drivetrain C-channel through the bottom grid row.
+
 ## Regenerate after changing dimensions
 
 Edit `cad/params.py` (especially `MOTOR_SHAFT_DIA`, `DYNEEMA_DIA`) then:

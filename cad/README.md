@@ -31,11 +31,12 @@ cad/
 
 A **separate subsystem** from the ceiling gripper above: a VEX-standard **belt
 accelerator** ("belt railgun"). The tri-ball runs down a barrel gripped between
-two motor-driven **conveyor belts** (top + bottom). Like a railgun it accelerates
-the ball *along* the barrel — but the "rails" are traction belts, and belt
-**surface speed** is the exit speed. One drive gets **push / launch / pull /
-hold** — replacing an intake **and** a puncher **and** a pusher (fewer subsystems,
-less weight, faster cycle times).
+two motor-driven **conveyor belts** on its **left and right** (the "rails"), with
+**top + bottom decks** containing it and forming the floor it rides on. Like a
+railgun it accelerates the ball *along* the barrel — but the rails are traction
+belts, and belt **surface speed** is the exit speed. One drive gets **push /
+launch / pull / hold** — replacing an intake **and** a puncher **and** a pusher
+(fewer subsystems, less weight, faster cycle times).
 
 ![Tri-ball belt accelerator](previews/accel_assembly.png)
 
@@ -64,8 +65,10 @@ The mechanism is sized from four relations, all parametric in `params.py`:
 
 Pick `PULLEY_PITCH_DIA` and motor RPM for the exit speed you want, `BALL_COMPRESSION`
 for enough grip that the ball doesn't slip, and `BARREL_LEN` long enough that the
-ball leaves at (near) belt speed. The side plates are set **wider apart than the
-ball** (`2·SIDE_INNER_HALF > TRIBALL_DIA`) so it can't squirt out the sides.
+ball leaves at (near) belt speed. The side **belts squeeze** the ball
+(`BELT_GAP < TRIBALL_DIA`) for grip, while the **top + bottom decks** are set a hair
+wider than the ball (`2·SIDE_INNER_HALF > TRIBALL_DIA`) so it's captured but not
+crushed and can't pop out top or bottom.
 
 ### Parts
 
@@ -73,7 +76,7 @@ ball** (`2·SIDE_INNER_HALF > TRIBALL_DIA`) so it can't squirt out the sides.
 |------|-----------|-------|----------|
 | `belt_pulley` | Flanged traction pulley, ½" hex bore, lightened — 2 drive + 2 idler | ×4 | PLA/PETG |
 | `drive_belt` | The traction loop the ball rides on (best a COTS/urethane belt; TPU if printed) | ×2 | TPU 95A / COTS |
-| `accel_side_plate` | Grid-perforated barrel wall; 4 pulley bores (rear = tension slots); **flip-symmetric** | ×2 | PLA/PETG |
+| `accel_plate` | Grid-perforated deck (top + bottom); 4 vertical pulley bores (rear = tension slots); **flip-symmetric** | ×2 | PLA/PETG |
 | `throat_lip` | Smooth flared mouth — funnels on intake, guides a clean exit on launch | ×2 | PLA/PETG |
 | `front_plow` | Raked push blade **and** front cross-brace, in one part | ×1 | PLA/PETG |
 | `motor_plate` | V5 Smart Motor mount, geared up to a drive-pulley shaft (1.5" centre distance) | ×2 | PLA/PETG |
@@ -82,32 +85,34 @@ ball** (`2·SIDE_INNER_HALF > TRIBALL_DIA`) so it can't squirt out the sides.
 
 - **½" high-strength hex** bores on every pulley (`VEX_HEX_AF`); lock them on with
   shaft collars or the set-screw access hole.
-- The **0.5" (12.7 mm) hole grid** fills each side plate, so bearing flats, the
-  throat lips, the plow, the V5 motors, and the drivetrain C-channel all bolt
-  anywhere. The **rear pulley bores are tension slots** — slide the idlers back to
-  tension each belt. Holes are **#8-32** clearance (`VEX_HOLE`).
+- The **0.5" (12.7 mm) hole grid** fills each deck, so bearing flats, the throat
+  lips, the plow, the V5 motors, and the drivetrain C-channel all bolt anywhere.
+  The **rear pulley bores are tension slots** — slide the idlers back to tension
+  each belt. Holes are **#8-32** clearance (`VEX_HOLE`).
 - Sized for the VEX Over-Under **tri-ball** via `TRIBALL_DIA`. Tune
   `PULLEY_PITCH_DIA`, `BARREL_LEN`, `BELT_WIDTH`, `BALL_COMPRESSION`, and
   `SIDE_INNER_HALF` and re-run the export to fit a different element.
 
-> The printed parts are the *custom* geometry (side plates, pulleys, throat lips,
+> The printed parts are the *custom* geometry (decks, pulleys, throat lips,
 > plow). The motors, ½" hex shafts, bearing flats, gears, shaft collars, and the
 > belts themselves are stock VEX / COTS — don't print those (print the belts in
 > TPU only if you can't source a loop).
 
 ### Assembly
 
-1. Snap a VEX **bearing flat** over each of the four pulley bores per side plate
+1. Snap a VEX **bearing flat** over each of the four pulley bores in each deck
    (front pair fixed; rear pair in the **tension slots**).
-2. Put each **belt pulley** on a **½" hex shaft** between the plates: a front + rear
-   pair up top, a front + rear pair below. Lock with shaft collars / set screws.
-3. Loop a **drive belt** around each top and bottom pulley pair; slide the rear
-   idlers back in their slots to tension.
-4. Bolt a **motor plate** outboard for each belt and gear the **V5 motor** up to the
-   rear drive pulley (e.g. 12T→36T) for launch belt speed.
-5. Bolt the two **throat lips** across the muzzle grid holes — one top, one bottom.
+2. Stand a **belt pulley** on a **vertical ½" hex shaft** at each corner of the
+   barrel — a front + rear pair on the left, a front + rear pair on the right —
+   running between the top and bottom decks. Lock with shaft collars / set screws.
+3. Loop a **drive belt** around each side's pulley pair (one belt left, one right);
+   slide the rear idlers back in their slots to tension.
+4. Bolt a **motor plate** on for each belt and gear the **V5 motor** up to that
+   side's rear drive pulley (e.g. 12T→36T) for launch belt speed.
+5. Bolt the two **throat lips** across the muzzle grid holes — one top, one bottom —
+   to flare the mouth.
 6. Bolt the **front plow** across the muzzle-floor grid holes — it also ties the two
-   side plates into a rigid frame.
+   decks into a rigid frame.
 7. Bolt the whole frame to your drivetrain C-channel through the grid.
 
 ## Regenerate after changing dimensions

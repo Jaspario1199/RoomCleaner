@@ -196,8 +196,8 @@ load-bearing ceiling anchors stay **metal** — never printed.)
 The CAD library also carries a **separate, standalone mechanism**: a VEX-standard
 **tri-ball belt accelerator** ("belt railgun") that does **push / launch / pull /
 hold** — the ball runs down a barrel gripped between two motor-driven conveyor
-belts, so belt surface speed sets the launch speed (one drive instead of an
-intake + puncher + pusher). It's unrelated to the laundry robot — a self-contained
+belts on its left and right, so belt surface speed sets the launch speed (one
+drive instead of an intake + puncher + pusher). It's unrelated to the laundry robot — a self-contained
 competition subsystem — and is fully modeled and print-ready. See the
 [tri-ball belt accelerator](cad/README.md#the-tri-ball-belt-accelerator--one-mechanism-four-behaviours)
 section of the CAD README.

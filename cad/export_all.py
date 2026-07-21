@@ -31,7 +31,7 @@ PARTS = [
     # --- tri-ball belt accelerator (push / launch / pull / hold) -----------
     "belt_pulley",
     "drive_belt",
-    "accel_side_plate",
+    "accel_plate",
     "throat_lip",
     "front_plow",
     "motor_plate",
@@ -87,64 +87,67 @@ def build_assembly() -> str:
 def _place_accelerator():
     """Return (named_solids, ball) for the tri-ball belt accelerator.
 
-    World frame: X = shaft axis (left/right, between the side plates),
-    +Y = forward (the muzzle), +Z = up. Each part is modelled in its own print
-    orientation, then rotated/translated into place. The barrel centre is the
-    origin. Returns [(label, cq_solid, rgb_hex)] + (ball_centre, ball_radius).
+    LEFT/RIGHT belts: the ball runs down the barrel gripped between two vertical
+    conveyor belts on its left and right; the top + bottom DECKS contain it and
+    the bottom deck is the floor it rides on.
+
+    World frame: X = left/right (belt-gap axis), +Y = forward (the muzzle),
+    +Z = up. Each part is modelled in its own print orientation, then rotated
+    /translated into place. The barrel centre is the origin. Returns
+    [(label, cq_solid, rgb_hex)] + (ball_centre, ball_radius).
     """
     from . import params as P
 
     bp_mod = importlib.import_module("cad.parts.belt_pulley")
     pulley = bp_mod.make()
     belt = importlib.import_module("cad.parts.drive_belt").make()
-    plate = importlib.import_module("cad.parts.accel_side_plate").make()
+    plate = importlib.import_module("cad.parts.accel_plate").make()
     lip = importlib.import_module("cad.parts.throat_lip").make()
     plow = importlib.import_module("cad.parts.front_plow").make()
     motor = importlib.import_module("cad.parts.motor_plate").make()
 
-    def to_plate_frame(wp):
-        # local (forward=+X, up=+Y, thickness=+Z) -> world (Y, Z, X)
-        return wp.rotate((0, 0, 0), (0, 0, 1), 90).rotate((0, 0, 0), (0, 1, 0), 90)
+    PLEN = P.BELT_WIDTH + 2 * bp_mod.FLANGE_THK              # pulley length (vertical)
+    YB = P.BARREL_LEN / 2.0                                  # muzzle/breach offset (Y)
+    XP = P.BELT_GAP / 2.0 + P.PULLEY_PITCH_DIA / 2.0 + P.BELT_THK  # pulley offset (X)
+    XG = P.BELT_GAP / 2.0                                    # inner belt surface (grip)
+    ZH = P.SIDE_INNER_HALF                                   # deck half-gap (Z)
 
-    PLEN = P.BELT_WIDTH + 2 * bp_mod.FLANGE_THK           # pulley length
-    XO = P.BARREL_LEN / 2.0                               # muzzle/breach offset
-    ZO = P.BELT_GAP / 2.0 + P.PULLEY_PITCH_DIA / 2.0 + P.BELT_THK  # belt-centre height
-    ZG = P.BELT_GAP / 2.0                                 # inner belt surface (grip)
+    def deck(wp):
+        # plate local (X=barrel/2 dir, Y=cross dir) -> world (Y=barrel, X=cross)
+        return wp.rotate((0, 0, 0), (0, 0, 1), 90)
 
     named = []
 
-    named.append(("Side plate (x2)",
-                  to_plate_frame(plate).translate((P.SIDE_INNER_HALF, 0, 0)), "#8f9bad"))
-    named.append(("_plate_L",
-                  to_plate_frame(plate).translate((-(P.SIDE_INNER_HALF + P.PLATE_THK), 0, 0)), "#8f9bad"))
+    # Top + bottom decks.
+    named.append(("Deck plate (x2)", deck(plate).translate((0, 0, ZH)), "#8f9bad"))
+    named.append(("_deck_bot", deck(plate).translate((0, 0, -ZH - P.PLATE_THK)), "#8f9bad"))
 
-    # Four pulleys (front/rear x top/bottom).
+    # Four pulleys (vertical axis): left/right x front/rear.
     first = True
-    for py in (+XO, -XO):
-        for pz in (+ZO, -ZO):
-            pw = (pulley.rotate((0, 0, 0), (0, 1, 0), 90)
-                  .translate((-PLEN / 2, 0, 0)).translate((0, py, pz)))
+    for sx in (+1, -1):
+        for sy in (+1, -1):
+            pw = pulley.translate((sx * XP, sy * YB, -PLEN / 2))
             named.append(("Belt pulley (x4)" if first else "_pul", pw, "#e0872f"))
             first = False
 
-    # Two belts (top + bottom).
-    named.append(("Drive belt (x2)", belt.translate((0, 0, +ZO)), "#3b3f47"))
-    named.append(("_belt2", belt.translate((0, 0, -ZO)), "#3b3f47"))
+    # Two belts (left + right), loops in the horizontal plane.
+    for sx, lbl in ((-1, "Drive belt (x2)"), (+1, "_belt2")):
+        bw = belt.rotate((0, 0, 0), (0, 1, 0), 90).translate((sx * XP, 0, 0))
+        named.append((lbl, bw, "#3b3f47"))
 
-    # Two flared throat lips at the muzzle (top + bottom).
-    named.append(("Throat lip (x2)", lip.translate((0, XO, ZG)), "#41b06a"))
-    named.append(("_lip2", lip.mirror("XY").translate((0, XO, -ZG)), "#41b06a"))
+    # Two flared throat lips at the muzzle front edge (top + bottom).
+    named.append(("Throat lip (x2)", lip.translate((0, YB + 30, ZH)), "#41b06a"))
+    named.append(("_lip2", lip.mirror("XY").translate((0, YB + 30, -ZH)), "#41b06a"))
 
     # Front plow at the muzzle floor (push mode + cross-brace).
-    named.append(("Front plow", plow.translate((0, XO + 6, -ZG - 30)), "#c24234"))
+    named.append(("Front plow", plow.translate((0, YB + 34, -ZH + 2)), "#c24234"))
 
-    # V5 motor plate outboard, geared to the top-rear drive pulley.
+    # V5 motor plate above the top deck, geared to a rear drive pulley.
     named.append(("V5 motor plate (x2)",
-                  to_plate_frame(motor).translate(
-                      (P.SIDE_INNER_HALF + P.PLATE_THK + 8, -XO, ZO - P.GEAR_CD)),
+                  motor.translate((-XP, -YB - P.GEAR_CD, ZH + P.PLATE_THK + 10)),
                   "#586170"))
 
-    ball = ((0.0, -10.0, 0.0), P.TRIBALL_DIA / 2.0)
+    ball = ((0.0, -8.0, -ZH + P.TRIBALL_DIA / 2.0), P.TRIBALL_DIA / 2.0)
     return named, ball
 
 
@@ -214,7 +217,7 @@ def build_accelerator_assembly() -> str:
         ax.set_box_aspect((1, 1, 1))
     except Exception:
         pass
-    ax.view_init(elev=15, azim=-66)
+    ax.view_init(elev=16, azim=114)
     ax.set_axis_off()
     ax.set_title("Tri-ball belt accelerator  —  push / launch / pull / hold",
                  fontsize=12.5, pad=0)

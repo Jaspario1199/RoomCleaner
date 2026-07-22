@@ -53,3 +53,53 @@ SPATULA_RAMP_DEG = 15.0   # deg, shallow ramp angle at the leading edge
 FINGER_LEN = 70.0         # mm, Fin Ray finger length
 FINGER_BASE = 26.0        # mm, Fin Ray base width
 FINGER_RIBS = 6           # number of internal ribs
+
+# ==========================================================================
+# VEX build standard -- the dual push/launch/pull/hold tri-ball mechanism
+# ==========================================================================
+# A BELT ACCELERATOR ("belt railgun"). The tri-ball runs down a barrel gripped
+# between two motor-driven conveyor belts (top + bottom traction belts). Like a
+# railgun it accelerates the ball ALONG a barrel -- but the "rails" are belts,
+# and belt SURFACE SPEED sets the exit speed. One mechanism, four behaviours:
+#   PULL  -- belts run inward (surfaces toward the breach): the ball is drawn in.
+#   HOLD  -- belts stopped: the ball is pinched between them (compression grip).
+#   LAUNCH-- belts run outward, fast: the ball is spun up to belt speed and fired
+#            out the muzzle.
+#   PUSH  -- belts off: drive the robot forward and the front plow shoves the
+#            ball through a contested zone (no launch at all).
+# It targets the VEX system: 1/2" high-strength HEX shafts, the 0.5" (12.7 mm)
+# hole grid, and #8-32 hardware, so it bolts to VEX C-channel and V5 motors.
+#
+# DESIGN BASIS (first-principles sizing -- edit these and re-export):
+#   Exit speed (no slip):   v_exit ~= v_belt = (RPM / 60) * pi * PULLEY_PITCH_DIA
+#   Grip / no-slip:         mu * N  >=  m_ball * a     (N grows with BALL_COMPRESSION)
+#   Channel gap:            BELT_GAP = TRIBALL_DIA - 2 * BALL_COMPRESSION
+#   Barrel length:          BARREL_LEN = accel distance for the ball to reach v_belt
+# so choose PULLEY_PITCH_DIA + motor RPM for v_exit, BALL_COMPRESSION for grip,
+# and BARREL_LEN long enough that the ball leaves at (near) belt speed.
+
+# --- VEX hardware ----------------------------------------------------------
+VEX_GRID = 12.7           # mm, 0.5" structure hole-grid pitch
+VEX_HOLE = 4.9            # mm, structure hole (0.181" clearance for a #8-32 screw)
+VEX_HEX_AF = 12.70        # mm, 1/2" high-strength hex shaft, across-flats
+VEX_HEX_CLEAR = 0.35      # mm, added to a hex bore across-flats (slip fit on shaft)
+VEX_SHAFT_CLEAR = 16.0    # mm, round hole for a hex shaft to pass / a bearing to seat
+GEAR_CD = 3 * VEX_GRID    # mm, motor<->pulley gear centre distance (VEX-legal, 1.5")
+
+# --- Tri-ball game element (VEX Over Under) --------------------------------
+TRIBALL_DIA = 178.0       # mm, nominal tri-ball capture diameter (~7 in)
+
+# --- Belt accelerator geometry --------------------------------------------
+PLATE_THK = 6.0           # mm, side-plate thickness
+BALL_COMPRESSION = 10.0   # mm, how far each belt squeezes into the ball (grip)
+BELT_GAP = TRIBALL_DIA - 2 * BALL_COMPRESSION   # mm, inner-run separation (158)
+BELT_WIDTH = 150.0        # mm, belt width -- the ball-contact band (along the shaft)
+BELT_THK = 4.0            # mm, belt thickness incl. tread
+BARREL_LEN = 150.0        # mm, pulley centre-to-centre along the barrel (accel dist)
+PULLEY_PITCH_DIA = 50.0   # mm, traction diameter the belt rides on
+PULLEY_FLANGE_DIA = 60.0  # mm, belt-retaining flange OD
+PULLEY_SPOKES = 5         # lightening windows in the pulley
+# The side plates must be wider apart than the ball so it can't squirt out the
+# sides while the top/bottom belts grip it -> inside width > TRIBALL_DIA.
+SIDE_INNER_HALF = 95.0    # mm, half the inside width between the two side plates
+PLOW_DEG = 20.0           # deg, front plow-blade rake (down-and-forward)

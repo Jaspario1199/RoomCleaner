@@ -4,6 +4,10 @@ An autonomous robot that scans your room, spots dirty laundry on the floor,
 picks it up, and drops it in the hamper — using four winch motors in the
 ceiling corners and a downward-facing gripper on cables.
 
+> **▶ Interactive showcase:** [`showcase/index.html`](showcase/) — a live,
+> self-contained portfolio page (browser simulation + engineering analysis +
+> CAD). Open it in a browser or host it free on GitHub Pages.
+
 > **Status:** Phase 0 complete + Phase 1 scaffolded. The kinematics, fan-aware
 > motion planning, auto rest-pose, and the full scan→grab→deliver loop run today
 > with **zero hardware**; a real open-vocabulary laundry detector runs on a

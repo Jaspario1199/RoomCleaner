@@ -54,8 +54,10 @@ when the claw drops low the cables splay out to the corners and clear the blades
 
 ```bash
 pip install -r requirements.txt
-python -m scripts.demo_sim      # writes images + a GIF into ./output/
-python -m pytest                # run the kinematics/geometry/vision tests
+python -m scripts.demo_sim       # 3D animation of a full cleaning run
+python -m scripts.sim_tension_map  # heatmap: where the motors strain hardest
+python -m scripts.sim_pickup_run   # per-pickup height / cable length / tension plots
+python -m pytest                 # run the kinematics/geometry/vision tests
 
 # Phase 1 — real laundry detection on a webcam (heavier deps):
 pip install -r requirements-vision.txt

@@ -305,7 +305,7 @@ camera ▸ <span class="c">YOLO-World</span> ▸ floor (x,y) <span class="a">─
   </div>
   <div class="chartcard" style="margin-top:18px">
     <h3>Force explorer — solve the statics yourself</h3>
-    <p class="cap">drag the claw · adjust load &amp; height — the four cable tensions are solved live from the same equilibrium equations the robot uses</p>
+    <p class="cap">drag the claw or drive it with the sliders — the four cable tensions are solved live from the robot's equilibrium equations · dynamic load = m·(g + a)</p>
     <div class="force-grid">
       <canvas id="fmap" width="640" height="440" aria-label="Interactive force map: drag to move the claw"></canvas>
       <div class="force-side">
@@ -313,6 +313,8 @@ camera ▸ <span class="c">YOLO-World</span> ▸ floor (x,y) <span class="a">─
           <input type="range" id="fmass" min="0" max="5" step="0.1" value="0.9" aria-label="Payload mass"></label>
         <label>claw height <b id="fz-lbl">0.30 m</b>
           <input type="range" id="fz" min="0.10" max="2.20" step="0.05" value="0.30" aria-label="Claw height"></label>
+        <label>acceleration <b id="fa-lbl">0.0 m/s²</b>
+          <input type="range" id="fa" min="0" max="3" step="0.1" value="0" aria-label="Vertical acceleration (dynamic load)"></label>
         <div class="fbar"><span class="fl">A</span><div class="ftrack"><div class="ffill" id="fb0"></div></div><span class="fv" id="fv0">—</span></div>
         <div class="fbar"><span class="fl">B</span><div class="ftrack"><div class="ffill" id="fb1"></div></div><span class="fv" id="fv1">—</span></div>
         <div class="fbar"><span class="fl">C</span><div class="ftrack"><div class="ffill" id="fb2"></div></div><span class="fv" id="fv2">—</span></div>
@@ -613,13 +615,15 @@ camera ▸ <span class="c">YOLO-World</span> ▸ floor (x,y) <span class="a">─
   // equations there's a 1-D family of solutions; we take the min-norm particular
   // solution and center along the null space -- the same method as the Python.
   function trip(u,v,w){return u[0]*(v[1]*w[2]-v[2]*w[1])-u[1]*(v[0]*w[2]-v[2]*w[0])+u[2]*(v[0]*w[1]-v[1]*w[0]);}
-  function solveT(px,py,pz,mass){
+  function solveT(px,py,pz,mass,acc){
     var U=[],a;
     for(a=0;a<4;a++){var vx=anchors[a][0]-px,vy=anchors[a][1]-py,vz=H-pz;
       var L=Math.sqrt(vx*vx+vy*vy+vz*vz)||1e-9;U.push([vx/L,vy/L,vz/L]);}
     var S=[[0,0,0],[0,0,0],[0,0,0]];
     for(a=0;a<4;a++)for(var r=0;r<3;r++)for(var c=0;c<3;c++)S[r][c]+=U[a][r]*U[a][c];
-    var w=[0,0,mass*9.81];
+    // Dynamic load: accelerating the claw upward at `acc` is the worst case,
+    // so the cables must supply m*(g + a) instead of m*g.
+    var w=[0,0,mass*(9.81+(acc||0))];
     var c0=[S[0][0],S[1][0],S[2][0]],c1=[S[0][1],S[1][1],S[2][1]],c2=[S[0][2],S[1][2],S[2][2]];
     var D=trip(c0,c1,c2); if(Math.abs(D)<1e-12)return null;
     var y=[trip(w,c1,c2)/D,trip(c0,w,c2)/D,trip(c0,c1,w)/D];
@@ -639,7 +643,9 @@ camera ▸ <span class="c">YOLO-World</span> ▸ floor (x,y) <span class="a">─
   }
 
   var ASSEMBLY=0.45, LIMIT=40;
-  var fx=2.0, fy=1.5, fpay=0.9, fzv=0.30;
+  var fx=2.0, fy=1.5, fpay=0.9, fzv=0.30, facc=0;
+  var fhover=false, fmoved=false;
+  var motionOK=!matchMedia('(prefers-reduced-motion:reduce)').matches;
   var fcv=document.getElementById('fmap'), fctx=fcv.getContext('2d');
 
   function ffit(){var w2=fcv.clientWidth||640;var d=Math.min(2,window.devicePixelRatio||1);
@@ -656,7 +662,7 @@ camera ▸ <span class="c">YOLO-World</span> ▸ floor (x,y) <span class="a">─
     for(var gx=0;gx<=W;gx+=0.5){var a1=fToPx([gx,0]),b1=fToPx([gx,D]);fctx.beginPath();fctx.moveTo(a1[0],a1[1]);fctx.lineTo(b1[0],b1[1]);fctx.stroke();}
     for(var gy=0;gy<=D;gy+=0.5){var a2=fToPx([0,gy]),b2=fToPx([W,gy]);fctx.beginPath();fctx.moveTo(a2[0],a2[1]);fctx.lineTo(b2[0],b2[1]);fctx.stroke();}
     fctx.globalAlpha=1;
-    var T=solveT(fx,fy,fzv,ASSEMBLY+fpay);
+    var T=solveT(fx,fy,fzv,ASSEMBLY+fpay,facc);
     var cp=fToPx([fx,fy]);
     for(var a=0;a<4;a++){
       var ap=fToPx(anchors[a]);
@@ -671,9 +677,33 @@ camera ▸ <span class="c">YOLO-World</span> ▸ floor (x,y) <span class="a">─
       fctx.fillStyle=css('--dim');fctx.font='10px '+css('--mono');
       fctx.fillText('ABCD'[a], ap[0]+(a===0||a===3?-14:9), ap[1]+4);
     }
+    // The claw: highlighted when hovered/dragged, with a pulsing "grab me" ring
+    // and a "drag me" hint until the first drag.
+    var hot=fhover||fdrag;
+    if(!fmoved){
+      var ph=motionOK?(0.5+0.5*Math.sin(performance.now()/450)):0.6;
+      fctx.strokeStyle=css('--accent');fctx.globalAlpha=0.25+0.45*ph;fctx.lineWidth=1.5;
+      fctx.beginPath();fctx.arc(cp[0],cp[1],14+4*ph,0,7);fctx.stroke();fctx.globalAlpha=1;
+    }
+    if(hot){
+      fctx.strokeStyle=css('--accent');fctx.globalAlpha=.9;fctx.lineWidth=2;
+      fctx.beginPath();fctx.arc(cp[0],cp[1],14,0,7);fctx.stroke();fctx.globalAlpha=1;
+      fctx.shadowColor=css('--accent');fctx.shadowBlur=14;
+    }
     fctx.fillStyle=T?css('--accent'):css('--crit');
-    fctx.beginPath();fctx.arc(cp[0],cp[1],9,0,7);fctx.fill();
+    fctx.beginPath();fctx.arc(cp[0],cp[1],hot?10:9,0,7);fctx.fill();
+    fctx.shadowBlur=0;
     fctx.strokeStyle=css('--ground');fctx.lineWidth=2;fctx.stroke();
+    if(!fmoved&&!hot){
+      var msg='◂ drag me';
+      fctx.font='11px '+css('--mono');
+      var tw=fctx.measureText(msg).width, px2=cp[0]+20, py2=cp[1]-8;
+      if(px2+tw+14>w2)px2=cp[0]-tw-34;
+      fctx.fillStyle=css('--accent-soft');fctx.strokeStyle=css('--accent');fctx.lineWidth=1;
+      if(fctx.roundRect){fctx.beginPath();fctx.roundRect(px2-7,py2-13,tw+14,20,5);fctx.fill();fctx.stroke();}
+      else{fctx.fillRect(px2-7,py2-13,tw+14,20);fctx.strokeRect(px2-7,py2-13,tw+14,20);}
+      fctx.fillStyle=css('--bright');fctx.fillText(msg,px2,py2+1);
+    }
 
     for(var a=0;a<4;a++){
       var bar=document.getElementById('fb'+a),val=document.getElementById('fv'+a);
@@ -687,20 +717,34 @@ camera ▸ <span class="c">YOLO-World</span> ▸ floor (x,y) <span class="a">─
     else{
       var tau=Math.max.apply(null,T)/(ASSEMBLY+fpay);
       var maxPay=Math.max(0,LIMIT/tau-ASSEMBLY);
-      note.innerHTML='max payload here: <b>'+maxPay.toFixed(1)+' kg</b> ('+(maxPay*2.2).toFixed(1)+' lb) before the busiest cable hits 40 N';
+      note.innerHTML='max payload here: <b>'+maxPay.toFixed(1)+' kg</b> ('+(maxPay*2.2).toFixed(1)+' lb) before the busiest cable hits 40 N'
+        +(facc>0?' — while accelerating up at '+facc.toFixed(1)+' m/s²':'');
     }
   }
 
   var fdrag=false;
   function fset(e){var p=fFromPx(e.clientX,e.clientY);
-    fx=Math.max(0.25,Math.min(W-0.25,p[0]));fy=Math.max(0.25,Math.min(D-0.25,p[1]));drawForce();}
-  fcv.addEventListener('pointerdown',function(e){fdrag=true;fcv.setPointerCapture(e.pointerId);fset(e);});
-  fcv.addEventListener('pointermove',function(e){if(fdrag)fset(e);});
-  fcv.addEventListener('pointerup',function(){fdrag=false;});
+    fx=Math.max(0.25,Math.min(W-0.25,p[0]));fy=Math.max(0.25,Math.min(D-0.25,p[1]));
+    fmoved=true;drawForce();}
+  function overClaw(e){var r=fcv.getBoundingClientRect(),cp=fToPx([fx,fy]);
+    return Math.hypot((e.clientX-r.left)-cp[0],(e.clientY-r.top)-cp[1])<18;}
+  function fcursor(){fcv.style.cursor=fdrag?'grabbing':(fhover?'grab':'crosshair');}
+  fcv.addEventListener('pointerdown',function(e){fdrag=true;fcv.setPointerCapture(e.pointerId);fcursor();fset(e);});
+  fcv.addEventListener('pointermove',function(e){
+    if(fdrag){fset(e);return;}
+    var h=overClaw(e);
+    if(h!==fhover){fhover=h;fcursor();drawForce();}
+  });
+  fcv.addEventListener('pointerup',function(){fdrag=false;fcursor();});
+  fcv.addEventListener('pointerleave',function(){if(fhover){fhover=false;fcursor();drawForce();}});
   document.getElementById('fmass').addEventListener('input',function(){
     fpay=parseFloat(this.value);document.getElementById('fm-lbl').textContent=fpay.toFixed(1)+' kg';drawForce();});
   document.getElementById('fz').addEventListener('input',function(){
     fzv=parseFloat(this.value);document.getElementById('fz-lbl').textContent=fzv.toFixed(2)+' m';drawForce();});
+  document.getElementById('fa').addEventListener('input',function(){
+    facc=parseFloat(this.value);document.getElementById('fa-lbl').textContent=facc.toFixed(1)+' m/s²';drawForce();});
+  // Gentle pulse on the "drag me" affordance until the first drag.
+  if(motionOK){(function pulse(){if(fmoved)return;drawForce();requestAnimationFrame(pulse);})();}
 
   function drawCharts(){drawHeat();drawPayload();drawForce();}
   drawCharts();

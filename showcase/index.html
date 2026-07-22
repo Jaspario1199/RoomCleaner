@@ -1,4 +1,4 @@
-<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='description' content='RoomCleaner: a ceiling-mounted cable robot that detects and picks up laundry. Kinematics, computer vision, CAD, and firmware.'><link rel='icon' href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧺</text></svg>"></head><body><title>RoomCleaner — Autonomous Cable Robot</title>
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='description' content='RoomCleaner: a ceiling-mounted cable robot that detects and picks up laundry. Live simulation, force explorer, engineering analysis, BOM, CAD, firmware.'><link rel='icon' href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧺</text></svg>"></head><body><title>RoomCleaner — Autonomous Cable Robot</title>
 <style>
   :root{
     --ground:#0E1420; --panel:#141D2C; --panel-2:#1A2436; --inset:#0B111B;
@@ -152,6 +152,48 @@
     border:1px solid var(--line);border-radius:20px;padding:6px 13px}
   .chip b{color:var(--cyan)}
 
+  /* architecture diagram */
+  .arch{margin-top:26px;background:var(--inset);border:1px solid var(--line);border-radius:10px;padding:16px 20px;overflow-x:auto}
+  .arch pre{margin:0;font-family:var(--mono);font-size:12.5px;line-height:1.75;color:var(--text)}
+  .arch .a{color:var(--accent)} .arch .c{color:var(--cyan)} .arch .d{color:var(--dim)}
+
+  /* force explorer */
+  .force-grid{display:grid;grid-template-columns:1fr 250px;gap:18px;margin-top:6px}
+  @media(max-width:820px){.force-grid{grid-template-columns:1fr}}
+  #fmap{touch-action:none;cursor:crosshair;border:1px solid var(--line);border-radius:8px;background:var(--inset);display:block;width:100%;height:auto}
+  .force-side label{display:block;font-family:var(--mono);font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+  .force-side label b{color:var(--bright);float:right;text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums}
+  .force-side input[type=range]{width:100%;accent-color:var(--accent);margin-top:6px}
+  .fbar{display:grid;grid-template-columns:16px 1fr 58px;gap:8px;align-items:center;margin:7px 0;font-family:var(--mono);font-size:11.5px}
+  .fbar .fl{color:var(--dim)}
+  .ftrack{position:relative;height:10px;background:var(--inset);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .ffill{height:100%;background:var(--cyan);width:0%}
+  .ffill.hot{background:var(--crit)}
+  .ftrack:after{content:"";position:absolute;left:80%;top:0;bottom:0;width:1px;background:var(--crit);opacity:.7}
+  .fbar .fv{text-align:right;color:var(--bright);font-variant-numeric:tabular-nums}
+  .fnote{margin-top:12px;font-family:var(--mono);font-size:12px;color:var(--dim);border-top:1px dashed var(--line);padding-top:10px}
+  .fnote b{color:var(--accent)}
+  .fnote .bad{color:var(--crit)}
+
+  /* BOM */
+  details.bom{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-top:12px;overflow:hidden}
+  details.bom summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:12px;padding:14px 18px;font-family:var(--mono);color:var(--bright);font-size:13.5px}
+  details.bom summary::-webkit-details-marker{display:none}
+  details.bom summary:before{content:"▸";color:var(--accent);transition:transform .15s}
+  details.bom[open] summary:before{transform:rotate(90deg)}
+  details.bom summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .bsub{color:var(--dim);font-size:11px;letter-spacing:.05em;font-weight:400}
+  .bom-body{overflow-x:auto;border-top:1px solid var(--line)}
+  .bom table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
+  .bom td,.bom th{padding:9px 18px;text-align:left;border-top:1px dashed var(--line)}
+  .bom th{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);border-top:none;font-weight:500}
+  .bom td:first-child{color:var(--bright)}
+  .bom td.qty,.bom th.qty{text-align:right;font-family:var(--mono);white-space:nowrap}
+  .bom td.price,.bom th.price{display:none;text-align:right;font-family:var(--mono);color:var(--accent);white-space:nowrap}
+  body[data-prices] .bom td.price,body[data-prices] .bom th.price{display:table-cell}
+  .statusline{margin-top:14px;font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .statusline b{color:var(--good);font-weight:500}
+
   footer{padding:40px 0 60px;color:var(--dim);font-family:var(--mono);font-size:12.5px}
   footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 
@@ -163,7 +205,8 @@
   <div class="spacer"></div>
   <nav>
     <a href="#build">Build</a><a href="#analysis">Analysis</a>
-    <a href="#gripper">Gripper</a><a href="#stack">Stack</a>
+    <a href="#gripper">Gripper</a><a href="#bom">BOM</a><a href="#stack">Stack</a>
+    <a href="https://github.com/Jaspario1199/RoomCleaner" target="_blank" rel="noopener">Source ↗</a>
   </nav>
   <button class="tbtn" id="theme" aria-label="Toggle theme">◐ theme</button>
 </div></div>
@@ -210,6 +253,7 @@
     <div class="stat"><div class="n"><b>8</b></div><div class="l">printed parts</div></div>
     <div class="stat"><div class="n">$<b>230</b></div><div class="l">total build</div></div>
   </div>
+  <div class="statusline">status: <b>simulation + analysis validated</b> · parts ordered · hardware bring-up next</div>
 </div></header>
 
 <section><div class="wrap">
@@ -229,6 +273,13 @@
       <div class="tag">Control</div><h3>Scan → grab → deliver</h3>
       <p>An explicit state machine clears the floor nearest-first, geofenced away from the walls and the ceiling fan.</p></div>
   </div>
+  <div class="arch"><pre>
+<span class="d">┌ perception ─────────────────────┐   ┌ planning ──────────────────┐</span>
+camera ▸ <span class="c">YOLO-World</span> ▸ floor (x,y) <span class="a">──▸</span> state machine ▸ <span class="c">inverse kinematics</span> ▸ 4 cable lengths
+<span class="d">└─────────────────────────────────┘   └────────────────────────────┘</span>
+                              USB serial <span class="a">──▸</span> Arduino + 4× DRV8825 <span class="a">──▸</span> corner winches
+                              WiFi <span class="a">──▸</span> ESP32 on the claw <span class="a">──▸</span> tentacle gripper (battery)
+</pre></div>
 </div></section>
 
 <section id="analysis"><div class="wrap">
@@ -252,6 +303,25 @@
       </div>
     </div>
   </div>
+  <div class="chartcard" style="margin-top:18px">
+    <h3>Force explorer — solve the statics yourself</h3>
+    <p class="cap">drag the claw · adjust load &amp; height — the four cable tensions are solved live from the same equilibrium equations the robot uses</p>
+    <div class="force-grid">
+      <canvas id="fmap" width="640" height="440" aria-label="Interactive force map: drag to move the claw"></canvas>
+      <div class="force-side">
+        <label>payload <b id="fm-lbl">0.9 kg</b>
+          <input type="range" id="fmass" min="0" max="5" step="0.1" value="0.9" aria-label="Payload mass"></label>
+        <label>claw height <b id="fz-lbl">0.30 m</b>
+          <input type="range" id="fz" min="0.10" max="2.20" step="0.05" value="0.30" aria-label="Claw height"></label>
+        <div class="fbar"><span class="fl">A</span><div class="ftrack"><div class="ffill" id="fb0"></div></div><span class="fv" id="fv0">—</span></div>
+        <div class="fbar"><span class="fl">B</span><div class="ftrack"><div class="ffill" id="fb1"></div></div><span class="fv" id="fv1">—</span></div>
+        <div class="fbar"><span class="fl">C</span><div class="ftrack"><div class="ffill" id="fb2"></div></div><span class="fv" id="fv2">—</span></div>
+        <div class="fbar"><span class="fl">D</span><div class="ftrack"><div class="ffill" id="fb3"></div></div><span class="fv" id="fv3">—</span></div>
+        <div class="fnote" id="fnote">max payload here: —</div>
+      </div>
+    </div>
+  </div>
+
   <div class="grid2" style="margin-top:18px">
     <div class="panel"><span class="corner tl"></span><span class="corner br"></span>
       <div class="tag">Calibration sensitivity</div><h3>How precisely to measure the ceiling</h3>
@@ -278,8 +348,65 @@
   </div>
 </div></section>
 
+<section id="bom"><div class="wrap">
+  <div class="sec-head"><span class="idx">04</span><h2>Bill of materials</h2>
+    <button class="btn ghost" id="pricebtn">show est. pricing</button></div>
+  <p class="lead">Everything mechanical that could be printed, was — eight parametric parts modeled in code. The bought parts were each sized from the analysis above (motor torque from the tension map, line strength from peak load, supply wattage from total draw). Total build ≈ <b style="color:var(--bright)">$230</b>, reusing a computer for vision.</p>
+
+  <details class="bom" open>
+    <summary>Motion &amp; structure <span class="bsub">— the four corner winches and what holds them up</span></summary>
+    <div class="bom-body"><table>
+      <tr><th>Component</th><th>Purpose</th><th class="qty">Qty</th><th class="price">Est.</th></tr>
+      <tr><td>NEMA 17 stepper, 42 N·cm</td><td>Ceiling winches — sized to 2.6× the worst-case cable tension</td><td class="qty">4 + 1 spare</td><td class="price">$33</td></tr>
+      <tr><td>Winch spool · motor mount · corner guide</td><td>3D-printed drivetrain (parametric CadQuery, PETG)</td><td class="qty">4 each</td><td class="price">—</td></tr>
+      <tr><td>UHMWPE (Dyneema) braided line, 50 lb</td><td>The cables — near-zero stretch keeps position accurate; ~15× load margin</td><td class="qty">150 m</td><td class="price">$8</td></tr>
+      <tr><td>Stainless lag eye anchors, 700 lb, closed-eye</td><td>Into ceiling joists — the one part that must never be plastic</td><td class="qty">4</td><td class="price">$14</td></tr>
+    </table></div>
+  </details>
+
+  <details class="bom">
+    <summary>Control &amp; power <span class="bsub">— one wired controller drives all four axes</span></summary>
+    <div class="bom-body"><table>
+      <tr><th>Component</th><th>Purpose</th><th class="qty">Qty</th><th class="price">Est.</th></tr>
+      <tr><td>Arduino Uno + CNC Shield + 4× DRV8825</td><td>4-axis step/dir motor control; custom firmware speaks a simple serial protocol</td><td class="qty">1 kit</td><td class="price">$17</td></tr>
+      <tr><td>Roller-lever limit switches</td><td>Homing — each winch finds its zero cable length at startup</td><td class="qty">4 + spares</td><td class="price">$6</td></tr>
+      <tr><td>12 V 6 A supply + 7.5 A inline fuse</td><td>Motor rail, killed by a switched power strip; fuse protects the wiring</td><td class="qty">1</td><td class="price">$28</td></tr>
+      <tr><td>Extensions, hookup wire, ceiling raceway</td><td>Corner runs hidden along the ceiling seams — no visible wiring</td><td class="qty">set</td><td class="price">$45</td></tr>
+    </table></div>
+  </details>
+
+  <details class="bom">
+    <summary>Perception <span class="bsub">— one camera sees the whole floor</span></summary>
+    <div class="bom-body"><table>
+      <tr><th>Component</th><th>Purpose</th><th class="qty">Qty</th><th class="price">Est.</th></tr>
+      <tr><td>1080p UVC board camera, 130° FOV</td><td>Ceiling-mounted; wide angle covers every floor corner (computed, not guessed)</td><td class="qty">1</td><td class="price">$19</td></tr>
+      <tr><td>Vision compute</td><td>Reused PC runs YOLO-World open-vocabulary detection</td><td class="qty">—</td><td class="price">$0</td></tr>
+    </table></div>
+  </details>
+
+  <details class="bom">
+    <summary>Wireless effector <span class="bsub">— only the four cables touch the claw</span></summary>
+    <div class="bom-body"><table>
+      <tr><th>Component</th><th>Purpose</th><th class="qty">Qty</th><th class="price">Est.</th></tr>
+      <tr><td>MG996R servo (180° positional)</td><td>One servo curls all five tentacle tendons</td><td class="qty">1 + 3 spares</td><td class="price">$18</td></tr>
+      <tr><td>ESP32 dev board</td><td>WiFi grip/release server riding on the claw</td><td class="qty">1 + 1 spare</td><td class="price">$13</td></tr>
+      <tr><td>2S LiPo + charger + 6 V buck + switch</td><td>Self-contained power; dock-charging at the rest pose is the end-state</td><td class="qty">1 set</td><td class="price">$38</td></tr>
+    </table></div>
+  </details>
+
+  <details class="bom">
+    <summary>Printed parts &amp; fasteners <span class="bsub">— eight parametric models, STEP + STL in the repo</span></summary>
+    <div class="bom-body"><table>
+      <tr><th>Component</th><th>Purpose</th><th class="qty">Qty</th><th class="price">Est.</th></tr>
+      <tr><td>Tentacle fingers (TPU 95A)</td><td>Tendon-driven curling fingers — dorsal skin + ventral notches</td><td class="qty">5</td><td class="price">$22 filament</td></tr>
+      <tr><td>Effector frame · tentacle hub · camera mounts</td><td>The claw assembly (PETG/PLA), heat-set-insert ready</td><td class="qty">4 parts</td><td class="price">—</td></tr>
+      <tr><td>M3 stainless kit + brass heat-set inserts</td><td>Metal threads in plastic — the cheap upgrade that outlasts self-tapping</td><td class="qty">2 kits</td><td class="price">$19</td></tr>
+    </table></div>
+  </details>
+</div></section>
+
 <section id="stack"><div class="wrap">
-  <div class="sec-head"><span class="idx">04</span><h2>Built with</h2></div>
+  <div class="sec-head"><span class="idx">05</span><h2>Built with</h2></div>
   <p class="lead">Robotics, computer vision, controls, mechanical CAD, and embedded firmware — one coherent system.</p>
   <div class="chips">
     <span class="chip"><b>Python</b> · control + kinematics</span>
@@ -295,8 +422,8 @@
 </div></section>
 
 <footer><div class="wrap">
-  <span>RoomCleaner — a personal robotics project · designed &amp; built end to end</span>
-  <span>kinematics · vision · CAD · firmware</span>
+  <span>RoomCleaner — designed &amp; built end to end by <b style="color:var(--bright)">Jasper Buntinx</b></span>
+  <span>kinematics · vision · CAD · firmware · <a href="https://github.com/Jaspario1199/RoomCleaner" rel="noopener">source ↗</a></span>
 </div></footer>
 
 <script>
@@ -475,7 +602,107 @@
     line(tauC,css('--cyan'),'center · 10.6kg',X(7));
     line(tauW,css('--accent'),'corner · 4kg',X(1.4));
   }
-  function drawCharts(){drawHeat();drawPayload();}
+  /* ---------- BOM price toggle ---------- */
+  document.getElementById('pricebtn').addEventListener('click',function(){
+    var on=document.body.toggleAttribute('data-prices');
+    this.textContent=on?'hide est. pricing':'show est. pricing';
+  });
+
+  /* ---------- force explorer: real statics, solved live ---------- */
+  // Equilibrium: sum(t_i * u_i) = (0,0,m*g), t_i >= t_min. With 4 cables and 3
+  // equations there's a 1-D family of solutions; we take the min-norm particular
+  // solution and center along the null space -- the same method as the Python.
+  function trip(u,v,w){return u[0]*(v[1]*w[2]-v[2]*w[1])-u[1]*(v[0]*w[2]-v[2]*w[0])+u[2]*(v[0]*w[1]-v[1]*w[0]);}
+  function solveT(px,py,pz,mass){
+    var U=[],a;
+    for(a=0;a<4;a++){var vx=anchors[a][0]-px,vy=anchors[a][1]-py,vz=H-pz;
+      var L=Math.sqrt(vx*vx+vy*vy+vz*vz)||1e-9;U.push([vx/L,vy/L,vz/L]);}
+    var S=[[0,0,0],[0,0,0],[0,0,0]];
+    for(a=0;a<4;a++)for(var r=0;r<3;r++)for(var c=0;c<3;c++)S[r][c]+=U[a][r]*U[a][c];
+    var w=[0,0,mass*9.81];
+    var c0=[S[0][0],S[1][0],S[2][0]],c1=[S[0][1],S[1][1],S[2][1]],c2=[S[0][2],S[1][2],S[2][2]];
+    var D=trip(c0,c1,c2); if(Math.abs(D)<1e-12)return null;
+    var y=[trip(w,c1,c2)/D,trip(c0,w,c2)/D,trip(c0,c1,w)/D];
+    var t0=U.map(function(u){return u[0]*y[0]+u[1]*y[1]+u[2]*y[2];});
+    var n=[];
+    for(a=0;a<4;a++){var cols=[];for(var b=0;b<4;b++)if(b!==a)cols.push(U[b]);
+      n.push(((a%2)?-1:1)*trip(cols[0],cols[1],cols[2]));}
+    var lo=-1e12,hi=1e12,tmin=0.5;
+    for(a=0;a<4;a++){
+      if(Math.abs(n[a])<1e-12){if(t0[a]<tmin-1e-9)return null;continue;}
+      var bnd=(tmin-t0[a])/n[a];
+      if(n[a]>0)lo=Math.max(lo,bnd);else hi=Math.min(hi,bnd);
+    }
+    if(lo>hi)return null;
+    var s=(lo+hi)/2;
+    return t0.map(function(t,i){return t+s*n[i];});
+  }
+
+  var ASSEMBLY=0.45, LIMIT=40;
+  var fx=2.0, fy=1.5, fpay=0.9, fzv=0.30;
+  var fcv=document.getElementById('fmap'), fctx=fcv.getContext('2d');
+
+  function ffit(){var w2=fcv.clientWidth||640;var d=Math.min(2,window.devicePixelRatio||1);
+    fcv.width=w2*d;fcv.height=(w2*D/W)*d;fctx.setTransform(d,0,0,d,0,0);}
+  function fToPx(p){var w2=fcv.clientWidth,h2=w2*D/W,m=24;return [m+(p[0]/W)*(w2-2*m), m+(p[1]/D)*(h2-2*m)];}
+  function fFromPx(ex,ey){var r=fcv.getBoundingClientRect(),w2=fcv.clientWidth,h2=w2*D/W,m=24;
+    return [((ex-r.left)-m)/(w2-2*m)*W, ((ey-r.top)-m)/(h2-2*m)*D];}
+
+  function drawForce(){
+    ffit();
+    var w2=fcv.clientWidth,h2=w2*D/W;
+    fctx.clearRect(0,0,w2,h2);
+    fctx.strokeStyle=css('--line');fctx.lineWidth=1;fctx.globalAlpha=.5;
+    for(var gx=0;gx<=W;gx+=0.5){var a1=fToPx([gx,0]),b1=fToPx([gx,D]);fctx.beginPath();fctx.moveTo(a1[0],a1[1]);fctx.lineTo(b1[0],b1[1]);fctx.stroke();}
+    for(var gy=0;gy<=D;gy+=0.5){var a2=fToPx([0,gy]),b2=fToPx([W,gy]);fctx.beginPath();fctx.moveTo(a2[0],a2[1]);fctx.lineTo(b2[0],b2[1]);fctx.stroke();}
+    fctx.globalAlpha=1;
+    var T=solveT(fx,fy,fzv,ASSEMBLY+fpay);
+    var cp=fToPx([fx,fy]);
+    for(var a=0;a<4;a++){
+      var ap=fToPx(anchors[a]);
+      var t=T?T[a]:0, frac=Math.min(1,t/LIMIT);
+      fctx.strokeStyle = T ? (t>LIMIT?css('--crit'):css('--cyan')) : css('--crit');
+      fctx.lineWidth = 1 + frac*4;
+      fctx.globalAlpha = T?0.4+0.6*frac:0.35;
+      fctx.beginPath();fctx.moveTo(ap[0],ap[1]);fctx.lineTo(cp[0],cp[1]);fctx.stroke();
+      fctx.globalAlpha=1;
+      fctx.fillStyle=css('--bright');fctx.fillRect(ap[0]-5,ap[1]-5,10,10);
+      fctx.strokeStyle=css('--cyan');fctx.lineWidth=1;fctx.strokeRect(ap[0]-5,ap[1]-5,10,10);
+      fctx.fillStyle=css('--dim');fctx.font='10px '+css('--mono');
+      fctx.fillText('ABCD'[a], ap[0]+(a===0||a===3?-14:9), ap[1]+4);
+    }
+    fctx.fillStyle=T?css('--accent'):css('--crit');
+    fctx.beginPath();fctx.arc(cp[0],cp[1],9,0,7);fctx.fill();
+    fctx.strokeStyle=css('--ground');fctx.lineWidth=2;fctx.stroke();
+
+    for(var a=0;a<4;a++){
+      var bar=document.getElementById('fb'+a),val=document.getElementById('fv'+a);
+      if(!T){bar.style.width='0%';val.textContent='—';continue;}
+      bar.style.width=Math.min(100,(T[a]/50)*100)+'%';
+      bar.className='ffill'+(T[a]>LIMIT?' hot':'');
+      val.textContent=T[a].toFixed(1)+' N';
+    }
+    var note=document.getElementById('fnote');
+    if(!T){note.innerHTML='<span class="bad">infeasible — cables can\'t hold this point</span>';}
+    else{
+      var tau=Math.max.apply(null,T)/(ASSEMBLY+fpay);
+      var maxPay=Math.max(0,LIMIT/tau-ASSEMBLY);
+      note.innerHTML='max payload here: <b>'+maxPay.toFixed(1)+' kg</b> ('+(maxPay*2.2).toFixed(1)+' lb) before the busiest cable hits 40 N';
+    }
+  }
+
+  var fdrag=false;
+  function fset(e){var p=fFromPx(e.clientX,e.clientY);
+    fx=Math.max(0.25,Math.min(W-0.25,p[0]));fy=Math.max(0.25,Math.min(D-0.25,p[1]));drawForce();}
+  fcv.addEventListener('pointerdown',function(e){fdrag=true;fcv.setPointerCapture(e.pointerId);fset(e);});
+  fcv.addEventListener('pointermove',function(e){if(fdrag)fset(e);});
+  fcv.addEventListener('pointerup',function(){fdrag=false;});
+  document.getElementById('fmass').addEventListener('input',function(){
+    fpay=parseFloat(this.value);document.getElementById('fm-lbl').textContent=fpay.toFixed(1)+' kg';drawForce();});
+  document.getElementById('fz').addEventListener('input',function(){
+    fzv=parseFloat(this.value);document.getElementById('fz-lbl').textContent=fzv.toFixed(2)+' m';drawForce();});
+
+  function drawCharts(){drawHeat();drawPayload();drawForce();}
   drawCharts();
 })();
 </script>

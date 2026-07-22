@@ -57,6 +57,9 @@ pip install -r requirements.txt
 python -m scripts.demo_sim       # 3D animation of a full cleaning run
 python -m scripts.sim_tension_map  # heatmap: where the motors strain hardest
 python -m scripts.sim_pickup_run   # per-pickup height / cable length / tension plots
+python -m scripts.sim_payload_sweep         # max liftable weight, anywhere in the room
+python -m scripts.sim_calibration_sensitivity # how precisely to measure your ceiling
+python -m scripts.sim_workspace_volume      # 3D render of the reachable volume
 python -m pytest                 # run the kinematics/geometry/vision tests
 
 # Phase 1 — real laundry detection on a webcam (heavier deps):

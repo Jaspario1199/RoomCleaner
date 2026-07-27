@@ -40,8 +40,10 @@ Consumer: verification mass check; roomcleaner/config EFFECTOR_ASSEMBLY stays 0.
 - Drum flange R16.5 vs frame bore R15: drum sits below the plate; no overlap plane. ✓
 - Servo body below-plate depth 0 (inverted). Sub-plate volume: standoff 40 mm ≥
   drum height (core 8 + 2 flanges ≈ 12.4) + horn ~6 + tendon rise ✓.
-- EFFECTOR_REACH: boss top→plate 8 + standoffs 40 + hub 12 + finger 70 ≈ **130 mm**
-  → EFFECTOR_REACH_M = 0.13. Consumer: roomcleaner/config.py, planner grab pose.
+- EFFECTOR_REACH: boss top→frame underside 8 + standoffs 40 + finger 70 = **118 mm**
+  (the finger's 12 mm base fills the hub — hub thickness is NOT additive; the
+  original 130 double-counted it, caught by integration measurement)
+  → EFFECTOR_REACH_M = 0.118. Consumer: roomcleaner/config.py, planner grab pose.
 
 ## C6. Structure sanity (R17)
 - Worst single-cable load 40 N enters a corner boss: shear area ≈ boss Ø12×5 mm

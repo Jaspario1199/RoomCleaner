@@ -70,4 +70,6 @@ COVER_WALL = 2.4
 CABLE_HOLE_D = 3.2            # corner boss tie-off holes; knot spec: Palomar
 
 # ---- claw <-> motion software (D9) -----------------------------------------
-EFFECTOR_REACH_M = 0.130      # cable plane -> fingertips; consumed by roomcleaner/config.py
+EFFECTOR_REACH_M = 0.118      # cable plane -> fingertips (integration-measured:
+                              # boss top 8 + standoffs 40 + finger 70; the hub 12 is
+                              # INSIDE the finger base, not additive — C5 corrected)

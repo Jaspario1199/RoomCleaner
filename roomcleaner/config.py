@@ -90,7 +90,7 @@ SAFE_MIN_Z = 0.15            # meters -- normal travel height floor clearance
 
 # D9: EFFECTOR_REACH is the cable plane -> fingertip distance (see
 # cad/interfaces.py EFFECTOR_REACH_M, the authoritative CAD value).
-EFFECTOR_REACH = 0.130       # meters -- cable plane to fingertips (cad/interfaces.py EFFECTOR_REACH_M)
+EFFECTOR_REACH = 0.118       # meters -- cable plane to fingertips (cad/interfaces.py EFFECTOR_REACH_M; integration-measured)
 # GRAB_Z is the height of the kinematic point (the cable plane, not the
 # fingertips) when grabbing: the fingertips reach the floor once the plate
 # is EFFECTOR_REACH above it, plus a small margin so the fingers don't drag.

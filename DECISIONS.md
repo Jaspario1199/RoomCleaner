@@ -42,3 +42,13 @@ existing workspace analysis holds unchanged).
 D10. **Buck converter risk accepted** — MP1584 (3 A) vs MG996R stall (~2.5–3 A)
 is marginal; brief brownouts possible under stall. Escalation path: 5 A UBEC.
 Not a geometry decision; recorded for the electronics BOM.
+
+D11. **Finger assembly placement corrected (integration find)** — the finger's
+local frame is ventral-anchored (y=0 at the notched face), so placing at the
+raw pocket radius pushed each finger H_BASE/2 = 6.5 mm outboard (445 mm³
+interference). Assembly translates to pocket_r − H_BASE/2; part files untouched.
+
+D12. **EFFECTOR_REACH corrected 130 → 118 mm (integration-measured)** — the
+original C5 sum double-counted the hub: the finger's 12 mm base fills the hub
+thickness. Contract, config, calc, and R8 all updated; grab pose now
+GRAB_Z = 0.138 m.

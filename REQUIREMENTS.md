@@ -14,7 +14,7 @@ and releases it — repeatably, with every part printable or on the approved BOM
 
 ## Physical / envelope
 - R7. Total claw mass ≤ 0.45 kg (the value the workspace/tension analysis assumed).
-- R8. Vertical reach (cable plane → fingertips) ≈ 130 mm; recorded as EFFECTOR_REACH and consumed by the motion planner.
+- R8. Vertical reach (cable plane → fingertips) ≈ 118 mm (integration-measured); recorded as EFFECTOR_REACH and consumed by the motion planner.
 - R9. Fits within a 100 mm square footprint at the plate (cable clearance at the corners).
 
 ## Interfaces (authoritative details in cad/interfaces.py)

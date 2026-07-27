@@ -44,10 +44,24 @@ corner cable notches).
    interfaces.py; hub imports HUB_THK), finger fixed, stale test updated.
    71/71 pytest green.
 
-## In flight
-6. 🔄 integration-agent: real stack-up assembly (standoffs/hub/fingers/drum/
-   cover), pairwise interference ~0, slot-engagement probe (independent check
-   of the shoulder fix), clearance table, assembly STEP round-trip, render.
+6. ✅ integration-agent: real stack-up assembled; pairwise interference all
+   0.000 mm³ (after catching a 6.5 mm finger placement offset, D11); slot
+   engagement 100 % ×5; drum↔standoff 5.5 mm; assembly STEP round-trip exact.
+   Reach measured 118 mm → contract corrected (D12). 71/71 pytest.
+
+## Gate 7 audit notes (lead, this session)
+- (low) DRUM_TOP_Z = −6 is assembly-local; verify real MG996R spline+horn
+  stack-out below the plate at bench; adjust drum z or GRIP tuning if needed.
+- (med) Tendon bend at hub guide-hole exits: chamfers specified, friction not
+  modeled — bench item with Dyneema.
+- (low) Cover↔servo wire routing clearance unmodeled (42 mm inner height OK).
+- Physical validation plan: print frame + standoffs + hub + drum + ONE finger
+  first; verify slot fit, shoulder seating, tendon travel ≈27 mm, THEN print
+  the remaining fingers and the cover.
+
+## Current gate
+Gate 6 complete → release-candidate items remaining: SOLIDWORKS assembly
+review (claw_assembly.step is the handoff), physical prototype plan above.
 
 ## Last verified state
-71/71 pytest after shoulder correction; all six parts exported and verified.
+71/71 pytest; 11 parts exported; claw_assembly.step round-trips exactly.

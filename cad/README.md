@@ -94,12 +94,13 @@ python -m cad.export_all
 `params.py` has `USE_HEATSET_INSERTS` (default **True**). It controls only the
 holes where a screw threads **into printed plastic**:
 
-- **Insert holes (widened to ~4 mm):** the 4 holes in `tentacle_hub` that bolt it
-  up to the `effector_frame` — the joint carrying the whole gripper. Melt an M3
-  insert into each with a soldering iron + insert tip, then bolt through the frame.
-- **Left as clearance / screw-through:** most holes (frame, motor mount, corner
-  guide) — screws pass through and thread into the motor/servo's own metal, or
-  take a nut. No insert needed.
+- **Insert holes:** BOTH ends of each `standoff` (8 inserts — these carry the
+  whole gripper) and the 4 cover-tab holes in the frame top. Melt each in with
+  a soldering iron + insert tip.
+- **Left as clearance / screw-through:** the frame's and hub's Ø-holes on the
+  bolt circle (screws pass through into the standoff inserts — the hub's 4 mm
+  holes are deliberately loose; the washer seats the head), the servo ear taps,
+  and everything that threads into motor/servo metal.
 - **TPU parts stay self-tap / use a screw + nut:** heat-set inserts do **not** hold
   in flexible TPU, so the `tentacle_finger` base is not insert-drilled.
 

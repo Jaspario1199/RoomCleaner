@@ -15,7 +15,10 @@ HUB_MOUNT_R = 27.0            # shared bolt circle radius, frame AND hub
 STANDOFF_ANGLES_DEG = (36.0, 108.0, 252.0, 324.0)   # clear of 5 finger pockets @72°
 STANDOFF_LEN = 40.0           # frame underside -> hub top face
 STANDOFF_OD = 10.0
-STANDOFF_SCREW = "M3x8 into heat-set insert each end"
+STANDOFF_SCREW = ("frame side: M3x8 down through the frame clearance hole into the "
+                  "standoff TOP insert; hub side: M3x16 + washer UP through the "
+                  "12 mm hub (head on the hub underside) into the standoff BOTTOM "
+                  "insert — an M3x8 cannot span the hub thickness")
 
 # ---- servo <-> frame (D2) --------------------------------------------------
 SERVO_MODEL = "MG996R"
@@ -57,7 +60,8 @@ FINGER_SHOULDER_Z0 = HUB_THK             # shoulder starts JUST BELOW the slot -
                                          # (z=0 is the mounting end face, flush with hub top)
 FINGER_SHOULDER_T = 2.0                  # lip thickness; bears on hub UNDERSIDE
 FINGER_SHOULDER_GROW = 2.0               # lip overhang per side beyond base section
-FINGER_RETAIN = "axial M3x16 + washer from hub top into finger base tap"
+FINGER_RETAIN = ("axial M3x12 + washer from the hub top into the finger base tap "
+                 "(tap is 11 mm deep; a 16 mm screw bottoms out through the open slot)")
 
 # ---- cover <-> frame (D7) ---------------------------------------------------
 COVER_SCREW_POS = 40.0        # 4 tabs at edge midpoints (±x,0),(0,±y) on plate top

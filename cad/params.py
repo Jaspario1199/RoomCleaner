@@ -53,3 +53,21 @@ SPATULA_RAMP_DEG = 15.0   # deg, shallow ramp angle at the leading edge
 FINGER_LEN = 70.0         # mm, Fin Ray finger length
 FINGER_BASE = 26.0        # mm, Fin Ray base width
 FINGER_RIBS = 6           # number of internal ribs
+
+# --- Claw integration pass (v2 stack-up) ------------------------------------
+# Mating values live in cad/interfaces.py (the authoritative contract file);
+# they are re-exported here so legacy part scripts keep one import path.
+from .interfaces import (   # noqa: F401
+    HUB_MOUNT_R, STANDOFF_ANGLES_DEG, STANDOFF_LEN, STANDOFF_OD,
+    SERVO_POCKET_L, SERVO_POCKET_W, SERVO_EAR_SPAN, SERVO_EAR_TAP,
+    HORN_POCKET_DIA, HORN_POCKET_T, HORN_SCREW_CIRCLE, HORN_SCREW_HOLE,
+    DRUM_CORE_R, DRUM_CORE_H, DRUM_FLANGE_R, DRUM_FLANGE_T,
+    DRUM_TIEOFF_HOLES, DRUM_TIEOFF_HOLE_D,
+    FINGER_SHOULDER_T, FINGER_SHOULDER_GROW,
+    COVER_SCREW_POS, COVER_INNER_H, COVER_CORNER_NOTCH, COVER_WALL,
+    EFFECTOR_REACH_M,
+)
+
+# Tendon-relevant finger geometry (authoritative here; the finger part imports it).
+# Drum sizing (C1/C2) derives from this value — do not redefine it elsewhere.
+NOTCH_GAP = 4.5           # mm, ventral V-notch opening per segment

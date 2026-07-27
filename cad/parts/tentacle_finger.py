@@ -21,7 +21,8 @@ from __future__ import annotations
 import cadquery as cq
 
 from ..params import (
-    FINGER_LEN, FINGER_BASE, FINGER_RIBS, DYNEEMA_DIA, SCREW_M3,
+    FINGER_LEN, FINGER_BASE, FINGER_RIBS, DYNEEMA_DIA, SCREW_M3, NOTCH_GAP,
+    FINGER_SHOULDER_T, FINGER_SHOULDER_GROW,
 )
 
 # Cross-section (X = width, Y = thickness; ventral face at y=0, dorsal at y=+H).
@@ -30,7 +31,8 @@ W_TIP = 9.0
 H_BASE = 13.0
 H_TIP = 7.0
 DORSAL_SKIN = 1.6      # continuous top skin left above the notch roots
-NOTCH_GAP = 4.5        # ventral opening width of each V-notch (along length)
+# NOTCH_GAP is authoritative in cad/params.py (drum sizing derives from it) --
+# import it rather than redefining a local copy (D5 single-source-of-truth).
 TENDON_DIA = DYNEEMA_DIA + 0.8
 TENDON_Y = 2.2         # tendon channel height above the ventral face
 BASE_SOLID = 12.0      # solid (un-notched) length at the mounting base
@@ -47,6 +49,25 @@ def make() -> cq.Workplane:
         .rect(W_TIP, H_TIP, centered=(True, False))
         .loft(combine=True)
     )
+
+    # Base shoulder (D5): for the bottom FINGER_SHOULDER_T of the finger, the
+    # cross-section grows FINGER_SHOULDER_GROW per side beyond the W_BASE x
+    # H_BASE base section -- a rectangular pad, centered like the base (X
+    # centered, Y anchored so the ventral face's y=0 datum still grows evenly
+    # per side). The hub slot stays sized to the un-shouldered base; this
+    # shoulder is proud of it and bears on the hub UNDERSIDE once the finger
+    # is inserted through the through-slot from below.
+    shoulder = (
+        cq.Workplane("XY")
+        .rect(
+            W_BASE + 2 * FINGER_SHOULDER_GROW,
+            H_BASE + 2 * FINGER_SHOULDER_GROW,
+            centered=(True, False),
+        )
+        .translate((0, -FINGER_SHOULDER_GROW, 0))
+        .extrude(FINGER_SHOULDER_T)
+    )
+    finger = finger.union(shoulder)
 
     # V-notches from the ventral side, between segments (skip the solid base).
     usable = L - BASE_SOLID

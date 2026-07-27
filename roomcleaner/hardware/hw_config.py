@@ -23,7 +23,8 @@ SERIAL_PORT = "/dev/ttyUSB0"   # Windows: "COM3"; Mac: "/dev/tty.usbserial-XXXX"
 BAUD = 115200
 
 # --- Gripper servo angles (degrees) ---------------------------------------
-GRIP_ANGLE = 120             # tendon pulled -> tentacles curled (grip)
+# MUST equal cad/interfaces.py SERVO_GRIP_DEG (drum sizing depends on the 120 deg throw).
+GRIP_ANGLE = 140             # tendon pulled -> tentacles curled (grip)
 RELEASE_ANGLE = 20           # tendon slack -> tentacles open (release)
 
 # --- Wireless effector (ESP32 on the claw) --------------------------------

@@ -7,6 +7,9 @@
  *     GET /grip?angle=120     -> curl the tentacles, replies "OK 120"
  *     GET /release?angle=20   -> open the tentacles, replies "OK 20"
  *     GET /status             -> replies "READY <angle>"
+ *     GET /setup               -> park at DEFAULT_RELEASE so the horn/drum can be
+ *                                  attached at a known zero (D8), replies
+ *                                  "SETUP <angle> -- attach horn/drum now"
  *
  * Only the 4 Dyneema cables touch the effector -- no wire crosses the room.
  * Grip/release aren't time-critical, so WiFi latency here is harmless.
@@ -55,6 +58,13 @@ void handleStatus() {
   server.send(200, "text/plain", "READY " + String(currentAngle));
 }
 
+void handleSetup() {
+  // D8: park the servo at DEFAULT_RELEASE so the drum/horn is pressed on at a
+  // known zero.
+  setAngle(DEFAULT_RELEASE);
+  server.send(200, "text/plain", "SETUP " + String(currentAngle) + " -- attach horn/drum now");
+}
+
 void setup() {
   Serial.begin(115200);
   gripper.attach(SERVO_PIN);
@@ -70,6 +80,7 @@ void setup() {
   server.on("/grip", handleGrip);
   server.on("/release", handleRelease);
   server.on("/status", handleStatus);
+  server.on("/setup", handleSetup);
   server.begin();
 }
 

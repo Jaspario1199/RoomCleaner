@@ -19,7 +19,10 @@ from __future__ import annotations
 import math
 import cadquery as cq
 
-from ..params import SCREW_M3, SCREW_M3_TAP
+from ..params import (
+    SCREW_M3, SCREW_M3_TAP, M3_THREAD_HOLE, HUB_MOUNT_R, STANDOFF_ANGLES_DEG,
+    SERVO_EAR_TAP, COVER_SCREW_POS,
+)
 
 PLATE = 92.0
 THK = 5.0
@@ -27,11 +30,11 @@ BORE = 30.0
 CABLE_HOLE = 3.2         # tie-off hole for the Dyneema at each corner
 CORNER_INSET = 9.0
 
-# MG996R servo pocket.
+# MG996R servo pocket. Servo mounts INVERTED (D2) with ears on the plate top,
+# so the ear holes are self-tap (SERVO_EAR_TAP) rather than clearance.
 SERVO_L = 41.0
 SERVO_W = 20.2
 SERVO_EAR_SPAN = 48.3    # centre-to-centre of the two mounting-tab holes
-SERVO_SCREW = SCREW_M3
 
 
 def make() -> cq.Workplane:
@@ -65,16 +68,31 @@ def make() -> cq.Workplane:
     plate = (
         plate.faces(">Z").workplane(centerOption="CenterOfBoundBox")
         .pushPoints([(SERVO_EAR_SPAN / 2, 0), (-SERVO_EAR_SPAN / 2, 0)])
-        .hole(SERVO_SCREW + 0.4)
+        .hole(SERVO_EAR_TAP)
     )
 
-    # Four hub-mounting holes (match tentacle_hub mount pattern, r ~ 27).
-    mount_r = 27.0
+    # Four hub-mounting holes, on the shared bolt circle (D6): HUB_MOUNT_R /
+    # STANDOFF_ANGLES_DEG are the single authoritative source (cad/interfaces.py)
+    # for both the frame and the hub -- this replaces the previous independent
+    # 45 deg + 90k pattern.
     pts = [
-        (mount_r * math.cos(a), mount_r * math.sin(a))
-        for a in [math.radians(45 + 90 * k) for k in range(4)]
+        (HUB_MOUNT_R * math.cos(math.radians(a)), HUB_MOUNT_R * math.sin(math.radians(a)))
+        for a in STANDOFF_ANGLES_DEG
     ]
     plate = plate.faces(">Z").workplane(centerOption="CenterOfBoundBox").pushPoints(pts).hole(SCREW_M3 + 0.4)
+
+    # Four cover-mount holes (D7): heat-set inserts in the plate top at the
+    # edge midpoints, (+-COVER_SCREW_POS, 0) and (0, +-COVER_SCREW_POS). These
+    # sit well clear of the strap slots at y=+-31 (x=+-14+-3.25) and of the
+    # hub-mount / cable-eye / servo-pocket features above.
+    cover_pts = [
+        (COVER_SCREW_POS, 0), (-COVER_SCREW_POS, 0),
+        (0, COVER_SCREW_POS), (0, -COVER_SCREW_POS),
+    ]
+    plate = (
+        plate.faces(">Z").workplane(centerOption="CenterOfBoundBox")
+        .pushPoints(cover_pts).hole(M3_THREAD_HOLE)
+    )
 
     # Wireless-effector payload: zip-tie strap slots on the TOP face to mount the
     # ESP32 board (+y band) and the LiPo battery (-y band). One strap = 2 slots a

@@ -22,7 +22,7 @@ import cadquery as cq
 
 from ..params import (
     FINGER_LEN, FINGER_BASE, FINGER_RIBS, DYNEEMA_DIA, SCREW_M3, NOTCH_GAP,
-    FINGER_SHOULDER_T, FINGER_SHOULDER_GROW,
+    FINGER_SHOULDER_T, FINGER_SHOULDER_GROW, FINGER_SHOULDER_Z0,
 )
 
 # Cross-section (X = width, Y = thickness; ventral face at y=0, dorsal at y=+H).
@@ -50,13 +50,12 @@ def make() -> cq.Workplane:
         .loft(combine=True)
     )
 
-    # Base shoulder (D5): for the bottom FINGER_SHOULDER_T of the finger, the
-    # cross-section grows FINGER_SHOULDER_GROW per side beyond the W_BASE x
-    # H_BASE base section -- a rectangular pad, centered like the base (X
-    # centered, Y anchored so the ventral face's y=0 datum still grows evenly
-    # per side). The hub slot stays sized to the un-shouldered base; this
-    # shoulder is proud of it and bears on the hub UNDERSIDE once the finger
-    # is inserted through the through-slot from below.
+    # Base shoulder (D5, corrected placement): local z=0 is the MOUNTING END
+    # face, which sits flush with the hub TOP. The slot engagement is
+    # z in [0, FINGER_SHOULDER_Z0] (= hub thickness), so the oversize shoulder
+    # must start at FINGER_SHOULDER_Z0 -- just below the slot -- where it bears
+    # on the hub UNDERSIDE. (Placing it at z=0 would block insertion entirely:
+    # the lip is wider than the slot, so nothing would engage.)
     shoulder = (
         cq.Workplane("XY")
         .rect(
@@ -66,6 +65,7 @@ def make() -> cq.Workplane:
         )
         .translate((0, -FINGER_SHOULDER_GROW, 0))
         .extrude(FINGER_SHOULDER_T)
+        .translate((0, 0, FINGER_SHOULDER_Z0))
     )
     finger = finger.union(shoulder)
 

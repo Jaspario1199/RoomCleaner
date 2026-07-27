@@ -49,10 +49,15 @@ DRUM_TIEOFF_HOLES = 5         # Ø2.0 through BOTTOM flange at r=DRUM_CORE_R, 72
 DRUM_TIEOFF_HOLE_D = 2.0      # reachable through the hub bore after assembly (R5)
 
 # ---- finger <-> hub (D5) ----------------------------------------------------
+HUB_THK = 12.0                # hub disc thickness == finger slot engagement length
 FINGER_POCKET = "through-slot"          # no floor; finger inserted from BELOW
-FINGER_SHOULDER_T = 2.0                  # lip proud of base, bears on hub UNDERSIDE
+FINGER_ENGAGE_LEN = HUB_THK              # finger local z [0, HUB_THK] fills the slot
+FINGER_SHOULDER_Z0 = HUB_THK             # shoulder starts JUST BELOW the slot --
+                                         # local z [HUB_THK, HUB_THK+FINGER_SHOULDER_T]
+                                         # (z=0 is the mounting end face, flush with hub top)
+FINGER_SHOULDER_T = 2.0                  # lip thickness; bears on hub UNDERSIDE
 FINGER_SHOULDER_GROW = 2.0               # lip overhang per side beyond base section
-FINGER_RETAIN = "axial M3 + washer from hub top into finger base tap"
+FINGER_RETAIN = "axial M3x16 + washer from hub top into finger base tap"
 
 # ---- cover <-> frame (D7) ---------------------------------------------------
 COVER_SCREW_POS = 40.0        # 4 tabs at edge midpoints (±x,0),(0,±y) on plate top

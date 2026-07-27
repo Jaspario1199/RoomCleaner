@@ -57,7 +57,7 @@ def test_full_plan_streams_expected_commands():
     assert drv.commands, "driver received no commands"
     # Homing happened first, then moves, and both grip and release were issued.
     assert any(c.startswith("M ") for c in drv.commands)
-    assert any(c == "G 120" for c in drv.commands)   # grip
+    assert any(c == "G 140" for c in drv.commands)   # grip
     assert any(c == "G 20" for c in drv.commands)     # release
     # Every M command carries exactly 4 step targets.
     for c in drv.commands:

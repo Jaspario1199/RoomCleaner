@@ -24,11 +24,12 @@ from __future__ import annotations
 import math
 import cadquery as cq
 
-from ..params import M3_THREAD_HOLE, HUB_MOUNT_R, STANDOFF_ANGLES_DEG
+from ..params import M3_THREAD_HOLE, HUB_MOUNT_R, STANDOFF_ANGLES_DEG, HUB_THK
 
 N_FINGERS = 5
 HUB_DIA = 88.0
-HUB_THK = 12.0
+# HUB_THK now comes from cad/interfaces.py (it equals the finger slot
+# engagement length, a mating value shared with tentacle_finger).
 BORE_DIA = 30.0          # central view / tendon-junction bore
 POCKET_W = 16.4          # matches finger W_BASE + clearance
 POCKET_H = 13.4          # matches finger H_BASE + clearance

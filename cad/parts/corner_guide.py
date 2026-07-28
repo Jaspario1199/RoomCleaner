@@ -21,9 +21,18 @@ BASE_L = 55.0
 BASE_W = 34.0
 BASE_T = 5.0
 EAR_H = 26.0
-EAR_T = 4.0
+EAR_T = 4.0           # ear position/footprint reference (drives ear_cx/sy
+                       # offsets below -- unchanged, keeps the GAP=10 pulley
+                       # clearance and base layout as-is)
 GAP = 10.0            # space between ears for the pulley
 EAR_HOLE = SCREW_M3   # axle bolt hole
+EAR_HOLE_DIA = EAR_HOLE + 0.3  # axle bolt clearance-hole diameter
+EAR_HOLE_MIN_WALL = 1.5  # mm, minimum printable wall around the axle hole
+# Actual ear plate thickness through the axle hole (X direction). Sized so
+# (EAR_PLATE_T - EAR_HOLE_DIA) / 2 clears EAR_HOLE_MIN_WALL on each side of
+# the hole, with a small margin over the bare 6.7 mm minimum for FDM
+# tolerance: (7.0 - 3.7) / 2 = 1.65 mm >= 1.5 mm.
+EAR_PLATE_T = 7.0
 
 
 def make() -> cq.Workplane:
@@ -43,13 +52,13 @@ def make() -> cq.Workplane:
         ear = (
             cq.Workplane("XY")
             .center(ear_cx, sy)
-            .box(EAR_T, EAR_T + 8, EAR_H, centered=(True, True, False))
+            .box(EAR_PLATE_T, EAR_T + 8, EAR_H, centered=(True, True, False))
         )
         # Axle hole near the top of the ear.
         ear = (
             ear.faces(">Y").workplane(centerOption="CenterOfBoundBox")
             .center(0, EAR_H / 2 - 6)
-            .hole(EAR_HOLE + 0.3)
+            .hole(EAR_HOLE_DIA)
         )
         part = part.union(ear)
 

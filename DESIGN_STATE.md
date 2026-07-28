@@ -59,9 +59,24 @@ corner cable notches).
   first; verify slot fit, shoulder seating, tendon travel ≈27 mm, THEN print
   the remaining fingers and the cover.
 
+## Tier 2 closure (winch-side verification + docs)
+- geometry-verifier swept the 5 pre-discipline parts: motor_mount,
+  camera_mount, camera_mount_overhead PASS. Two REAL defects found:
+  winch_spool D-flat was a geometric no-op (cut box ended at the bore
+  surface); corner_guide ear walls 0.15 mm (unprintable).
+- cad-implementer repaired both (flat via bore-cutter ∩ half-space, wall
+  2.100 mm exact; EAR_PLATE_T=7.0, walls 1.65 mm) and correctly ESCALATED a
+  defective verifier test (hardcoded nominal arithmetic, never probed the
+  solid). Lead authorized and rewrote the test to probe built geometry.
+- Fastener-length contracts trued (hub-side standoff M3x16; finger retainer
+  M3x12); cad/README assembly procedure + insert map rewritten to the real
+  D2-D8 stack-up, incl. single-finger validation print.
+
 ## Current gate
-Gate 6 complete → release-candidate items remaining: SOLIDWORKS assembly
-review (claw_assembly.step is the handoff), physical prototype plan above.
+Gate 6 complete, all parts (claw + winch) independently verified →
+release-candidate items remaining: SOLIDWORKS review (claw_assembly.step),
+physical validation plan.
 
 ## Last verified state
-71/71 pytest; 11 parts exported; claw_assembly.step round-trips exactly.
+105/105 pytest; 11 parts exported and verified; claw_assembly.step
+round-trips exactly.

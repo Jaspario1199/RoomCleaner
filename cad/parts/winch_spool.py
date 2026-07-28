@@ -33,20 +33,36 @@ def make() -> cq.Workplane:
         .circle(SPOOL_FLANGE_DIA / 2).extrude(SPOOL_FLANGE_THK)
     )
 
-    # Through bore for the shaft.
-    spool = (
-        spool.faces(">Z").workplane(centerOption="CenterOfBoundBox")
-        .circle(bore / 2).cutThruAll()
+    # Through bore for the shaft, with an optional D-flat (anti-rotation).
+    #
+    # A D-flat cannot be made by cutting MORE material into an already-round
+    # hole -- that only enlarges the void, it can never flatten it. The flat
+    # must instead be built by INTERSECTING the round bore cutter with a
+    # half-space (x <= flat_x), so the sliver between the chord and the
+    # round radius is simply never removed and stays solid. That solid
+    # sliver is the wall the D-shaft's flat face bears against.
+    bore_r = bore / 2
+    bore_cut_len = total_len * 2  # generous overshoot for a clean through-cut
+    round_cutter = (
+        cq.Workplane("XY")
+        .workplane(offset=-bore_cut_len / 2)
+        .circle(bore_r)
+        .extrude(bore_cut_len)
     )
 
-    # Optional D-flat: cut a slab off one side of the bore.
+    bore_cutter = round_cutter
     if MOTOR_SHAFT_FLAT > 0:
-        flat = (
+        flat_x = bore_r - MOTOR_SHAFT_FLAT  # chord plane; wall left at y=0
+        half_reach = bore  # comfortably beyond -bore_r on the round side
+        half_space = (
             cq.Workplane("XY")
-            .center(bore / 2 - MOTOR_SHAFT_FLAT, 0)
-            .box(MOTOR_SHAFT_FLAT * 2, bore, total_len * 2, centered=(True, True, True))
+            .workplane(offset=-bore_cut_len / 2)
+            .center((flat_x - half_reach) / 2, 0)
+            .box(flat_x + half_reach, bore, bore_cut_len, centered=(True, True, False))
         )
-        spool = spool.cut(flat)
+        bore_cutter = round_cutter.intersect(half_space)
+
+    spool = spool.cut(bore_cutter)
 
     # Radial grub-screw hole into the lower flange hub to lock onto the shaft.
     grub = (

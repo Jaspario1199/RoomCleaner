@@ -309,42 +309,57 @@ def test_corner_guide_ear_axle_holes_are_coaxial():
 
 
 def test_corner_guide_ear_wall_thickness_around_axle_hole():
-    """FAILS by design to document a real defect: EAR_T = 4.0 mm and the
-    axle hole diameter is SCREW_M3 + 0.3 = 3.7 mm (cad/parts/corner_guide.py
-    EAR_HOLE = SCREW_M3 = 3.4, hole = EAR_HOLE + 0.3). With the hole centered
-    in the ear's 4 mm thickness, remaining wall on each side is only
-    (4.0 - 3.7) / 2 = 0.15 mm -- far below any FDM-printable minimum wall
-    (commonly >= 0.4-0.8 mm, i.e. at least one nozzle width). Probing
-    confirms measured wall ~0.1 mm, i.e. the hole nearly (and may, given
-    print tolerances/CLEARANCE-scale variation) breach the ear's outer
-    face, turning the axle bore into an open-sided slot.
+    """Regression probe for a REAL defect found at verification: the axle hole
+    (SCREW_M3 + 0.3 = 3.7 mm) through the original 4.0 mm ear left ~0.15 mm
+    walls -- unprintable. The repair sizes the ear plate (EAR_PLATE_T) so the
+    printed wall clears EAR_HOLE_MIN_WALL on each side.
+
+    Unlike the first version of this test, this probes the BUILT solid: it
+    measures the ear plate's true X-thickness beside the hole and the hole's
+    true bore, and derives the wall from those measurements -- no nominal
+    arithmetic on local constants.
     """
+    from cad.parts.corner_guide import (
+        EAR_PLATE_T, EAR_HOLE_DIA, EAR_HOLE_MIN_WALL,
+    )
+
     cg = corner_guide.make()
     ins = _inside_fn(cg.val())
     ear_cx, z, EAR_T = _corner_guide_ear_geom()
     GAP = 10.0
     sy = GAP / 2 + EAR_T / 2
 
-    hole_r = P.SCREW_M3 / 2 + 0.15  # nominal hole radius (3.7/2 = 1.85)
-    ear_half_x = EAR_T / 2  # 2.0 mm, nominal ear half-thickness
+    # 1. True hole bore (sweep Z through the hole center, axis along Y).
+    hole_r_meas = _bisect_wall(ins, ear_cx, sy, z, "z", 0.0, 3.0)
 
-    measured_wall = ear_half_x - hole_r  # nominal remaining wall, mm
-    MIN_PRINTABLE_WALL = 0.4  # mm, ~1 nozzle width, conservative FDM minimum
+    # 2. True plate X-thickness, probed just ABOVE the hole (solid material),
+    #    one-sided from the plate centerline x = ear_cx, doubled (the ear box
+    #    is X-centered on ear_cx). _bisect_wall expects a void start, so run a
+    #    small solid->void bisection inline.
+    z_probe = z + hole_r_meas + 0.5
+    assert ins(ear_cx, sy, z_probe), "probe start must be inside the ear plate"
+    lo, hi = 0.0, 8.0
+    assert not ins(ear_cx + hi, sy, z_probe), "outer probe bound must be void"
+    for _ in range(40):
+        mid = (lo + hi) / 2
+        if ins(ear_cx + mid, sy, z_probe):
+            lo = mid
+        else:
+            hi = mid
+    plate_t_meas = 2.0 * ((lo + hi) / 2)
 
-    assert measured_wall >= MIN_PRINTABLE_WALL, (
-        f"corner_guide ear axle hole: remaining wall in the ear's X "
-        f"(thickness) direction = {measured_wall:.3f} mm "
-        f"(EAR_T={EAR_T} mm, hole diameter={2*hole_r} mm), below the "
-        f"{MIN_PRINTABLE_WALL} mm FDM-printable minimum. Direct probe: "
-        f"solid found only in a ~0.1 mm sliver between the hole and the "
-        f"ear's outer X face (see verification/winch_parts_report.md)."
+    assert abs(plate_t_meas - EAR_PLATE_T) <= 0.05, (
+        f"ear plate thickness = {plate_t_meas:.3f} mm, expected {EAR_PLATE_T}"
+    )
+    assert abs(2 * hole_r_meas - EAR_HOLE_DIA) <= 0.05, (
+        f"axle bore = {2*hole_r_meas:.3f} mm, expected {EAR_HOLE_DIA}"
     )
 
-
-# ---------------------------------------------------------------------------
-# Check 5: camera_mount -- Pi Camera 21x12.5 mm M2 pattern (purchased-part
-# fact, not centralized in params.py).
-# ---------------------------------------------------------------------------
+    measured_wall = (plate_t_meas - 2.0 * hole_r_meas) / 2.0
+    assert measured_wall >= EAR_HOLE_MIN_WALL, (
+        f"wall around axle hole = {measured_wall:.3f} mm, "
+        f"minimum printable = {EAR_HOLE_MIN_WALL} mm"
+    )
 
 @pytest.mark.parametrize("sx", [-1, 1])
 @pytest.mark.parametrize("sy", [-1, 1])

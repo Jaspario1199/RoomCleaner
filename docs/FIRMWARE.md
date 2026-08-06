@@ -117,13 +117,21 @@ run_on_hardware(robot, controller, driver)                   # homes, then execu
 
 Because the 4th stepper uses D12/D13 (normally the spindle pins), the 4th limit
 switch and the servo move to the analog pins. **Verify against your board's
-silkscreen**, and set the microstepping jumpers under the DRV8825s to match
-`MICROSTEP` in `hw_config.py`.
+silkscreen**, and set the microstepping jumpers under the drivers to match
+`MICROSTEP` in `hw_config.py` (1/16 = all three jumpers ON for both A4988 and
+DRV8825).
 
 ## First-power checklist (do this in order)
 
-1. **Set the DRV8825 current limit** (Vref ≈ 0.75 V for the 1.5 A motors) with the
-   motors *powered but not yet homing*. Too high = they cook.
+1. **Set each driver's current limit** with the motors *powered but not yet
+   homing*. Too high = they cook. The formula depends on the driver:
+   - **A4988** (ACEIRMC shield kit): `Vref = I × 8 × Rsense`. Typical boards use
+     0.1 Ω sense resistors → **Vref ≈ 0.8 V for 1.0 A** (up to 0.96 V for
+     1.2 A). Check the two small resistors marked `R100` (0.1 Ω) vs `R050`
+     (0.05 Ω → halve the Vref targets). Run A4988s derated to 1.0–1.2 A —
+     still >2× torque margin for our loads — and keep the heatsinks on.
+   - **DRV8825** (optional upgrade): `Vref = I / 2` → **0.75 V for the full
+     1.5 A**.
 2. **Check each motor's direction** — send a small `M` and confirm the cable reels
    the way you expect; flip `HOME_DIR[i]` / the dir wiring if not.
 3. **Test each limit switch** — `?` / a serial monitor; confirm it reads triggered

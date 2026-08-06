@@ -22,17 +22,20 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | Controller + drivers (kit) | **DAOKI CNC Shield V3.0 kit**: Arduino Uno + CNC Shield V3 + **4× DRV8825** + heatsinks + USB + DC power cable + jumpers | https://www.amazon.com/s?k=DAOKI+CNC+Shield+V3.0+kit+DRV8825+Arduino | 17 |
+| ☐ | Arduino Uno **+ project stock** | **ELEGOO UNO R3 Super Starter Kit** — genuine-quality Uno clone + 200+ components (breadboard, jumpers, sensors, LCD, power module, resistors, LEDs). The Uno runs the winches; the rest is your parts bin for future projects | https://www.amazon.com/ELEGOO-Project-Tutorial-Controller-Projects/dp/B01D8KOZF4 | 45 |
+| ☐ | CNC shield + drivers | **ACEIRMC CNC Shield V3 + 4× A4988** (heatsinks incl.) — plugs onto the Uno above | https://www.amazon.com/s?k=ACEIRMC+CNC+shield+V3+A4988 | 10 |
 | ☐ | Home switches | HiLetgo KW12-3 micro limit switch, 1NO 1NC roller lever (10-pack) — wire Common + NC for fail-safe homing | https://www.amazon.com/HiLetgo-KW12-3-Roller-Switch-Normally/dp/B07X142VGC | 6 |
 
-*Driver note: this kit ships **DRV8825** drivers — cooler-running, finer microstepping, and they drive the 1.5 A motors at full torque. Set each driver's current limit (Vref ≈ 0.75 V for ~1.5 A) before running. **4-axis caveat (any CNC shield):** the stock 4th "A" slot clones another axis; our custom firmware drives all 4 independently via the step/dir pins (incl. D12/D13), so this is fine for us.*
+*Why this replaced the sold-out DAOKI kit: you plan an array of projects, so the extra ~$28 buys a whole component library instead of a bare no-name Uno clone. **Budget alternative** if you'd rather match the old price: Sevenmore CNC Shield + UNO R3 + 4× DRV8825 kit (~$23–27, the closest 1:1 DAOKI substitute): https://www.amazon.com/Arduino-Printer-Sevenmore-Shield-DRV8825/dp/B07PXWBQTQ*
+
+*Driver note (A4988 path): the ACEIRMC A4988s drive our motors fine **derated to ~1.0–1.2 A** — still >2× torque margin at our ≤40 N cable loads, and their 1/16 microstep max exactly matches firmware `MICROSTEP=16`. Set Vref ≈ **0.8 V per amp** (typical 0.1 Ω sense resistors → 0.8 V for 1.0 A, 0.96 V for 1.2 A) — this differs from DRV8825 (0.75 V ≈ 1.5 A). ⬆️ Optional: HiLetgo **DRV8825 5-pack** (~$12, https://www.amazon.com/dp/B01NCE3ZW1) for full 1.5 A + cooler running + a spare. **4-axis caveat (any CNC shield):** the stock 4th "A" slot clones another axis; our custom firmware drives all 4 independently via the step/dir pins (incl. D12/D13), so this is fine for us.*
 
 ## Power + protection
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | 12 V power supply | ALITOVE 12V **6A** 72W barrel adapter (4.6★, extra headroom) — *or Chanzon 12V 5A if you want a UL-listed unit (~$20)* | https://www.amazon.com/s?k=ALITOVE+12V+6A+72W+power+supply | 16 |
-| ✅ | Barrel → screw-terminal | **Covered by the DAOKI kit's DC power cable.** (The ALITOVE 6A ships only a power cord, so rely on the kit cable; if its plug doesn't fit the shield, a $2 barrel→terminal adapter closes the gap.) | — | 0 |
+| ⚙️ | Barrel → screw-terminal | **Cut the barrel plug off the ALITOVE and land the bare leads in the shield's screw terminal (free).** Prefer not to cut? Female barrel-jack→screw-terminal adapter, ~$7/pack: https://www.amazon.com/s?k=female+DC+barrel+jack+screw+terminal+adapter | — | 0 |
 | ☐ | Inline fuse + fuses | SIM&NAT inline holder + 50 blade fuses (4.7★) — install a **7.5 A** fuse (matches the 6 A supply) | https://www.amazon.com/SIM-NAT-Automotive-Standard-Replacement/dp/B07FQCBSJ5 | 12 |
 | ⚙️ | Kill switch | **Your switched power strip** — plug the 12 V PSU into it | — | 0 |
 
@@ -83,7 +86,7 @@ WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | Dupont jumpers | ELEGOO 120-pc (M-M/M-F/F-F) | https://www.amazon.com/Elegoo-EL-CP-004-Multicolored-Breadboard-arduino/dp/B01EV70C78 | 7 |
+| ⚙️ | Dupont jumpers | **Skip — the ELEGOO starter kit above includes jumper wires.** (If you took the Sevenmore budget path instead, add the ELEGOO 120-pc back: https://www.amazon.com/Elegoo-EL-CP-004-Multicolored-Breadboard-arduino/dp/B01EV70C78, $7) | — | 0 |
 | ☐ | Hookup wire | 22 AWG silicone stranded, red + black | https://www.amazon.com/Silicone-Electrical-Conductor-Parallel-Flexible/dp/B07K9R9LBV | 9 |
 | ☐ | Zip ties | ALBO 500-pk assorted | https://www.amazon.com/Assorted-Sizes-Plastic-Resistant-Colors/dp/B08LNRH2TG | 8 |
 
@@ -100,13 +103,13 @@ WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
 
 | Scenario | ~$ |
 |----------|----|
-| **Everything above (incl. wireless-effector parts + structural PLA)** | **~$249** |
-| If you already own PLA/PETG filament | **~$229** |
-| Trimmed (reuse some wire; barrel adapter already free) | **~$214** |
+| **Everything above (ELEGOO starter-kit controller path, incl. wireless-effector parts + structural PLA)** | **~$274** |
+| If you already own PLA/PETG filament | **~$254** |
+| Budget controller path (Sevenmore kit instead of starter kit, dupont jumpers back in) | **−$31** |
 
 *(The wireless claw adds ~$30 — ESP32 + LiPo + charger + buck — to keep any wire from crossing the room to the effector.)*
 
-*(Running savings: the 42-38 5-pack ($33) beat the $54 4-pack (−$21, +spare); the DAOKI DRV8825 kit ($17) beat the A4988 kit (−$7, better drivers) and bundles the DC power cable that likely makes the $8 barrel adapter redundant.)*
+*(Running savings: the 42-38 5-pack ($33) beat the $54 4-pack (−$21, +spare). Controller history: the $17 DAOKI DRV8825 kit went **sold out** at order time; replaced with ELEGOO starter kit + ACEIRMC shield (~$55, −$7 dupont line) because extra components serve future projects — the Sevenmore DRV8825 kit (~$24) remains the like-for-like budget swap.)*
 
 Honest note: this is **above the earlier ~$184 estimate**. The estimate was rough;
 itemizing real products added up — the control *kit* is $24 (not $18), plus a
@@ -118,7 +121,7 @@ hadn't line-itemed. Nothing changed in scope; the parts just cost what they cost
 | Upgrade | Product | Link | +$ |
 |---------|---------|------|----|
 | Heat-set inserts (best reliability upgrade) | INCLY 130-pc M3 inserts + iron tip | https://www.amazon.com/INCLY-Threaded-Insert-Set/dp/B0GXV9XTXC | 12 |
-| ~~DRV8825 drivers~~ | **Already included** in the DAOKI kit above | — | 0 |
+| DRV8825 drivers (full 1.5 A, cooler, +1 spare) | HiLetgo DRV8825 5-pack — drop-in for the ACEIRMC A4988s | https://www.amazon.com/dp/B01NCE3ZW1 | 12 |
 | Autofocus webcam | Logitech C920x | *search "Logitech C920x"* | +30 |
 | Higher-torque servo | ANNIMOS DS3218 20 kg | https://www.amazon.com/ANNIMOS-Digital-Waterproof-DS3218MG-Control/dp/B076CNKQX4 | +5 |
 | Ceramic-bearing corner pulleys ×4 | *search "ceramic bearing pulley 3mm bore"* | — | +12 |

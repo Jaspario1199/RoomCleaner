@@ -1,5 +1,14 @@
 # corner_mount -- independent verification report
 
+> **STATUS UPDATE (2026-08-07, commit `a9c1a51`)**: the gusset/motor-body
+> interference defect documented in the original Section 7 below has been
+> repaired and independently re-verified. See **"Re-verification --
+> 2026-08-07 (commit a9c1a51)"** at the end of this report for the full
+> delta re-check (new measurements, interference re-probes, test audit, and
+> the lead-requested FACE_TO_SPOOL/rub-gap assessment). The sections below
+> this point are the **original, first-pass report and are kept as history**
+> -- do not treat their now-superseded FAIL as the current state.
+
 Scope: `cad/parts/corner_mount.py` (new; supersedes the eye-hook hanging
 anchors per D13 in `DECISIONS.md`; unifies `motor_mount.py` +
 `corner_guide.py` into one ceiling/joist bracket). This report covers Gate 5
@@ -31,7 +40,7 @@ docstring and the assignment's "INTENDED DESIGN" spec.
 | 5. Pulley ears (gap, thickness, axle dia, coaxiality, height) | PASS |
 | 6. Fleet alignment (coplanarity, separation, height, spool-plate clearance, angle) | PASS |
 | 7. Interference vs virtual spool cylinder | PASS (0 mm³) |
-| 7. Interference vs NEMA17 motor-body envelope (42.3×42.3×38) | **FAIL** (70.42 mm³, both gussets) |
+| 7. Interference vs NEMA17 motor-body envelope (42.3×42.3×38) | **FAIL at time of this report** (70.42 mm³, both gussets) -- **REPAIRED, see re-verification section at end** |
 | 8. Wood-screw driver access from above | PASS |
 | 9. STEP round-trip | PASS |
 | Mass budget (≤90 g PETG) | PASS (83.14 g measured, 7.6 g margin) |
@@ -425,3 +434,255 @@ occupies once bolted to the wall.
    `test_corner_mount_max_fleet_angle_reasonable`) to probe the built solid
    directly, matching the pattern already used correctly in
    `test_corner_mount_fleet_alignment_coplanarity`.
+
+---
+
+# Re-verification -- 2026-08-07 (commit `a9c1a51`)
+
+Verifier: geometry-verifier (Sonnet), independent of the implementer.
+Read-only against `cad/parts/corner_mount.py`; no part files modified.
+Scope: focused delta re-check of the implementer's claimed repair (commit
+`a9c1a51`, "Fix corner_mount gusset/motor-body interference; harden
+tests") against Finding #1 and the test-coverage gaps from the original
+report above. All numbers below are from fresh, independent probe scripts
+(new boolean intersections, new bisection probes, a side-loaded copy of the
+pre-repair module) run against the current `cad/parts/corner_mount.py` --
+none of the implementer's own numbers were taken on faith.
+
+## What changed (verified against the diff, not just the commit message)
+
+`git diff 1d77324 a9c1a51 -- cad/parts/corner_mount.py` confirms the
+implementer's claimed changes: `WALL_W` 50→56, gussets repositioned via a
+new `MOTOR_CORNER_CLEARANCE=2.0` constraint (`_gusset_inner_edge` now takes
+`max()` of the old NEMA-bolt-pattern clearance and
+`NEMA17_FACE/2 + MOTOR_CORNER_CLEARANCE`), `BASE_L` 148→138, `BASE_W`
+58→65, `FACE_TO_SPOOL` 3.0→0.0, and `GUSSET_RUN`/`GUSSET_HEIGHT` restored
+from the shrunk 3.0/16.0 (temporary mitigation in the very first draft) to
+a full 10.0/18.0.
+
+## 1. Re-run of my own interference scripts (independent reproduction)
+
+**7a. Virtual spool cylinder vs. bracket** (same method as the original
+report: cylinder ⌀`SPOOL_FLANGE_DIA`=36.0 mm, length
+`SPOOL_LEN + 2*SPOOL_FLANGE_THK`=32.0 mm, on the shaft axis per the part's
+own constants):
+
+- Measured intersection volume: **0.000000 mm³** -- PASS (unchanged from
+  the original pass; this check never found a defect).
+
+**7b. NEMA17 motor-body envelope (42.3×42.3×38 mm, flush against the
+wall's -Y face) vs. bracket** -- re-run of the exact script that found the
+original 70.42 mm³ defect, against the new geometry:
+
+| body | intersection volume vs. motor envelope |
+|---|---|
+| whole part | **0.000000 mm³** |
+| plate alone | 0.000000 mm³ |
+| wall alone | 0.000000 mm³ |
+| gussets alone | **0.000000 mm³** (was 70.423008 mm³) |
+| ears alone | 0.000000 mm³ |
+
+**PASS -- the defect is repaired.** Motor envelope bbox measured as
+X∈[-61.15,-18.85], Y∈[-60.00,-22.00], Z∈[7.35,49.65] (Y-range shifted
+versus the original report because `WALL_BACK_Y` moved from -25 to -22
+with the smaller `FACE_TO_SPOOL`; the box is still seated flush against
+the wall's measured back face in both cases).
+
+**Root-cause confirmation**: to be sure this isn't a coincidence of the
+new envelope's position, I re-ran the *identical* motor-envelope
+intersection script (unchanged) against a side-loaded copy of the
+pre-repair module (`git show 1d77324:cad/parts/corner_mount.py`, imported
+from an isolated `cad` package copy so the tracked repo file was never
+touched): **70.423008 mm³** -- reproduces the original defect exactly.
+This confirms the fix, not the check, changed.
+
+## 2. Re-measurement of the full geometry
+
+All measured directly on the rebuilt solid (`corner_mount.make()`), not
+read off source constants:
+
+| quantity | measured | claimed | tol | verdict |
+|---|---|---|---|---|
+| solid validity / count | isValid=True, 1 solid | -- | -- | PASS |
+| bbox | 138.0000 × 65.0000 × 50.0000 mm | 138×65×50 | -- | PASS |
+| volume | 69891.5014 mm³ | -- | -- | -- |
+| mass (PETG 1.27 g/cm³) | **88.7622 g** | 88.76 g | budget ≤90 g | PASS (1.24 g / 1.4% margin -- tight but real) |
+| gusset centers (measured X-span of built gusset material) | X-range [-67.150,-63.150] (center -65.15) and [-16.850,-12.850] (center -14.85), width 4.000 mm each | -65.15 / -14.85 | -- | PASS |
+| wall thickness (bisected, independent probe point near the boss) | 6.0000 mm | WALL_THK=6.0 | -- | PASS |
+| wall front/back Y (bisected) | front -16.0000, back -22.0000 | WALL_FRONT_Y=-16.0, WALL_BACK_Y=-22.0 | -- | PASS |
+| back margin behind wall (`BASE_W/2 + WALL_BACK_Y`) | 10.500 mm | -- | ≥ GUSSET_RUN=10.0 | PASS, **0.5 mm margin only** -- flagged below |
+| fleet separation (X, boss vs. axle) | 95.0 mm | 95 mm | ≥60 required | PASS |
+| fleet coplanarity | drum mid Y = 0.0000 mm exactly (by construction and by the existing probing test) | 0 | ±2.0 | PASS |
+| fleet height match | axis Z agreement, unchanged from original pass | -- | ±3.0 | PASS |
+| max fleet angle | atan(13/95) = **7.7921°** | 7.79° | -- | PASS |
+| spool-plate clearance | `SPOOL_AXIS_Z(22.5) - SPOOL_FLANGE_DIA/2(18.0)` = **4.500 mm** | -- | ≥4.0 | PASS |
+| countersink spacing (BASE_L now 138, re-checked in case the shrink broke it) | gaps 50.0 / 50.0 mm at x = -55, -5, 45 (unchanged `MOUNT_HOLE_X`) | ≥45 mm | -- | PASS |
+| countersink hole clearance vs. new footprints | wall X-range now [-68,-12] (was [-65,-15]); ear X-range now [51.5,58.5] (moved with `EAR_CX`=55, was 60); hole x=45 to ear inner edge = 6.50 mm clear; hole x=-55 inside wall's X-range but wall lives at Y∈[-32,-22], not Y=0, so no interference | -- | -- | PASS |
+| screwdriver access (+Z clear from plate top to bbox top) | all 3 holes clear at every probed Z | -- | -- | PASS |
+| STEP round-trip | 1 solid; bbox diff 0.000000 mm; volume diff 0.000000% | tol 0.1mm / 1% | -- | PASS |
+
+**All claimed numbers reproduced exactly to the reported precision.** No
+discrepancies found between the implementer's claims and independently
+measured values.
+
+One new observation, not a defect but worth flagging: the back margin
+behind the wall (10.5 mm) now has only **0.5 mm** of slack over the
+`GUSSET_RUN` requirement of 10.0 mm (the code's own `assert GUSSET_RUN <=
+_back_margin` would trip at `GUSSET_RUN > 10.5`). This is by design (traded
+plate depth for the wider wall/gussets within the declared 55-65 mm Y
+envelope, landing at its very top), but it leaves no room for a future
+`GUSSET_RUN` increase without either shrinking `FACE_TO_SPOOL` further
+(already at 0) or exceeding the declared Y envelope.
+
+## 3. Audit of the upgraded/new tests
+
+Reviewed `git diff 1d77324 a9c1a51 -- tests/test_winch_geometry.py`
+directly (not just re-running the tests) to confirm the changes are real
+probes, not relabeled arithmetic:
+
+- **`test_corner_mount_countersink_spacing_meets_declared_minimum`** --
+  previously sorted `MOUNT_HOLE_X` directly (flagged in the original
+  report). Now bisects each hole's true void→solid X-center on the built
+  solid via a new shared helper `_measure_center_offset_1d` and computes
+  spacing from the *measured* centers. Genuinely upgraded.
+- **`test_corner_mount_pulley_axle_holes_present_and_coaxial`** --
+  previously `assert len(set(EAR_SY)) == 2` (flagged). Now bisects each
+  ear's hole center along both X and Z independently and requires the two
+  measured (x,z) pairs to agree within 0.05 mm. Genuinely upgraded --
+  would now catch a future edit that gave the two ears different `EAR_CX`
+  or hole-height formulas, which the old version could not.
+- **`test_corner_mount_fleet_separation_minimum`** -- previously
+  `abs(EAR_CX - WALL_CX)` (flagged). Now bisects the boss void and one
+  ear's axle void on the built solid and computes distance from measured
+  centers. Genuinely upgraded.
+- **`test_corner_mount_max_fleet_angle_reasonable`** -- **not changed**;
+  still pure arithmetic on `P.SPOOL_LEN` and the (now itself
+  solid-derived, per the previous item, but not re-derived *within this
+  test*) `separation` value computed from `EAR_CX`/`WALL_CX` constants.
+  This is a minor residual gap: low risk in practice because the
+  separation test right above it now does probe the solid, but this
+  specific test would not independently catch a regression on its own.
+  Not a blocker, flagged for a future pass.
+- **`test_corner_mount_gussets_clear_motor_body_envelope`** (new) --
+  reproduces my original Section 7b method exactly: builds the 42.3×42.3×
+  38 mm box flush against the wall's -Y face, boolean-intersects with the
+  whole built part, asserts `< 1e-6 mm³`. **Confirmed this test would fail
+  on the pre-repair geometry**: I ran its exact logic against a
+  side-loaded copy of commit `1d77324`'s `corner_mount.py` (isolated
+  import, tracked file untouched) and got **70.423008 mm³**, which fails
+  the `< 1e-6` assertion. This is a real, working regression test for
+  Finding #1.
+- **`test_corner_mount_clears_virtual_spool_envelope`** (new) -- same
+  boolean-intersection method as my original Section 7a probe. Passes on
+  both old and new geometry (0 mm³ both times) since this was never
+  defective -- correctly a no-op regression guard, not a repair
+  verification.
+- **`test_corner_mount_wall_thickness_through_boss_measured`** (new) --
+  bisects solid↔void transitions on both sides of the wall near the boss
+  hole; independently reproduced (6.0000 mm) above. Fills the wall-
+  thickness gap flagged in the original report.
+- **`test_corner_mount_pulley_gap_measured`** (new) -- bisects the void
+  span between the ears at a Z clear of the axle hole; fills the
+  `PULLEY_GAP` coverage gap flagged in the original report.
+- **`test_corner_mount_ear_wall_around_axle_hole_measured`** (new) --
+  bisects the ear's true thickness and the hole radius, computes wall/side,
+  asserts ≥1.0 mm. This directly targets the defect class found in
+  `corner_guide` (0.15 mm wall) during the earlier verification pass --
+  good, targeted regression coverage.
+- **`test_corner_mount_spool_plate_clearance_measured`** (new) -- bisects
+  the boss axis height on the solid and derives clearance from
+  `SPOOL_FLANGE_DIA`, rather than trusting `CORNER_MOUNT_AXIS_Z` directly.
+  Fills the spool-plate-clearance coverage gap flagged in the original
+  report.
+
+Net: of the 6 gaps and weak/nominal-only tests flagged in the original
+report's Section 10, **5 are now properly probing tests** and 1
+(`test_corner_mount_max_fleet_angle_reasonable`) remains nominal-only but
+low-risk given its neighbor now probes the solid. The screwdriver-access
+and printability/overhang checks from the original Section 8 still have no
+permanent test coverage (still assignment-only manual checks, re-verified
+by hand in Section 2 above) -- minor residual gap, not blocking.
+
+Test counts: `test_corner_mount_*` = **25** (matches claim), full repo
+suite = **130 passed** (matches claim).
+
+## 4. Lead-requested assessment: `FACE_TO_SPOOL = 0` and the rub-gap risk
+
+The lead's concern is correct and worth stating precisely.
+
+**How the model works today**: `WALL_FRONT_Y = -(FACE_TO_SPOOL +
+SPOOL_FLANGE_THK + SPOOL_LEN/2)` and `SPOOL_NEAR_Y = WALL_FRONT_Y +
+FACE_TO_SPOOL`. With `FACE_TO_SPOOL = 0`, `SPOOL_NEAR_Y` lands exactly on
+`WALL_FRONT_Y` -- i.e. the model places the spool's near flange face
+**flush against the wall's front face, zero gap**. `SPOOL_DRUM_MID_Y = 0`
+by construction for *any* `FACE_TO_SPOOL` value (the term cancels
+algebraically), so shrinking `FACE_TO_SPOOL` to 0 doesn't change the
+nominal coplanarity claim -- but it does mean the part now models an
+assembly with no physical standoff at all between two things that must
+rotate relative to one another (the spool spins; the wall does not).
+
+**What a real assembly gap does to alignment**: if a real build introduces
+an axial rub-gap `g` (spool shifted `+g` in Y, away from the wall, to
+clear rubbing), then `SPOOL_NEAR_Y_real = WALL_FRONT_Y + g`, so
+`SPOOL_DRUM_MID_Y_real = 0 + g = g`. **The drum mid-plane shifts 1:1 with
+the gap** -- every mm of rub clearance is a full mm of coplanarity error
+against the pulley groove mid-plane (which stays fixed at Y=0, set by the
+ears).
+
+**Quantified**:
+- Coplanarity tolerance is `CORNER_MOUNT_FLEET_COPLANAR_TOL = ±2.0 mm`
+  (interfaces.py). Since the mapping is 1:1, **the admissible assembly gap
+  before exceeding tolerance is exactly g ≤ 2.0 mm.** There is no other
+  slack in the budget to draw on -- `SPOOL_DRUM_MID_Y` is otherwise exactly
+  0.0000 mm (verified above), so the entire ±2 mm tolerance band is
+  available for the gap, but all of it, and none of it is buffer for
+  anything else (fabrication tolerance on `SPOOL_FLANGE_THK`/`SPOOL_LEN`,
+  print dimensional error on `WALL_FRONT_Y`, etc.).
+- Fleet-angle bias contributed by a 2 mm gap, at the current 95 mm
+  separation: `atan(2/95) = 1.2060°`. Added (worst case, same sense) to
+  the existing `atan(13/95) = 7.7921°` winding-width angle gives a
+  combined worst-case fleet angle of **≈9.00°**, still comfortably under
+  the repo's 15° working-limit test threshold, but consuming real margin
+  that a coplanarity-perfect assembly wouldn't spend.
+
+**Assessment**: this is **acceptable as an assembly-procedure note, not a
+geometry defect** -- but only if it is actually written down and enforced,
+because nothing in the CAD or the test suite currently constrains the real
+build's rub gap. Concretely:
+1. `FACE_TO_SPOOL = 0` should not be read as "zero clearance is the
+   design," it should be read as "this model does not budget any
+   clearance -- the assembler must add ≤2 mm and no more."
+2. Recommend adding an explicit note to `interfaces.py` or the spool's own
+   part docs (whichever eventually models the coupling) stating the ≤2 mm
+   rub-gap ceiling, and/or a physical shim/spacer feature sized into that
+   budget rather than leaving it to an assembler's judgment at build time,
+   since 2 mm is not a generous margin to hit by eye.
+3. If any other error source shares this ±2 mm coplanarity budget (e.g.
+   coupling squareness, spool print tolerance on `SPOOL_FLANGE_THK`), the
+   admissible rub gap is less than 2 mm in practice -- worth a stack-up
+   check before finalizing an assembly procedure, not something this
+   geometry-only pass can resolve.
+
+This is a documentation/process finding, not a geometry FAIL -- no part
+file change is being recommended here.
+
+## Summary of this re-verification
+
+| Item | Verdict |
+|---|---|
+| Finding #1 (gusset/motor-envelope interference) | **RESOLVED** -- 0.000000 mm³, confirmed by independent reproduction and by re-running the identical check against the pre-repair geometry (reproduces the original 70.42 mm³) |
+| Virtual spool interference | PASS (unchanged, 0 mm³) |
+| All re-measured geometry (bbox, mass, gusset positions, wall thickness, fleet metrics, spool-plate clearance, countersink spacing/access) | PASS, all claimed numbers reproduced exactly |
+| STEP round-trip | PASS |
+| Test upgrades | 5/6 flagged gaps now have genuine solid-probing tests; 1 residual low-risk nominal-only test (`test_corner_mount_max_fleet_angle_reasonable`) |
+| New regression tests catch the old defect | Confirmed -- `test_corner_mount_gussets_clear_motor_body_envelope` fails (70.42 mm³) against the pre-repair module |
+| Test counts | 25 corner_mount tests, 130 repo-wide -- both match the implementer's claim |
+| FACE_TO_SPOOL=0 / rub-gap | Not a geometry defect; admissible real-world gap ≤2.0 mm (1:1 with coplanarity tolerance), adds ≈1.21° fleet-angle bias at the 2 mm limit (worst case ≈9.00° combined, still under the 15° threshold) -- recommend an explicit assembly-procedure note, not a geometry change |
+
+**Overall verdict: PASS.** The repair is real and independently confirmed;
+no outstanding geometry defects found in this pass. One process
+recommendation (rub-gap note) and one minor residual test-coverage
+suggestion, neither blocking.
+
+Reproduce: `python -m pytest tests/test_winch_geometry.py -k corner_mount -v`
+(25 passed) and `python -m pytest tests/ -q` (130 passed).

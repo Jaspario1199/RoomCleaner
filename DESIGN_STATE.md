@@ -72,11 +72,31 @@ corner cable notches).
   M3x12); cad/README assembly procedure + insert map rewritten to the real
   D2-D8 stack-up, incl. single-finger validation print.
 
+## corner_mount cycle (D13, user-initiated: rigid anchors replace eye hooks)
+Full Gate 4→5 loop on the new part, 3 defects caught by process:
+1. Lead spec was self-contradictory on fleet alignment; implementer correctly
+   flagged instead of silently resolving, but chose a layout where the line
+   pays off perpendicular to the pulley groove. Lead ruling: spool axis ∥
+   pulley axle, drum mid-plane coplanar with groove plane. Repaired.
+2. geometry-verifier found gussets intersecting the NEMA 17 motor-body
+   envelope (70.42 mm³ — motor couldn't seat). Repaired: wall 56 mm, gussets
+   driven off real body half-width + 2 mm; BASE 138×65, mass 88.76 g ≤ 90.
+3. Verifier test-audit: several nominal-only assertions upgraded to
+   solid probes; boolean interference regression tests added (proven to fail
+   on the pre-repair geometry). Residual low-risk gap: fleet-angle test is
+   still arithmetic-only.
+Re-verification: all measurements reproduced independently, both
+interference volumes 0.000 mm³, STEP round-trip exact. FACE_TO_SPOOL=0
+assessment: spool rub-gap ≤2 mm is the assembly ceiling (documented in
+cad/README.md); at 2 mm, worst-case fleet ≈9° < 15° threshold.
+Watch item: back-margin behind wall is 10.5 mm vs GUSSET_RUN=10 (0.5 mm
+slack) — re-check if gussets are ever enlarged.
+
 ## Current gate
-Gate 6 complete, all parts (claw + winch) independently verified →
+Gate 6 complete for the claw; corner_mount verified (Gate 5) →
 release-candidate items remaining: SOLIDWORKS review (claw_assembly.step),
-physical validation plan.
+physical validation plan, winch-corner assembly preview incl. corner_mount.
 
 ## Last verified state
-105/105 pytest; 11 parts exported and verified; claw_assembly.step
-round-trips exactly.
+130/130 pytest; 12 parts exported and verified; claw_assembly.step
+round-trips exactly; corner_mount re-verified at commit a9c1a51.

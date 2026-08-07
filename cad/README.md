@@ -19,8 +19,9 @@ cad/
 | Part | What it is | Print | Material |
 |------|-----------|-------|----------|
 | `winch_spool` | Drum the Dyneema winds onto; mounts on the motor shaft | ×4 | PLA/PETG |
-| `motor_mount` | Cradles the gear motor in a ceiling corner | ×4 | PETG |
-| `corner_guide` | U-bracket holding the corner pulley | ×4 | PETG |
+| `corner_mount` | **Rigid corner anchor plate**: NEMA 17 bracket + pulley ears on one base, screwed to a joist/stud with 3× #10×3" wood screws (D13) | ×4 | PETG |
+| `motor_mount` | (superseded by `corner_mount` for the corner install; kept for bench use) | — | PETG |
+| `corner_guide` | (superseded by `corner_mount` for the corner install; kept for bench use) | — | PETG |
 | `effector_frame` | Hangs on the 4 cables; holds servo, camera, + strap slots for the ESP32 & LiPo (wireless claw) | ×1 | PETG |
 | `tentacle_hub` | Disc carrying the ring of fingers; routes tendons | ×1 | PETG |
 | `tentacle_finger` | Tendon-driven curling "tentacle" finger | ×5 | **TPU 95A** |
@@ -49,6 +50,16 @@ python -m cad.export_all
 - Most parts print support-free in the orientation described in each script's
   docstring.
 - Tune `CLEARANCE` in `params.py` if press-fits are too tight/loose on your printer.
+
+## Corner-mount assembly note (fleet alignment)
+
+When sliding each `winch_spool` onto its motor shaft, set the gap between the
+spool's near flange and the bracket wall to **at most 2 mm** before tightening
+the grub screw (a folded piece of paper card ≈1 mm makes a good feeler). The
+CAD models the flange flush with the wall; every millimeter of real gap shifts
+the drum off the pulley's groove plane by the same amount, and 2 mm is the
+budgeted ceiling (verified: ≤2 mm keeps worst-case fleet angle ≈9°, within
+tolerance). Don't run the flange rubbing the wall — aim for ~1 mm.
 
 ## Assembling the claw (D2–D8 stack-up — matches `claw_assembly.step`)
 

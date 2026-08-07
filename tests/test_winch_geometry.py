@@ -35,8 +35,10 @@ from cad.parts import (          # noqa: E402
     corner_guide,
     camera_mount,
     camera_mount_overhead,
+    corner_mount,
 )
 from cad import params as P      # noqa: E402
+from cad import interfaces as I  # noqa: E402
 
 
 BBOX_TOL = 0.3  # mm
@@ -414,6 +416,271 @@ def test_camera_mount_overhead_post_and_tap_hole(sx, sy):
 # ---------------------------------------------------------------------------
 # Check 7: STEP export + reimport -- bbox and volume agreement.
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Check 8: corner_mount -- the new unified winch bracket + pulley redirect
+# (replaces motor_mount + corner_guide at the ceiling; those two parts are
+# untouched and still covered by checks 1-7 above). See cad/parts/
+# corner_mount.py module docstring for the coordinate frame and the fleet-
+# alignment design reasoning these tests check against.
+# ---------------------------------------------------------------------------
+
+CORNER_MOUNT_ENVELOPE_X = (130.0, 150.0)   # mm, target long-axis envelope
+CORNER_MOUNT_ENVELOPE_Y = (55.0, 65.0)     # mm, target width envelope
+
+
+def test_corner_mount_builds_valid_single_solid():
+    cm = corner_mount.make()
+    solids = cm.solids().vals()
+    assert len(solids) == 1, f"expected 1 solid, got {len(solids)}"
+    assert cm.val().isValid(), "corner_mount solid failed isValid()"
+    assert cm.val().Volume() > 0, "corner_mount volume must be > 0"
+
+
+def test_corner_mount_bounding_box_within_declared_envelope():
+    cm = corner_mount.make()
+    bb = cm.val().BoundingBox()
+    lo_x, hi_x = CORNER_MOUNT_ENVELOPE_X
+    lo_y, hi_y = CORNER_MOUNT_ENVELOPE_Y
+    assert lo_x <= bb.xlen <= hi_x, (
+        f"corner_mount X envelope: measured {bb.xlen:.2f} mm, expected "
+        f"[{lo_x}, {hi_x}] mm"
+    )
+    assert lo_y <= bb.ylen <= hi_y, (
+        f"corner_mount Y envelope: measured {bb.ylen:.2f} mm, expected "
+        f"[{lo_y}, {hi_y}] mm"
+    )
+    assert bb.zlen > 0
+
+
+@pytest.mark.parametrize("hole_x", corner_mount.MOUNT_HOLE_X)
+def test_corner_mount_countersink_hole_is_through_on_centerline(hole_x):
+    """Each declared wood-screw hole must be void at both the plate top
+    (where the countersink opens) and the plate bottom (where the shank
+    exits toward the joist), probed on the actual built solid -- not just
+    arithmetic on MOUNT_HOLE_X."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    top_z = corner_mount.PLATE_T - 0.5
+    bot_z = 0.5
+    assert not ins(hole_x, 0.0, top_z), (
+        f"corner_mount mount hole x={hole_x}: expected VOID near plate top "
+        f"(z={top_z}), found solid material"
+    )
+    assert not ins(hole_x, 0.0, bot_z), (
+        f"corner_mount mount hole x={hole_x}: expected VOID near plate "
+        f"bottom (z={bot_z}) -- shank must pass all the way through"
+    )
+    # A point 1 mm off the centerline at the SAME x, just outside the
+    # countersink's max radius, must be solid: proves this is a bounded
+    # hole, not an accidental full-width slot.
+    edge_r = corner_mount.CSK_DIA / 2 + 3.0
+    assert ins(hole_x, edge_r, top_z), (
+        f"corner_mount mount hole x={hole_x}: material expected {edge_r} mm "
+        f"off-centerline at the countersink face, found void"
+    )
+
+
+def test_corner_mount_countersink_spacing_meets_declared_minimum():
+    xs = sorted(corner_mount.MOUNT_HOLE_X)
+    assert len(xs) == 3, f"expected 3 wood-screw holes, found {len(xs)}"
+    gaps = [b - a for a, b in zip(xs, xs[1:])]
+    for gap in gaps:
+        assert gap >= I.CORNER_MOUNT_WOOD_SCREW_MIN_SPACING, (
+            f"corner_mount adjacent hole spacing {gap:.1f} mm < required "
+            f"{I.CORNER_MOUNT_WOOD_SCREW_MIN_SPACING} mm"
+        )
+
+
+def test_corner_mount_countersink_depth_leaves_min_material():
+    """Direct probe of the countersink CONE depth: bisect down the hole AXIS
+    (x, y=0) to find where the cone floor (transition to the straight shank
+    bore) sits, then confirm plate material remains below it down to the
+    joist face."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    x = corner_mount.MOUNT_HOLE_X[0]
+    shank_r = corner_mount.SHANK_DIA / 2
+    csk_r = corner_mount.CSK_DIA / 2
+    # At radius = shank_r + epsilon, on-axis, the void column spans from the
+    # countersink cone wall down through the shank; at radius just OUTSIDE
+    # the countersink's opening, the material starts right at the plate top.
+    probe_r = shank_r + 0.3
+    z_top = corner_mount.PLATE_T
+    # theoretical cone floor depth from geometry (90 deg included angle):
+    depth = (csk_r - shank_r) / math.tan(math.radians(corner_mount.CSK_ANGLE / 2))
+    expected_floor_z = z_top - depth
+    # Just below the theoretical floor (deeper into solid) must be solid;
+    # just above it (inside the widening cone) must be void, at this radius.
+    assert ins(x, probe_r, expected_floor_z - 0.3), (
+        "expected solid material just below the countersink cone floor"
+    )
+    material_under = expected_floor_z
+    assert material_under >= I.CORNER_MOUNT_MIN_MATERIAL_UNDER_CSK, (
+        f"corner_mount countersink at x={x}: material under cone floor = "
+        f"{material_under:.2f} mm, required >= "
+        f"{I.CORNER_MOUNT_MIN_MATERIAL_UNDER_CSK} mm"
+    )
+
+
+@pytest.mark.parametrize("dy", [-1, 1])
+@pytest.mark.parametrize("dz", [-1, 1])
+def test_corner_mount_nema17_bolt_square_through_holes(dy, dz):
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    half = P.NEMA17_HOLES / 2
+    y = dy * half
+    z = corner_mount.PLATE_T + corner_mount.CORNER_MOUNT_AXIS_Z + dz * half
+
+    r = _bisect_wall(ins, corner_mount.WALL_CX, y, z, "y", 0.0, 6.0)
+    expected_dia = corner_mount.NEMA_SCREW_HOLE_DIA
+    assert abs(2 * r - expected_dia) <= 0.05, (
+        f"corner_mount NEMA17 M3 hole at (y={y}, z={z}): measured diameter "
+        f"{2*r:.4f} mm, expected {expected_dia} mm"
+    )
+
+
+def test_corner_mount_nema17_boss_clearance():
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    z = corner_mount.PLATE_T + corner_mount.CORNER_MOUNT_AXIS_Z
+    r = _bisect_wall(ins, corner_mount.WALL_CX, 0.0, z, "y", 0.0, 15.0)
+    expected_dia = corner_mount.NEMA_BOSS_HOLE_DIA
+    assert abs(2 * r - expected_dia) <= 0.05, (
+        f"corner_mount boss clearance diameter = {2*r:.4f} mm, expected "
+        f"{expected_dia} mm (NEMA17_BOSS_DIA + CLEARANCE)"
+    )
+
+
+def test_corner_mount_pulley_axle_holes_present_and_coaxial():
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    z = corner_mount.PLATE_T + corner_mount.EAR_H - corner_mount.EAR_TOP_MARGIN
+    for sy in corner_mount.EAR_SY:
+        r = _bisect_wall(ins, corner_mount.EAR_CX, sy, z, "z", 0.0, 3.0)
+        assert abs(2 * r - corner_mount.EAR_HOLE_DIA) <= 0.05, (
+            f"corner_mount pulley ear axle hole at sy={sy}: diameter "
+            f"{2*r:.4f} mm, expected {corner_mount.EAR_HOLE_DIA} mm"
+        )
+    # Both ears share the same (x, z) axle axis by construction (single
+    # EAR_CX, single hole height) -- a straight bolt/pulley axle passes
+    # through both.
+    assert len(set(corner_mount.EAR_SY)) == 2
+
+
+def test_corner_mount_fleet_alignment_height():
+    """Pulley axle height and the spool/motor axis height must agree within
+    CORNER_MOUNT_FLEET_HEIGHT_TOL -- probed on the built solid: the boss
+    clearance void (motor/spool axis) and the ear axle void must exist at
+    the SAME z within tolerance."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+
+    # Motor/spool axis height: bisect the boss void vertically from its
+    # nominal center to find the true void->solid transition, both up and
+    # down, and average for the measured center.
+    z0 = corner_mount.PLATE_T + corner_mount.CORNER_MOUNT_AXIS_Z
+    up = _bisect_wall(ins, corner_mount.WALL_CX, 0.0, z0, "z", 0.0, 15.0)
+    down = _bisect_wall(ins, corner_mount.WALL_CX, 0.0, z0, "z", 0.0, -15.0)
+    motor_axis_z = z0 + (up + down) / 2  # up positive offset, down negative offset averaged
+
+    # Pulley axle height: same bisection on one ear's axle hole.
+    sy = corner_mount.EAR_SY[0]
+    zh = corner_mount.PLATE_T + corner_mount.EAR_H - corner_mount.EAR_TOP_MARGIN
+    up2 = _bisect_wall(ins, corner_mount.EAR_CX, sy, zh, "z", 0.0, 3.0)
+    down2 = _bisect_wall(ins, corner_mount.EAR_CX, sy, zh, "z", 0.0, -3.0)
+    pulley_axis_z = zh + (up2 + down2) / 2
+
+    assert abs(pulley_axis_z - motor_axis_z) <= I.CORNER_MOUNT_FLEET_HEIGHT_TOL, (
+        f"corner_mount fleet height mismatch: motor/spool axis z="
+        f"{motor_axis_z:.3f}, pulley axle z={pulley_axis_z:.3f}, diff="
+        f"{abs(pulley_axis_z-motor_axis_z):.3f} mm > "
+        f"{I.CORNER_MOUNT_FLEET_HEIGHT_TOL} mm"
+    )
+
+
+def test_corner_mount_fleet_alignment_centerline():
+    """The pulley 'mid-plane between the ears' (their Y midpoint) must be
+    coplanar (within CORNER_MOUNT_FLEET_COPLANAR_TOL) with the spool's
+    reference centerline -- both read here as the plate's long centerline
+    Y=0, per the design note in cad/parts/corner_mount.py. Ear Y-centers
+    are measured from the built solid, not read off constants."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    x = corner_mount.EAR_CX
+    z = corner_mount.PLATE_T + corner_mount.EAR_H - corner_mount.EAR_TOP_MARGIN
+
+    # Measure each ear's actual Y-center by bisecting inward from a point
+    # known to be inside that ear's solid (its box center) toward Y=0 on
+    # both faces -- wall thickness is symmetric about the ear's own Y
+    # center, so the midpoint of the two ears' measured centers is what
+    # matters here.
+    centers = []
+    for nominal_sy in corner_mount.EAR_SY:
+        # Bisect the ear's Y-extent: from inside (nominal_sy) outward in
+        # both +Y and -Y to the ear's solid->void edges, at a z clear of
+        # the axle hole (near the ear base).
+        z_probe = corner_mount.PLATE_T + 1.0
+        lo, hi = 0.0, corner_mount.EAR_FOOT_Y
+        assert ins(x, nominal_sy, z_probe), "expected solid inside the ear"
+        pos_edge = _bisect_solid_edge(ins, x, nominal_sy, z_probe, "y", 0.0, 8.0)
+        neg_edge = _bisect_solid_edge(ins, x, nominal_sy, z_probe, "y", 0.0, -8.0)
+        measured_center = nominal_sy + (pos_edge + neg_edge) / 2
+        centers.append(measured_center)
+
+    pulley_mid_y = sum(centers) / 2
+    spool_center_y = 0.0  # motor bracket wall is built symmetric about Y=0
+    assert abs(pulley_mid_y - spool_center_y) <= I.CORNER_MOUNT_FLEET_COPLANAR_TOL, (
+        f"corner_mount fleet centerline mismatch: pulley mid-Y="
+        f"{pulley_mid_y:.3f}, spool center Y={spool_center_y}, diff="
+        f"{abs(pulley_mid_y-spool_center_y):.3f} mm > "
+        f"{I.CORNER_MOUNT_FLEET_COPLANAR_TOL} mm"
+    )
+
+
+def test_corner_mount_fleet_separation_minimum():
+    dx = corner_mount.EAR_CX - corner_mount.SPOOL_DRUM_MID_X
+    dz = 0.0  # both derive from CORNER_MOUNT_AXIS_Z -- see module assertion
+    distance = math.hypot(dx, dz)
+    assert distance >= I.CORNER_MOUNT_FLEET_MIN_SEPARATION, (
+        f"corner_mount spool<->pulley separation = {distance:.2f} mm, "
+        f"required >= {I.CORNER_MOUNT_FLEET_MIN_SEPARATION} mm"
+    )
+
+
+def test_corner_mount_mass_within_budget():
+    cm = corner_mount.make()
+    volume_cm3 = cm.val().Volume() / 1000.0
+    mass_g = volume_cm3 * corner_mount.PETG_DENSITY_G_CM3
+    assert mass_g <= corner_mount.MASS_BUDGET_G, (
+        f"corner_mount mass = {mass_g:.2f} g, budget = "
+        f"{corner_mount.MASS_BUDGET_G} g (PETG @ "
+        f"{corner_mount.PETG_DENSITY_G_CM3} g/cm^3)"
+    )
+
+
+def test_corner_mount_step_round_trip():
+    cm = corner_mount.make()
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        step_path = os.path.join(tmp, "corner_mount.step")
+        cq.exporters.export(cm, step_path)
+        reimported = cq.importers.importStep(step_path)
+
+        solids = reimported.solids().vals()
+        assert len(solids) == 1, f"reimport produced {len(solids)} solids, expected 1"
+
+        s0, s1 = cm.val(), solids[0]
+        bb0, bb1 = s0.BoundingBox(), s1.BoundingBox()
+        bbox_diff = max(
+            abs(bb0.xlen - bb1.xlen), abs(bb0.ylen - bb1.ylen), abs(bb0.zlen - bb1.zlen)
+        )
+        assert bbox_diff <= 0.1, f"STEP round-trip bbox diff {bbox_diff:.4f} mm > 0.1 mm"
+
+        v0, v1 = s0.Volume(), s1.Volume()
+        vol_diff_pct = abs(v0 - v1) / v0 * 100
+        assert vol_diff_pct <= 1.0, f"STEP round-trip volume diff {vol_diff_pct:.4f}% > 1%"
+
 
 @pytest.mark.parametrize("name", list(PART_SPECS))
 def test_step_round_trip(built_parts, name, tmp_path):

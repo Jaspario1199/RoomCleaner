@@ -77,3 +77,40 @@ CABLE_HOLE_D = 3.2            # corner boss tie-off holes; knot spec: Palomar
 EFFECTOR_REACH_M = 0.118      # cable plane -> fingertips (integration-measured:
                               # boss top 8 + standoffs 40 + finger 70; the hub 12 is
                               # INSIDE the finger base, not additive — C5 corrected)
+
+# ---- corner mount: winch bracket + pulley redirect (ceiling/joist anchor) --
+# One printed part (cad/parts/corner_mount.py) replaces the separate
+# motor_mount + corner_guide pair at the ceiling. Local coordinate frame:
+# plate top surface at local Z=0 (see that module's docstring), +X along the
+# plate's long axis from the motor bracket toward the pulley.
+CORNER_MOUNT_PLATE_T = 6.0            # mm, base plate thickness (screws flat
+                                      # to a ceiling joist / wall stud)
+
+# Wood-screw mounting holes (3x, plate long centerline).
+CORNER_MOUNT_WOOD_SCREW_SHANK = 5.2   # mm, #10 wood screw shank clearance
+CORNER_MOUNT_WOOD_SCREW_CSK_DIA = 10.5  # mm, countersink diameter
+CORNER_MOUNT_WOOD_SCREW_CSK_ANGLE = 90.0  # deg, included countersink angle
+CORNER_MOUNT_WOOD_SCREW_MIN_SPACING = 45.0  # mm, adjacent-hole c-c minimum
+                                      # (so all 3 land in one joist/stud)
+CORNER_MOUNT_MIN_MATERIAL_UNDER_CSK = 2.5  # mm, minimum plate material left
+                                      # under each countersink cone
+
+# Fleet-angle offsets: the motor/spool axis and the pulley-redirect axle
+# share this height above the plate top so the winch spool (mounted on the
+# NEMA17 shaft, on the motor-bracket wall) and the pulley (ears, adapted
+# from the corner_guide ear pattern) present the Dyneema line in a single
+# vertical plane with minimal fleet angle as the line walks along the
+# spool's winding length. See cad/parts/corner_mount.py's module docstring
+# for the geometric reasoning and the chosen reading of "coplanar mid-planes."
+CORNER_MOUNT_AXIS_Z = 22.5            # mm, NEMA17 shaft/spool axis AND
+                                      # pulley axle height above plate top
+CORNER_MOUNT_SPOOL_PLATE_CLEARANCE = 4.5  # mm, spool flange bottom -> plate
+                                      # top clearance at CORNER_MOUNT_AXIS_Z
+                                      # (>= 4 mm required)
+CORNER_MOUNT_FLEET_MIN_SEPARATION = 60.0   # mm, min spool-axis <-> pulley-
+                                      # axle point-to-point distance
+CORNER_MOUNT_FLEET_COPLANAR_TOL = 2.0      # mm, pulley mid-plane vs spool
+                                      # reference plane (see part docstring
+                                      # for what "mid-plane" means here)
+CORNER_MOUNT_FLEET_HEIGHT_TOL = 3.0        # mm, pulley axle height vs
+                                      # spool axis height

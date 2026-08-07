@@ -87,15 +87,49 @@ wrong reading -- kept here for the record):
   competing for the same one.
 
   Side effect on the gussets: with the wall pinned by the coplanarity
-  requirement to WALL_FRONT_Y = -19 (see FACE_TO_SPOOL below), the plate's
-  own back edge (Y = -BASE_W/2 = -29) leaves only a few mm behind the
-  wall's back face -- nowhere near enough for the tall gusset run used in
-  the first draft. The pulley/spool (+Y) side of the wall is even more
-  constrained: the spool flange's underside sits only
-  CORNER_MOUNT_SPOOL_PLATE_CLEARANCE above the plate, well short of a
-  useful gusset height. Per lead direction, the gussets go on the -Y
-  (motor-body) side, sized to the few mm of plate that remain there --
-  short, steep, and still self-supporting; see GUSSET_RUN below.
+  requirement, the plate's own back edge leaves only a few mm behind the
+  wall's back face -- nowhere near enough for a full-size gusset run on
+  its own. The pulley/spool (+Y) side of the wall is even more constrained:
+  the spool flange's underside sits only CORNER_MOUNT_SPOOL_PLATE_CLEARANCE
+  above the plate, well short of a useful gusset height. Per lead direction,
+  the gussets go on the -Y (motor-body) side; BASE_W and FACE_TO_SPOOL are
+  tuned (see GUSSET_RUN below) so a full GUSSET_RUN=10 mm still fits within
+  the plate footprint back there.
+
+GUSSET/MOTOR-BODY INTERFERENCE REPAIR (independent verification found a real
+defect in an earlier revision -- kept here for the record):
+
+  geometry-verifier's first pass built a 42.3x42.3x38 mm box on the shaft
+  axis, seated flush against the wall's -Y (motor-bolting) face -- the real
+  NEMA17 motor-body envelope -- and boolean-intersected it with the built
+  bracket. Result: 0 mm^3 against the plate and wall, but 70.42 mm^3 against
+  the two gussets (small slivers near two of the envelope's corners). Root
+  cause: WALL_W was only 50 mm against a 42.3 mm motor body (2.85 mm margin
+  per side), less than GUSSET_THK (4 mm), so gussets sized to flank the
+  NEMA17 bolt pattern landed INSIDE the square motor-body footprint instead
+  of outside it.
+
+  Fix chosen: option (a) from the repair assignment -- widen the wall
+  (WALL_W) and move the gussets to sit outside the full motor-body
+  half-width plus a margin (MOTOR_CORNER_CLEARANCE), instead of just
+  outside the (smaller) NEMA17 bolt-hole square. This was chosen over
+  option (b) (gussets on the spool/+Y side) because the +Y side already
+  fails a hard clearance requirement of its own -- the spool flange sits
+  only CORNER_MOUNT_SPOOL_PLATE_CLEARANCE (~4.5 mm) above the plate, well
+  under any usable gusset height, so option (b) was not geometrically
+  available here (matching the module's original reasoning for putting the
+  gussets on -Y in the first place). Restoring the full GUSSET_RUN=10 /
+  GUSSET_HEIGHT=18 / GUSSET_THK=4 stiffness intent (rather than compensating
+  with more, smaller gussets) required a little more plate depth behind the
+  wall than the previous revision had, so BASE_W was raised to 65 mm (still
+  inside the declared 55-65 mm envelope, at its top) and FACE_TO_SPOOL was
+  reduced to 0 mm (this value only ever set a bookkeeping standoff for a
+  coupling that this part does not model any geometry for -- it does not
+  change SPOOL_DRUM_MID_Y, which is 0 for any FACE_TO_SPOOL by construction,
+  see above). See test_corner_mount_gussets_clear_motor_body_envelope and
+  test_corner_mount_gussets_clear_virtual_spool_envelope in
+  tests/test_winch_geometry.py for the permanent regression coverage (both
+  reproduce the verifier's own boolean-intersection method).
 """
 
 from __future__ import annotations
@@ -115,10 +149,16 @@ from ..interfaces import (
     CORNER_MOUNT_FLEET_HEIGHT_TOL,
 )
 
-# --- Base plate (unchanged from the first draft; lead ruling keeps this
-# fixed) ---------------------------------------------------------------
-BASE_L = 148.0        # mm, along X (long axis, motor end -> pulley end)
-BASE_W = 58.0         # mm, along Y
+# --- Base plate ----------------------------------------------------------
+# BASE_W raised from 58 to 65 mm (top of the declared 55-65 mm envelope) as
+# part of the gusset/motor-envelope interference repair -- see module
+# docstring -- to give the -Y gussets enough plate depth for the full
+# GUSSET_RUN=10 mm stiffness target. BASE_L trimmed from 148 to 138 mm
+# (still inside the declared 130-150 mm envelope) to claw back mass budget
+# spent on the wider plate/wall/gussets -- fleet separation stays well over
+# the 60 mm minimum (see __main__) with the shorter plate.
+BASE_L = 138.0        # mm, along X (long axis, motor end -> pulley end)
+BASE_W = 65.0         # mm, along Y
 PLATE_T = CORNER_MOUNT_PLATE_T   # mm, plate thickness (authoritative)
 
 # --- Wood-screw mounting (3x, on the long centerline Y=0) --------------
@@ -151,8 +191,14 @@ EAR_SY = (PULLEY_GAP / 2 + EAR_FOOT_Y / 2, -(PULLEY_GAP / 2 + EAR_FOOT_Y / 2))
 
 # --- Motor bracket wall (ROTATED per lead ruling): thin in Y, wide in X,
 # NEMA17 face on the wall's -Y face, shaft along +Y. -------------------
+# WALL_W widened from 50 to 56 mm as part of the gusset/motor-envelope
+# interference repair (see module docstring) -- the gussets now clear the
+# full 42.3 mm motor-body square, not just the smaller 31 mm bolt pattern,
+# so they need to sit further out, and the wall has to be wide enough to
+# hold them (56 mm keeps a mass margin under the 90 g budget; the true
+# minimum for GUSSET_X_OFFSET to fit is ~54.3 mm, see the assert below).
 WALL_THK = 6.0         # mm, wall thickness along Y (>= 6 mm required)
-WALL_W = 50.0          # mm, wall width along X (centered on WALL_CX)
+WALL_W = 56.0          # mm, wall width along X (centered on WALL_CX)
 WALL_CX = -40.0        # mm, wall X-center = shaft/boss/spool-axis X
 
 _NEMA_HALF = NEMA17_HOLES / 2
@@ -169,7 +215,11 @@ NEMA_BOSS_HOLE_DIA = NEMA17_BOSS_DIA + CLEARANCE
 # allowance). The drum mid-length Y is 0 for ANY value of FACE_TO_SPOOL (the
 # term cancels in WALL_FRONT_Y + FACE_TO_SPOOL + SPOOL_FLANGE_THK +
 # SPOOL_LEN/2), so this is chosen for gusset clearance, not fleet alignment.
-FACE_TO_SPOOL = 3.0     # mm
+# Reduced from 3.0 to 0.0 mm as part of the gusset/motor-envelope repair
+# (see module docstring): this part does not model any coupling geometry,
+# so the standoff is bookkeeping only, and shrinking it moves the wall
+# WALL_THK/back face closer to Y=0, freeing plate depth for the -Y gussets.
+FACE_TO_SPOOL = 0.0     # mm
 # Wall front (+Y) face position: pins the spool's drum mid-length to Y=0
 # (the fleet-alignment condition -- see LEAD RULING above).
 WALL_FRONT_Y = -(FACE_TO_SPOOL + SPOOL_FLANGE_THK + SPOOL_LEN / 2)
@@ -200,19 +250,30 @@ MOTOR_BODY_OVERHANG_Y = max(0.0, -BASE_W / 2 - MOTOR_BODY_FAR_Y)
 
 # Two triangular gussets bracing the wall's BACK face to the base plate, on
 # the -Y (motor-body) side -- the +Y (spool) side does not have enough
-# vertical clearance under the spool flange (see module docstring).
-GUSSET_RUN = 3.0        # mm, horizontal leg (along -Y, into the back margin)
-GUSSET_HEIGHT = 16.0    # mm, vertical leg (along Z, up the wall)
+# vertical clearance under the spool flange (see module docstring). Full
+# stiffness intent restored (GUSSET_RUN=10, GUSSET_HEIGHT=18, GUSSET_THK=4)
+# after the gusset/motor-envelope interference repair -- see module
+# docstring for how BASE_W/FACE_TO_SPOOL were adjusted to make room.
+GUSSET_RUN = 10.0       # mm, horizontal leg (along -Y, into the back margin)
+GUSSET_HEIGHT = 18.0    # mm, vertical leg (along Z, up the wall)
 GUSSET_THK = 4.0        # mm, gusset thickness (along X)
 _back_margin = BASE_W / 2 + WALL_BACK_Y   # plate back edge (-BASE_W/2) -> wall back face
 assert GUSSET_RUN <= _back_margin, (
     f"gusset run {GUSSET_RUN} mm exceeds the {_back_margin:.1f} mm of plate "
     "remaining behind the wall -- shrink GUSSET_RUN or FACE_TO_SPOOL"
 )
-# Gusset X-centers: clear of the NEMA17 corner screw holes (at
-# X=WALL_CX+-_NEMA_HALF, radius NEMA_SCREW_HOLE_DIA/2) by >= 2 mm, and fully
-# within the wall's own X-footprint ([WALL_CX-WALL_W/2, WALL_CX+WALL_W/2]).
-_gusset_inner_edge = _NEMA_HALF + NEMA_SCREW_HOLE_DIA / 2 + 2.0
+# Gusset X-centers: clear of BOTH (a) the NEMA17 corner screw holes (at
+# X=WALL_CX+-_NEMA_HALF, radius NEMA_SCREW_HOLE_DIA/2) by >= 2 mm, AND (b)
+# the full NEMA17 motor-BODY square (X=WALL_CX+-NEMA17_FACE/2, the real
+# purchased-part footprint that bolts to the wall's -Y face and extends
+# into the same -Y region the gussets occupy) by >= MOTOR_CORNER_CLEARANCE.
+# (b) is the constraint the interference repair is about -- see module
+# docstring and test_corner_mount_gussets_clear_motor_body_envelope.
+MOTOR_CORNER_CLEARANCE = 2.0   # mm, gusset clearance to the motor-body square
+_gusset_inner_edge = max(
+    _NEMA_HALF + NEMA_SCREW_HOLE_DIA / 2 + 2.0,
+    NEMA17_FACE / 2 + MOTOR_CORNER_CLEARANCE,
+)
 GUSSET_X_OFFSET = _gusset_inner_edge + GUSSET_THK / 2
 assert GUSSET_X_OFFSET + GUSSET_THK / 2 <= WALL_W / 2, (
     "gusset would stick out past the wall's X-footprint -- widen WALL_W"

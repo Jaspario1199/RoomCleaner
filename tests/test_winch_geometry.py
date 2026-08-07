@@ -481,14 +481,45 @@ def test_corner_mount_countersink_hole_is_through_on_centerline(hole_x):
     )
 
 
+def _measure_center_offset_1d(ins, cx, cy, cz, axis, hi):
+    """Measure a hole/void's true center offset along one axis from a
+    nominal center point, by bisecting the void->solid transition in BOTH
+    directions and averaging the signed radii. If the true center is at
+    nominal + e with true radius R, the +axis bisection returns e+R and the
+    -axis bisection returns -(R-e) = e-R; their average is e. Reused by
+    several corner_mount tests below to measure real hole positions on the
+    built solid instead of trusting the nominal constant."""
+    pos = _bisect_wall(ins, cx, cy, cz, axis, 0.0, hi)
+    neg = _bisect_wall(ins, cx, cy, cz, axis, 0.0, -hi)
+    return (pos + neg) / 2
+
+
 def test_corner_mount_countersink_spacing_meets_declared_minimum():
-    xs = sorted(corner_mount.MOUNT_HOLE_X)
-    assert len(xs) == 3, f"expected 3 wood-screw holes, found {len(xs)}"
-    gaps = [b - a for a, b in zip(xs, xs[1:])]
+    """Measures each hole's true X-center on the built solid (bisecting the
+    shank bore's void->solid transition, not reading MOUNT_HOLE_X), then
+    checks spacing on the MEASURED centers."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    z_probe = 1.0   # inside the straight shank bore, below the csk cone floor
+    search_hi = corner_mount.CSK_DIA / 2 + 2.0
+
+    measured = []
+    for nominal_x in corner_mount.MOUNT_HOLE_X:
+        offset = _measure_center_offset_1d(ins, nominal_x, 0.0, z_probe, "x", search_hi)
+        measured_x = nominal_x + offset
+        assert abs(offset) < 0.5, (
+            f"corner_mount mount hole nominal x={nominal_x}: measured center "
+            f"offset {offset:.3f} mm is suspiciously large"
+        )
+        measured.append(measured_x)
+
+    assert len(measured) == 3, f"expected 3 wood-screw holes, found {len(measured)}"
+    measured.sort()
+    gaps = [b - a for a, b in zip(measured, measured[1:])]
     for gap in gaps:
         assert gap >= I.CORNER_MOUNT_WOOD_SCREW_MIN_SPACING, (
-            f"corner_mount adjacent hole spacing {gap:.1f} mm < required "
-            f"{I.CORNER_MOUNT_WOOD_SCREW_MIN_SPACING} mm"
+            f"corner_mount adjacent hole spacing (measured) {gap:.2f} mm < "
+            f"required {I.CORNER_MOUNT_WOOD_SCREW_MIN_SPACING} mm"
         )
 
 
@@ -560,19 +591,37 @@ def test_corner_mount_nema17_boss_clearance():
 
 
 def test_corner_mount_pulley_axle_holes_present_and_coaxial():
+    """Diameter AND true coaxiality, both measured on the built solid.
+    Coaxiality: bisect each ear's hole center along X and along Z
+    independently (not `len(set(EAR_SY)) == 2`, which only proves the two
+    nominal Y source values are distinct Python floats and would not catch
+    a future edit giving the two ears different EAR_CX or hole-height
+    formulas) and require the two ears' measured (x, z) to agree tightly --
+    a straight bolt/pulley axle must pass through both."""
     cm = corner_mount.make()
     ins = _inside_fn(cm.val())
-    z = corner_mount.PLATE_T + corner_mount.EAR_H - corner_mount.EAR_TOP_MARGIN
+    z_nominal = corner_mount.PLATE_T + corner_mount.EAR_H - corner_mount.EAR_TOP_MARGIN
+
+    centers = []
     for sy in corner_mount.EAR_SY:
-        r = _bisect_wall(ins, corner_mount.EAR_CX, sy, z, "z", 0.0, 3.0)
+        r = _bisect_wall(ins, corner_mount.EAR_CX, sy, z_nominal, "z", 0.0, 3.0)
         assert abs(2 * r - corner_mount.EAR_HOLE_DIA) <= 0.05, (
             f"corner_mount pulley ear axle hole at sy={sy}: diameter "
             f"{2*r:.4f} mm, expected {corner_mount.EAR_HOLE_DIA} mm"
         )
-    # Both ears share the same (x, z) axle axis by construction (single
-    # EAR_CX, single hole height) -- a straight bolt/pulley axle passes
-    # through both.
-    assert len(set(corner_mount.EAR_SY)) == 2
+        x_offset = _measure_center_offset_1d(
+            ins, corner_mount.EAR_CX, sy, z_nominal, "x", 3.0
+        )
+        z_offset = _measure_center_offset_1d(
+            ins, corner_mount.EAR_CX, sy, z_nominal, "z", 3.0
+        )
+        centers.append((corner_mount.EAR_CX + x_offset, z_nominal + z_offset))
+
+    (x0, z0), (x1, z1) = centers
+    assert abs(x0 - x1) <= 0.05 and abs(z0 - z1) <= 0.05, (
+        f"corner_mount pulley ear axle holes are not coaxial: ear0 center="
+        f"({x0:.3f},{z0:.3f}), ear1 center=({x1:.3f},{z1:.3f})"
+    )
 
 
 def test_corner_mount_fleet_alignment_height():
@@ -662,13 +711,30 @@ def test_corner_mount_fleet_alignment_coplanarity():
 
 def test_corner_mount_fleet_separation_minimum():
     """LEAD-RULING geometry: separation is now measured along X, between the
-    shaft/boss X-position (WALL_CX) and the pulley axle X-position
-    (EAR_CX) -- both already confirmed as real hole/void locations by the
-    diameter probes above."""
-    distance = abs(corner_mount.EAR_CX - corner_mount.WALL_CX)
+    shaft/boss X-position and the pulley axle X-position -- BOTH measured on
+    the built solid (bisecting the boss void and one ear's axle void),
+    not read off the WALL_CX/EAR_CX constants."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+
+    y_probe = (corner_mount.WALL_FRONT_Y + corner_mount.WALL_BACK_Y) / 2
+    z_boss = corner_mount.PLATE_T + corner_mount.CORNER_MOUNT_AXIS_Z
+    boss_offset = _measure_center_offset_1d(
+        ins, corner_mount.WALL_CX, y_probe, z_boss, "x", 15.0
+    )
+    measured_boss_x = corner_mount.WALL_CX + boss_offset
+
+    sy = corner_mount.EAR_SY[0]
+    z_ear = corner_mount.PLATE_T + corner_mount.EAR_H - corner_mount.EAR_TOP_MARGIN
+    ear_offset = _measure_center_offset_1d(
+        ins, corner_mount.EAR_CX, sy, z_ear, "x", 3.0
+    )
+    measured_ear_x = corner_mount.EAR_CX + ear_offset
+
+    distance = abs(measured_ear_x - measured_boss_x)
     assert distance >= I.CORNER_MOUNT_FLEET_MIN_SEPARATION, (
-        f"corner_mount spool<->pulley separation = {distance:.2f} mm, "
-        f"required >= {I.CORNER_MOUNT_FLEET_MIN_SEPARATION} mm"
+        f"corner_mount spool<->pulley separation (measured) = {distance:.2f} "
+        f"mm, required >= {I.CORNER_MOUNT_FLEET_MIN_SEPARATION} mm"
     )
 
 
@@ -682,6 +748,151 @@ def test_corner_mount_max_fleet_angle_reasonable():
     assert max_angle_deg <= 15.0, (
         f"corner_mount max fleet angle = {max_angle_deg:.2f} deg, expected "
         f"<= 15 deg for a low-friction redirect"
+    )
+
+
+def test_corner_mount_gussets_clear_motor_body_envelope():
+    """Regression test for the real defect found by independent
+    verification (verification/corner_mount_report.md Section 7b): the
+    gussets used to intersect the NEMA17 motor-body envelope by 70.42 mm^3.
+    Reproduces the verifier's own method -- boolean-intersect a
+    NEMA17_FACE x NEMA17_FACE x 38 mm box, seated flush against the wall's
+    -Y (motor-bolting) face and centered on the shaft axis, with the full
+    built bracket -- and requires 0 mm^3 (within floating-point epsilon)."""
+    cm = corner_mount.make()
+    axis_z_world = corner_mount.PLATE_T + corner_mount.CORNER_MOUNT_AXIS_Z
+    nema_sq, motor_depth = P.NEMA17_FACE, 38.0
+    y_near, y_far = corner_mount.WALL_BACK_Y, corner_mount.WALL_BACK_Y - motor_depth
+    motor_box = (
+        cq.Workplane("XY").center(corner_mount.WALL_CX, 0).rect(nema_sq, motor_depth)
+        .extrude(nema_sq)
+        .translate((0, 0, axis_z_world - nema_sq / 2))
+        .translate((0, (y_near + y_far) / 2, 0))
+    )
+    inter = motor_box.intersect(cm)
+    volume = inter.val().Volume() if inter.solids().vals() else 0.0
+    assert volume < 1e-6, (
+        f"corner_mount gussets/wall intersect the NEMA17 motor-body "
+        f"envelope by {volume:.4f} mm^3 (expected 0) -- the motor cannot "
+        f"seat flush against the bracket"
+    )
+
+
+def test_corner_mount_clears_virtual_spool_envelope():
+    """Boolean-intersect a cylinder sized to the spool's own widest/longest
+    extent (SPOOL_FLANGE_DIA x (SPOOL_LEN + 2*SPOOL_FLANGE_THK)), on the
+    shaft axis per the part's own constants, with the built bracket.
+    Requires 0 mm^3 -- the spool must clear the plate, wall, gussets, and
+    ears entirely."""
+    cm = corner_mount.make()
+    axis_z_world = corner_mount.PLATE_T + corner_mount.CORNER_MOUNT_AXIS_Z
+    length = corner_mount.SPOOL_FAR_Y - corner_mount.SPOOL_NEAR_Y
+    assert abs(length - (P.SPOOL_LEN + 2 * P.SPOOL_FLANGE_THK)) < 1e-6
+    spool_cyl = (
+        cq.Workplane("XZ").workplane(offset=-corner_mount.SPOOL_NEAR_Y)
+        .center(corner_mount.WALL_CX, axis_z_world)
+        .circle(P.SPOOL_FLANGE_DIA / 2)
+        .extrude(-length)
+    )
+    inter = spool_cyl.intersect(cm)
+    volume = inter.val().Volume() if inter.solids().vals() else 0.0
+    assert volume < 1e-6, (
+        f"corner_mount bracket intersects the virtual spool envelope by "
+        f"{volume:.4f} mm^3 (expected 0)"
+    )
+
+
+def test_corner_mount_wall_thickness_through_boss_measured():
+    """Wall thickness (WALL_THK, required >= 6 mm), measured directly on the
+    built solid near the boss (just outside the boss hole's own radius, so
+    the probe sits in solid wall material, not the void), not read off the
+    constant."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    mid_y = (corner_mount.WALL_FRONT_Y + corner_mount.WALL_BACK_Y) / 2
+    z = corner_mount.PLATE_T + corner_mount.CORNER_MOUNT_AXIS_Z
+    x_probe = corner_mount.WALL_CX + corner_mount.NEMA_BOSS_HOLE_DIA / 2 + 3.0
+    assert ins(x_probe, mid_y, z), "expected solid wall material next to the boss hole"
+    pos_edge = _bisect_solid_edge(ins, x_probe, mid_y, z, "y", 0.0, 5.0)
+    neg_edge = _bisect_solid_edge(ins, x_probe, mid_y, z, "y", 0.0, -5.0)
+    measured_thk = pos_edge - neg_edge
+    assert abs(measured_thk - corner_mount.WALL_THK) <= 0.05, (
+        f"corner_mount wall thickness (measured near boss) = "
+        f"{measured_thk:.3f} mm, expected {corner_mount.WALL_THK} mm"
+    )
+    assert measured_thk >= 6.0 - 0.05, (
+        f"corner_mount wall thickness {measured_thk:.3f} mm < 6 mm required"
+    )
+
+
+def test_corner_mount_pulley_gap_measured():
+    """PULLEY_GAP (clear space between the ears, 10 mm), measured directly
+    as a void span on the built solid at a Z clear of the axle holes."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    x = corner_mount.EAR_CX
+    z = corner_mount.PLATE_T + 1.0   # near ear base, below the axle hole
+    assert not ins(x, 0.0, z), "expected void at the pulley gap centerline"
+    pos_edge = _bisect_wall(ins, x, 0.0, z, "y", 0.0, 8.0)
+    neg_edge = _bisect_wall(ins, x, 0.0, z, "y", 0.0, -8.0)
+    measured_gap = pos_edge - neg_edge
+    assert abs(measured_gap - corner_mount.PULLEY_GAP) <= 0.05, (
+        f"corner_mount pulley gap (measured) = {measured_gap:.3f} mm, "
+        f"expected {corner_mount.PULLEY_GAP} mm"
+    )
+
+
+def test_corner_mount_ear_wall_around_axle_hole_measured():
+    """Ear wall thickness around the axle hole (EAR_PLATE_T minus the hole
+    diameter, split both sides), measured on the built solid -- the same
+    defect class found in corner_guide's ear during a prior verification
+    pass (0.15 mm wall, unprintable), so this is a permanent regression
+    check for corner_mount's version of that geometry."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    sy = corner_mount.EAR_SY[0]
+    z = corner_mount.PLATE_T + corner_mount.EAR_H - corner_mount.EAR_TOP_MARGIN
+
+    hole_r = _bisect_wall(ins, corner_mount.EAR_CX, sy, z, "x", 0.0, 3.0)
+    z_probe = z + hole_r + 0.5   # just above the hole, still within the ear
+    assert ins(corner_mount.EAR_CX, sy, z_probe), "expected solid above the axle hole"
+    pos_edge = _bisect_solid_edge(ins, corner_mount.EAR_CX, sy, z_probe, "x", 0.0, 8.0)
+    neg_edge = _bisect_solid_edge(ins, corner_mount.EAR_CX, sy, z_probe, "x", 0.0, -8.0)
+    ear_thickness = pos_edge - neg_edge
+
+    assert abs(ear_thickness - corner_mount.EAR_PLATE_T) <= 0.05, (
+        f"corner_mount ear thickness (measured) = {ear_thickness:.3f} mm, "
+        f"expected {corner_mount.EAR_PLATE_T} mm"
+    )
+    wall_each_side = (ear_thickness - 2 * hole_r) / 2
+    assert wall_each_side >= 1.0, (
+        f"corner_mount ear wall around the axle hole = {wall_each_side:.3f} "
+        f"mm/side, expected >= 1.0 mm printable minimum"
+    )
+
+
+def test_corner_mount_spool_plate_clearance_measured():
+    """Spool-flange-to-plate clearance (>= CORNER_MOUNT_SPOOL_PLATE_
+    CLEARANCE), computed from the shaft/boss axis height as MEASURED on the
+    built solid (bisecting the boss void vertically), not the
+    CORNER_MOUNT_AXIS_Z constant directly."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    y_probe = (corner_mount.WALL_FRONT_Y + corner_mount.WALL_BACK_Y) / 2
+    z0 = corner_mount.PLATE_T + corner_mount.CORNER_MOUNT_AXIS_Z
+    up = _bisect_wall(ins, corner_mount.WALL_CX, y_probe, z0, "z", 0.0, 15.0)
+    down = _bisect_wall(ins, corner_mount.WALL_CX, y_probe, z0, "z", 0.0, -15.0)
+    measured_axis_z = z0 + (up + down) / 2
+
+    clearance = (measured_axis_z - corner_mount.PLATE_T) - P.SPOOL_FLANGE_DIA / 2
+    assert clearance >= 4.0 - 0.05, (
+        f"corner_mount spool-flange-to-plate clearance (measured) = "
+        f"{clearance:.3f} mm, required >= 4.0 mm"
+    )
+    assert abs(clearance - I.CORNER_MOUNT_SPOOL_PLATE_CLEARANCE) <= 0.05, (
+        f"corner_mount spool-flange-to-plate clearance (measured) = "
+        f"{clearance:.3f} mm, expected "
+        f"{I.CORNER_MOUNT_SPOOL_PLATE_CLEARANCE} mm (interfaces.py)"
     )
 
 

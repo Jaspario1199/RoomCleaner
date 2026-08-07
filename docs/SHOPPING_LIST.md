@@ -79,7 +79,7 @@ WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | Ceiling anchors ⚠️ | QXSKSLH 5" M10 **stainless, fully-closed-eye** self-tapping hooks, 700 lb, 4-pack (screw into JOISTS, no nut; pilot-drill first) | https://www.amazon.com/s?k=QXSKSLH+5+inch+eye+hooks+M10+stainless | 14 |
+| ☐ | Corner mounting screws ⚠️ | **#10 × 3" wood screws** (12+, with washers) for the printed `corner_mount` plates — 3 per corner, driven into a ceiling JOIST or high wall STUD, pilot-drilled. (Replaced the hanging eye hooks, D13: a hook is a pivot — the anchor point wanders and kills repeatability; a screwed-down plate fixes it.) Hardware store or: | https://www.amazon.com/s?k=%2310+x+3+inch+exterior+wood+screws | 8 |
 | ☐ | M3 screw/nut kit | MroMax 640-pc M3 button-head, 304 stainless (6–30 mm + nuts + washers) — also provides the NEMA 17 mount screws | https://www.amazon.com/MroMax-Stainless-Button-Socket-Screws/dp/B0BZP89FQT | 10 |
 
 ## Wiring

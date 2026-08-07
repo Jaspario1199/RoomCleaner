@@ -52,3 +52,16 @@ D12. **EFFECTOR_REACH corrected 130 → 118 mm (integration-measured)** — the
 original C5 sum double-counted the hub: the finger's 12 mm base fills the hub
 thickness. Contract, config, calc, and R8 all updated; grab pose now
 GRAB_Z = 0.138 m.
+
+D13. **Rigid printed corner mounts replace hanging eye-hook anchors (user
+request, lead-approved)** — the QXSKSLH closed-eye hooks made each corner a
+pivot: the winch/pulley assembly could swing, moving the effective anchor
+point that the kinematics and calibration treat as fixed (the calibration
+sensitivity study shows ~1:1 anchor→position error transfer). New part
+`corner_mount` unifies the NEMA 17 bracket and pulley ears on one 6 mm base
+plate, screwed with 3× #10 × 3" wood screws in a line into a ceiling joist or
+high wall stud (screws in shear on wall mount, install easier). Load path:
+motor bolts to bracket, bracket to wood — nothing hangs from the motor or the
+drywall. BOM: eye hooks (−$14) out; wood screws (~$8) in. motor_mount and
+corner_guide remain in the repo for bench/legacy use but the corner install
+uses corner_mount.

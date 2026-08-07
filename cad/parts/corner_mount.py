@@ -18,7 +18,8 @@ Coordinate frame (local to this part):
     the mounting face" habit used elsewhere in cad/parts. The plate top
     (accessible) face is at Z=PLATE_T. The motor bracket wall and the pulley
     ears both rise from the plate TOP in +Z. +X runs from the motor bracket
-    end of the plate to the pulley end.
+    end of the plate to the pulley end. +Y runs from the motor's overhang
+    side toward the far side of the plate.
 
 Wood-screw holes: countersunk from the plate TOP face (the face away from
 the joist -- that's the face you drive the screws from, and where the screw
@@ -29,52 +30,72 @@ Print orientation: plate BOTTOM (Z=0, the joist face) flat on the print bed,
 no supports. This puts every countersink's wide opening at the top (away
 from the bed) and its narrow point at the bottom -- each layer's hole gets
 WIDER as printing proceeds upward, which is the standard self-supporting
-countersink orientation (no bridging, no overhang). The motor-bracket wall
-and its two gussets rise from the plate in +Z (i.e. they print as they go,
-not overhanging) -- gusset hypotenuse angle from vertical is
-atan(GUSSET_RUN / GUSSET_HEIGHT) ~= 29 deg, comfortably under the ~45 deg
-self-supporting limit. The wall's NEMA17 boss hole is a horizontal
-through-hole (same situation as the existing motor_mount.py bracket, which
-prints the same way today) -- FDM handles a round horizontal hole as a
-self-arching bridge without supports.
+countersink orientation (no bridging, no overhang). The wall and its two
+gussets rise from the plate in +Z (they print as they go, never overhanging)
+-- gusset hypotenuse angle from vertical is atan(GUSSET_RUN / GUSSET_HEIGHT)
+(see value printed in __main__), comfortably under the ~45 deg
+self-supporting limit given how short GUSSET_RUN is (see LEAD RULING below
+for why). The wall's NEMA17 boss hole is a horizontal through-hole (same
+situation as the existing motor_mount.py bracket, which prints the same way
+today) -- FDM handles a round horizontal hole as a self-arching bridge
+without supports.
 
-FLEET-ALIGNMENT DESIGN NOTE (read before touching CORNER_MOUNT_AXIS_Z or the
-pulley-ear placement): the assignment asks for the "pulley groove mid-plane"
-to be coplanar with the "spool's drum mid-length plane" within
-CORNER_MOUNT_FLEET_COPLANAR_TOL, while separately keeping the pulley axle
->= CORNER_MOUNT_FLEET_MIN_SEPARATION away from the spool axis and staying
-within the ~130-150 x 55-65 mm plate envelope. Two literal readings of
-"coplanar mid-planes" were considered:
+LEAD RULING on fleet-angle geometry (supersedes an earlier, geometrically
+wrong reading -- kept here for the record):
 
-  (a) pulley axle PARALLEL to the spool axis (both along X): then "mid-plane
-      between the ears" and "spool drum mid-length plane" are both
-      cross-sectional (YZ) planes and coplanarity reduces to matching X. But
-      this puts the pulley at nearly the SAME X as the spool's midpoint --
-      incompatible with a >=60 mm separation inside a <=150 mm-long plate
-      unless the pulley is instead offset side-to-side (Y) by >=60 mm, which
-      does not fit inside a <=65 mm-wide plate either. Rejected.
+  The first draft of this part read "pulley groove mid-plane coplanar with
+  the spool's drum mid-length plane" by keeping both the wall and the ears
+  symmetric about the plate's Y=0 centerline, with the spool axis along X
+  (pointing at the pulley). That is wrong: a spool with its axis along X
+  pays line off in the plane PERPENDICULAR to X (a YZ plane) -- the line
+  leaving the drum has zero X-velocity and can never reach ears sitting
+  further along +X. The Y=0-centerline reading happened to be parallel to
+  the line's own travel plane, i.e. exactly the wrong constraint to satisfy.
 
-  (b) pulley ears kept in the corner_guide orientation (axle along Y, ears
-      separated along Y, at the FAR +X end of the plate -- matching "ears at
-      the other end" and the >=60 mm along-X separation): then the "mid-plane
-      between the ears" is the XZ-plane at their Y midpoint, which is the
-      plate's own long centerline (Y=0) by symmetric construction. The spool
-      sits on the motor shaft, itself centered on the same Y=0 centerline.
-      Both "mid-planes," read this way, are the SAME Y=0 XZ-plane --
-      genuinely coplanar, and independent of X, so it is compatible with a
-      >=60 mm along-X separation and the given envelope.
+  CORRECTED LAYOUT (this part, as built):
+    * The base plate, its 3 countersunk wood-screw holes, and the pulley
+      ears are UNCHANGED from the first draft: ears at the plate's +X end,
+      axle along Y, pulley groove mid-plane = the XZ plane at Y=0 (the
+      ears' own Y midpoint, by symmetric construction).
+    * The motor bracket wall is rotated 90 deg about Z: it is now thin in Y
+      (WALL_THK), wide in X (WALL_W), sitting near the plate's -X end, at
+      NEGATIVE Y (clear of the Y=0 screw centerline). The NEMA17 bolt
+      pattern is cut into the wall's -Y face; the motor BODY bolts there
+      and hangs further in -Y (it overhangs the plate edge -- see
+      MOTOR_BODY_OVERHANG_Y in __main__ -- which is accepted: the motor is
+      cantilevered on a stiff bracket, not resting on the plate). The
+      motor's output SHAFT passes back through the wall (+Y) via the boss
+      clearance hole and continues +Y into the open plate area, where the
+      (separately-modeled) spool would sit.
+    * With the spool's axis now along Y, it pays line off in an XZ plane --
+      the SAME kind of plane the pulley groove mid-plane is. The wall's
+      front (+Y) face is positioned so the spool's drum MID-LENGTH lands
+      exactly on Y=0 (WALL_FRONT_Y = -(FACE_TO_SPOOL + SPOOL_FLANGE_THK +
+      SPOOL_LEN / 2)): the drum's own mid-length cross-section is then the
+      XZ plane at Y=0 -- genuinely coplanar with the pulley groove
+      mid-plane, independent of FACE_TO_SPOOL, with 0 mm nominal error.
+    * Fleet SEPARATION is now measured along X (shaft/boss X position vs.
+      EAR_CX), not Y -- both keep their original meaning under the
+      corrected orientation.
+    * CORNER_MOUNT_AXIS_Z (shared shaft/boss and pulley-axle height) is
+      unchanged -- rotating the wall about Z does not touch Z.
 
-This part implements (b): the wall (and hence the spool it carries) and the
-pulley-ear pair are both built symmetric about Y=0, and
-test_corner_mount_pulley_and_spool_share_centerline (tests/
-test_winch_geometry.py) checks that alignment on the BUILT solid. Flagging
-this explicitly for lead review: if the intended reading was (a), the ear
-orientation needs to change, which is a materially different layout.
+  This resolves the self-contradiction the first draft flagged: the
+  coplanarity condition, the >=60 mm separation, and the plate envelope are
+  now all simultaneously satisfiable, because separation and coplanarity
+  are measured along DIFFERENT axes (X and Y respectively) instead of
+  competing for the same one.
 
-The pulley axle height (CORNER_MOUNT_AXIS_Z) is shared exactly with the
-motor/spool axis height -- also defined once in cad/interfaces.py and
-consumed by both features here, so the +-3 mm height-alignment requirement
-is met with zero nominal error.
+  Side effect on the gussets: with the wall pinned by the coplanarity
+  requirement to WALL_FRONT_Y = -19 (see FACE_TO_SPOOL below), the plate's
+  own back edge (Y = -BASE_W/2 = -29) leaves only a few mm behind the
+  wall's back face -- nowhere near enough for the tall gusset run used in
+  the first draft. The pulley/spool (+Y) side of the wall is even more
+  constrained: the spool flange's underside sits only
+  CORNER_MOUNT_SPOOL_PLATE_CLEARANCE above the plate, well short of a
+  useful gusset height. Per lead direction, the gussets go on the -Y
+  (motor-body) side, sized to the few mm of plate that remain there --
+  short, steep, and still self-supporting; see GUSSET_RUN below.
 """
 
 from __future__ import annotations
@@ -82,7 +103,7 @@ from __future__ import annotations
 import cadquery as cq
 
 from ..params import (
-    NEMA17_HOLES, NEMA17_BOSS_DIA, SCREW_M3, CLEARANCE,
+    NEMA17_HOLES, NEMA17_BOSS_DIA, NEMA17_FACE, SCREW_M3, CLEARANCE,
     SPOOL_FLANGE_DIA, SPOOL_FLANGE_THK, SPOOL_LEN,
 )
 from ..interfaces import (
@@ -94,78 +115,26 @@ from ..interfaces import (
     CORNER_MOUNT_FLEET_HEIGHT_TOL,
 )
 
-# --- Base plate --------------------------------------------------------
+# --- Base plate (unchanged from the first draft; lead ruling keeps this
+# fixed) ---------------------------------------------------------------
 BASE_L = 148.0        # mm, along X (long axis, motor end -> pulley end)
 BASE_W = 58.0         # mm, along Y
 PLATE_T = CORNER_MOUNT_PLATE_T   # mm, plate thickness (authoritative)
 
 # --- Wood-screw mounting (3x, on the long centerline Y=0) --------------
+# Unchanged in spirit from the first draft; re-picked only because the
+# rotated wall's X-footprint is wider. Holes stay on Y=0, so they never
+# collide with the wall/gussets (those live entirely at negative Y) --
+# only clearance from the ear footprint (X in [56.5, 63.5]) matters.
 SHANK_DIA = CORNER_MOUNT_WOOD_SCREW_SHANK
 CSK_DIA = CORNER_MOUNT_WOOD_SCREW_CSK_DIA
 CSK_ANGLE = CORNER_MOUNT_WOOD_SCREW_CSK_ANGLE
-# X positions chosen so adjacent spacing (46, 46 mm) clears the declared
-# CORNER_MOUNT_WOOD_SCREW_MIN_SPACING (45 mm) with margin, and each hole
-# sits clear of the wall/gusset footprint (X <= -46) and the ear footprint
-# (X in [56.5, 63.5]).
-MOUNT_HOLE_X = (-40.0, 6.0, 52.0)
+MOUNT_HOLE_X = (-55.0, -5.0, 45.0)   # spacing 50, 50 mm (>= 45 mm required)
 
-# --- Motor bracket wall (NEMA17 face, motor axis horizontal along +X) --
-WALL_THK = 6.0        # mm, wall thickness (>= 6 mm required)
-WALL_W = 48.0          # mm, wall width along Y (centered on Y=0)
-BACK_MARGIN = 22.0    # mm, plate back edge -> wall back face (room for the
-                      # gussets plus edge material)
-WALL_X0 = -BASE_L / 2 + BACK_MARGIN          # wall back face X
-WALL_CX = WALL_X0 + WALL_THK / 2             # wall center X
-FACE_X = WALL_X0 + WALL_THK                  # wall FRONT face X (motor bolts
-                                              # here; shaft points +X)
-# WALL_H: must clear the NEMA17 bolt-square top (AXIS_Z + half pattern) with
-# margin above, and the pattern bottom (AXIS_Z - half pattern) must stay
-# above the plate top (Z=0 local to the wall).
-_NEMA_HALF = NEMA17_HOLES / 2
-WALL_H = CORNER_MOUNT_AXIS_Z + _NEMA_HALF + 6.0   # mm, wall height above plate top
-assert CORNER_MOUNT_AXIS_Z - _NEMA_HALF > 0.0, (
-    "NEMA17 bolt pattern would dip below the plate top -- raise "
-    "CORNER_MOUNT_AXIS_Z"
-)
-
-# NEMA17 hole/boss clearance -- same formulas as the existing motor_mount.py
-# (fixed clearance, not the generic CLEARANCE constant, to match established
-# practice in this repo).
-NEMA_SCREW_HOLE_DIA = SCREW_M3 + 0.4
-NEMA_BOSS_HOLE_DIA = NEMA17_BOSS_DIA + CLEARANCE
-
-# Two triangular gussets bracing the wall's BACK face to the base plate.
-GUSSET_RUN = 10.0      # mm, horizontal leg (along X, into the back margin)
-GUSSET_HEIGHT = 18.0   # mm, vertical leg (along Z, up the wall)
-GUSSET_THK = 4.0       # mm, gusset thickness (along Y)
-# Gusset Y-center: clear of the NEMA17 corner screw holes (at Y=+-_NEMA_HALF,
-# radius NEMA_SCREW_HOLE_DIA/2) by >= 2 mm, and fully within the wall's own
-# Y-footprint ([-WALL_W/2, WALL_W/2]).
-_gusset_inner_edge = _NEMA_HALF + NEMA_SCREW_HOLE_DIA / 2 + 2.0
-GUSSET_Y = _gusset_inner_edge + GUSSET_THK / 2
-assert GUSSET_Y + GUSSET_THK / 2 <= WALL_W / 2, (
-    "gusset would stick out past the wall's Y-footprint -- widen WALL_W"
-)
-
-# --- Fleet-alignment bookkeeping (spool is a SEPARATE part; only its
-# position relative to this bracket is computed here, for the fleet-angle
-# test). Nothing below cuts geometry for the spool itself. -----------------
-FACE_TO_SPOOL = 5.0     # mm, motor shaft standoff before the spool's near
-                        # flange starts (coupling/engagement allowance)
-SPOOL_NEAR_X = FACE_X + FACE_TO_SPOOL
-SPOOL_DRUM_MID_X = SPOOL_NEAR_X + SPOOL_FLANGE_THK + SPOOL_LEN / 2
-# Spool axis height above plate top: high enough that the flange (radius
-# SPOOL_FLANGE_DIA/2) clears the plate by >= CORNER_MOUNT_SPOOL_PLATE_CLEARANCE.
-SPOOL_AXIS_Z = SPOOL_FLANGE_DIA / 2 + CORNER_MOUNT_SPOOL_PLATE_CLEARANCE
-assert abs(SPOOL_AXIS_Z - CORNER_MOUNT_AXIS_Z) < 1e-6, (
-    "SPOOL_AXIS_Z must equal CORNER_MOUNT_AXIS_Z -- both derive from the "
-    "same shared interface height; if this fires, CORNER_MOUNT_AXIS_Z in "
-    "cad/interfaces.py no longer gives >= 4 mm spool-to-plate clearance"
-)
-
-# --- Pulley ears (corner_guide ear pattern, reused values) ---------------
-# Axle along Y (see FLEET-ALIGNMENT DESIGN NOTE above): two ears straddle
-# the plate centerline, GAP apart, near the +X end of the plate.
+# --- Pulley ears (corner_guide ear pattern, reused values) --------------
+# UNCHANGED from the first draft (lead ruling: "keep the pulley ears
+# EXACTLY as built"). Axle along Y, two ears straddle the plate centerline,
+# PULLEY_GAP apart, near the +X end of the plate.
 EAR_PLATE_T = 7.0      # mm, ear thickness through the axle hole (matches
                         # corner_guide.EAR_PLATE_T -- proven wall-around-hole
                         # value, see corner_guide's own verification)
@@ -180,6 +149,75 @@ EAR_EDGE_MARGIN = 14.0  # mm, ear center -> plate front edge
 EAR_CX = BASE_L / 2 - EAR_EDGE_MARGIN
 EAR_SY = (PULLEY_GAP / 2 + EAR_FOOT_Y / 2, -(PULLEY_GAP / 2 + EAR_FOOT_Y / 2))
 
+# --- Motor bracket wall (ROTATED per lead ruling): thin in Y, wide in X,
+# NEMA17 face on the wall's -Y face, shaft along +Y. -------------------
+WALL_THK = 6.0         # mm, wall thickness along Y (>= 6 mm required)
+WALL_W = 50.0          # mm, wall width along X (centered on WALL_CX)
+WALL_CX = -40.0        # mm, wall X-center = shaft/boss/spool-axis X
+
+_NEMA_HALF = NEMA17_HOLES / 2
+WALL_H = CORNER_MOUNT_AXIS_Z + _NEMA_HALF + 6.0   # mm, wall height above plate top
+assert CORNER_MOUNT_AXIS_Z - _NEMA_HALF > 0.0, (
+    "NEMA17 bolt pattern would dip below the plate top -- raise "
+    "CORNER_MOUNT_AXIS_Z"
+)
+
+NEMA_SCREW_HOLE_DIA = SCREW_M3 + 0.4        # matches existing motor_mount.py
+NEMA_BOSS_HOLE_DIA = NEMA17_BOSS_DIA + CLEARANCE
+
+# Motor shaft standoff before the spool's near flange (coupling/engagement
+# allowance). The drum mid-length Y is 0 for ANY value of FACE_TO_SPOOL (the
+# term cancels in WALL_FRONT_Y + FACE_TO_SPOOL + SPOOL_FLANGE_THK +
+# SPOOL_LEN/2), so this is chosen for gusset clearance, not fleet alignment.
+FACE_TO_SPOOL = 3.0     # mm
+# Wall front (+Y) face position: pins the spool's drum mid-length to Y=0
+# (the fleet-alignment condition -- see LEAD RULING above).
+WALL_FRONT_Y = -(FACE_TO_SPOOL + SPOOL_FLANGE_THK + SPOOL_LEN / 2)
+WALL_BACK_Y = WALL_FRONT_Y - WALL_THK
+
+# --- Fleet-alignment bookkeeping (spool is a SEPARATE part; only its
+# position relative to this bracket is computed here, for the fleet-angle
+# test). Nothing below cuts geometry for the spool itself. -----------------
+SPOOL_NEAR_Y = WALL_FRONT_Y + FACE_TO_SPOOL
+SPOOL_DRUM_MID_Y = SPOOL_NEAR_Y + SPOOL_FLANGE_THK + SPOOL_LEN / 2
+assert abs(SPOOL_DRUM_MID_Y) < 1e-9, (
+    "SPOOL_DRUM_MID_Y must be exactly 0 by construction -- the fleet-"
+    "alignment coplanarity condition"
+)
+SPOOL_FAR_Y = SPOOL_NEAR_Y + 2 * SPOOL_FLANGE_THK + SPOOL_LEN
+# Spool axis height above plate top: high enough that the flange (radius
+# SPOOL_FLANGE_DIA/2) clears the plate by >= CORNER_MOUNT_SPOOL_PLATE_CLEARANCE.
+SPOOL_AXIS_Z = SPOOL_FLANGE_DIA / 2 + CORNER_MOUNT_SPOOL_PLATE_CLEARANCE
+assert abs(SPOOL_AXIS_Z - CORNER_MOUNT_AXIS_Z) < 1e-6, (
+    "SPOOL_AXIS_Z must equal CORNER_MOUNT_AXIS_Z -- both derive from the "
+    "same shared interface height; if this fires, CORNER_MOUNT_AXIS_Z in "
+    "cad/interfaces.py no longer gives >= 4 mm spool-to-plate clearance"
+)
+# Motor body: bolts to the wall's -Y face and hangs further -Y (accepted
+# overhang past the plate edge, see module docstring).
+MOTOR_BODY_FAR_Y = WALL_BACK_Y - NEMA17_FACE
+MOTOR_BODY_OVERHANG_Y = max(0.0, -BASE_W / 2 - MOTOR_BODY_FAR_Y)
+
+# Two triangular gussets bracing the wall's BACK face to the base plate, on
+# the -Y (motor-body) side -- the +Y (spool) side does not have enough
+# vertical clearance under the spool flange (see module docstring).
+GUSSET_RUN = 3.0        # mm, horizontal leg (along -Y, into the back margin)
+GUSSET_HEIGHT = 16.0    # mm, vertical leg (along Z, up the wall)
+GUSSET_THK = 4.0        # mm, gusset thickness (along X)
+_back_margin = BASE_W / 2 + WALL_BACK_Y   # plate back edge (-BASE_W/2) -> wall back face
+assert GUSSET_RUN <= _back_margin, (
+    f"gusset run {GUSSET_RUN} mm exceeds the {_back_margin:.1f} mm of plate "
+    "remaining behind the wall -- shrink GUSSET_RUN or FACE_TO_SPOOL"
+)
+# Gusset X-centers: clear of the NEMA17 corner screw holes (at
+# X=WALL_CX+-_NEMA_HALF, radius NEMA_SCREW_HOLE_DIA/2) by >= 2 mm, and fully
+# within the wall's own X-footprint ([WALL_CX-WALL_W/2, WALL_CX+WALL_W/2]).
+_gusset_inner_edge = _NEMA_HALF + NEMA_SCREW_HOLE_DIA / 2 + 2.0
+GUSSET_X_OFFSET = _gusset_inner_edge + GUSSET_THK / 2
+assert GUSSET_X_OFFSET + GUSSET_THK / 2 <= WALL_W / 2, (
+    "gusset would stick out past the wall's X-footprint -- widen WALL_W"
+)
+
 # --- Mass budget check (evaluated at import so a spec change that busts the
 # budget fails loudly instead of silently) --------------------------------
 PETG_DENSITY_G_CM3 = 1.27   # g/cm^3, fallback if cad.materials is unavailable
@@ -193,30 +231,32 @@ MASS_BUDGET_G = 90.0
 
 def _wall_with_motor_pattern() -> cq.Workplane:
     """The motor-bracket wall alone: box + boss clearance + 4x M3 through
-    the NEMA17 pattern, all cut along the wall's own local X-axis (the wall
-    is thin in X)."""
+    the NEMA17 pattern, all cut along the wall's own local Y-axis (the wall
+    is thin in Y)."""
     wall = (
         cq.Workplane("XY")
         .center(WALL_CX, 0)
-        .box(WALL_THK, WALL_W, WALL_H, centered=(True, True, False))
+        .box(WALL_W, WALL_THK, WALL_H, centered=(True, False, False))
+        .translate((0, WALL_BACK_Y, 0))
     )
 
     cut_len = WALL_THK * 3   # generous overshoot for a clean through-cut
+    y_start = WALL_FRONT_Y + WALL_THK   # start beyond the front face, cut -Y
     boss = (
-        cq.Workplane("YZ")
-        .workplane(offset=WALL_CX - WALL_THK)
-        .center(0, CORNER_MOUNT_AXIS_Z)
+        cq.Workplane("XZ")
+        .workplane(offset=-y_start)
+        .center(WALL_CX, CORNER_MOUNT_AXIS_Z)
         .circle(NEMA_BOSS_HOLE_DIA / 2)
         .extrude(cut_len)
     )
     wall = wall.cut(boss)
 
-    for dy in (-_NEMA_HALF, _NEMA_HALF):
+    for dx in (-_NEMA_HALF, _NEMA_HALF):
         for dz in (-_NEMA_HALF, _NEMA_HALF):
             hole = (
-                cq.Workplane("YZ")
-                .workplane(offset=WALL_CX - WALL_THK)
-                .center(dy, CORNER_MOUNT_AXIS_Z + dz)
+                cq.Workplane("XZ")
+                .workplane(offset=-y_start)
+                .center(WALL_CX + dx, CORNER_MOUNT_AXIS_Z + dz)
                 .circle(NEMA_SCREW_HOLE_DIA / 2)
                 .extrude(cut_len)
             )
@@ -226,18 +266,17 @@ def _wall_with_motor_pattern() -> cq.Workplane:
 
 
 def _gussets() -> cq.Workplane:
-    """Two triangular gussets bracing the wall's back face (X=WALL_X0) to
-    the base plate, flanking the NEMA17 bolt pattern in Y."""
+    """Two triangular gussets bracing the wall's back face (Y=WALL_BACK_Y)
+    to the base plate, flanking the NEMA17 bolt pattern in X, on the -Y
+    (motor-body) side."""
     gussets = None
-    for sy in (GUSSET_Y, -GUSSET_Y):
+    for gx in (WALL_CX - GUSSET_X_OFFSET, WALL_CX + GUSSET_X_OFFSET):
         tri = (
-            cq.Workplane("XZ")
-            .polyline([(WALL_X0, 0), (WALL_X0 - GUSSET_RUN, 0), (WALL_X0, GUSSET_HEIGHT)])
+            cq.Workplane("YZ")
+            .polyline([(WALL_BACK_Y, 0), (WALL_BACK_Y - GUSSET_RUN, 0), (WALL_BACK_Y, GUSSET_HEIGHT)])
             .close()
             .extrude(GUSSET_THK)
-            # "XZ" workplane normal is -Y, so a positive extrude runs in -Y;
-            # translate so the gusset is centered on sy.
-            .translate((0, sy + GUSSET_THK / 2, 0))
+            .translate((gx - GUSSET_THK / 2, 0, 0))
         )
         gussets = tri if gussets is None else gussets.union(tri)
     return gussets
@@ -246,7 +285,7 @@ def _gussets() -> cq.Workplane:
 def _pulley_ears() -> cq.Workplane:
     """Two ears (corner_guide axle-hole pattern) straddling Y=0 near the
     plate's +X end. Built in local ear space (Z in [0, EAR_H]); caller
-    translates up by PLATE_T."""
+    translates up by PLATE_T. UNCHANGED from the first draft."""
     ears = None
     hole_offset_z = EAR_H / 2 - EAR_TOP_MARGIN   # offset from box Z-center
     for sy in EAR_SY:
@@ -284,17 +323,29 @@ def make() -> cq.Workplane:
 
 
 if __name__ == "__main__":
+    import math
+
     from ..lib import export
 
     solid = make()
     bb = solid.val().BoundingBox()
     volume_mm3 = solid.val().Volume()
     mass_g = volume_mm3 / 1000.0 * PETG_DENSITY_G_CM3
+    separation_x = abs(EAR_CX - WALL_CX)
+    fleet_angle_deg = math.degrees(math.atan((SPOOL_LEN / 2) / separation_x))
+
     print(f"corner_mount bbox: {bb.xlen:.2f} x {bb.ylen:.2f} x {bb.zlen:.2f} mm")
     print(f"corner_mount volume: {volume_mm3 / 1000.0:.2f} cm^3, "
           f"mass @ PETG {PETG_DENSITY_G_CM3} g/cm^3: {mass_g:.2f} g "
           f"(budget {MASS_BUDGET_G} g)")
-    print(f"SPOOL_DRUM_MID_X={SPOOL_DRUM_MID_X:.2f}  EAR_CX={EAR_CX:.2f}  "
-          f"separation={((EAR_CX - SPOOL_DRUM_MID_X) ** 2) ** 0.5:.2f} mm "
+    print(f"boss/shaft X = {WALL_CX:.2f}  EAR_CX = {EAR_CX:.2f}  "
+          f"separation (X) = {separation_x:.2f} mm "
           f"(min {CORNER_MOUNT_FLEET_MIN_SEPARATION} mm)")
+    print(f"SPOOL_DRUM_MID_Y = {SPOOL_DRUM_MID_Y:.4f} mm (target 0, tol "
+          f"+-{CORNER_MOUNT_FLEET_COPLANAR_TOL} mm)")
+    print(f"max fleet angle = atan((SPOOL_LEN/2)/separation) = "
+          f"{fleet_angle_deg:.2f} deg")
+    print(f"motor body overhang past plate -Y edge = "
+          f"{MOTOR_BODY_OVERHANG_Y:.2f} mm (NEMA17_FACE={NEMA17_FACE} mm "
+          f"body depth, accepted per lead ruling)")
     print(export(solid, "corner_mount"))

@@ -14,7 +14,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | NEMA 17 stepper ×4 (+1 spare) | SIMAX3D NEMA 17 **42-38** size, ~36 N·cm, 1.5 A, 5 mm shaft (**5-pack**) — select the **42-38** option | https://www.amazon.com/s?k=SIMAX3D+Nema+17+42-38+5pcs | 33 |
-| ☐ | Cable/line | 9KM DWLIFE X8 braided Dyneema, **50 lb**, 150 m (select 50 lb, not 8 lb) | https://www.amazon.com/9KM-DWLIFE-Anti-Bite-Freshwater-Saltwater/dp/B0DLNQFQKK | 8 |
+| ✅ | Cable/line | 9KM DWLIFE X8 braided Dyneema, **50 lb**, 150 m (select 50 lb, not 8 lb) | https://www.amazon.com/9KM-DWLIFE-Anti-Bite-Freshwater-Saltwater/dp/B0DLNQFQKK | 8 |
 
 *Note: at 0.8–1.2 mm, UHMWPE line naturally rates ~200–350 lb (not 100) — that's a bonus: more abrasion life, still low-stretch.*
 
@@ -23,8 +23,8 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | Arduino Uno **+ project stock** | **ELEGOO UNO R3 Super Starter Kit** — genuine-quality Uno clone + 200+ components (breadboard, jumpers, sensors, LCD, power module, resistors, LEDs). The Uno runs the winches; the rest is your parts bin for future projects | https://www.amazon.com/ELEGOO-Project-Tutorial-Controller-Projects/dp/B01D8KOZF4 | 45 |
-| ☐ | CNC shield + drivers | **ACEIRMC CNC Shield V3 + 4× A4988** (heatsinks incl.) — plugs onto the Uno above | https://www.amazon.com/s?k=ACEIRMC+CNC+shield+V3+A4988 | 10 |
-| ☐ | Home switches | HiLetgo KW12-3 micro limit switch, 1NO 1NC roller lever (10-pack) — wire Common + NC for fail-safe homing | https://www.amazon.com/HiLetgo-KW12-3-Roller-Switch-Normally/dp/B07X142VGC | 6 |
+| ✅ | CNC shield + drivers | **ACEIRMC CNC Shield V3 + 4× A4988** (heatsinks incl.) — plugs onto the Uno above | https://www.amazon.com/s?k=ACEIRMC+CNC+shield+V3+A4988 | 10 |
+| ✅ | Home switches | HiLetgo KW12-3 micro limit switch, 1NO 1NC roller lever (10-pack) — wire Common + NC for fail-safe homing | https://www.amazon.com/HiLetgo-KW12-3-Roller-Switch-Normally/dp/B07X142VGC | 6 |
 
 *Why this replaced the sold-out DAOKI kit: you plan an array of projects, so the extra ~$28 buys a whole component library instead of a bare no-name Uno clone. **Budget alternative** if you'd rather match the old price: Sevenmore CNC Shield + UNO R3 + 4× DRV8825 kit (~$23–27, the closest 1:1 DAOKI substitute): https://www.amazon.com/Arduino-Printer-Sevenmore-Shield-DRV8825/dp/B07PXWBQTQ*
 
@@ -36,7 +36,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 |---|------|---------|------|----|
 | ☐ | 12 V power supply | ALITOVE 12V **6A** 72W barrel adapter (4.6★, extra headroom) — *or Chanzon 12V 5A if you want a UL-listed unit (~$20)* | https://www.amazon.com/s?k=ALITOVE+12V+6A+72W+power+supply | 16 |
 | ⚙️ | Barrel → screw-terminal | **Cut the barrel plug off the ALITOVE and land the bare leads in the shield's screw terminal (free).** Prefer not to cut? Female barrel-jack→screw-terminal adapter, ~$7/pack: https://www.amazon.com/s?k=female+DC+barrel+jack+screw+terminal+adapter | — | 0 |
-| ☐ | Inline fuse + fuses | SIM&NAT inline holder + 50 blade fuses (4.7★) — install a **7.5 A** fuse (matches the 6 A supply) | https://www.amazon.com/SIM-NAT-Automotive-Standard-Replacement/dp/B07FQCBSJ5 | 12 |
+| ✅ | Inline fuse + fuses | SIM&NAT inline holder + 50 blade fuses (4.7★) — install a **7.5 A** fuse (matches the 6 A supply) | https://www.amazon.com/SIM-NAT-Automotive-Standard-Replacement/dp/B07FQCBSJ5 | 12 |
 | ⚙️ | Kill switch | **Your switched power strip** — plug the 12 V PSU into it | — | 0 |
 
 *Wiring order: PSU → barrel adapter → **fuse on the + lead** → CNC-shield power terminal. (You can also just cut the PSU barrel off and skip the adapter → save $8.)*
@@ -45,8 +45,8 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | Overhead webcam | innomaker 1080P **130° wide** USB UVC (OpenCV plug-and-play). Bare 32×32 board — print `cad/camera_mount_overhead` (no $14 case needed) + one-time lens-undistort calibration | https://www.amazon.com/innomaker-Computer-Raspberry-Support-Windows/dp/B0CNCSFQC1 | 19 |
-| ☐ | Gripper servo | **STANDARD 180° MG996R, 4-pack** (best value, 3 spares — servo is the most wear-prone part). ⚠️ NOT "360°"/continuous. On the **wireless effector**, powered from its onboard battery via a buck | https://www.amazon.com/s?k=Deegoo-FPV+MG996R+4+pack | 18 |
+| ✅ | Overhead webcam | innomaker 1080P **130° wide** USB UVC (OpenCV plug-and-play). Bare 32×32 board — print `cad/camera_mount_overhead` (no $14 case needed) + one-time lens-undistort calibration | https://www.amazon.com/innomaker-Computer-Raspberry-Support-Windows/dp/B0CNCSFQC1 | 19 |
+| ✅ | Gripper servo | **STANDARD 180° MG996R, 4-pack** (best value, 3 spares — servo is the most wear-prone part). ⚠️ NOT "360°"/continuous. On the **wireless effector**, powered from its onboard battery via a buck | https://www.amazon.com/s?k=Deegoo-FPV+MG996R+4+pack | 18 |
 
 ### Wireless effector (the claw is a self-contained WiFi node — no wire to it)
 The gripper servo lives on the effector with an ESP32 + battery, commanded over
@@ -80,7 +80,7 @@ WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | Corner mounting screws ⚠️ | **#10 × 3" wood screws** (12+, with washers) for the printed `corner_mount` plates — 3 per corner, driven into a ceiling JOIST or high wall STUD, pilot-drilled. (Replaced the hanging eye hooks, D13: a hook is a pivot — the anchor point wanders and kills repeatability; a screwed-down plate fixes it.) Hardware store or: | https://www.amazon.com/s?k=%2310+x+3+inch+exterior+wood+screws | 8 |
-| ☐ | M3 screw/nut kit | MroMax 640-pc M3 button-head, 304 stainless (6–30 mm + nuts + washers) — also provides the NEMA 17 mount screws | https://www.amazon.com/MroMax-Stainless-Button-Socket-Screws/dp/B0BZP89FQT | 10 |
+| ✅ | M3 screw/nut kit | MroMax 640-pc M3 button-head, 304 stainless (6–30 mm + nuts + washers) — also provides the NEMA 17 mount screws | https://www.amazon.com/MroMax-Stainless-Button-Socket-Screws/dp/B0BZP89FQT | 10 |
 
 ## Wiring
 
@@ -120,7 +120,7 @@ hadn't line-itemed. Nothing changed in scope; the parts just cost what they cost
 
 | Upgrade | Product | Link | +$ |
 |---------|---------|------|----|
-| Heat-set inserts (best reliability upgrade) | INCLY 130-pc M3 inserts + iron tip | https://www.amazon.com/INCLY-Threaded-Insert-Set/dp/B0GXV9XTXC | 12 |
+| ✅ Heat-set inserts (DELIVERED Aug 7 — 580-pc kit) | INCLY 130-pc M3 inserts + iron tip | https://www.amazon.com/INCLY-Threaded-Insert-Set/dp/B0GXV9XTXC | 12 |
 | DRV8825 drivers (full 1.5 A, cooler, +1 spare) | HiLetgo DRV8825 5-pack — drop-in for the ACEIRMC A4988s | https://www.amazon.com/dp/B01NCE3ZW1 | 12 |
 | Autofocus webcam | Logitech C920x | *search "Logitech C920x"* | +30 |
 | Higher-torque servo | ANNIMOS DS3218 20 kg | https://www.amazon.com/ANNIMOS-Digital-Waterproof-DS3218MG-Control/dp/B076CNKQX4 | +5 |

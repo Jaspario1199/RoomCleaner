@@ -54,10 +54,10 @@ WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | Effector brain | **ELEGOO ESP32 dev board 3-pack** (EL-SM-012, ESP-WROOM-32, USB-C) — claw + 2 spares; 4.7★ at high volume beat the cheaper-per-board 6-pack | https://www.amazon.com/s?k=ELEGOO+ESP32+3PCS+ESP-WROOM-32+USB-C | 16 |
+| ✅ | Effector brain | **ELEGOO ESP32 dev board 3-pack** (EL-SM-012, ESP-WROOM-32, USB-C) — claw + 2 spares; 4.7★ at high volume beat the cheaper-per-board 6-pack | https://www.amazon.com/s?k=ELEGOO+ESP32+3PCS+ESP-WROOM-32+USB-C | 16 |
 | ☐ | Battery | OVONIC 2S 7.4V 1000 mAh LiPo, JST (2-pack) | https://www.amazon.com/OVONIC-1000mAh-Battery-Truck-Truggy/dp/B07CVBJ3SL | 16 |
-| ☐ | Servo 5–6V buck | EBOOT MP1584EN buck (6-pack) — set output to 6.0 V for the servo | https://www.amazon.com/MP1584EN-DC-DC-Converter-Adjustable-Module/dp/B01MQGMOKI | 9 |
-| ☐ | LiPo charger | **B3 Pro-style 2S/3S BALANCE charger** (wall plug, charges via the JST-XH balance plug, per-cell LEDs). ⚠️ NOT a plain 8.4 V board charger — those skip cell balancing, which is how 2S packs drift and puff | https://www.amazon.com/s?k=B3+Pro+2S+3S+lipo+balance+charger | 11 |
+| ✅ | Servo 5–6V buck | EBOOT MP1584EN buck (6-pack) — set output to 6.0 V for the servo | https://www.amazon.com/MP1584EN-DC-DC-Converter-Adjustable-Module/dp/B01MQGMOKI | 9 |
+| ☐ | LiPo charger | **B3 Pro-style 2S/3S BALANCE charger** (wall plug, charges via the JST-XH balance plug, per-cell LEDs) — still needed as the routine charger. *(An ACEIRMC 2S USB boost board was also purchased: verify it's the **8.4 V 2S** variant on arrival (return 12.6/16.8 V), then shelve it for the Phase-4 charging dock — it does NOT balance, so it must not be the everyday charger.)* | https://www.amazon.com/s?k=B3+Pro+2S+3S+lipo+balance+charger | 11 |
 | ☐ | Power switch | Small SPST slide/rocker switch (multipack) — flip the effector on per session | https://www.amazon.com/s?k=mini+SPST+slide+switch | 5 |
 
 > **Power strategy:** start with the switch above (on for a session, off when

@@ -34,7 +34,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | 12 V power supply | ALITOVE 12V **6A** 72W barrel adapter (4.6★, extra headroom) — *or Chanzon 12V 5A if you want a UL-listed unit (~$20)* | https://www.amazon.com/s?k=ALITOVE+12V+6A+72W+power+supply | 16 |
+| ✅ | 12 V power supply | ALITOVE 12V **6A** 72W barrel adapter (4.6★, extra headroom) — *or Chanzon 12V 5A if you want a UL-listed unit (~$20)* | https://www.amazon.com/s?k=ALITOVE+12V+6A+72W+power+supply | 16 |
 | ⚙️ | Barrel → screw-terminal | **Cut the barrel plug off the ALITOVE and land the bare leads in the shield's screw terminal (free).** Prefer not to cut? Female barrel-jack→screw-terminal adapter, ~$7/pack: https://www.amazon.com/s?k=female+DC+barrel+jack+screw+terminal+adapter | — | 0 |
 | ✅ | Inline fuse + fuses | SIM&NAT inline holder + 50 blade fuses (4.7★) — install a **7.5 A** fuse (matches the 6 A supply) | https://www.amazon.com/SIM-NAT-Automotive-Standard-Replacement/dp/B07FQCBSJ5 | 12 |
 | ⚙️ | Kill switch | **Your switched power strip** — plug the 12 V PSU into it | — | 0 |

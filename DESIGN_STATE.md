@@ -92,6 +92,14 @@ cad/README.md); at 2 mm, worst-case fleet ≈9° < 15° threshold.
 Watch item: back-margin behind wall is 10.5 mm vs GUSSET_RUN=10 (0.5 mm
 slack) — re-check if gussets are ever enlarged.
 
+## Pending physical measurements (user's calipers unavailable — blocking two prints)
+- MG996R round plastic disc horn: outer diameter, thickness, opposite
+  screw-hole spacing → sets HORN_POCKET_DIA (+depth) → tendon_drum print.
+- Motor shaft across-flat: D-flat CONFIRMED visually on the 17HS4401s;
+  MOTOR_SHAFT_FLAT=0.5 assumed (standard). Caliper check ≈4.5 mm across the
+  flat when available; winch_spool cleared for a single fit-test print
+  meanwhile.
+
 ## Current gate
 Gate 6 complete for the claw; corner_mount verified (Gate 5) →
 release-candidate items remaining: SOLIDWORKS review (claw_assembly.step),

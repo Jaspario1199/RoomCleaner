@@ -13,7 +13,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | NEMA 17 stepper ×4 (+1 spare) | SIMAX3D NEMA 17 **42-38** size, ~36 N·cm, 1.5 A, 5 mm shaft (**5-pack**) — select the **42-38** option | https://www.amazon.com/s?k=SIMAX3D+Nema+17+42-38+5pcs | 33 |
+| ✅ | NEMA 17 stepper ×4 (+1 spare) | SIMAX3D NEMA 17 **42-38** size, ~36 N·cm, 1.5 A, 5 mm shaft (**5-pack**) — select the **42-38** option | https://www.amazon.com/s?k=SIMAX3D+Nema+17+42-38+5pcs | 33 |
 | ✅ | Cable/line | 9KM DWLIFE X8 braided Dyneema, **50 lb**, 150 m (select 50 lb, not 8 lb) | https://www.amazon.com/9KM-DWLIFE-Anti-Bite-Freshwater-Saltwater/dp/B0DLNQFQKK | 8 |
 
 *Note: at 0.8–1.2 mm, UHMWPE line naturally rates ~200–350 lb (not 100) — that's a bonus: more abrasion life, still low-stretch.*
@@ -22,7 +22,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
-| ☐ | Arduino Uno **+ project stock** | **ELEGOO UNO R3 Super Starter Kit** — genuine-quality Uno clone + 200+ components (breadboard, jumpers, sensors, LCD, power module, resistors, LEDs). The Uno runs the winches; the rest is your parts bin for future projects | https://www.amazon.com/ELEGOO-Project-Tutorial-Controller-Projects/dp/B01D8KOZF4 | 45 |
+| ✅ | Arduino Uno **+ project stock** | **ELEGOO UNO R3 Super Starter Kit** — genuine-quality Uno clone + 200+ components (breadboard, jumpers, sensors, LCD, power module, resistors, LEDs). The Uno runs the winches; the rest is your parts bin for future projects | https://www.amazon.com/ELEGOO-Project-Tutorial-Controller-Projects/dp/B01D8KOZF4 | 45 |
 | ✅ | CNC shield + drivers | **ACEIRMC CNC Shield V3 + 4× A4988** (heatsinks incl.) — plugs onto the Uno above | https://www.amazon.com/s?k=ACEIRMC+CNC+shield+V3+A4988 | 10 |
 | ✅ | Home switches | HiLetgo KW12-3 micro limit switch, 1NO 1NC roller lever (10-pack) — wire Common + NC for fail-safe homing | https://www.amazon.com/HiLetgo-KW12-3-Roller-Switch-Normally/dp/B07X142VGC | 6 |
 

@@ -30,12 +30,15 @@ the *same* `Controller` + `CableRobot` that drive the (eventual) hardware:
 - the nearest-first pickup order,
 - per-target **winch cable lengths** (A/B/C/D, the 4 ceiling motors) and the
   max cable tension at the grab point, with a reachable / not-reachable flag,
-- a live **3-D room view** (`/api/room.png`): winches, cables, claw at its rest
-  pose, detected laundry, hamper, and the fan keep-out volume.
+- a **3-D room view** (`/api/room.png`): winches, cables, claw, detected
+  laundry, hamper, and the fan keep-out volume, with a **Live view / Animate
+  plan** toggle — "Animate plan" renders a GIF of the claw flying the whole
+  route (rest → each item → hamper → park).
 
-Endpoints: `/api/plan` (JSON plan), `/api/room.png` (rendered 3-D view). The
-plan is recomputed from the current detections each request, so it tracks the
-live feed. Try it now with `--demo` (no camera needed).
+Endpoints: `/api/plan` (JSON plan), `/api/room.png` (static 3-D view),
+`/api/room.gif` (animated run, ~10s to render, cached by detection signature).
+The plan is recomputed from the current detections each request, so it tracks
+the live feed. Try it now with `--demo` (no camera needed).
 
 ## How it works
 
@@ -65,8 +68,8 @@ Endpoints: `/` (dashboard), `/video_feed` (annotated MJPEG),
 
 Done: live feed + detection overlays, detected-items panel, sensitivity slider,
 and the **Robot & plan** panel (pickup plan + per-target winch cable lengths +
-3-D room view). Still to come as the hardware loop lands:
+3-D room view). Also done: **animate the planned path** in the 3-D view (Animate plan toggle).
+Still to come as the hardware loop lands:
 - live robot **status**: real effector position, payload, hamper count,
 - **run / pause / e-stop** controls that drive the winches,
-- animate the planned path in the 3-D view (not just the rest pose),
 - overlay the reachable-workspace footprint on the room floor.

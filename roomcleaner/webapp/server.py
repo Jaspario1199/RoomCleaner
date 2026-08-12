@@ -63,6 +63,7 @@ class DetectorApp:
         self._dets_lock = threading.Lock()
         self._render_lock = threading.Lock()  # matplotlib (pyplot) is not thread-safe
         self._rest = None  # cached parking pose (depends only on config)
+        self._gif_cache = {}  # cached run animation, keyed by detection signature
         self.stats = {
             "resolution": None,
             "cam_fps": 0.0,
@@ -385,6 +386,62 @@ class DetectorApp:
             plt.close(fig)
         return buf.getvalue()
 
+    def render_run_gif(self):
+        """Render an animated GIF of the claw flying the whole planned route.
+
+        Reuses the simulator's animate_run (same code that makes run.gif). Cached
+        by a signature of the current detections so repeat requests are instant.
+        Returns None when there is nothing reachable to animate.
+        """
+        import hashlib
+        import os
+        import tempfile
+        import matplotlib
+        matplotlib.use("Agg", force=True)
+        from roomcleaner.kinematics import CableRobot
+        from roomcleaner.control.state_machine import Controller
+        from roomcleaner.perception.live import LiveDetector
+        from roomcleaner import simulator
+
+        items = self._detections_as_objects()
+        if not items:
+            return None
+        sig = hashlib.md5(
+            repr([(round(float(d.position[0]), 3), round(float(d.position[1]), 3), d.label)
+                  for d in items]).encode()
+        ).hexdigest()
+        if self._gif_cache.get("sig") == sig and self._gif_cache.get("bytes"):
+            return self._gif_cache["bytes"]
+
+        robot = CableRobot(self.cfg)
+        holder = LiveDetector(None)
+        holder._items = list(items)
+        hamper_xy = (self.cfg.room_width - 0.5, 0.5)
+        rest = self.rest_pose(robot, hamper_xy)
+        ctrl = Controller(robot, holder, hamper_xy=hamper_xy)
+        paths = ctrl.run()  # empties holder as it "picks up" each item
+        if not paths:
+            return None
+        holder._items = list(items)  # restore so laundry shows during the flight
+
+        with self._render_lock:  # pyplot + PillowWriter -> one render at a time
+            fd, tmp = tempfile.mkstemp(suffix=".gif")
+            os.close(fd)
+            try:
+                simulator.animate_run(
+                    robot, paths, holder, hamper_xy, out_path=tmp,
+                    rest_xyz=rest, max_frames=45, fps=12,
+                )
+                with open(tmp, "rb") as fh:
+                    data = fh.read()
+            finally:
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+        self._gif_cache = {"sig": sig, "bytes": data}
+        return data
+
 
 def create_app(state: DetectorApp) -> Flask:
     app = Flask(__name__)
@@ -426,6 +483,13 @@ def create_app(state: DetectorApp) -> Flask:
     @app.route("/api/room.png")
     def api_room_png():
         return Response(state.render_room_png(), mimetype="image/png")
+
+    @app.route("/api/room.gif")
+    def api_room_gif():
+        data = state.render_run_gif()
+        if data is None:
+            return Response(status=204)
+        return Response(data, mimetype="image/gif")
 
     return app
 
@@ -506,6 +570,14 @@ INDEX_HTML = r"""<!doctype html>
   .ok{color:var(--accent)} .bad{color:#f85149}
   .planview img{width:100%;border:1px solid var(--border);border-radius:8px;background:#fff}
   .viewcap{color:var(--muted);font-size:11px;margin-top:6px;text-align:center}
+  .viewbox{position:relative}
+  .rendering{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(13,17,23,.72);color:var(--text);font-size:13px;border-radius:8px}
+  .viewbtns{display:flex;gap:8px;margin-top:8px}
+  .vb{flex:1;background:var(--panel2);color:var(--text);border:1px solid var(--border);
+    border-radius:7px;padding:7px 10px;font-size:12.5px;cursor:pointer}
+  .vb:hover{border-color:var(--accent)}
+  .vb.active{border-color:var(--accent);color:var(--accent)}
 </style>
 </head>
 <body>
@@ -550,7 +622,14 @@ INDEX_HTML = r"""<!doctype html>
         <div id="plansteps"></div>
       </div>
       <div class="planview">
-        <img id="roomimg" src="/api/room.png" alt="3D room view">
+        <div class="viewbox">
+          <img id="roomimg" src="/api/room.png" alt="3D room view">
+          <div id="rendering" class="rendering" hidden>rendering animation… (~10s)</div>
+        </div>
+        <div class="viewbtns">
+          <button id="btnLive" class="vb active">● Live view</button>
+          <button id="btnAnim" class="vb">▶ Animate plan</button>
+        </div>
         <div class="viewcap">3-D room · winches ■ · claw ● · laundry ★ · hamper ✚ · fan keep-out (red)</div>
       </div>
     </div>
@@ -638,9 +717,37 @@ async function planPoll(){
 setInterval(planPoll, 2000);
 planPoll();
 
+let roomMode = 'live';
+const roomImg = el('roomimg');
+function setRoomMode(m){
+  roomMode = m;
+  el('btnLive').classList.toggle('active', m === 'live');
+  el('btnAnim').classList.toggle('active', m === 'anim');
+}
+el('btnLive').addEventListener('click', () => {
+  setRoomMode('live');
+  el('rendering').hidden = true;
+  roomImg.src = '/api/room.png?t=' + Date.now();
+});
+el('btnAnim').addEventListener('click', async () => {
+  const r = el('rendering');
+  try{
+    const p = await (await fetch('/api/plan')).json();
+    if(!p.planned){
+      r.textContent = 'no reachable items to animate'; r.hidden = false;
+      setTimeout(() => { r.hidden = true; r.textContent = 'rendering animation… (~10s)'; }, 1800);
+      return;
+    }
+  }catch(e){}
+  setRoomMode('anim');
+  r.textContent = 'rendering animation… (~10s)'; r.hidden = false;
+  const img = new Image();
+  img.onload = () => { roomImg.src = img.src; r.hidden = true; };
+  img.onerror = () => { r.hidden = true; setRoomMode('live'); };
+  img.src = '/api/room.gif?t=' + Date.now();
+});
 setInterval(() => {
-  const img = el('roomimg');
-  if(img){ img.src = '/api/room.png?t=' + Date.now(); }
+  if(roomMode === 'live'){ roomImg.src = '/api/room.png?t=' + Date.now(); }
 }, 4000);
 </script>
 </body>

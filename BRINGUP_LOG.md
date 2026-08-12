@@ -116,3 +116,49 @@ here.
   `/snapshot.jpg` + `/api/state`). Test suite still green. New files only
   (`roomcleaner/webapp/`, `scripts/live_app.py`, `requirements-app.txt`,
   `docs/APP.md`); nothing in cad/firmware/contracts touched.
+
+## Session summary & how to continue (for the next / desktop session)
+
+**Shipped this session (all on `claude/magical-cerf-gqr7j7`):**
+- Software+camera milestone verified: `quickstart.py --vision` (fixed a Windows
+  UTF-8 crash), `demo_sim`, detector smoke test (CLIP azureedge download works
+  on a home network — the cloud blocker is gone), `detect_and_plan`.
+- Live camera confirmed on the **innomaker = index 1** (integrated webcam = 0).
+- **Live web app** (`docs/APP.md`, `roomcleaner/webapp/`): browser console with
+  live feed + detection overlays, detected-items panel, sensitivity slider, a
+  **Robot & plan** panel (nearest-first pickup plan + per-target 4-cable winch
+  lengths + max tension + reachability, using the real `Controller`/`CableRobot`),
+  a **3-D room view**, and an **Animate plan** toggle (GIF of the claw flying the
+  route). `--demo` mode runs the whole console with simulated laundry, no camera.
+- `scripts/camera_view.py`: `--list` (find the camera index), `--snapshot`, or
+  live preview.
+
+**Run it:**
+```
+venv\Scripts\python.exe -m scripts.live_app --camera 1   # real camera → http://localhost:8000
+venv\Scripts\python.exe -m scripts.live_app --demo       # no camera, simulated laundry
+venv\Scripts\python.exe -m scripts.camera_view --list    # which index is the camera
+```
+(Fresh clone: `python quickstart.py --vision` first. Only one program can hold
+the camera at a time.)
+
+**What is real vs. placeholder (important):** the app is a real kinematics +
+statics + planner visualized in 3-D — cable lengths, load feasibility, fan
+keep-out, and pickup order are correct math. It is NOT a full physics/dynamics
+sim, does NOT model the whole BOM (motors/drivers/servo are abstracted to a 40 N
+force limit; the drivetrain math lives in `roomcleaner/hardware/`), and runs on
+**placeholder room dimensions** (`config.py` / `cad/params.py`, marked EDIT ME)
+with simulated laundry in `--demo`. Camera detections are real; their floor
+coordinates are not calibrated yet.
+
+**Open / next (highest-leverage first):**
+1. Measure the room → set `ROOM_WIDTH/DEPTH/HEIGHT` + fan location in
+   `config.py` so coordinates are real; then calibrate the overhead camera
+   mapping (homography).
+2. Live-camera milestone tail (5b/5c): plug the innomaker in, hold a shirt in
+   view, confirm live detections + `detect_and_plan --webcam 1`.
+3. CAD casing gaps for parts being mounted (see DESIGN_STATE.md "Local bring-up
+   findings"): **no printed enclosure for the base-station controller**
+   (Arduino/CNC-shield + drivers) and **no limit-switch (KW12-3) mount**.
+4. App extensions (camera-free): overlay the reachable workspace on the floor;
+   scaffold robot status + run/pause controls.

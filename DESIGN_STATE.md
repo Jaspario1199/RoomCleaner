@@ -108,3 +108,22 @@ physical validation plan, winch-corner assembly preview incl. corner_mount.
 ## Last verified state
 130/130 pytest; 12 parts exported and verified; claw_assembly.step
 round-trips exactly; corner_mount re-verified at commit a9c1a51.
+
+## Local bring-up findings (software + camera session, 2026-08-12)
+Separate from the CAD workflow — no `cad/` files changed. The software + live-
+camera milestone was brought up on-machine and a browser console app was built
+(see `BRINGUP_LOG.md` and `docs/APP.md`; live camera = innomaker index 1).
+
+Two CAD **casing gaps** surfaced while auditing the BOM against the exported
+parts — components in `docs/BOM_ORDER.md` that are mounted but have no printed
+enclosure/bracket (candidates for a Gate-4 pass if the user wants them):
+1. **Base-station controller enclosure** — Arduino Uno + CNC shield + 4×
+   A4988/DRV8825 + fuse/wiring. `electronics_cover` covers ONLY the effector's
+   servo/ESP32/LiPo; there is no case for the ground controller.
+2. **Limit-switch (KW12-3) mount** — `corner_mount` unifies the NEMA-17 bracket
+   + pulley redirect only (no switch pocket); no dedicated switch bracket
+   exists. Homing (`docs/FIRMWARE.md` "S switch test") needs these mounted.
+
+Everything else being mounted (4× motors → corner_mount, spools, overhead cam →
+camera_mount_overhead, servo, effector electronics, the whole claw) already has
+a printed part with a committed STEP.

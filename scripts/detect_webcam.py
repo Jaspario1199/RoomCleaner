@@ -21,6 +21,7 @@ straight-down ceiling camera. For a tilted camera, switch to a HomographyMapper
 
 from __future__ import annotations
 
+import argparse
 import time
 
 from roomcleaner.config import DEFAULT_CONFIG
@@ -30,8 +31,15 @@ from roomcleaner.perception.vision_detector import YoloWorldDetector
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--camera", type=int, default=0,
+                    help="camera index (0 = default/built-in; a USB camera on a "
+                         "laptop is usually 1 — try 1, 2, ... if you see the "
+                         "wrong feed)")
+    args = ap.parse_args()
+
     cfg = DEFAULT_CONFIG
-    cam = Webcam(index=0).open()
+    cam = Webcam(index=args.camera).open()
     w, h = cam.resolution()
     print(f"camera resolution: {w}x{h}")
 

@@ -134,8 +134,9 @@ DRV8825).
      1.5 A**.
 2. **Check each motor's direction** — send a small `M` and confirm the cable reels
    the way you expect; flip `HOME_DIR[i]` / the dir wiring if not.
-3. **Test each limit switch** — `?` / a serial monitor; confirm it reads triggered
-   only when pressed.
+3. **Test each limit switch** — send `S` in the serial monitor: expect `SW 0 0 0 0`
+   at rest, and the right digit flipping to 1 while you hold each lever. A stuck
+   `1` with nothing pressed = broken/unplugged wire (fail-safe doing its job).
 4. **Home with the effector low and clear**, watching each winch; keep a hand on
    the switched power strip.
 5. Only then run a full plan — and never with anyone under the workspace.

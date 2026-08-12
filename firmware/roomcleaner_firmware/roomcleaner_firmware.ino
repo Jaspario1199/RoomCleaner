@@ -8,6 +8,7 @@
  *   M a b c d    -> move winches to absolute step counts a b c d, replies "DONE"
  *   G <deg>      -> set gripper servo angle, replies "OK"
  *   ?            -> replies "POS a b c d"
+ *   S            -> replies "SW x y z a" (1 = switch pressed / wire fault)
  *
  * Needs the AccelStepper library (Library Manager -> "AccelStepper").
  *
@@ -57,8 +58,12 @@ void setup() {
   Serial.println("READY");
 }
 
-// A switch reads LOW when pressed (NC to GND + INPUT_PULLUP).
-bool pressed(int i) { return digitalRead(LIMIT_PINS[i]) == LOW; }
+// Switches are wired Common + NC to GND with INPUT_PULLUP (fail-safe):
+// at rest the NC contact holds the pin LOW; pressing the lever OPENS the
+// circuit and the pullup takes the pin HIGH. A broken/unplugged wire also
+// reads HIGH, i.e. "pressed" -- the axis refuses to move instead of
+// grinding past a dead switch.
+bool pressed(int i) { return digitalRead(LIMIT_PINS[i]) == HIGH; }
 
 void homeAll() {
   // Home one axis at a time -- safer for cables (avoids tangling).
@@ -106,6 +111,13 @@ void loop() {
       Serial.println("OK");
     } else {
       Serial.println("ERR bad G");
+    }
+  } else if (cmd == 'S') {
+    // Switch states for bench testing: 1 = pressed (or wire fault), 0 = at rest.
+    Serial.print("SW ");
+    for (int i = 0; i < 4; i++) {
+      Serial.print(pressed(i) ? 1 : 0);
+      Serial.print(i < 3 ? ' ' : '\n');
     }
   } else if (cmd == '?') {
     Serial.print("POS ");

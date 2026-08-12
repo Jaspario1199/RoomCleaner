@@ -105,3 +105,14 @@ here.
   returned a list. `detect_and_plan --image` on a sample photo produced 5
   detections → 3-pickup plan; annotated outputs written. Software milestone
   verified. **Remaining: live camera (5b/5c), handed to Jasper.**
+- **2026-08-12** — Live camera confirmed on the **innomaker (index 1**,
+  `Innomaker-U20CAM-1080p-S1`, 1280×720): probed indices, ran the real detector
+  loop live on it (clean), and grabbed snapshots. (Integrated webcam = index 0.)
+- **2026-08-12** — Built the **live web app** (`docs/APP.md`): a browser
+  dashboard (Flask) showing the annotated camera feed + detected-items panel +
+  live sensitivity slider, with a reserved panel to grow into the full
+  RoomCleaner console. `python -m scripts.live_app --camera 1` → http://localhost:8000.
+  Verified end-to-end (camera capture thread, inference thread @~2 fps, MJPEG +
+  `/snapshot.jpg` + `/api/state`). Test suite still green. New files only
+  (`roomcleaner/webapp/`, `scripts/live_app.py`, `requirements-app.txt`,
+  `docs/APP.md`); nothing in cad/firmware/contracts touched.

@@ -65,6 +65,7 @@ class DetectorApp:
             "infer_fps": 0.0,
             "model_ready": False,
             "frames": 0,
+            "reopens": 0,
         }
         self._running = False
         self._cap = None
@@ -77,6 +78,10 @@ class DetectorApp:
         cap = cv2.VideoCapture(self.camera_index, be)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+        # NOTE: deliberately DON'T force CAP_PROP_FPS / CAP_PROP_AUTO_EXPOSURE
+        # here — on this camera's DirectShow driver those underexposed the feed
+        # to black. Leaving the driver's own auto-exposure alone keeps the image
+        # visible; the self-heal reopen (see _capture_loop) handles a stuck stream.
         if not cap.isOpened():
             raise RuntimeError(
                 f"Could not open camera index {self.camera_index}. "
@@ -104,22 +109,72 @@ class DetectorApp:
             self._cap.release()
 
     # -- worker loops --------------------------------------------------------
+    def _reopen_camera(self):
+        """Release and reopen the camera — clears a stalled/stuck UVC stream."""
+        try:
+            if self._cap is not None:
+                self._cap.release()
+        except Exception:
+            pass
+        time.sleep(0.3)
+        for attempt in range(15):
+            if not self._running:
+                return
+            try:
+                self._cap = self._open_camera()
+                for _ in range(5):  # warm up
+                    self._cap.read()
+                print("[capture] camera reopened", flush=True)
+                return
+            except Exception as exc:
+                print(f"[capture] reopen attempt {attempt + 1} failed: {exc}", flush=True)
+                time.sleep(1.0)
+
     def _capture_loop(self):
         for _ in range(5):  # warm up the sensor
             self._cap.read()
         t0, n = time.time(), 0
+        fail_since = None      # when consecutive read failures began
+        frozen_since = None    # when frames stopped changing (stuck/black stream)
+        last_frame = None
+        last_reopen = 0.0
         while self._running:
             ok, frame = self._cap.read()
-            if not ok:
-                time.sleep(0.03)
-                continue
-            with self._frame_lock:
-                self._frame = frame
-            n += 1
-            if n >= 30:
-                dt = time.time() - t0
-                self.stats["cam_fps"] = round(n / dt, 1) if dt > 0 else 0.0
+            now = time.time()
+            if not ok or frame is None:
+                fail_since = fail_since or now
+                frozen_since = None
+            else:
+                fail_since = None
+                # A live sensor never returns two byte-identical frames (noise);
+                # an identical repeat means the stream froze (incl. stuck-black).
+                if last_frame is not None and np.array_equal(frame, last_frame):
+                    frozen_since = frozen_since or now
+                else:
+                    frozen_since = None
+                last_frame = frame
+                with self._frame_lock:
+                    self._frame = frame
+                n += 1
+                if n >= 30:
+                    dt = now - t0
+                    self.stats["cam_fps"] = round(n / dt, 1) if dt > 0 else 0.0
+                    t0, n = now, 0
+
+            # Self-heal: reopen if reads fail (>2s) or the frame is frozen (>3s).
+            stalled = ((fail_since and now - fail_since > 2.0)
+                       or (frozen_since and now - frozen_since > 3.0))
+            if stalled and now - last_reopen > 4.0:
+                print("[capture] stream stalled — reopening camera", flush=True)
+                self._reopen_camera()
+                self.stats["reopens"] += 1
+                self.stats["cam_fps"] = 0.0
+                last_reopen = time.time()
+                fail_since = frozen_since = None
+                last_frame = None
                 t0, n = time.time(), 0
+            elif not ok:
+                time.sleep(0.03)
 
     def _infer_loop(self):
         t0, n = time.time(), 0
@@ -203,6 +258,7 @@ class DetectorApp:
             "cam_fps": self.stats["cam_fps"],
             "infer_fps": self.stats["infer_fps"],
             "model_ready": self.stats["model_ready"],
+            "reopens": self.stats["reopens"],
             "conf": self.conf,
             "classes": self.classes,
             "room": {"width": self.cfg.room_width, "depth": self.cfg.room_depth},

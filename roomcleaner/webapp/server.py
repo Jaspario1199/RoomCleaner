@@ -45,6 +45,7 @@ class DetectorApp:
         classes: list[str] | None = None,
         backend: str = "dshow",
         model_name: str = "yolov8s-world.pt",
+        source: str = "camera",
     ):
         self.camera_index = camera_index
         self.width = width
@@ -53,12 +54,15 @@ class DetectorApp:
         self.classes = list(classes or DEFAULT_LAUNDRY_CLASSES)
         self.backend = backend
         self.model_name = model_name
+        self.source = source  # "camera" or "demo" (simulated laundry, no camera)
 
         self.cfg = DEFAULT_CONFIG
         self._frame: np.ndarray | None = None
         self._frame_lock = threading.Lock()
         self._dets: list[dict] = []
         self._dets_lock = threading.Lock()
+        self._render_lock = threading.Lock()  # matplotlib (pyplot) is not thread-safe
+        self._rest = None  # cached parking pose (depends only on config)
         self.stats = {
             "resolution": None,
             "cam_fps": 0.0,
@@ -90,6 +94,10 @@ class DetectorApp:
         return cap
 
     def start(self):
+        self._running = True
+        if self.source == "demo":
+            self._start_demo()
+            return
         self._cap = self._open_camera()
         w = int(self._cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or self.width
         h = int(self._cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or self.height
@@ -98,9 +106,28 @@ class DetectorApp:
         self._detector = YoloWorldDetector(
             self._mapper, classes=self.classes, model_name=self.model_name, confidence=self.conf
         )
-        self._running = True
         threading.Thread(target=self._capture_loop, name="capture", daemon=True).start()
         threading.Thread(target=self._infer_loop, name="infer", daemon=True).start()
+
+    def _start_demo(self):
+        """No-camera mode: seed simulated laundry so the whole console (detections,
+        plan, 3-D view) works offline for a demo or a hardware-free walkthrough."""
+        from roomcleaner.perception.detector import SimulatedDetector
+
+        sim = SimulatedDetector(self.cfg, n_items=4)
+        with self._dets_lock:
+            self._dets = [
+                {
+                    "label": d.label,
+                    "confidence": float(d.confidence),
+                    "floor": [float(d.position[0]), float(d.position[1])],
+                    "bbox": None,
+                    "area": float(d.area),
+                }
+                for d in sim.detect()
+            ]
+        self.stats["resolution"] = "demo (no camera)"
+        self.stats["model_ready"] = True
 
     def stop(self):
         self._running = False
@@ -259,11 +286,104 @@ class DetectorApp:
             "infer_fps": self.stats["infer_fps"],
             "model_ready": self.stats["model_ready"],
             "reopens": self.stats["reopens"],
+            "source": self.source,
             "conf": self.conf,
             "classes": self.classes,
             "room": {"width": self.cfg.room_width, "depth": self.cfg.room_depth},
             "detections": dets,
         }
+
+    # -- planning + 3D view -------------------------------------------------
+    def _detections_as_objects(self):
+        from roomcleaner.perception.detector import Detection
+
+        with self._dets_lock:
+            raw = list(self._dets)
+        return [
+            Detection(
+                position=np.array([d["floor"][0], d["floor"][1], 0.0]),
+                label=d["label"], confidence=d["confidence"], area=d["area"],
+                bbox=tuple(d["bbox"]) if d["bbox"] else None,
+            )
+            for d in raw
+        ]
+
+    def rest_pose(self, robot, hamper_xy):
+        if self._rest is None:
+            self._rest = robot.find_rest_position(prefer_xy=hamper_xy)
+        return self._rest
+
+    def plan(self) -> dict:
+        """Plan the pickup order + per-target winch (cable-length) commands for
+        the current detections, using the SAME Controller that drives the robot."""
+        from roomcleaner.kinematics import CableRobot
+        from roomcleaner.control.state_machine import Controller
+        from roomcleaner.perception.live import LiveDetector
+
+        items = self._detections_as_objects()
+        robot = CableRobot(self.cfg)
+        holder = LiveDetector(None)
+        holder._items = list(items)
+        hamper_xy = (self.cfg.room_width - 0.5, 0.5)
+        ctrl = Controller(robot, holder, hamper_xy=hamper_xy)
+
+        anchors = ["A", "B", "C", "D"]
+        steps = []
+        for _ in range(50):
+            actions = ctrl._plan_cycle()
+            if actions is None:
+                break
+            grab_pt = next((p for k, p in actions if k == "grip"), None)
+            lengths = robot.cable_lengths(grab_pt)
+            tensions, feasible = robot.solve_tensions(grab_pt)
+            steps.append({
+                "order": len(steps) + 1,
+                "label": ctrl.target.label,
+                "confidence": round(float(ctrl.target.confidence), 2),
+                "floor": [round(float(ctrl.target.position[0]), 2),
+                          round(float(ctrl.target.position[1]), 2)],
+                "grab_z": round(float(grab_pt[2]), 3),
+                "cables": {a: round(float(L), 3) for a, L in zip(anchors, lengths)},
+                "max_tension_N": round(float(np.max(tensions)), 1),
+                "feasible": bool(feasible),
+            })
+        return {
+            "planned": len(steps),
+            "total_detected": len(items),
+            "unreachable": max(0, len(items) - len(steps)),
+            "trips": len(steps) + (1 if steps else 0),
+            "hamper": [round(hamper_xy[0], 2), round(hamper_xy[1], 2)],
+            "rest": [round(float(x), 2) for x in ctrl.rest],
+            "cruise_z": round(float(ctrl.cruise_z), 2),
+            "steps": steps,
+        }
+
+    def render_room_png(self) -> bytes:
+        import io
+        import matplotlib
+        matplotlib.use("Agg", force=True)  # headless render in a worker thread
+        import matplotlib.pyplot as plt
+        from roomcleaner.kinematics import CableRobot
+        from roomcleaner.perception.live import LiveDetector
+        from roomcleaner import simulator
+
+        items = self._detections_as_objects()
+        robot = CableRobot(self.cfg)
+        holder = LiveDetector(None)
+        holder._items = items
+        hamper_xy = (self.cfg.room_width - 0.5, 0.5)
+        rest = self.rest_pose(robot, hamper_xy)
+        with self._render_lock:  # pyplot global state -> one render at a time
+            fig = plt.figure(figsize=(7, 5))
+            ax = fig.add_subplot(111, projection="3d")
+            simulator.render_frame(
+                robot, effector=rest, detector=holder, hamper_xy=hamper_xy,
+                rest_xyz=rest, ax=ax, title="Room — detections + plan",
+            )
+            buf = io.BytesIO()
+            fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
+            plt.close(fig)
+        return buf.getvalue()
 
 
 def create_app(state: DetectorApp) -> Flask:
@@ -298,6 +418,14 @@ def create_app(state: DetectorApp) -> Flask:
             except (TypeError, ValueError):
                 pass
         return jsonify({"conf": state.conf})
+
+    @app.route("/api/plan")
+    def api_plan():
+        return jsonify(state.plan())
+
+    @app.route("/api/room.png")
+    def api_room_png():
+        return Response(state.render_room_png(), mimetype="image/png")
 
     return app
 
@@ -359,6 +487,25 @@ INDEX_HTML = r"""<!doctype html>
     border-radius:999px;padding:3px 9px}
   .soon{padding:16px 14px;color:var(--muted);font-size:12.5px;line-height:1.5}
   .soon ul{margin:8px 0 0;padding-left:18px} .soon li{margin:2px 0}
+  .console{padding:0 16px 24px}
+  .planwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,460px);gap:16px;padding:12px 14px}
+  @media(max-width:900px){.planwrap{grid-template-columns:1fr}}
+  #plansummary{font-size:13px;color:var(--text);margin-bottom:10px;line-height:1.6}
+  #plansummary b{color:var(--accent)}
+  .step{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:7px}
+  .step .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .step .ord{color:var(--muted);font:11px ui-monospace,monospace}
+  .step .lab{font-weight:600;text-transform:capitalize}
+  .step .rz{color:var(--muted);font:11px ui-monospace,monospace}
+  .step .cables{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+  .cbl{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 6px;text-align:center}
+  .cbl .k{color:var(--muted);font:10px ui-monospace,monospace}
+  .cbl .v{font:12px ui-monospace,monospace;color:var(--text)}
+  .step .foot{margin-top:7px;font:11px ui-monospace,monospace;color:var(--muted);
+    display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .ok{color:var(--accent)} .bad{color:#f85149}
+  .planview img{width:100%;border:1px solid var(--border);border-radius:8px;background:#fff}
+  .viewcap{color:var(--muted);font-size:11px;margin-top:6px;text-align:center}
 </style>
 </head>
 <body>
@@ -391,20 +538,24 @@ INDEX_HTML = r"""<!doctype html>
       <h2>Looking for</h2>
       <div class="chips" id="chips"></div>
     </div>
-    <div class="card">
-      <h2>Robot &amp; plan</h2>
-      <div class="soon">
-        Reserved for the rest of the console:
-        <ul>
-          <li>3-D room view with the pickup plan</li>
-          <li>cable-length / winch commands per target</li>
-          <li>robot status: position, payload, hamper count</li>
-          <li>run / pause controls</li>
-        </ul>
-      </div>
-    </div>
   </section>
 </main>
+
+<section class="console">
+  <div class="card">
+    <h2>Robot &amp; plan — live pickup plan + winch commands</h2>
+    <div class="planwrap">
+      <div class="planinfo">
+        <div id="plansummary" class="empty">planning…</div>
+        <div id="plansteps"></div>
+      </div>
+      <div class="planview">
+        <img id="roomimg" src="/api/room.png" alt="3D room view">
+        <div class="viewcap">3-D room · winches ■ · claw ● · laundry ★ · hamper ✚ · fan keep-out (red)</div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <script>
 const el = id => document.getElementById(id);
@@ -453,6 +604,44 @@ async function poll(){
 }
 setInterval(poll, 500);
 poll();
+
+async function planPoll(){
+  try{
+    const p = await (await fetch('/api/plan')).json();
+    const sum = el('plansummary');
+    if(!p.total_detected){
+      sum.className = 'empty'; sum.textContent = 'no items detected — nothing to plan yet';
+      el('plansteps').innerHTML = '';
+      return;
+    }
+    sum.className = '';
+    sum.innerHTML = `Plan: <b>${p.planned}</b> pickup(s) in <b>${p.trips}</b> trip(s)`
+      + (p.unreachable ? ` · <span class="bad">${p.unreachable} unreachable</span>` : '')
+      + ` · hamper (${p.hamper[0]}, ${p.hamper[1]}) m · cruise z ${p.cruise_z} m`
+      + ` · rest [${p.rest.join(', ')}]`;
+    el('plansteps').innerHTML = p.steps.map(s => {
+      const cbl = ['A','B','C','D'].map(k =>
+        `<div class="cbl"><div class="k">${k}</div><div class="v">${s.cables[k].toFixed(2)}</div></div>`).join('');
+      return `<div class="step">
+        <div class="top">
+          <span><span class="ord">#${s.order}</span> <span class="lab">${s.label}</span>
+            <span class="rz">@(${s.floor[0]}, ${s.floor[1]}) m</span></span>
+          <span class="${s.feasible?'ok':'bad'}">${s.feasible?'reachable':'NOT reachable'}</span>
+        </div>
+        <div class="cables">${cbl}</div>
+        <div class="foot"><span>cable lengths A–D (m) · grab z ${s.grab_z} m</span>
+          <span>max tension ${s.max_tension_N} N</span></div>
+      </div>`;
+    }).join('');
+  }catch(e){}
+}
+setInterval(planPoll, 2000);
+planPoll();
+
+setInterval(() => {
+  const img = el('roomimg');
+  if(img){ img.src = '/api/room.png?t=' + Date.now(); }
+}, 4000);
 </script>
 </body>
 </html>

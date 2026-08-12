@@ -26,9 +26,13 @@ def main() -> None:
                     help="127.0.0.1 = this machine only; 0.0.0.0 = reachable on the LAN/Tailscale")
     ap.add_argument("--conf", type=float, default=0.25,
                     help="starting confidence threshold (tune live in the UI)")
+    ap.add_argument("--demo", action="store_true",
+                    help="no-camera mode: seed simulated laundry so the console "
+                         "(plan + 3-D view) works without hardware")
     args = ap.parse_args()
 
-    state = DetectorApp(camera_index=args.camera, conf=args.conf)
+    state = DetectorApp(camera_index=args.camera, conf=args.conf,
+                        source="demo" if args.demo else "camera")
     state.start()
     app = create_app(state)
 

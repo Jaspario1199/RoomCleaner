@@ -20,7 +20,22 @@ stops it.
 
 Options: `--camera N` (index), `--port 8000`, `--conf 0.25` (starting
 threshold, tunable live in the UI), `--host 0.0.0.0` (reach it from another
-device on your LAN / over Tailscale instead of just this machine).
+device on your LAN / over Tailscale instead of just this machine), `--demo`
+(no camera: seed simulated laundry so the whole console works offline).
+
+## Robot & plan panel
+
+Below the feed, the **Robot & plan** panel turns detections into a plan using
+the *same* `Controller` + `CableRobot` that drive the (eventual) hardware:
+- the nearest-first pickup order,
+- per-target **winch cable lengths** (A/B/C/D, the 4 ceiling motors) and the
+  max cable tension at the grab point, with a reachable / not-reachable flag,
+- a live **3-D room view** (`/api/room.png`): winches, cables, claw at its rest
+  pose, detected laundry, hamper, and the fan keep-out volume.
+
+Endpoints: `/api/plan` (JSON plan), `/api/room.png` (rendered 3-D view). The
+plan is recomputed from the current detections each request, so it tracks the
+live feed. Try it now with `--demo` (no camera needed).
 
 ## How it works
 
@@ -48,9 +63,10 @@ Endpoints: `/` (dashboard), `/video_feed` (annotated MJPEG),
 
 ## Roadmap (the "whole RoomCleaner app")
 
-The dashboard has a reserved **Robot & plan** panel for:
-- the 3-D room view + computed pickup plan (reuse `simulator.render_frame` +
-  `control.state_machine.Controller`),
-- per-target cable-length / winch commands (`kinematics.CableRobot`),
-- robot status: effector position, payload, hamper count,
-- run / pause controls once the hardware loop exists.
+Done: live feed + detection overlays, detected-items panel, sensitivity slider,
+and the **Robot & plan** panel (pickup plan + per-target winch cable lengths +
+3-D room view). Still to come as the hardware loop lands:
+- live robot **status**: real effector position, payload, hamper count,
+- **run / pause / e-stop** controls that drive the winches,
+- animate the planned path in the 3-D view (not just the rest pose),
+- overlay the reachable-workspace footprint on the room floor.

@@ -34,6 +34,14 @@ def run(args: list[str], **kw) -> None:
 
 
 def main() -> None:
+    # Windows consoles (and redirected stdout) default to cp1252, which cannot
+    # encode the checkmark printed on success — that raised UnicodeEncodeError
+    # and aborted setup on Windows. Force UTF-8 so it completes cleanly.
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--vision", action="store_true",
                     help="also install the camera/YOLO stack (torch — several GB)")

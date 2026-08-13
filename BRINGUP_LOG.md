@@ -164,3 +164,38 @@ coordinates are not calibrated yet.
    scaffold robot status + run/pause controls.
 
 > 2026-08-13: the two consoles above converged — `scripts/live_app.py` + `roomcleaner/webapp/` merged into the unified `python -m roomcleaner.app` (port 8000, `--live`/`--demo`); see docs/APP.md.
+
+## 2026-08-13 — operator dashboard verified on-machine (local agent)
+
+Picked the work back up on Jasper's machine and smoke-tested the operator
+dashboard (`roomcleaner/app/`). The "Unify the consoles" merge (`bcdbb2a`)
+landed on origin **during** this run, so the numbers below are from the
+immediately-pre-unify build; a post-merge re-verify entry follows this one.
+
+- `pytest tests/test_app.py` → **11/11 pass**.
+- `python -m roomcleaner.app --sim` launched clean and served the dashboard
+  (page title "RoomCleaner Operator", ~17 KB).
+- Full sim mission via `POST /api/command {"cmd":"start"}`: phase advanced
+  `SCAN → SELECT → GRAB → DELIVER`, **items picked 1 → 2 → 3**, gripper
+  closed/opened over the hamper, claw pose moved through real up→across→down
+  transits, and per-cable tensions stayed feasible in-band (e.g. 4.5/6.2/5.6/
+  4.6 N within the 0.5–40 N motor band). `/stream.mjpg` served live multipart
+  frames; `/api/status` returned full telemetry (phase, pose, tensions, log).
+- **Verdict: the operator dashboard runs end-to-end in sim on this machine.**
+- Camera: innomaker still reads black at index 1 (mean brightness ≈4.5) —
+  covered / unlit / not re-plugged. `--live` deferred until it's aimed at a
+  lit scene; sim mode needs no camera.
+
+### Post-merge re-verify (after `git pull` of the unified console)
+
+Re-ran the note's "first task once the merge lands" against the merged tree
+(`bcdbb2a` unify + `1999e3b`):
+- Full suite: **47 passed, 3 skipped** (the 3 skips are cadquery CAD-geometry
+  tests, not installed in this vision venv).
+- `python -m roomcleaner.app --sim` → served **http://127.0.0.1:8000**
+  (title now "RoomCleaner Console" — the two consoles are one). `GET /` 200.
+- Mission via `POST /api/command {"cmd":"start"}`: `SCAN → DELIVER`,
+  **picked 0 → 1**, gripper toggled, cable tensions feasible throughout.
+- **Unified console confirmed working end-to-end in sim on this machine.**
+  Live camera (`--live --camera 1`) is the one remaining check, gated on the
+  innomaker being plugged in and aimed at a lit scene.

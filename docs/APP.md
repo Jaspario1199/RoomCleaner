@@ -1,75 +1,87 @@
-# RoomCleaner live app
+# RoomCleaner consoles
 
-A browser dashboard onto the robot's real-time perception: the camera feed with
-detection boxes drawn on it, a live list of what the software is marking as
-laundry (with floor coordinates), and a sensitivity slider. It's built to grow
-into the full RoomCleaner console.
+There are currently **two browser consoles**, built the same day on opposite
+sides of the project, that will converge into one app (see "Convergence"
+below). They share `requirements-app.txt` (Flask) and the same underlying
+planner/kinematics — neither reimplements robot math.
 
-## Run it
+| | Live perception console | Operations console |
+|---|---|---|
+| Run | `python -m scripts.live_app --camera 1` | `python -m roomcleaner.app --sim` |
+| Port | http://localhost:8000 | http://localhost:8010 |
+| Star of the show | The REAL camera feed | The mission execution loop |
+| Validated on | Jasper's Windows machine + innomaker camera | Cloud, headless browser, full sim missions |
 
-```bash
-# one-time: install the vision + app extras into the venv
-venv\Scripts\python.exe -m pip install -r requirements-vision.txt -r requirements-app.txt
+Only one program can hold the camera at a time — don't run the perception
+console and `detect_webcam` (or, later, the operations console in `--live`)
+simultaneously.
 
-# start the app on the innomaker (usually camera index 1)
-venv\Scripts\python.exe -m scripts.live_app --camera 1
-```
+---
 
-Then open **http://localhost:8000** in your browser. Ctrl-C in the terminal
-stops it.
+## 1 · Live perception console (`scripts/live_app.py`)
 
-Options: `--camera N` (index), `--port 8000`, `--conf 0.25` (starting
-threshold, tunable live in the UI), `--host 0.0.0.0` (reach it from another
-device on your LAN / over Tailscale instead of just this machine), `--demo`
-(no camera: seed simulated laundry so the whole console works offline).
+A window onto the robot's real-time perception: the annotated camera feed
+(capture thread + ~1–2 fps CPU inference thread + ~20 fps MJPEG overlay so the
+video never stutters), a live detected-items panel with floor coordinates, and
+a sensitivity slider.
 
-## Robot & plan panel
+- **Robot & plan panel** — turns current detections into a plan with the same
+  `Controller` + `CableRobot` the hardware will use: nearest-first pickup
+  order, per-target winch cable lengths (A–D) + max tension + reachability.
+- **3-D room view** (`/api/room.png`) with a **Live view / Animate plan**
+  toggle — "Animate plan" renders a GIF of the claw flying the full route
+  (`/api/room.gif`, ~10 s, cached by detection signature).
+- `--demo` seeds simulated laundry so the whole console runs camera-free.
+- Options: `--camera N`, `--port`, `--conf 0.25`, `--host 0.0.0.0` (LAN).
+- Endpoints: `/`, `/video_feed`, `/snapshot.jpg`, `/api/state`,
+  `/api/config` (POST `{"conf": 0.4}`), `/api/plan`, `/api/room.png`,
+  `/api/room.gif`.
+- Floor `(x, y)` uses placeholder room dimensions from `roomcleaner/config.py`
+  until the room is measured; detection is real, coordinates aren't calibrated.
+- Helper: `python -m scripts.camera_view --list` finds the camera index
+  (innomaker was index 1 on Jasper's machine; integrated webcam 0).
 
-Below the feed, the **Robot & plan** panel turns detections into a plan using
-the *same* `Controller` + `CableRobot` that drive the (eventual) hardware:
-- the nearest-first pickup order,
-- per-target **winch cable lengths** (A/B/C/D, the 4 ceiling motors) and the
-  max cable tension at the grab point, with a reachable / not-reachable flag,
-- a **3-D room view** (`/api/room.png`): winches, cables, claw, detected
-  laundry, hamper, and the fan keep-out volume, with a **Live view / Animate
-  plan** toggle — "Animate plan" renders a GIF of the claw flying the whole
-  route (rest → each item → hamper → park).
+## 2 · Operations console (`roomcleaner/app`)
 
-Endpoints: `/api/plan` (JSON plan), `/api/room.png` (static 3-D view),
-`/api/room.gif` (animated run, ~10s to render, cached by detection signature).
-The plan is recomputed from the current detections each request, so it tracks
-the live feed. Try it now with `--demo` (no camera needed).
+Mission control for the robot — the same UI in two modes:
 
-## How it works
+- `--sim` (default): a continuous simulated session. A Pillow-rendered
+  top-down "camera" (room grid, fan keep-out disc, hamper, detection boxes,
+  cables, claw with z-halo) streams at `/stream.mjpg`; missions play back in
+  real time through the actual `Controller.iter_actions()` stream.
+- `--live`: wires the real Webcam + YoloWorldDetector + serial winch driver +
+  WiFi gripper through the identical session interface. **Not yet
+  bench-validated** — needs real winches homed, camera calibration, and the
+  ESP32 reachable; see "Bench validation" below.
 
-- A **capture** thread reads frames from the camera continuously, so the video
-  is smooth.
-- An **inference** thread runs the YOLO-World open-vocabulary detector (~1–2 fps
-  on CPU) on the latest frame and caches the boxes.
-- The MJPEG stream draws the latest boxes on the latest frame at ~20 fps, so the
-  feed never stutters while waiting on the model.
+Panels: live feed; status cards (phase, claw position, items picked, claw
+link/battery); four per-cable tension bars against the legal [0.5, 40] N band
+(state written in words, not color alone); operations log distinguishing
+`plan ·` narration (planner, logged ahead of time) from executed events;
+controls — Start / Pause / Resume / software **STOP** (the physical kill
+switch remains the wall power strip), Home, Park, Grip, Release, and a jog pad
+(0.1 m steps, idle/paused only, workspace-clamped and fan-keep-out-checked
+server-side); a room/fan/hamper settings drawer (applying restarts the sim
+session with the new geometry).
 
-The detections shown are the exact `Detection` objects (label, confidence, floor
-`(x, y)`) that the robot's control loop consumes — this is a window onto the real
-perception, not a separate demo.
+API: `GET /api/status` · `POST /api/command`
+(`start|pause|resume|stop|home|park|grip|release|jog`; invalid → 400,
+valid-but-not-now → 409) · `GET/POST /api/config`. Tests: `tests/test_app.py`
+(Flask test client, no sockets).
 
-Endpoints: `/` (dashboard), `/video_feed` (annotated MJPEG),
-`/api/state` (JSON), `/api/config` (POST `{"conf": 0.4}` to retune live).
+### Bench validation still owed (live mode)
 
-## Notes
+Serial homing/moves on real winches; `OverheadLinearMapper` camera
+calibration; ESP32 gripper reachability + battery/RSSI telemetry (needs a
+firmware endpoint); STOP latency at move-step granularity; live tensions are
+model-derived (no load cells).
 
-- Only one program can hold the camera at a time — stop `detect_webcam` /
-  `innomaker_view` before starting the app.
-- Floor `(x, y)` uses the placeholder `room_width` / `room_depth` in
-  `roomcleaner/config.py` until the room is measured — detection is real,
-  coordinates are not yet calibrated.
+## Convergence
 
-## Roadmap (the "whole RoomCleaner app")
-
-Done: live feed + detection overlays, detected-items panel, sensitivity slider,
-and the **Robot & plan** panel (pickup plan + per-target winch cable lengths +
-3-D room view). Also done: **animate the planned path** in the 3-D view (Animate plan toggle).
-Still to come as the hardware loop lands:
-- live robot **status**: real effector position, payload, hamper count,
-- **run / pause / e-stop** controls that drive the winches,
-- overlay the reachable-workspace footprint on the room floor.
+Target end-state: **one app** — the operations console's session/command
+architecture absorbing the perception console's proven capture/overlay
+pipeline (its capture+inference threading becomes `LiveSession`'s feed) and
+its plan/3-D panels. That merge must happen on the machine with the camera so
+the live path stays validated; tracked in DESIGN_STATE.md. Until then: run the
+perception console to watch the camera, the operations console to fly
+missions in sim.

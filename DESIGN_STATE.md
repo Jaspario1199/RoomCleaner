@@ -127,3 +127,21 @@ enclosure/bracket (candidates for a Gate-4 pass if the user wants them):
 Everything else being mounted (4× motors → corner_mount, spools, overhead cam →
 camera_mount_overhead, servo, effector electronics, the whole claw) already has
 a printed part with a committed STEP.
+## Operator dashboard (software interface milestone)
+`python -m roomcleaner.app --sim|--live` — Flask + single-page dark UI:
+MJPEG live feed (sim renders a top-down synthetic camera; live wires the
+real Webcam+YOLO), status cards, per-cable tension bars vs [0.5,40] N,
+plan-vs-executed operations log, mission controls + guarded jog pad
+(workspace clamp + fan keep-out server-side), room/fan/hamper settings.
+Lead-verified headless (Playwright): mission runs real-time, jog moves
+pose when idle and is disabled while running, settings drawer OK, no JS
+errors. 141/141 tests. Live mode needs bench validation (see docs/APP.md).
+
+## Console convergence (next bounded software task — run on the CAMERA machine)
+Two consoles were built the same day on opposite sides (local: live
+perception console `scripts/live_app.py` : 8000, validated on the real
+innomaker; cloud: operations console `roomcleaner/app` : 8010, validated in
+sim). Target: ONE app — the operations console's session/command
+architecture absorbs the perception console's proven capture/inference
+threading (as LiveSession's feed) and its plan/3-D panels. Must be executed
+and validated where the camera is; docs/APP.md documents both until then.

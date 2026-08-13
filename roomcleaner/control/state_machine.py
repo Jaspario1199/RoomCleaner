@@ -73,6 +73,11 @@ class Controller:
     def log(self, msg: str) -> None:
         self._log.append(f"[{self.state.name}] {msg}")
 
+    @property
+    def log_lines(self) -> list[str]:
+        """Read-only copy of the decision log (for UIs and reports)."""
+        return list(self._log)
+
     # ------------------------------------------------------------------
     # One full pickup cycle, as a list of structured ACTIONS.
     # ------------------------------------------------------------------

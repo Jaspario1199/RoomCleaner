@@ -50,6 +50,9 @@ def main() -> None:
                          "(USB cam on a laptop is usually 1)")
     ap.add_argument("--demo", action="store_true",
                     help="after setup, run the full simulation demo")
+    ap.add_argument("--app", action="store_true",
+                    help="also install the web-dashboard deps, then launch the "
+                         "operator dashboard in sim mode (http://127.0.0.1:8010)")
     args = ap.parse_args()
 
     if sys.version_info < (3, 10):
@@ -67,6 +70,8 @@ def main() -> None:
         print("\nInstalling the vision stack (torch + ultralytics) — this is "
               "a multi-GB download, give it a few minutes...")
         run([py, "-m", "pip", "install", "-r", "requirements-vision.txt"])
+    if args.app:
+        run([py, "-m", "pip", "install", "-r", "requirements-app.txt"])
 
     print("\nRunning the self-test suite (~1 min) ...")
     run([py, "-m", "pytest", "-q"])
@@ -76,7 +81,11 @@ def main() -> None:
         run([py, "-m", "scripts.demo_sim"])
         print("\nOutputs written to ./output (scene_before.png, workspace.png, run.gif)")
 
-    if args.camera is not None:
+    if args.app:
+        print("\nLaunching the operator dashboard (sim mode) at "
+              "http://127.0.0.1:8010 — Ctrl-C to stop.")
+        run([py, "-m", "roomcleaner.app", "--sim"])
+    elif args.camera is not None:
         print("\nLaunching live detection (first run downloads YOLO-World "
               "weights, a few hundred MB, one time). Ctrl-C to stop.")
         run([py, "-m", "scripts.detect_webcam", "--camera", str(args.camera)])
@@ -87,6 +96,7 @@ Next steps:
   {act}
   python -m scripts.demo_sim                  # watch the robot in simulation
   python -m scripts.detect_webcam --camera 1  # live laundry detection
+  python -m roomcleaner.app --sim             # operator web dashboard
 """)
 
 

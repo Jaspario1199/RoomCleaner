@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoomCleaner Operator</title>
+<style>
+  /* Self-contained dark operator theme -- no external assets. */
+  :root {
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #232322;
+    --border: rgba(255,255,255,0.10);
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --accent: #3987e5;
+    --good: #0ca30c;
+    --warn: #fab219;
+    --crit: #d03b3b;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font-family: var(--font); font-size: 14px; line-height: 1.45;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 18px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: .02em; }
+  .badge {
+    padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--border); color: var(--ink-2);
+  }
+  #mode-badge { text-transform: uppercase; }
+  #phase-badge { color: var(--ink); background: var(--surface-2); }
+  #phase-badge.stopped { border-color: var(--crit); color: var(--crit); }
+  #phase-badge.paused  { border-color: var(--warn); color: var(--warn); }
+  header .spacer { flex: 1; }
+  button {
+    font-family: inherit; font-size: 13px; color: var(--ink);
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 14px; cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--muted); }
+  button:disabled { opacity: .38; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); }
+  button.stop {
+    background: var(--crit); border-color: var(--crit);
+    font-weight: 700; letter-spacing: .05em;
+  }
+  main {
+    display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr);
+    gap: 14px; padding: 14px 18px; max-width: 1280px; margin: 0 auto;
+  }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .panel h2 {
+    margin: 0 0 8px; font-size: 12px; font-weight: 650; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .08em;
+  }
+  #feed { width: 100%; border-radius: 6px; background: #000; display: block; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px;
+  }
+  .card .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .card .v { font-size: 17px; font-weight: 650; margin-top: 2px; }
+  .card .v small { font-size: 12px; color: var(--ink-2); font-weight: 400; }
+  /* Tension bars: value + state word so state is never color-alone. */
+  .tension-row { display: grid; grid-template-columns: 22px 1fr 118px; gap: 8px; align-items: center; margin: 7px 0; }
+  .tension-row .name { color: var(--ink-2); font-weight: 600; }
+  .track {
+    position: relative; height: 14px; background: var(--surface-2);
+    border-radius: 4px; overflow: hidden; border: 1px solid var(--border);
+  }
+  .fill { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 3px 0 0 3px; }
+  .fill.ok   { background: var(--good); }
+  .fill.warn { background: var(--warn); }
+  .fill.crit { background: var(--crit); }
+  .band-mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--muted); opacity: .8; }
+  .tension-val { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+  .tension-val b { color: var(--ink); }
+  .band-note { color: var(--muted); font-size: 11px; margin-top: 4px; }
+  #log {
+    height: 190px; overflow-y: auto; background: #111110;
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
+    font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--ink-2); white-space: pre-wrap;
+  }
+  .controls-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .jog-wrap { display: flex; gap: 18px; align-items: center; }
+  .jog-grid { display: grid; grid-template-columns: repeat(3, 44px); gap: 6px; }
+  .jog-grid button, .jog-z button { width: 44px; height: 38px; font-size: 15px; padding: 0; }
+  .jog-z { display: grid; gap: 6px; }
+  .jog-note { color: var(--muted); font-size: 12px; max-width: 220px; }
+  /* Settings drawer */
+  #drawer {
+    position: fixed; top: 0; right: -360px; width: 350px; height: 100%;
+    background: var(--surface); border-left: 1px solid var(--border);
+    padding: 18px; transition: right .2s ease; z-index: 20; overflow-y: auto;
+  }
+  #drawer.open { right: 0; }
+  #drawer h2 { margin-top: 0; font-size: 15px; }
+  #drawer label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 3px; }
+  #drawer input[type=number] {
+    width: 100%; background: var(--surface-2); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;
+    font-family: inherit; font-size: 13px;
+  }
+  #drawer .chk { display: flex; gap: 8px; align-items: center; margin-top: 12px; color: var(--ink-2); font-size: 13px; }
+  #drawer .note { color: var(--muted); font-size: 12px; margin-top: 12px; }
+  #toast {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: var(--surface-2); border: 1px solid var(--crit); color: var(--ink);
+    padding: 9px 16px; border-radius: 8px; font-size: 13px; z-index: 30;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  #toast.show { opacity: 1; }
+  .footnote { color: var(--muted); font-size: 11px; padding: 0 18px 16px; max-width: 1280px; margin: 0 auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>RoomCleaner &mdash; Operator</h1>
+  <span class="badge" id="mode-badge">&mdash;</span>
+  <span class="badge" id="phase-badge">&mdash;</span>
+  <span class="spacer"></span>
+  <button id="btn-settings">Settings</button>
+</header>
+
+<main>
+  <!-- Left column: feed + log -->
+  <div style="display:grid; gap:14px; align-content:start;">
+    <section class="panel">
+      <h2>Live feed</h2>
+      <img id="feed" src="/stream.mjpg" alt="robot camera feed">
+    </section>
+    <section class="panel">
+      <h2>Operations log</h2>
+      <div id="log"></div>
+    </section>
+  </div>
+
+  <!-- Right column: status + tensions + controls -->
+  <div style="display:grid; gap:14px; align-content:start;">
+    <section class="panel">
+      <h2>Status</h2>
+      <div class="cards">
+        <div class="card"><div class="k">Phase</div><div class="v" id="st-phase">&mdash;</div></div>
+        <div class="card"><div class="k">Items picked</div><div class="v" id="st-picked">&mdash;</div></div>
+        <div class="card" style="grid-column: span 2;">
+          <div class="k">Claw position (m)</div>
+          <div class="v" id="st-pose" style="font-variant-numeric: tabular-nums;">&mdash;</div>
+        </div>
+        <div class="card"><div class="k">Claw link</div><div class="v" id="st-link">&mdash;</div></div>
+        <div class="card"><div class="k">Claw battery</div><div class="v" id="st-batt">&mdash;</div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Cable tensions</h2>
+      <div id="tensions"></div>
+      <div class="band-note" id="band-note">Legal band: 0.5&ndash;40 N per cable (marks on each bar). State word on every bar.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Controls</h2>
+      <div class="controls-row">
+        <button id="btn-start" class="primary">Start mission</button>
+        <button id="btn-pause">Pause</button>
+        <button id="btn-resume">Resume</button>
+        <button id="btn-stop" class="stop">STOP</button>
+      </div>
+      <div class="controls-row">
+        <button id="btn-home">Home</button>
+        <button id="btn-park">Park</button>
+        <button id="btn-grip">Grip</button>
+        <button id="btn-release">Release</button>
+      </div>
+      <div class="jog-wrap">
+        <div class="jog-grid">
+          <span></span><button data-jog="y,1" title="+y">&#8593;</button><span></span>
+          <button data-jog="x,-1" title="-x">&#8592;</button><span></span><button data-jog="x,1" title="+x">&#8594;</button>
+          <span></span><button data-jog="y,-1" title="-y">&#8595;</button><span></span>
+        </div>
+        <div class="jog-z">
+          <button data-jog="z,1" title="+z">Z+</button>
+          <button data-jog="z,-1" title="-z">Z&minus;</button>
+        </div>
+        <div class="jog-note">Jog: 0.1 m steps, only while idle or paused. Clamped to the workspace; fan keep-out enforced server-side.</div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<p class="footnote">
+  Software STOP halts the mission command stream; it is not a safety device.
+  The physical kill switch is the power strip feeding the winch PSU.
+</p>
+
+<!-- Settings drawer -->
+<aside id="drawer">
+  <h2>Room &amp; safety settings</h2>
+  <label>Room width (m, +x)</label><input type="number" step="0.05" id="cfg-room_width">
+  <label>Room depth (m, +y)</label><input type="number" step="0.05" id="cfg-room_depth">
+  <label>Room height (m)</label><input type="number" step="0.05" id="cfg-room_height">
+  <div class="chk"><input type="checkbox" id="cfg-fan_enabled"><span>Ceiling fan present</span></div>
+  <label>Fan center x (m)</label><input type="number" step="0.05" id="cfg-fan_x">
+  <label>Fan center y (m)</label><input type="number" step="0.05" id="cfg-fan_y">
+  <label>Fan blade radius (m)</label><input type="number" step="0.05" id="cfg-fan_radius">
+  <label>Fan drop below ceiling (m)</label><input type="number" step="0.05" id="cfg-fan_drop">
+  <label>Hamper x (m)</label><input type="number" step="0.05" id="cfg-hamper_x">
+  <label>Hamper y (m)</label><input type="number" step="0.05" id="cfg-hamper_y">
+  <div class="note">Applying restarts the simulation with the new geometry
+    (mission aborted, claw re-parked, laundry re-scattered).</div>
+  <div class="controls-row" style="margin-top:14px;">
+    <button id="btn-apply" class="primary">Apply</button>
+    <button id="btn-close">Close</button>
+  </div>
+</aside>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+// ---- tiny helpers ---------------------------------------------------------
+const $ = (id) => document.getElementById(id);
+const TENSION_SCALE_N = 45;          // bar full-scale (a bit past the 40 N limit)
+const STATE_WORD = { ok: "OK", warn: "NEAR LIMIT", crit: "OUT OF BAND" };
+const CFG_KEYS = ["room_width","room_depth","room_height","fan_x","fan_y",
+                  "fan_radius","fan_drop","hamper_x","hamper_y"];
+let lastLogLen = -1;
+let drawerOpen = false;
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+async function sendCommand(cmd, args) {
+  try {
+    const resp = await fetch("/api/command", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args ? { cmd, args } : { cmd }),
+    });
+    const body = await resp.json();
+    if (!resp.ok) toast(body.error || ("command failed: " + cmd));
+    poll();
+  } catch (e) { toast("server unreachable"); }
+}
+
+// ---- tension bars ---------------------------------------------------------
+function buildTensionRows() {
+  const holder = $("tensions");
+  holder.innerHTML = "";
+  for (let i = 0; i < 4; i++) {
+    const row = document.createElement("div");
+    row.className = "tension-row";
+    row.innerHTML =
+      `<span class="name">${"ABCD"[i]}</span>` +
+      `<div class="track"><div class="fill" id="fill-${i}"></div>` +
+      `<div class="band-mark" id="lo-${i}"></div><div class="band-mark" id="hi-${i}"></div></div>` +
+      `<span class="tension-val" id="tval-${i}">&mdash;</span>`;
+    holder.appendChild(row);
+  }
+}
+
+function renderTensions(t) {
+  const [lo, hi] = t.band;
+  for (let i = 0; i < 4; i++) {
+    const n = t.newtons[i], st = t.status[i];
+    const fill = $("fill-" + i);
+    fill.style.width = Math.max(0, Math.min(100, 100 * n / TENSION_SCALE_N)) + "%";
+    fill.className = "fill " + st;
+    $("lo-" + i).style.left = (100 * lo / TENSION_SCALE_N) + "%";
+    $("hi-" + i).style.left = (100 * hi / TENSION_SCALE_N) + "%";
+    $("tval-" + i).innerHTML = `<b>${n.toFixed(1)}&nbsp;N</b> ${STATE_WORD[st] || st}`;
+  }
+  $("band-note").textContent =
+    `Legal band: ${lo}–${hi} N per cable (marks on each bar). ` +
+    (t.feasible ? "Statics feasible at current pose." : "STATICS INFEASIBLE at current pose!");
+}
+
+// ---- status polling -------------------------------------------------------
+function setButtons(s) {
+  const idleish = ["IDLE", "STOPPED", "DONE"].includes(s.phase);
+  const jogOk = idleish || s.paused;
+  $("btn-start").disabled = s.mission_active;
+  $("btn-pause").disabled = !(s.mission_active || s.phase === "MOVING") || s.paused;
+  $("btn-resume").disabled = !s.paused;
+  $("btn-stop").disabled = false;
+  $("btn-home").disabled = s.mission_active;
+  $("btn-park").disabled = s.mission_active;
+  $("btn-grip").disabled = s.mission_active && !s.paused;
+  $("btn-release").disabled = s.mission_active && !s.paused;
+  document.querySelectorAll("[data-jog]").forEach(b => b.disabled = !jogOk);
+}
+
+async function poll() {
+  let s;
+  try {
+    s = await (await fetch("/api/status")).json();
+  } catch (e) { return; }
+
+  $("mode-badge").textContent = s.mode;
+  const pb = $("phase-badge");
+  pb.textContent = s.phase;
+  pb.className = "badge" + (s.phase === "STOPPED" ? " stopped" : s.paused ? " paused" : "");
+  $("st-phase").textContent = s.phase;
+  $("st-picked").textContent = s.picked;
+  $("st-pose").textContent =
+    `x ${s.pose.x.toFixed(2)}  y ${s.pose.y.toFixed(2)}  z ${s.pose.z.toFixed(2)}`;
+  const c = s.claw || {};
+  $("st-link").innerHTML = (c.link || "—") +
+    (c.rssi_dbm != null ? ` <small>${c.rssi_dbm} dBm</small>` : "");
+  $("st-batt").innerHTML = c.battery_v != null
+    ? `${c.battery_v.toFixed(2)} V <small>${c.battery_pct}%</small>`
+    : "— <small>needs bench validation</small>";
+  renderTensions(s.tensions);
+  setButtons(s);
+
+  if (s.log.length !== lastLogLen) {
+    const el = $("log");
+    const stick = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+    el.textContent = s.log.join("\n");
+    if (stick) el.scrollTop = el.scrollHeight;
+    lastLogLen = s.log.length;
+  }
+  if (!drawerOpen) fillConfigForm(s.config);
+}
+
+// ---- settings drawer ------------------------------------------------------
+function fillConfigForm(cfg) {
+  if (!cfg) return;
+  for (const k of CFG_KEYS) { const el = $("cfg-" + k); if (el) el.value = cfg[k]; }
+  $("cfg-fan_enabled").checked = !!cfg.fan_enabled;
+}
+
+async function applyConfig() {
+  const body = { fan_enabled: $("cfg-fan_enabled").checked };
+  for (const k of CFG_KEYS) body[k] = parseFloat($("cfg-" + k).value);
+  try {
+    const resp = await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const out = await resp.json();
+    if (!resp.ok) { toast(out.error || "config rejected"); return; }
+    toast("Configuration applied; session restarted.");
+    $("drawer").classList.remove("open"); drawerOpen = false;
+    poll();
+  } catch (e) { toast("server unreachable"); }
+}
+
+// ---- wiring ---------------------------------------------------------------
+buildTensionRows();
+$("btn-start").onclick   = () => sendCommand("start");
+$("btn-pause").onclick   = () => sendCommand("pause");
+$("btn-resume").onclick  = () => sendCommand("resume");
+$("btn-stop").onclick    = () => sendCommand("stop");
+$("btn-home").onclick    = () => sendCommand("home");
+$("btn-park").onclick    = () => sendCommand("park");
+$("btn-grip").onclick    = () => sendCommand("grip");
+$("btn-release").onclick = () => sendCommand("release");
+document.querySelectorAll("[data-jog]").forEach(b => {
+  b.onclick = () => {
+    const [axis, sign] = b.dataset.jog.split(",");
+    sendCommand("jog", { axis, sign: parseInt(sign, 10) });
+  };
+});
+$("btn-settings").onclick = () => { $("drawer").classList.add("open"); drawerOpen = true; };
+$("btn-close").onclick    = () => { $("drawer").classList.remove("open"); drawerOpen = false; };
+$("btn-apply").onclick    = applyConfig;
+
+poll();
+setInterval(poll, 400);
+</script>
+</body>
+</html>

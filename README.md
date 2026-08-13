@@ -72,6 +72,26 @@ python -m scripts.detect_webcam                    # detect + print floor coordi
 python -m scripts.detect_and_plan --image floor.jpg  # full pipeline: detect -> localize -> PLAN
 ```
 
+### Operator dashboard
+
+A local single-page web app for driving the robot from a browser:
+
+```bash
+pip install -r requirements-app.txt        # just Flask; core deps cover the rest
+python -m roomcleaner.app --sim            # http://127.0.0.1:8010
+# or:  python quickstart.py --app          # installs + launches in one step
+```
+
+It shows a live top-down "camera" feed (MJPEG) with detection boxes, status
+cards (phase, claw position, items picked, claw link/battery), per-cable
+tension bars checked against the 0.5–40 N motor band, a scrolling operations
+log, and operator controls: Start / Pause / Resume / STOP, Home, Park,
+Grip/Release, a 0.1 m jog pad (workspace-clamped, fan keep-out enforced), and
+a settings drawer for room/fan/hamper geometry. `--live` wires the same UI to
+the real webcam + YOLO-World + serial winches + WiFi gripper (bench-validate
+first). Details: [`docs/APP.md`](docs/APP.md). The software STOP is not a
+safety device — the physical kill switch remains the power strip.
+
 `detect_and_plan` is the end-to-end brain: it takes a top-down photo (or
 `--webcam 0`), detects the laundry, maps each item to a floor coordinate, runs
 the real pickup planner, and saves an annotated image + a 3D scene. Test it on a

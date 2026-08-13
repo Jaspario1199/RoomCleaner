@@ -164,3 +164,16 @@ Print queue when the printer returns: 4× corner_mount (rev B), 1× spool
 fit-test, claw stack (frame/standoffs/hub), base_station_case tray+lid,
 camera_mount_overhead. Still gated: tendon drum (horn measurement), fingers
 (TPU).
+
+## Console convergence — DONE (8/13)
+One app now: `python -m roomcleaner.app` (--sim | --live --camera N |
+--live --demo), port 8000. The operations console's session architecture
+absorbed the camera-validated capture/inference pipeline (now
+roomcleaner/app/perception.py), detected-items panel + conf slider, plan
+panel (per-target A–D cable lengths/tension/reachability), 3-D room view +
+animate-plan GIF. roomcleaner/webapp deleted; scripts/live_app.py is a
+forwarder. Lead-verified headless in --sim (mission playback) and
+--live --demo (real detect→plan pipeline, motion correctly 409-gated,
+camera-only banner). 192/192 tests. Outstanding: the physical-camera smoke
+test on Jasper's machine (local agent's first task per UPDATE_8-13.md),
+plus the pre-existing live-motion bench items (docs/APP.md).

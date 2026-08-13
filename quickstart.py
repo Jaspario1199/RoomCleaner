@@ -51,8 +51,8 @@ def main() -> None:
     ap.add_argument("--demo", action="store_true",
                     help="after setup, run the full simulation demo")
     ap.add_argument("--app", action="store_true",
-                    help="also install the web-dashboard deps, then launch the "
-                         "operator dashboard in sim mode (http://127.0.0.1:8010)")
+                    help="also install the web-console deps, then launch the "
+                         "unified console in sim mode (http://127.0.0.1:8000)")
     args = ap.parse_args()
 
     if sys.version_info < (3, 10):
@@ -82,8 +82,8 @@ def main() -> None:
         print("\nOutputs written to ./output (scene_before.png, workspace.png, run.gif)")
 
     if args.app:
-        print("\nLaunching the operator dashboard (sim mode) at "
-              "http://127.0.0.1:8010 — Ctrl-C to stop.")
+        print("\nLaunching the RoomCleaner console (sim mode) at "
+              "http://127.0.0.1:8000 — Ctrl-C to stop.")
         run([py, "-m", "roomcleaner.app", "--sim"])
     elif args.camera is not None:
         print("\nLaunching live detection (first run downloads YOLO-World "
@@ -96,7 +96,7 @@ Next steps:
   {act}
   python -m scripts.demo_sim                  # watch the robot in simulation
   python -m scripts.detect_webcam --camera 1  # live laundry detection
-  python -m roomcleaner.app --sim             # operator web dashboard
+  python -m roomcleaner.app --sim             # web console (sim; --live for camera)
 """)
 
 

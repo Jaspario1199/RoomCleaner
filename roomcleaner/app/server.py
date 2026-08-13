@@ -1,5 +1,5 @@
 """
-Flask server + RobotSession backends for the operator dashboard.
+Flask server + RobotSession backends for the unified RoomCleaner console.
 
 Architecture
 ------------
@@ -13,12 +13,20 @@ The web layer is deliberately thin: every route talks to ONE object, a
     boxes, cables, claw). The mission loop is: scatter items -> mission ->
     park -> idle, restartable with the `start` command.
 
-  * `LiveSession` -- the same interface wired to real parts (Webcam +
-    YoloWorldDetector for the feed, SerialDriver for the winches, WiFiGripper
-    for the claw). Heavy dependencies import lazily inside `connect()`; if
-    they are missing the session refuses to start with a message pointing at
-    `--sim`. THIS PATH HAS NOT RUN ON HARDWARE -- see docs/APP.md for the
-    bench-validation checklist.
+  * `LiveSession` -- the same interface wired to real parts. The camera feed
+    runs through `app.perception.PerceptionPipeline` -- the capture thread +
+    inference thread + self-healing reopen ported intact from the retired
+    perception console (camera-validated code). Winches (SerialDriver) and
+    gripper (WiFiGripper) are wired only if reachable; otherwise the session
+    runs in CAMERA-ONLY live mode with motion commands refused (409) and a
+    banner in the UI. `--demo` runs the same session with simulated laundry
+    pushed through the real detection->plan pipeline, no camera needed.
+    Motion on real hardware STILL NEEDS BENCH VALIDATION -- see docs/APP.md.
+
+Shared by both backends (the panels absorbed from the perception console):
+detected-items list (`status.detections`), live confidence slider
+(`POST /api/config {"conf": ...}`), the pickup plan with per-target cable
+lengths (`/api/plan`), and the 3-D room view (`/api/room.png`, `/api/room.gif`).
 
 Safety
 ------
@@ -79,6 +87,16 @@ CEILING_CLEARANCE_M = 0.10    # matches kinematics.is_reachable's z ceiling
 # the edges so the operator sees amber before red.
 TENSION_WARN_LOW_N = 2.0
 TENSION_WARN_HIGH_FRACTION = 0.8    # warn above 80 % of the motor limit
+
+# Detection confidence slider range (same clamp the perception console used).
+CONF_MIN = 0.05
+CONF_MAX = 0.90
+DEFAULT_CONF = 0.25
+
+# Plan panel: cap the planning loop like the perception console did.
+PLAN_MAX_STEPS = 50
+ROOM_GIF_MAX_FRAMES = 45
+ROOM_GIF_FPS = 12
 
 # Simulated claw telemetry (2S LiPo on the effector ESP32).
 SIM_BATTERY_FULL_V = 8.40
@@ -198,7 +216,7 @@ class RobotSession:
 
     mode = "abstract"
 
-    def __init__(self, settings: dict | None = None):
+    def __init__(self, settings: dict | None = None, conf: float = DEFAULT_CONF):
         self._lock = threading.RLock()
         merged = dict(DEFAULT_SETTINGS)
         if settings:
@@ -207,6 +225,9 @@ class RobotSession:
         if err:
             raise ValueError(f"bad session settings: {err}")
         self._settings = merged
+        self._conf = float(np.clip(conf, CONF_MIN, CONF_MAX))
+        self._render_lock = threading.Lock()  # pyplot global state is not thread-safe
+        self._gif_cache: dict = {}            # cached plan animation, keyed by detections
         self._log: deque[str] = deque(maxlen=LOG_CAPACITY)
         self._gripping = False
         self._paused = False
@@ -259,6 +280,22 @@ class RobotSession:
     def _claw_status(self) -> dict:
         raise NotImplementedError
 
+    def _motion_enabled(self) -> bool:
+        """False when motion commands cannot work (camera-only live mode)."""
+        return True
+
+    def _hardware_status(self) -> dict:
+        return {"connected": True, "reason": "simulated hardware"}
+
+    def _perception_stats(self) -> dict | None:
+        """Capture/inference stats for live mode; None in sim."""
+        return None
+
+    def detections(self) -> list[dict]:
+        """Current detections above the confidence threshold, as JSON-ready
+        dicts: {label, confidence, floor: [x, y], bbox, area}."""
+        raise NotImplementedError
+
     def status(self) -> dict:
         with self._lock:
             cfg = self.robot.cfg
@@ -289,6 +326,10 @@ class RobotSession:
                 "picked": self._picked_count(),
                 "gripping": self._gripping,
                 "claw": self._claw_status(),
+                "detections": self.detections(),
+                "motion_enabled": self._motion_enabled(),
+                "hardware": self._hardware_status(),
+                "perception": self._perception_stats(),
                 "log": list(self._log)[-LOG_TAIL:],
                 "config": self.get_settings(),
             }
@@ -299,17 +340,30 @@ class RobotSession:
     # -- settings -----------------------------------------------------------
     def get_settings(self) -> dict:
         with self._lock:
-            return dict(self._settings)
+            out = dict(self._settings)
+            out["conf"] = self._conf
+            return out
 
     def apply_settings(self, updates: dict) -> dict:
-        """Validate and apply new room/fan/hamper settings.
+        """Validate and apply new settings.
 
-        The whole session is rebuilt around the new geometry (the sim
-        restarts): any running mission is aborted and the claw re-parks at
-        the freshly computed rest pose.
+        `conf` (the detection-sensitivity slider) is applied live -- no
+        session restart. Room/fan/hamper geometry rebuilds the whole session
+        (the sim restarts): any running mission is aborted and the claw
+        re-parks at the freshly computed rest pose.
         """
         if not isinstance(updates, dict):
             raise CommandError("config body must be a JSON object", 400)
+        updates = dict(updates)
+        if "conf" in updates:
+            raw = updates.pop("conf")
+            if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+                raise CommandError("conf must be a number", 400)
+            with self._lock:
+                self._conf = float(np.clip(float(raw), CONF_MIN, CONF_MAX))
+                self._on_conf_changed()
+            if not updates:                 # conf-only change: no restart
+                return self.get_settings()
         unknown = set(updates) - set(DEFAULT_SETTINGS)
         if unknown:
             raise CommandError(f"unknown config keys: {sorted(unknown)}", 400)
@@ -328,13 +382,16 @@ class RobotSession:
                 f"(room {merged['room_width']}x{merged['room_depth']}x"
                 f"{merged['room_height']} m); session restarted."
             )
-            return dict(self._settings)
+            return self.get_settings()
 
     def _abort_all_motion(self) -> None:
         """Drop any mission/manual motion (used by config apply and STOP)."""
 
     def _on_settings_applied(self) -> None:
         """Hook for subclasses after a geometry rebuild."""
+
+    def _on_conf_changed(self) -> None:
+        """Hook for subclasses when the confidence threshold changes."""
 
     # -- commands -----------------------------------------------------------
     def command(self, cmd: str, args: dict | None) -> dict:
@@ -384,6 +441,148 @@ class RobotSession:
         if self._mission_active():
             raise CommandError(f"{what} rejected: a mission is active (stop it first)", 409)
 
+    # -- planning + 3-D room view (ported from the perception console) -------
+    def _detection_objects(self) -> list:
+        """The current detections as perception `Detection` objects."""
+        from ..perception.detector import Detection
+
+        return [
+            Detection(
+                position=np.array([d["floor"][0], d["floor"][1], 0.0]),
+                label=d["label"], confidence=float(d["confidence"]),
+                area=float(d.get("area", 0.0)),
+                bbox=tuple(d["bbox"]) if d.get("bbox") else None,
+            )
+            for d in self.detections()
+        ]
+
+    def _plan_inputs(self):
+        """Snapshot (items, robot, hamper, position, rest) under the lock."""
+        from ..perception.live import LiveDetector
+
+        with self._lock:
+            items = self._detection_objects()
+            robot = self.robot
+            hamper_xy = self.hamper_xy
+            position = self._position.copy()
+            rest = self.rest.copy()
+        holder = LiveDetector(None)
+        holder._items = list(items)
+        return items, holder, robot, hamper_xy, position, rest
+
+    def plan(self) -> dict:
+        """Plan the pickup order + per-target winch (cable-length) commands for
+        the current detections, using the SAME Controller that drives the
+        robot. Planning starts from the claw's current pose."""
+        from ..control.state_machine import Controller
+
+        items, holder, robot, hamper_xy, position, _ = self._plan_inputs()
+        ctrl = Controller(robot, holder, hamper_xy=hamper_xy)
+        ctrl.position = position
+
+        anchors = ["A", "B", "C", "D"]
+        steps = []
+        for _ in range(PLAN_MAX_STEPS):
+            actions = ctrl._plan_cycle()
+            if actions is None:
+                break
+            grab_pt = next((p for k, p in actions if k == "grip"), None)
+            lengths = robot.cable_lengths(grab_pt)
+            tensions, feasible = robot.solve_tensions(grab_pt)
+            steps.append({
+                "order": len(steps) + 1,
+                "label": ctrl.target.label,
+                "confidence": round(float(ctrl.target.confidence), 2),
+                "floor": [round(float(ctrl.target.position[0]), 2),
+                          round(float(ctrl.target.position[1]), 2)],
+                "grab_z": round(float(grab_pt[2]), 3),
+                "cables": {a: round(float(L), 3) for a, L in zip(anchors, lengths)},
+                "max_tension_N": round(float(np.max(tensions)), 1),
+                "feasible": bool(feasible),
+            })
+        return {
+            "planned": len(steps),
+            "total_detected": len(items),
+            "unreachable": max(0, len(items) - len(steps)),
+            "trips": len(steps) + (1 if steps else 0),
+            "hamper": [round(float(hamper_xy[0]), 2), round(float(hamper_xy[1]), 2)],
+            "rest": [round(float(x), 2) for x in ctrl.rest],
+            "cruise_z": round(float(ctrl.cruise_z), 2),
+            "steps": steps,
+        }
+
+    def render_room_png(self) -> bytes:
+        """One 3-D matplotlib snapshot of the room with current detections,
+        the claw at its current pose, hamper, and rest marker."""
+        import matplotlib
+        matplotlib.use("Agg", force=True)  # headless render in a worker thread
+        import matplotlib.pyplot as plt
+        from .. import simulator
+
+        _, holder, robot, hamper_xy, position, rest = self._plan_inputs()
+        with self._render_lock:  # pyplot global state -> one render at a time
+            fig = plt.figure(figsize=(7, 5))
+            ax = fig.add_subplot(111, projection="3d")
+            simulator.render_frame(
+                robot, effector=position, detector=holder, hamper_xy=hamper_xy,
+                rest_xyz=rest, ax=ax, title="Room — detections + plan",
+            )
+            buf = io.BytesIO()
+            fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
+            plt.close(fig)
+        return buf.getvalue()
+
+    def render_room_gif(self) -> bytes | None:
+        """Render an animated GIF of the claw flying the whole planned route.
+
+        Reuses the simulator's animate_run (same code that makes run.gif).
+        Cached by a signature of the current detections + room so repeat
+        requests are instant. Returns None when nothing is reachable.
+        """
+        import hashlib
+        import os
+        import tempfile
+        import matplotlib
+        matplotlib.use("Agg", force=True)
+        from ..control.state_machine import Controller
+        from .. import simulator
+
+        items, holder, robot, hamper_xy, _, rest = self._plan_inputs()
+        if not items:
+            return None
+        sig = hashlib.md5(
+            repr([(round(float(d.position[0]), 3), round(float(d.position[1]), 3), d.label)
+                  for d in items]
+                 + [round(float(robot.cfg.room_width), 3),
+                    round(float(robot.cfg.room_depth), 3)]).encode()
+        ).hexdigest()
+        if self._gif_cache.get("sig") == sig and self._gif_cache.get("bytes"):
+            return self._gif_cache["bytes"]
+
+        ctrl = Controller(robot, holder, hamper_xy=hamper_xy)
+        paths = ctrl.run()  # empties holder as it "picks up" each item
+        if not paths:
+            return None
+        holder._items = list(items)  # restore so laundry shows during the flight
+
+        with self._render_lock:  # pyplot + PillowWriter -> one render at a time
+            fd, tmp = tempfile.mkstemp(suffix=".gif")
+            os.close(fd)
+            try:
+                simulator.animate_run(
+                    robot, paths, holder, hamper_xy, out_path=tmp,
+                    rest_xyz=rest, max_frames=ROOM_GIF_MAX_FRAMES, fps=ROOM_GIF_FPS,
+                )
+                with open(tmp, "rb") as fh:
+                    data = fh.read()
+            finally:
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+        self._gif_cache = {"sig": sig, "bytes": data}
+        return data
+
 
 # ---------------------------------------------------------------------------
 # Simulation backend
@@ -400,8 +599,9 @@ class SimSession(RobotSession):
 
     mode = "sim"
 
-    def __init__(self, settings: dict | None = None, seed: int | None = None):
-        super().__init__(settings)
+    def __init__(self, settings: dict | None = None, seed: int | None = None,
+                 conf: float = DEFAULT_CONF):
+        super().__init__(settings, conf=conf)
         self._rng = np.random.default_rng(seed)
         self._homed = True            # sim winches are implicitly homed
         self._tick = 0
@@ -556,6 +756,21 @@ class SimSession(RobotSession):
         self._append_log("Mission complete; claw parked. Press Start to run again.")
 
     # -- status hooks -------------------------------------------------------
+    def detections(self) -> list[dict]:
+        """What the synthetic 'camera' currently sees, above the conf slider."""
+        with self._lock:
+            return [
+                {
+                    "label": it["label"],
+                    "confidence": round(float(it["confidence"]), 3),
+                    "floor": [round(float(it["x"]), 3), round(float(it["y"]), 3)],
+                    "bbox": None,
+                    "area": float(it["area"]),
+                }
+                for it in self._display_items
+                if float(it["confidence"]) >= self._conf
+            ]
+
     def _mission_active(self) -> bool:
         return self._actions is not None
 
@@ -809,19 +1024,27 @@ def _font_small() -> ImageFont.ImageFont:
 
 
 # ---------------------------------------------------------------------------
-# Live-hardware backend  (*** NEEDS BENCH VALIDATION -- see docs/APP.md ***)
+# Live backend  (motion side *** NEEDS BENCH VALIDATION -- see docs/APP.md ***)
 # ---------------------------------------------------------------------------
 class LiveSession(RobotSession):
-    """Same interface as SimSession, wired to the real hardware classes.
+    """Same interface as SimSession, wired to the real parts.
 
     Composition (all existing modules, nothing reimplemented):
-        Webcam + YoloWorldDetector + OverheadLinearMapper -> LiveDetector (feed
-        + floor positions), SerialDriver (winches), WiFiGripper (claw servo),
-        Controller.iter_actions() + subsample_path (mission execution -- the
-        exact pipeline of hardware/executor.run_on_hardware, with pause/stop
-        checks between waypoints).
+        PerceptionPipeline (capture thread + inference thread + self-healing
+        reopen, ported intact from the camera-validated perception console)
+        -> detections + annotated feed; SerialDriver (winches) + WiFiGripper
+        (claw servo) when reachable; Controller.iter_actions() +
+        subsample_path (mission execution -- the exact pipeline of
+        hardware/executor.run_on_hardware, with pause/stop checks between
+        waypoints).
 
-    UNTESTED ON HARDWARE. Before trusting it on the bench, validate:
+    Degrades gracefully: if the serial link / gripper cannot be opened the
+    session still runs as CAMERA-ONLY live mode -- feed, detections, plan and
+    3-D view all work; motion commands are refused with 409 and the UI shows
+    a banner. `demo=True` skips the camera too and seeds simulated laundry
+    through the real detection->plan pipeline (headless verification mode).
+
+    MOTION IS UNTESTED ON HARDWARE. Before trusting it on the bench, validate:
       * serial homing + move round-trips (scripts/hardware_dryrun.py first);
       * the OverheadLinearMapper calibration for YOUR camera mount;
       * WiFiGripper reachability (ESP32 host in hardware/hw_config.py);
@@ -832,54 +1055,105 @@ class LiveSession(RobotSession):
 
     mode = "live"
 
-    def __init__(self, camera_index: int = 0, settings: dict | None = None):
-        super().__init__(settings)
+    def __init__(self, camera_index: int = 0, settings: dict | None = None,
+                 demo: bool = False, conf: float = DEFAULT_CONF):
+        super().__init__(settings, conf=conf)
         self.camera_index = camera_index
-        self.camera = None
-        self.detector = None
+        self.demo = demo
+        self.pipeline = None
         self.driver = None
         self.gripper = None
+        self._hw_connected = False
+        self._hw_reason = "not connected yet (call connect())"
         self._controller: Controller | None = None
         self._mission_thread: threading.Thread | None = None
         self._stop_flag = threading.Event()
 
     # -- lifecycle ----------------------------------------------------------
     def connect(self) -> None:
-        """Open the camera, serial link, and gripper. Heavy imports are lazy."""
-        cfg = self.robot.cfg
-        try:
-            from ..hardware.driver import SerialDriver
-            from ..hardware.gripper import WiFiGripper
-            from ..perception.camera import Webcam
-            from ..perception.live import LiveDetector
-            from ..perception.localization import OverheadLinearMapper
-            from ..perception.vision_detector import YoloWorldDetector
+        """Start the perception pipeline, then try the winches + gripper.
 
-            self.camera = Webcam(self.camera_index).open()
-            img_w, img_h = self.camera.resolution()
-            mapper = OverheadLinearMapper(cfg.room_width, cfg.room_depth, img_w, img_h)
-            self.detector = LiveDetector(YoloWorldDetector(mapper), camera=self.camera)
-            self.driver = SerialDriver(self.robot).open()
-            self.gripper = WiFiGripper()
+        A missing camera (outside --demo) is fatal; missing hardware is not:
+        the session continues camera-only with motion disabled.
+        """
+        from .perception import PerceptionPipeline
+
+        cfg = self.robot.cfg
+        pipeline = PerceptionPipeline(
+            camera_index=self.camera_index,
+            conf=self._conf,
+            source="demo" if self.demo else "camera",
+            room_width=cfg.room_width,
+            room_depth=cfg.room_depth,
+        )
+        try:
+            pipeline.start()
         except Exception as exc:
             raise RuntimeError(
                 f"Live mode unavailable: {exc}\n"
-                "Live mode needs opencv-python, ultralytics, pyserial, a camera "
-                "and the winch Arduino attached. Run the dashboard with --sim "
-                "until the bench is set up."
+                "Live mode needs opencv-python, ultralytics and a camera. "
+                "Run with --sim, or with --live --demo for the no-camera "
+                "demo (simulated laundry, real plan pipeline)."
             ) from exc
-        self._append_log("Live session connected (camera + serial + gripper).")
+        self.pipeline = pipeline
+
+        if self.demo:
+            self._hw_connected = False
+            self._hw_reason = "demo mode: no camera, no hardware (simulated laundry)"
+            self._append_log(
+                "Live session in --demo mode: simulated laundry through the "
+                "real detection->plan pipeline. Motion controls disabled."
+            )
+            return
+        try:
+            from ..hardware.driver import SerialDriver
+            from ..hardware.gripper import WiFiGripper
+
+            self.driver = SerialDriver(self.robot).open()
+            self.gripper = WiFiGripper()
+            self._hw_connected = True
+            self._hw_reason = "serial winches + WiFi gripper connected"
+            self._append_log("Live session connected (camera + serial + gripper).")
+        except Exception as exc:
+            self.driver = None
+            self.gripper = None
+            self._hw_connected = False
+            self._hw_reason = f"winches/gripper unreachable: {exc}"
+            self._append_log(
+                "CAMERA-ONLY live mode: winches/gripper unreachable "
+                f"({exc}). Feed, detections and planning work; motion "
+                "controls are disabled."
+            )
 
     def shutdown(self) -> None:
         self._stop_flag.set()
         if self._mission_thread is not None:
             self._mission_thread.join(timeout=5.0)
-        if self.camera is not None:
-            self.camera.release()
+        if self.pipeline is not None:
+            self.pipeline.stop()
         if self.driver is not None:
             self.driver.close()
 
     # -- status hooks -------------------------------------------------------
+    def detections(self) -> list[dict]:
+        if self.pipeline is None:
+            return []
+        return [d for d in self.pipeline.detections()
+                if float(d["confidence"]) >= self._conf]
+
+    def _perception_stats(self) -> dict | None:
+        return None if self.pipeline is None else self.pipeline.stats_snapshot()
+
+    def _motion_enabled(self) -> bool:
+        return self._hw_connected
+
+    def _hardware_status(self) -> dict:
+        return {"connected": self._hw_connected, "reason": self._hw_reason}
+
+    def _on_conf_changed(self) -> None:
+        if self.pipeline is not None:
+            self.pipeline.conf = self._conf   # inference thread reads it live
+
     def _mission_active(self) -> bool:
         return self._mission_thread is not None and self._mission_thread.is_alive()
 
@@ -896,24 +1170,38 @@ class LiveSession(RobotSession):
         # BENCH VALIDATION: real RSSI/battery telemetry from the ESP32 is a
         # follow-up (firmware endpoint); until then the link is reported only
         # as configured/unknown.
+        if self.gripper is None:
+            return {"link": None, "rssi_dbm": None,
+                    "battery_v": None, "battery_pct": None}
         from ..hardware.hw_config import EFFECTOR_HOST
 
         return {"link": f"wifi:{EFFECTOR_HOST}", "rssi_dbm": None,
                 "battery_v": None, "battery_pct": None}
 
     # -- commands (mirror SimSession semantics) ------------------------------
+    def _require_hardware(self, what: str) -> None:
+        if not self._hw_connected:
+            raise CommandError(
+                f"{what} rejected: motion hardware not connected "
+                f"({self._hw_reason})", 409
+            )
+
     def _abort_all_motion(self) -> None:
         self._stop_flag.set()
         self._paused = False
 
     def _cmd_start(self, args: dict) -> dict:
         self._require_idle("start")
-        if self.driver is None or self.detector is None:
-            raise CommandError("live session not connected", 409)
+        self._require_hardware("start")
         if not self._homed:
             raise CommandError("home the winches before starting a mission", 409)
-        self.detector.snapshot()                 # one look at the floor
-        controller = Controller(self.robot, self.detector, hamper_xy=self.hamper_xy)
+        # One look at the floor: freeze the pipeline's current detections into
+        # a Detector the Controller can walk (same holder the plan panel uses).
+        from ..perception.live import LiveDetector
+
+        holder = LiveDetector(None)
+        holder._items = self._detection_objects()
+        controller = Controller(self.robot, holder, hamper_xy=self.hamper_xy)
         controller.position = self._position.copy()
         self._controller = controller
         self._stop_flag.clear()
@@ -986,8 +1274,7 @@ class LiveSession(RobotSession):
 
     def _cmd_home(self, args: dict) -> dict:
         self._require_idle("home")
-        if self.driver is None:
-            raise CommandError("live session not connected", 409)
+        self._require_hardware("home")
         self.driver.home()
         self._homed = True
         self._position = self.rest.copy()   # homed pose == calibrated rest pose
@@ -996,7 +1283,8 @@ class LiveSession(RobotSession):
 
     def _cmd_park(self, args: dict) -> dict:
         self._require_idle("park")
-        if self.driver is None or not self._homed:
+        self._require_hardware("park")
+        if not self._homed:
             raise CommandError("home the winches before parking", 409)
         from ..hardware.executor import subsample_path
 
@@ -1013,8 +1301,7 @@ class LiveSession(RobotSession):
     def _cmd_grip(self, args: dict) -> dict:
         if self._mission_active() and not self._paused:
             raise CommandError("grip rejected: mission running", 409)
-        if self.gripper is None:
-            raise CommandError("live session not connected", 409)
+        self._require_hardware("grip")
         self.gripper.grip()
         self._gripping = True
         self._append_log("Manual grip.")
@@ -1023,8 +1310,7 @@ class LiveSession(RobotSession):
     def _cmd_release(self, args: dict) -> dict:
         if self._mission_active() and not self._paused:
             raise CommandError("release rejected: mission running", 409)
-        if self.gripper is None:
-            raise CommandError("live session not connected", 409)
+        self._require_hardware("release")
         self.gripper.release()
         self._gripping = False
         self._append_log("Manual release.")
@@ -1033,7 +1319,8 @@ class LiveSession(RobotSession):
     def _cmd_jog(self, args: dict) -> dict:
         if self._mission_active() and not self._paused:
             raise CommandError("jog rejected: only allowed while paused or idle", 409)
-        if self.driver is None or not self._homed:
+        self._require_hardware("jog")
+        if not self._homed:
             raise CommandError("home the winches before jogging", 409)
         target = self._validated_jog_target(args)
         self.driver.move_to_point(target)
@@ -1044,20 +1331,41 @@ class LiveSession(RobotSession):
 
     # -- feed ---------------------------------------------------------------
     def frame_jpeg(self) -> bytes:
-        """One camera frame with the last detection boxes burned in."""
-        if self.camera is None:
+        """The pipeline's annotated camera frame (boxes + HUD burned in), or
+        a rendered top-down placeholder in --demo mode."""
+        if self.pipeline is None:
             return _placeholder_jpeg("LIVE CAMERA NOT CONNECTED")
-        frame = self.camera.read()               # HxWx3 BGR (OpenCV order)
-        img = Image.fromarray(frame[:, :, ::-1])  # BGR -> RGB
+        if self.pipeline.source == "demo":
+            return self._demo_frame_jpeg()
+        jpg = self.pipeline.annotated_jpeg()
+        return jpg if jpg is not None else _placeholder_jpeg("waiting for camera...")
+
+    def _demo_frame_jpeg(self) -> bytes:
+        """No camera in --demo: draw a simple top-down map of the simulated
+        detections so the feed panel still shows what the planner sees."""
+        cfg = self.robot.cfg
+        w_px, h_px, pad = 640, 400, 30
+        ppm = min((w_px - 2 * pad) / cfg.room_width,
+                  (h_px - 2 * pad) / cfg.room_depth)
+
+        def px(x: float, y: float) -> tuple[float, float]:
+            return (pad + x * ppm, h_px - pad - y * ppm)
+
+        img = Image.new("RGB", (w_px, h_px), (13, 13, 13))
         draw = ImageDraw.Draw(img, "RGBA")
-        items = self.detector.detect() if self.detector is not None else []
-        for det in items:
-            if det.bbox is None:
-                continue
-            x1, y1, x2, y2 = det.bbox
-            draw.rectangle([x1, y1, x2, y2], outline=(25, 158, 112, 255), width=2)
-            draw.text((x1, y1 - 3), f"{det.label} {det.confidence:.2f}",
-                      font=_font_small(), fill=(122, 216, 176, 255), anchor="lb")
+        x0, y0 = px(0.0, cfg.room_depth)
+        x1, y1 = px(cfg.room_width, 0.0)
+        draw.rectangle([x0, y0, x1, y1], fill=(26, 26, 25), outline=(70, 70, 66))
+        for d in self.detections():
+            bx, by = px(d["floor"][0], d["floor"][1])
+            draw.ellipse([bx - 5, by - 5, bx + 5, by + 5], fill=(25, 158, 112, 255))
+            draw.text((bx + 8, by), f'{d["label"]} {d["confidence"]:.2f}',
+                      font=_font_small(), fill=(122, 216, 176, 255), anchor="lm")
+        hx, hy = px(*self.hamper_xy)
+        draw.rectangle([hx - 10, hy - 10, hx + 10, hy + 10],
+                       outline=(217, 89, 38, 230), width=2)
+        draw.text((8, 6), "LIVE --demo  (no camera; simulated laundry, real plan pipeline)",
+                  font=_font_small(), fill=(195, 194, 183, 235))
         buf = io.BytesIO()
         img.save(buf, "JPEG", quality=JPEG_QUALITY)
         return buf.getvalue()
@@ -1113,6 +1421,21 @@ def create_app(session: RobotSession) -> Flask:
         except CommandError as exc:
             return jsonify({"error": str(exc)}), exc.status
         return jsonify(applied)
+
+    @app.get("/api/plan")
+    def api_plan():
+        return jsonify(session.plan())
+
+    @app.get("/api/room.png")
+    def api_room_png():
+        return Response(session.render_room_png(), mimetype="image/png")
+
+    @app.get("/api/room.gif")
+    def api_room_gif():
+        data = session.render_room_gif()
+        if data is None:
+            return Response(status=204)
+        return Response(data, mimetype="image/gif")
 
     @app.get("/stream.mjpg")
     def stream():

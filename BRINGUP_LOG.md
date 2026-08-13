@@ -162,3 +162,5 @@ coordinates are not calibrated yet.
    (Arduino/CNC-shield + drivers) and **no limit-switch (KW12-3) mount**.
 4. App extensions (camera-free): overlay the reachable workspace on the floor;
    scaffold robot status + run/pause controls.
+
+> 2026-08-13: the two consoles above converged — `scripts/live_app.py` + `roomcleaner/webapp/` merged into the unified `python -m roomcleaner.app` (port 8000, `--live`/`--demo`); see docs/APP.md.

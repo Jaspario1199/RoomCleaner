@@ -145,9 +145,10 @@ buck + switch just make it cordless later.
 ## Phase 10 — Camera (already verified live)
 
 The innomaker is **index 1** (`python -m scripts.camera_view --list` to
-re-check). `python -m scripts.live_app --camera 1` → http://localhost:8000
-for the live perception console; `python -m roomcleaner.app --sim` →
-http://localhost:8010 to fly simulated missions.
+re-check). The consoles merged into one app (docs/APP.md):
+`python -m roomcleaner.app --live --camera 1` → http://localhost:8000 for the
+live camera view; `python -m roomcleaner.app --sim` → same URL to fly
+simulated missions.
 
 ---
 

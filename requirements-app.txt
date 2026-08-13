@@ -1,6 +1,5 @@
-# Web console extras (browser UIs; the core package and CLI work without it).
-# Used by BOTH consoles: the live perception console (scripts/live_app.py) and
-# the operations console (python -m roomcleaner.app).
-# Install alongside the vision stack for the live console:
+# Web console extras (the unified browser UI; the core package and CLI work
+# without it): python -m roomcleaner.app --sim | --live | --live --demo
+# Install alongside the vision stack for live camera mode:
 #   pip install -r requirements-vision.txt -r requirements-app.txt
 flask>=3.0

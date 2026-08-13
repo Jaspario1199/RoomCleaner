@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RoomCleaner Operator</title>
+<title>RoomCleaner Console</title>
 <style>
   /* Self-contained dark operator theme -- no external assets. */
   :root {
@@ -126,23 +126,87 @@
   }
   #toast.show { opacity: 1; }
   .footnote { color: var(--muted); font-size: 11px; padding: 0 18px 16px; max-width: 1280px; margin: 0 auto; }
+  /* Camera-only / demo live-mode banner */
+  #banner {
+    display: none; max-width: 1280px; margin: 12px auto 0; padding: 8px 14px;
+    background: var(--surface); border: 1px solid var(--warn); border-radius: 8px;
+    color: var(--warn); font-size: 13px; font-weight: 600;
+  }
+  #banner.show { display: block; margin-left: 18px; margin-right: 18px; }
+  @media (min-width: 1316px) { #banner.show { margin-left: auto; margin-right: auto; } }
+  /* Sensitivity (confidence) slider under the feed */
+  .conf-row {
+    display: flex; align-items: center; gap: 10px; margin-top: 10px;
+    color: var(--muted); font-size: 12.5px; flex-wrap: wrap;
+  }
+  .conf-row b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .conf-row input[type=range] { flex: 1; min-width: 140px; accent-color: var(--accent); }
+  #feed-stats { font: 11px ui-monospace, Menlo, Consolas, monospace; color: var(--muted); }
+  /* Perception row: detected items + plan + 3-D room view */
+  .percept {
+    display: grid; grid-template-columns: minmax(240px, .8fr) minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 14px; padding: 0 18px 14px; max-width: 1280px; margin: 0 auto;
+    align-items: start;
+  }
+  @media (max-width: 1100px) { .percept { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 760px)  { .percept { grid-template-columns: 1fr; } }
+  #detlist { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
+  .det { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; }
+  .det .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .det .lab { font-weight: 600; text-transform: capitalize; }
+  .det .co { font: 12px ui-monospace, monospace; color: var(--good); }
+  .det .meta { color: var(--muted); font: 11px ui-monospace, monospace; margin-top: 2px; }
+  .det .bar { height: 4px; border-radius: 2px; background: var(--grid); margin-top: 6px; overflow: hidden; }
+  .det .bar > span { display: block; height: 100%; background: var(--good); }
+  .empty { color: var(--muted); font-size: 13px; padding: 10px 2px; }
+  #plansummary { font-size: 13px; color: var(--ink-2); line-height: 1.6; margin-bottom: 8px; }
+  #plansummary b { color: var(--accent); }
+  #plansteps { max-height: 380px; overflow-y: auto; }
+  .step { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 7px; }
+  .step .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .step .ord { color: var(--muted); font: 11px ui-monospace, monospace; }
+  .step .lab { font-weight: 600; text-transform: capitalize; }
+  .step .rz { color: var(--muted); font: 11px ui-monospace, monospace; }
+  .step .cables { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+  .cbl { background: var(--page); border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; text-align: center; }
+  .cbl .k { color: var(--muted); font: 10px ui-monospace, monospace; }
+  .cbl .v { font: 12px ui-monospace, monospace; color: var(--ink-2); }
+  .step .foot { margin-top: 6px; font: 11px ui-monospace, monospace; color: var(--muted);
+    display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .reach-ok { color: var(--good); } .reach-bad { color: var(--crit); }
+  .viewbox { position: relative; }
+  #roomimg { width: 100%; border: 1px solid var(--border); border-radius: 8px; background: #fff; display: block; }
+  #rendering {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(13,13,13,.72); color: var(--ink); font-size: 13px; border-radius: 8px;
+  }
+  .viewbtns { display: flex; gap: 8px; margin-top: 8px; }
+  .vb { flex: 1; }
+  .vb.active { border-color: var(--accent); color: var(--accent); }
+  .viewcap { color: var(--muted); font-size: 11px; margin-top: 6px; text-align: center; }
 </style>
 </head>
 <body>
 <header>
-  <h1>RoomCleaner &mdash; Operator</h1>
+  <h1>RoomCleaner &mdash; Console</h1>
   <span class="badge" id="mode-badge">&mdash;</span>
   <span class="badge" id="phase-badge">&mdash;</span>
   <span class="spacer"></span>
   <button id="btn-settings">Settings</button>
 </header>
 
+<div id="banner"></div>
+
 <main>
   <!-- Left column: feed + log -->
   <div style="display:grid; gap:14px; align-content:start;">
     <section class="panel">
-      <h2>Live feed</h2>
+      <h2>Live feed <span id="feed-stats"></span></h2>
       <img id="feed" src="/stream.mjpg" alt="robot camera feed">
+      <div class="conf-row">
+        <label for="conf">Detection sensitivity (confidence &ge; <b id="confval">0.25</b>)</label>
+        <input type="range" id="conf" min="0.05" max="0.90" step="0.05" value="0.25">
+      </div>
     </section>
     <section class="panel">
       <h2>Operations log</h2>
@@ -202,6 +266,31 @@
   </div>
 </main>
 
+<!-- Perception row: panels absorbed from the live perception console -->
+<div class="percept">
+  <section class="panel">
+    <h2>Detected items</h2>
+    <div id="detlist"><div class="empty">watching the floor&hellip;</div></div>
+  </section>
+  <section class="panel">
+    <h2>Robot &amp; plan &mdash; pickup order + winch commands</h2>
+    <div id="plansummary" class="empty">planning&hellip;</div>
+    <div id="plansteps"></div>
+  </section>
+  <section class="panel">
+    <h2>3-D room view</h2>
+    <div class="viewbox">
+      <img id="roomimg" src="/api/room.png" alt="3D room view">
+      <div id="rendering" hidden>rendering animation&hellip; (~10s)</div>
+    </div>
+    <div class="viewbtns">
+      <button id="btn-room-live" class="vb active">&#9679; Live view</button>
+      <button id="btn-room-anim" class="vb">&#9654; Animate plan</button>
+    </div>
+    <div class="viewcap">3-D room &middot; winches &#9632; &middot; claw &#9679; &middot; laundry &#9733; &middot; hamper &#10010; &middot; fan keep-out (red)</div>
+  </section>
+</div>
+
 <p class="footnote">
   Software STOP halts the mission command stream; it is not a safety device.
   The physical kill switch is the power strip feeding the winch PSU.
@@ -240,6 +329,8 @@ const CFG_KEYS = ["room_width","room_depth","room_height","fan_x","fan_y",
                   "fan_radius","fan_drop","hamper_x","hamper_y"];
 let lastLogLen = -1;
 let drawerOpen = false;
+let confDirty = false;   // operator is dragging the sensitivity slider
+let roomMode = "live";   // 3-D room view: "live" (png) or "anim" (gif)
 
 function toast(msg) {
   const t = $("toast");
@@ -296,17 +387,57 @@ function renderTensions(t) {
 
 // ---- status polling -------------------------------------------------------
 function setButtons(s) {
+  const motion = s.motion_enabled !== false;   // false in camera-only/demo live
   const idleish = ["IDLE", "STOPPED", "DONE"].includes(s.phase);
-  const jogOk = idleish || s.paused;
-  $("btn-start").disabled = s.mission_active;
+  const jogOk = motion && (idleish || s.paused);
+  $("btn-start").disabled = !motion || s.mission_active;
   $("btn-pause").disabled = !(s.mission_active || s.phase === "MOVING") || s.paused;
   $("btn-resume").disabled = !s.paused;
   $("btn-stop").disabled = false;
-  $("btn-home").disabled = s.mission_active;
-  $("btn-park").disabled = s.mission_active;
-  $("btn-grip").disabled = s.mission_active && !s.paused;
-  $("btn-release").disabled = s.mission_active && !s.paused;
+  $("btn-home").disabled = !motion || s.mission_active;
+  $("btn-park").disabled = !motion || s.mission_active;
+  $("btn-grip").disabled = !motion || (s.mission_active && !s.paused);
+  $("btn-release").disabled = !motion || (s.mission_active && !s.paused);
   document.querySelectorAll("[data-jog]").forEach(b => b.disabled = !jogOk);
+}
+
+function renderBanner(s) {
+  const b = $("banner");
+  if (s.mode === "live" && s.motion_enabled === false) {
+    const reason = (s.hardware && s.hardware.reason) || "hardware not connected";
+    b.textContent = "⚠ CAMERA-ONLY LIVE MODE — " + reason +
+                    ". Motion controls are disabled; feed, detections and planning stay live.";
+    b.classList.add("show");
+  } else {
+    b.classList.remove("show");
+  }
+}
+
+function renderDetections(s) {
+  const list = $("detlist");
+  const dets = s.detections || [];
+  if (!dets.length) {
+    const ready = !s.perception || s.perception.model_ready;
+    list.innerHTML = `<div class="empty">${ready ? "no laundry in view" : "loading detector…"}</div>`;
+    return;
+  }
+  list.innerHTML = dets.map(d => {
+    const pct = Math.round(d.confidence * 100);
+    const [x, y] = d.floor;
+    return `<div class="det">
+      <div class="row"><span class="lab">${d.label}</span><span class="co">${d.confidence.toFixed(2)}</span></div>
+      <div class="meta">floor (${x.toFixed(2)}, ${y.toFixed(2)}) m</div>
+      <div class="bar"><span style="width:${pct}%"></span></div>
+    </div>`;
+  }).join("");
+}
+
+function renderFeedStats(s) {
+  const p = s.perception;
+  const n = (s.detections || []).length;
+  $("feed-stats").textContent = p
+    ? `— ${p.resolution || "?"} · cam ${p.cam_fps} fps · infer ${p.infer_fps} fps · ${n} item(s)`
+    : `— ${n} item(s)`;
 }
 
 async function poll() {
@@ -331,6 +462,13 @@ async function poll() {
     : "— <small>needs bench validation</small>";
   renderTensions(s.tensions);
   setButtons(s);
+  renderBanner(s);
+  renderDetections(s);
+  renderFeedStats(s);
+  if (!confDirty && s.config && s.config.conf != null) {
+    $("conf").value = s.config.conf;
+    $("confval").textContent = (+s.config.conf).toFixed(2);
+  }
 
   if (s.log.length !== lastLogLen) {
     const el = $("log");
@@ -366,6 +504,87 @@ async function applyConfig() {
   } catch (e) { toast("server unreachable"); }
 }
 
+// ---- sensitivity (confidence) slider --------------------------------------
+$("conf").addEventListener("input", () => {
+  confDirty = true;
+  $("confval").textContent = (+$("conf").value).toFixed(2);
+});
+$("conf").addEventListener("change", async () => {
+  try {
+    await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conf: +$("conf").value }),
+    });
+  } catch (e) { toast("server unreachable"); }
+  confDirty = false;
+});
+
+// ---- Robot & plan panel ---------------------------------------------------
+async function planPoll() {
+  let p;
+  try {
+    p = await (await fetch("/api/plan")).json();
+  } catch (e) { return; }
+  const sum = $("plansummary");
+  if (!p.total_detected) {
+    sum.className = "empty";
+    sum.textContent = "no items detected — nothing to plan yet";
+    $("plansteps").innerHTML = "";
+    return;
+  }
+  sum.className = "";
+  sum.innerHTML = `Plan: <b>${p.planned}</b> pickup(s) in <b>${p.trips}</b> trip(s)`
+    + (p.unreachable ? ` · <span class="reach-bad">${p.unreachable} unreachable</span>` : "")
+    + ` · hamper (${p.hamper[0]}, ${p.hamper[1]}) m · cruise z ${p.cruise_z} m`
+    + ` · rest [${p.rest.join(", ")}]`;
+  $("plansteps").innerHTML = p.steps.map(s => {
+    const cbl = ["A", "B", "C", "D"].map(k =>
+      `<div class="cbl"><div class="k">${k}</div><div class="v">${s.cables[k].toFixed(2)}</div></div>`).join("");
+    return `<div class="step">
+      <div class="top">
+        <span><span class="ord">#${s.order}</span> <span class="lab">${s.label}</span>
+          <span class="rz">@(${s.floor[0]}, ${s.floor[1]}) m</span></span>
+        <span class="${s.feasible ? "reach-ok" : "reach-bad"}">${s.feasible ? "reachable" : "NOT reachable"}</span>
+      </div>
+      <div class="cables">${cbl}</div>
+      <div class="foot"><span>cable lengths A–D (m) · grab z ${s.grab_z} m</span>
+        <span>max tension ${s.max_tension_N} N</span></div>
+    </div>`;
+  }).join("");
+}
+
+// ---- 3-D room view (Live view / Animate plan) -----------------------------
+function setRoomMode(m) {
+  roomMode = m;
+  $("btn-room-live").classList.toggle("active", m === "live");
+  $("btn-room-anim").classList.toggle("active", m === "anim");
+}
+$("btn-room-live").onclick = () => {
+  setRoomMode("live");
+  $("rendering").hidden = true;
+  $("roomimg").src = "/api/room.png?t=" + Date.now();
+};
+$("btn-room-anim").onclick = async () => {
+  const r = $("rendering");
+  try {
+    const p = await (await fetch("/api/plan")).json();
+    if (!p.planned) {
+      r.textContent = "no reachable items to animate";
+      r.hidden = false;
+      setTimeout(() => { r.hidden = true; r.textContent = "rendering animation… (~10s)"; }, 1800);
+      return;
+    }
+  } catch (e) {}
+  setRoomMode("anim");
+  r.textContent = "rendering animation… (~10s)";
+  r.hidden = false;
+  const img = new Image();
+  img.onload = () => { $("roomimg").src = img.src; r.hidden = true; };
+  img.onerror = () => { r.hidden = true; setRoomMode("live"); };
+  img.src = "/api/room.gif?t=" + Date.now();
+};
+
 // ---- wiring ---------------------------------------------------------------
 buildTensionRows();
 $("btn-start").onclick   = () => sendCommand("start");
@@ -388,6 +607,11 @@ $("btn-apply").onclick    = applyConfig;
 
 poll();
 setInterval(poll, 400);
+planPoll();
+setInterval(planPoll, 2000);
+setInterval(() => {
+  if (roomMode === "live") { $("roomimg").src = "/api/room.png?t=" + Date.now(); }
+}, 4000);
 </script>
 </body>
 </html>

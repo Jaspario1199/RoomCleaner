@@ -14,7 +14,7 @@ import pytest
 
 pytest.importorskip("flask")
 
-from roomcleaner.app.server import SimSession, create_app  # noqa: E402
+from roomcleaner.app.server import LiveSession, SimSession, create_app  # noqa: E402
 from roomcleaner.config import SAFE_MIN_Z, WALL_MARGIN  # noqa: E402
 from roomcleaner.geometry import point_in_cylinder  # noqa: E402
 
@@ -179,3 +179,117 @@ def test_jog_rejected_while_mission_running(app_session):
     resp = client.post("/api/command", json={"cmd": "jog",
                                              "args": {"axis": "z", "sign": -1}})
     assert resp.status_code in (200, 409)   # 409 only if statics/fan reject it
+
+
+# ---------------------------------------------------------------------------
+# Absorbed perception-console panels: /api/plan, room views, conf slider
+# ---------------------------------------------------------------------------
+def test_plan_schema_sim(app_session):
+    client, session = app_session
+    resp = client.get("/api/plan")
+    assert resp.status_code == 200
+    p = resp.get_json()
+    for key in ("planned", "total_detected", "unreachable", "trips",
+                "hamper", "rest", "cruise_z", "steps"):
+        assert key in p, f"missing plan key: {key}"
+    assert p["total_detected"] == len(session.detections()) > 0
+    assert p["planned"] >= 1                      # seed=3 scatter is reachable
+    assert p["planned"] == len(p["steps"])
+    assert p["unreachable"] == p["total_detected"] - p["planned"]
+    for step in p["steps"]:
+        assert set(step["cables"]) == {"A", "B", "C", "D"}
+        assert all(v > 0 for v in step["cables"].values())
+        assert step["max_tension_N"] > 0
+        assert isinstance(step["feasible"], bool)
+        assert len(step["floor"]) == 2
+        assert step["grab_z"] >= 0.0
+
+
+def test_status_includes_detections(app_session):
+    client, _ = app_session
+    s = client.get("/api/status").get_json()
+    assert s["motion_enabled"] is True            # sim can always move
+    assert isinstance(s["detections"], list) and s["detections"]
+    d = s["detections"][0]
+    assert set(d) == {"label", "confidence", "floor", "bbox", "area"}
+    assert len(d["floor"]) == 2
+
+
+def test_room_png_returns_image(app_session):
+    client, _ = app_session
+    resp = client.get("/api/room.png")
+    assert resp.status_code == 200
+    assert resp.content_type == "image/png"
+    assert resp.data[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_conf_slider_round_trip(app_session):
+    client, session = app_session
+    robot_before = session.robot
+    assert client.get("/api/config").get_json()["conf"] == pytest.approx(0.25)
+    resp = client.post("/api/config", json={"conf": 0.4})
+    assert resp.status_code == 200
+    assert resp.get_json()["conf"] == pytest.approx(0.4)
+    assert client.get("/api/config").get_json()["conf"] == pytest.approx(0.4)
+    # A conf-only change must NOT restart the session (unlike geometry).
+    assert session.robot is robot_before
+    # Values are clamped to the slider range, like the old console did.
+    client.post("/api/config", json={"conf": 5.0})
+    assert client.get("/api/config").get_json()["conf"] == pytest.approx(0.9)
+    # Raising conf above the sim confidences hides detections from the panel.
+    client.post("/api/config", json={"conf": 0.9})
+    hidden = [d for d in session.detections() if d["confidence"] < 0.9]
+    assert hidden == []
+    assert client.post("/api/config",
+                       json={"conf": "high"}).status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# --live --demo: the headless merge-verification mode (no camera, no torch)
+# ---------------------------------------------------------------------------
+@pytest.fixture()
+def demo_session():
+    session = LiveSession(demo=True)
+    session.connect()
+    app = create_app(session)
+    app.config["TESTING"] = True
+    yield app.test_client(), session
+    session.shutdown()
+
+
+def test_live_demo_boots_headless(demo_session):
+    client, session = demo_session
+    s = client.get("/api/status").get_json()
+    assert s["mode"] == "live"
+    assert s["phase"] == "IDLE"
+    assert s["motion_enabled"] is False           # demo has no winches/gripper
+    assert s["hardware"]["connected"] is False
+    assert "demo" in s["hardware"]["reason"]
+    assert len(s["detections"]) >= 1              # simulated laundry is seeded
+    assert s["perception"]["model_ready"] is True
+    assert s["perception"]["source"] == "demo"
+
+
+def test_live_demo_plan_uses_real_pipeline(demo_session):
+    client, _ = demo_session
+    p = client.get("/api/plan").get_json()
+    assert p["total_detected"] >= 1
+    assert p["planned"] >= 1                      # real Controller planned trips
+    assert all(set(s["cables"]) == {"A", "B", "C", "D"} for s in p["steps"])
+
+
+def test_live_demo_motion_refused_and_feed_serves(demo_session):
+    client, session = demo_session
+    for cmd in ("start", "home", "park", "grip", "release"):
+        resp = client.post("/api/command", json={"cmd": cmd})
+        assert resp.status_code == 409, f"{cmd} must be refused without hardware"
+        assert "hardware" in resp.get_json()["error"].lower()
+    # STOP always works (it only halts the command stream).
+    assert client.post("/api/command", json={"cmd": "stop"}).status_code == 200
+    # The feed still serves a JPEG (rendered demo frame, no camera).
+    frame = session.frame_jpeg()
+    assert frame[:2] == b"\xff\xd8"               # JPEG magic
+    # And the room view renders.
+    resp = client.get("/api/room.png")
+    assert resp.status_code == 200
+    assert resp.data[:8] == b"\x89PNG\r\n\x1a\n"

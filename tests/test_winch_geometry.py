@@ -930,6 +930,159 @@ def test_corner_mount_step_round_trip():
         assert vol_diff_pct <= 1.0, f"STEP round-trip volume diff {vol_diff_pct:.4f}% > 1%"
 
 
+# ---------------------------------------------------------------------------
+# Check 9: corner_mount KW12-3 homing-switch mount (added this revision).
+# See cad/parts/corner_mount.py module docstring "HOMING SWITCH" for the
+# design reasoning (datasheet sourcing, orientation, adjustability
+# mechanism, bead-placement procedure) these tests check against.
+# ---------------------------------------------------------------------------
+
+def test_corner_mount_kw12_boss_present_at_declared_position():
+    """Solid probe midway between the front leg's zip-tie slot and its
+    screw slot (both cut features), at the boss's mid-height -- must be
+    solid printed material, confirming the boss/leg actually exists at its
+    declared position (not just a passing constant computation)."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    y_probe = (
+        (corner_mount.KW_ZIP_Y[0] + corner_mount.KW_ZIPTIE_SLOT_W / 2)
+        + (corner_mount.KW_SCREW_Y[0] - corner_mount.KW12_SELFTAP_PILOT_DIA / 2)
+    ) / 2
+    z_probe = corner_mount.PLATE_T + corner_mount.KW_BOSS_H / 2
+    assert ins(corner_mount.KW_TRIGGER_X, y_probe, z_probe), (
+        f"corner_mount KW12 boss: expected solid material at "
+        f"(x={corner_mount.KW_TRIGGER_X}, y={y_probe:.3f}, z={z_probe:.3f}) "
+        "-- the front leg between its zip-tie slot and screw slot"
+    )
+
+
+def test_corner_mount_kw12_line_corridor_clearance():
+    """The Dyneema line + stopper bead travel corridor -- Y=0 +-3 mm, Z in
+    [CORNER_MOUNT_AXIS_Z-8, +8] above the plate top, spanning X between the
+    spool axis (WALL_CX) and the pulley axle (EAR_CX) -- must be entirely
+    clear of built corner_mount material except for the switch's LEVER,
+    which is a purchased-part feature this file does not model as printed
+    geometry (only the boss/leg PLASTIC is built here, and it is kept at
+    Y >= KW_BOSS_Y0 = 4.0 mm, outside the +-3 mm corridor by construction --
+    see KW_BOSS_Y0's own comment in corner_mount.py). So the lever-crossing
+    exception the assignment anticipates is structurally a no-op for this
+    probe: expect exactly 0 mm^3, with no exclusion needed."""
+    cm = corner_mount.make()
+    x0, x1 = corner_mount.WALL_CX, corner_mount.EAR_CX
+    z_lo = corner_mount.PLATE_T + I.CORNER_MOUNT_AXIS_Z - 8.0
+    corridor = (
+        cq.Workplane("XY").workplane(offset=z_lo)
+        .center((x0 + x1) / 2, 0.0)
+        .rect(x1 - x0, 6.0)   # Y in [-3, 3]
+        .extrude(16.0)         # Z in [axis-8, axis+8]
+    )
+    inter = corridor.intersect(cm)
+    volume = inter.val().Volume() if inter.solids().vals() else 0.0
+    assert volume < 1e-6, (
+        f"corner_mount intrudes into the Y=0 +-3mm line corridor by "
+        f"{volume:.6f} mm^3 (expected 0 -- the boss/legs must stay outside "
+        "the corridor entirely; only the purchased switch's lever, not "
+        "modeled here, is permitted to cross it)"
+    )
+
+
+@pytest.mark.parametrize("leg_idx", [0, 1])
+def test_corner_mount_kw12_ziptie_slots_are_through_cuts(leg_idx):
+    """Each zip-tie slot must be void from just above the plate top to just
+    below the boss top -- a genuine through-cut, not a blind pocket."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    zip_y = corner_mount.KW_ZIP_Y[leg_idx]
+    z_lo = corner_mount.PLATE_T + 0.5
+    z_hi = corner_mount.PLATE_T + corner_mount.KW_BOSS_H - 0.5
+    assert not ins(corner_mount.KW_TRIGGER_X, zip_y, z_lo), (
+        f"corner_mount KW12 zip-tie slot {leg_idx}: expected void near the "
+        f"boss base (z={z_lo}), found solid material"
+    )
+    assert not ins(corner_mount.KW_TRIGGER_X, zip_y, z_hi), (
+        f"corner_mount KW12 zip-tie slot {leg_idx}: expected void near the "
+        f"boss top (z={z_hi}), found solid material -- not a through-cut"
+    )
+    # A point 0.5 mm beyond the slot's INWARD edge (toward the leg's screw
+    # slot) must be solid -- proves this is a bounded slot, not an
+    # accidental gap spanning the whole leg. (The slot's OUTWARD edge is
+    # flush with the boss's own leading/trailing face by design -- an open
+    # notch, not enclosed -- so only the inward side has material to probe.)
+    inward_sign = 1 if leg_idx == 0 else -1
+    edge_y = zip_y + inward_sign * (corner_mount.KW_ZIPTIE_SLOT_W / 2 + 0.5)
+    z_mid = corner_mount.PLATE_T + corner_mount.KW_BOSS_H / 2
+    assert ins(corner_mount.KW_TRIGGER_X, edge_y, z_mid), (
+        f"corner_mount KW12 zip-tie slot {leg_idx}: material expected just "
+        f"inward of the slot width at y={edge_y:.3f}, found void"
+    )
+
+
+def test_corner_mount_kw12_switch_footprint_envelope_clear():
+    """Boolean-intersect the KW12-3 switch BODY envelope (KW12_BODY_W x
+    KW12_BODY_L x KW12_BODY_H), positioned at its nominal mounted location
+    (resting on the boss top face, centered on the nominal trigger X), with
+    the built bracket. The switch sits entirely ABOVE the boss top (a
+    measure-zero contact plane, not a positive-volume overlap), so this
+    must read 0 mm^3."""
+    cm = corner_mount.make()
+    z_boss_top = corner_mount.PLATE_T + corner_mount.KW_BOSS_H
+    switch_box = (
+        cq.Workplane("XY").workplane(offset=z_boss_top)
+        .center(
+            corner_mount.KW_TRIGGER_X,
+            (corner_mount.KW_BODY_Y_FRONT + corner_mount.KW_BODY_Y_BACK) / 2,
+        )
+        .rect(corner_mount.KW12_BODY_W, corner_mount.KW12_BODY_L)
+        .extrude(corner_mount.KW12_BODY_H)
+    )
+    inter = switch_box.intersect(cm)
+    volume = inter.val().Volume() if inter.solids().vals() else 0.0
+    assert volume < 1e-6, (
+        f"corner_mount intersects the KW12-3 switch body envelope by "
+        f"{volume:.6f} mm^3 (expected 0) -- the switch cannot seat flush "
+        "on the boss"
+    )
+
+
+def test_corner_mount_kw12_mass_delta_within_budget():
+    """The KW12-3 mount's own added mass (boss volume alone, both legs)
+    must be <= 10 g per the assignment's mass-increase ceiling, independent
+    of the part's overall mass-budget test above."""
+    added_volume_cm3 = corner_mount._kw12_switch_boss().val().Volume() / 1000.0
+    added_mass_g = added_volume_cm3 * corner_mount.PETG_DENSITY_G_CM3
+    assert added_mass_g <= 10.0, (
+        f"corner_mount KW12 mount added mass = {added_mass_g:.3f} g, "
+        "required <= 10 g"
+    )
+
+
+def test_corner_mount_kw12_lever_target_within_corridor_z_band():
+    """The chosen boss height must land the documented lever-height
+    estimate inside the line corridor's own Z tolerance band around
+    CORNER_MOUNT_AXIS_Z, with the boss's actual built top face (not just
+    the KW_BOSS_H constant) confirming the height."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    y_probe = (
+        (corner_mount.KW_ZIP_Y[0] + corner_mount.KW_ZIPTIE_SLOT_W / 2)
+        + (corner_mount.KW_SCREW_Y[0] - corner_mount.KW12_SELFTAP_PILOT_DIA / 2)
+    ) / 2
+    z0 = corner_mount.PLATE_T + corner_mount.KW_BOSS_H
+    up = _bisect_solid_edge(ins, corner_mount.KW_TRIGGER_X, y_probe, z0 - 2.0, "z", 0.0, 5.0)
+    measured_boss_top_z = (z0 - 2.0) + up
+    lever_z = measured_boss_top_z + corner_mount.KW12_LEVER_HEIGHT_ABOVE_MOUNT
+
+    corridor_lo = corner_mount.PLATE_T + I.CORNER_MOUNT_AXIS_Z - 8.0
+    corridor_hi = corner_mount.PLATE_T + I.CORNER_MOUNT_AXIS_Z + 8.0
+    assert corridor_lo <= lever_z <= corridor_hi, (
+        f"corner_mount KW12 lever target z (measured boss top "
+        f"{measured_boss_top_z:.3f} + KW12_LEVER_HEIGHT_ABOVE_MOUNT "
+        f"{corner_mount.KW12_LEVER_HEIGHT_ABOVE_MOUNT}) = {lever_z:.3f} mm, "
+        f"expected within the corridor Z band [{corridor_lo:.2f}, "
+        f"{corridor_hi:.2f}] mm"
+    )
+
+
 @pytest.mark.parametrize("name", list(PART_SPECS))
 def test_step_round_trip(built_parts, name, tmp_path):
     wp, _ = built_parts[name]

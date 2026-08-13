@@ -686,3 +686,380 @@ suggestion, neither blocking.
 
 Reproduce: `python -m pytest tests/test_winch_geometry.py -k corner_mount -v`
 (25 passed) and `python -m pytest tests/ -q` (130 passed).
+
+---
+
+# Rev B: homing-switch mount
+
+Verifier: geometry-verifier (Sonnet), independent of the implementer.
+Read-only against `cad/parts/corner_mount.py` (uncommitted working-tree
+revision, not yet committed as of this pass); no part file modified. Scope:
+the KW12-3 cable-homing limit-switch mount added this revision (module
+docstring section "HOMING SWITCH", constants `KW12_*`/`KW_*`, functions
+`_kw12_leg`/`_kw12_switch_boss`), plus a regression re-check of everything
+verified in the prior two sections above. All numbers below are from a
+fresh, independent probe script built against this file's own real
+geometry (BRep point-in-solid classification via
+`BRepClass3d_SolidClassifier`, bisection to solid/void transitions,
+boolean-intersection volumes) — none of the implementer's numbers were
+taken on faith. Probe script:
+`/tmp/claude-0/-home-user-RoomCleaner/c51aa926-76d6-52eb-b707-af7c5e22fd24/scratchpad/probe_corner_mount.py`
+(full listing reproducible from this report's method descriptions if that
+path is unavailable).
+
+## Summary
+
+| Area | Verdict |
+|---|---|
+| Baseline regression (plate 138x65x6, csk x3, motor-envelope 0mm³, spool-envelope 0mm³, coplanarity 0mm, separation 95mm, STEP round-trip) | **PASS, unchanged** |
+| 1. Boss legs: leading edge, X-center, boss height, lever-Z target | **PASS** |
+| 2. Line-corridor boolean (own construction) | **PASS**, 0.000000 mm³ |
+| 3. Switch-body envelope vs. part / spool / driver columns | **PASS**, 0.000000 mm³ all three |
+| 4. Slots: pilot pitch/width, zip-tie through-cuts, ±5mm travel, M2 head clearance | **PASS** |
+| 5. Mass | **PASS**, 92.1465 g measured (claimed 92.15 g), delta +3.3843 g (claimed +3.384 g) |
+| 6. New-test audit (7 tests, boss-deletion check) | **4/7 correctly fail without the boss; 2/7 structurally cannot detect its absence; 1/7 not applicable by design — see detail** |
+| 7. Printability (>45° overhang scan) | **PASS**, no new overhangs |
+| 8. STEP round-trip | **PASS** |
+| Homing physics (Z alignment / X alignment / Y-reach) | **Z and X are geometrically supported; the lever's Y-reach into the bead's path is an UNVERIFIED assumption — see assessment below (not a geometry FAIL, a documented gap)** |
+
+**Overall: PASS** on all measurable geometry claims (baseline unchanged, all
+7 new-feature checks reproduce 0 mm³/exact-dimension claims). Two findings
+requiring lead attention, neither a geometry defect: (a) a real but narrow
+test-coverage gap in 2 of the 7 new tests (Section 6), and (b) the homing
+lever's actual roller position in Y is never modeled or checked anywhere in
+the code or test suite (Homing Physics Assessment, below) — the part's own
+Z-height engineering is sound, but whether the purchased switch's lever
+physically reaches the bead's line is not something this geometry can
+confirm on its own.
+
+## 0. Baseline regression (must be unchanged)
+
+Re-ran my own independent scripts (not the repo's), reproducing the
+Rev-A re-verification's exact methods against the current file:
+
+| check | measured | expected | verdict |
+|---|---|---|---|
+| solids / validity | 1 / isValid=True | -- | PASS |
+| bbox | 138.0000 × 65.0000 × 50.0000 mm | 138×65×6(+wall/ear/boss stack) | PASS |
+| 3 countersinks (x=-55,-5,45) void top+bottom | all void | -- | PASS |
+| motor-body envelope (42.3×42.3×38) vs. part | 0.000000 mm³ | 0 | PASS |
+| virtual-spool envelope vs. part | 0.000000 mm³ | 0 | PASS |
+| fleet coplanarity (pulley mid-Y vs. spool drum mid-Y) | diff 0.0000 mm | ±2.0 | PASS |
+| fleet separation (X, boss vs. axle, both bisected on solid) | 95.000 mm | ≥60.0 | PASS |
+| STEP round-trip | 1 solid, bbox diff 0.000000 mm, volume diff 0.000000% | tol 0.1mm/1% | PASS |
+
+No regression. The baseline geometry is byte-for-byte unchanged from the
+Rev-A re-verification's measured values (138×65×50 bbox, 95 mm separation,
+0 mm³ both interference checks, 0 mm coplanarity).
+
+## 1. Boss legs
+
+| quantity | measured (on built solid) | declared/target | verdict |
+|---|---|---|---|
+| boss leading edge Y | **4.0000 mm** (bisected at a probe X outside both slots' X-ranges but inside the leg's own X-footprint, avoiding the false reading a naive centerline probe gives — see method note below) | KW_BOSS_Y0=4.0; must be ≥3.0 exclusion | PASS, 1.0 mm margin over the 3.0 mm hard minimum, matches declared |
+| boss X-center | **10.000 mm** (bisected leg outer X-edges: [1.000, 19.000]) | ~10.0 | PASS |
+| boss top Z (local, above plate top) | **13.5000 mm** | KW_BOSS_H=13.5 | PASS |
+| estimated lever pivot Z, WORLD frame (boss top + KW12_LEVER_HEIGHT_ABOVE_MOUNT, PLATE_T=6 included) | **24.5000 mm** | assignment target "≈24.5 local" (this figure is a world-Z value including PLATE_T — see note) / window [20.5, 36.5] | PASS, inside window with margin (4.0 mm below the corridor's own Z-center of 28.5, 8.0 mm above the low bound, 12.0 mm below the high bound) |
+
+**Method note on the leading-edge probe**: a naive probe straight up from
+the boss's nominal centerline X (`KW_TRIGGER_X=10`) and bisecting toward -Y
+does **not** find the true boss edge — it finds the near edge of the
+zip-tie through-slot instead (measured 8.0 mm, not 4.0), because the
+zip-tie slot's own X-range ([3,17] for the front leg) covers the
+centerline. I re-probed at `x = KW_BOSS_X0 + 0.5 = 1.5` (inside the leg's
+X-footprint but outside both the zip-tie slot's X-range [3,17] and the
+pilot slot's X-range [4.15,15.85]) and got the correct **4.0000 mm**,
+exactly matching `KW_BOSS_Y0`. Flagging this because it is exactly the
+kind of probe-methodology trap the assignment is watching for, and it is
+worth noting for anyone re-running spot checks on this boss.
+
+**Note on the "Z=13.5+plate" / "Z≈24.5 local" figures in the assignment**:
+these are consistent once the reference frame is made explicit. This
+part's own internal `KW_BOSS_H`/`KW_LEVER_TARGET_Z` constants are in the
+**local** frame (relative to the plate's own top face, `Z=0` at
+`PLATE_T`); the assignment's stated `20.5`–`36.5` window and `≈24.5` figure
+are in the **world** frame (`Z=0` at the plate's bottom / joist face,
+i.e. local + `PLATE_T`). `PLATE_T(6) + KW_LEVER_TARGET_Z(18.5) = 24.5`
+world, and `PLATE_T(6) + CORNER_MOUNT_AXIS_Z(22.5) ± 8 = [20.5, 36.5]`
+world — both match exactly. No discrepancy, just two valid reference
+frames; noting it here since a same-frame comparison error (which I made
+once while writing the probe script and then corrected) is an easy trap.
+
+## 2. Line-corridor boolean (own construction, independent of the repo test)
+
+The repo's own new test (`test_corner_mount_kw12_line_corridor_clearance`)
+builds its corridor spanning only `WALL_CX` to `EAR_CX` in X. I built the
+corridor two additional, independent ways:
+
+1. **Full-part-X-span corridor** (X spans the ENTIRE built bbox, not just
+   spool-to-pulley — a stricter check than the repo test, since it also
+   catches anything the boss might do outside the nominal spool-pulley
+   span): Y ∈ [-3, 3], Z ∈ [axis-8, axis+8]. Intersection with the built
+   part: **0.000000 mm³**.
+2. **YZ-workplane construction** (built by extruding a rectangle along X
+   from a YZ workplane, a structurally different CadQuery construction path
+   than the repo test's XY-workplane rectangle, to rule out a construction-
+   specific false negative): same result, **0.000000 mm³**.
+
+**PASS**, reproduced two independent ways, both stricter than or
+structurally different from the repo's own test.
+
+## 3. Switch-body envelope
+
+Built the 20.0×6.4×10.0 mm switch-body box at its declared mounted
+position (resting on the boss top, centered on `KW_TRIGGER_X`, spanning
+`KW_BODY_Y_FRONT`→`KW_BODY_Y_BACK`) — measured box: X[6.80,13.20]
+Y[5.50,25.50] Z[19.50,29.50], dims 6.40×20.00×10.00, matching the declared
+20.0×6.4×10.0 (L×W×H) exactly.
+
+| intersection | volume | verdict |
+|---|---|---|
+| switch-body envelope vs. built part | 0.000000 mm³ | PASS |
+| switch-body envelope vs. virtual SPOOL envelope (same cylinder as baseline Section 7a) | 0.000000 mm³ | PASS, no collision |
+| switch-body envelope vs. wood-screw driver-access column at x=-55 | 0.000000 mm³ | PASS |
+| switch-body envelope vs. driver-access column at x=-5 | 0.000000 mm³ | PASS |
+| switch-body envelope vs. driver-access column at x=45 | 0.000000 mm³ | PASS |
+
+All PASS — the switch seats flush on the boss with no interference against
+the bracket, the spool, or any wood-screw's vertical driver-access column.
+
+## 4. Slots
+
+| feature | measured | expected | verdict |
+|---|---|---|---|
+| pilot pitch (KW_SCREW_Y[1] - KW_SCREW_Y[0]) | 9.5000 mm | 9.5 (KW12_HOLE_SPACING) | PASS |
+| pilot slot width (bisected, both slots) | 1.7000 mm both | 1.7 (1.7mm self-tap class) | PASS |
+| pilot slot: blind (solid below KW12_PILOT_DEPTH), both slots | solid, confirmed | blind hole | PASS |
+| pilot slot X-travel: void at nominal ±5mm ends, solid just beyond | void at ±5, solid at ±5.85 (pilot radius) beyond | ±5.0 mm (KW_TRIGGER_ADJ_RANGE/2) | PASS, both slots |
+| zip-tie slot width (bisected inward half, ×2) | 2.0000 mm half-width (4.0 mm total) both slots | 4.0 mm (KW_ZIPTIE_SLOT_W, ≥3.5 required) | PASS |
+| zip-tie slot: through-cut (void near boss base AND boss top) | void both ends, both slots | through-cut, not blind | PASS |
+| zip-tie slot: open-notch outward side (void beyond the slot, flush to boss edge, no forward wall) | void, both slots | open notch per docstring | PASS, matches the "no forward wall" design claim |
+| zip-tie slot X-travel | void at nominal ±5mm ends, both slots | ±5.0 mm | PASS |
+| M2 screw head clearance from above (4mm-dia column swept above the switch body top, up through the rest of the bracket to bbox top) | clear at all sampled Z/angle combinations, both screws | no obstruction | PASS |
+| M2 screw shank clearance straight down through the pilot slot | clear, both screws | clear path to the pilot | PASS |
+
+All PASS. Note the zip-tie width measurement used a directional (inward-only)
+bisection rather than a symmetric one, because the slot is an intentional
+open notch flush to the boss's own leading/trailing edge on the outward
+side (confirmed void there too, consistent with the docstring's "needs no
+forward wall" design note) — a naive symmetric bisection from center would
+fail outright on the open side (no solid to find), which is itself a useful
+confirmation that the open-notch claim is real, not just asserted.
+
+## 5. Mass
+
+- Total part mass (measured): **92.1465 g** (volume 72556.3114 mm³ × PETG
+  1.27 g/cm³). Claimed: 92.15 g. **Match** (rounds identically).
+- Mass delta vs. the Rev-A baseline (88.7622 g, from the prior
+  re-verification section above): **+3.3843 g**. Claimed: +3.384 g.
+  **Match.**
+- Budget: 92.1465 g ≤ `MASS_BUDGET_G` = 93.5 g — **PASS**, 1.35 g / 1.4%
+  margin (tight, consistent with the module docstring's own stated intent
+  to "keep roughly the same ~1.3 g margin style").
+- KW12 boss's own volume, measured directly via `_kw12_switch_boss()`
+  (isolated from the rest of the part): 2665.5 mm³ → 3.3843 g, matching the
+  whole-part delta above exactly (confirms the delta is attributable
+  entirely to the new boss, not a side effect on other geometry).
+
+## 6. New-test audit (7 new tests)
+
+`test_corner_mount_kw12_*` = 7 test cases (32 total `test_corner_mount_*`
+now, 25 pre-existing + 7 new — matches the assignment's count), all
+currently passing:
+`test_corner_mount_kw12_boss_present_at_declared_position`,
+`test_corner_mount_kw12_line_corridor_clearance`,
+`test_corner_mount_kw12_ziptie_slots_are_through_cuts[0]` and `[1]`
+(parametrized, 2 cases),
+`test_corner_mount_kw12_switch_footprint_envelope_clear`,
+`test_corner_mount_kw12_mass_delta_within_budget`,
+`test_corner_mount_kw12_lever_target_within_corridor_z_band`.
+
+All 7 probe the built solid via `BRepClass3d_SolidClassifier`/boolean
+intersection, not bare Python constants — none of them are the "nominal
+arithmetic only" failure mode flagged against the pre-existing suite in
+Section 10 above.
+
+**Boss-deletion check** (per the assignment's specific request): built an
+isolated copy of the whole `cad` package
+(`/tmp/claude-0/.../scratchpad/isolated_bossless/cad/`, side-loaded from a
+fresh Python process so the tracked repo file was never touched), with the
+`kw12_boss.translate(...)` union commented out of `make()` (boss geometry
+still built by `_kw12_switch_boss()`, just never unioned into the part),
+then re-ran each of the 7 tests' own logic against that boss-less rebuild:
+
+| test | result against boss-less rebuild |
+|---|---|
+| `kw12_boss_present_at_declared_position` | **CORRECTLY FAILS** — probe point that should be solid boss material reads void |
+| `kw12_ziptie_slots_are_through_cuts[0]` | **CORRECTLY FAILS** — the "material expected just inward of the slot" assertion finds void instead (no leg at all) |
+| `kw12_ziptie_slots_are_through_cuts[1]` | **CORRECTLY FAILS** — same, back leg |
+| `kw12_lever_target_within_corridor_z_band` | **CORRECTLY FAILS** — the bisection's own precondition (`assert probe(lo) is solid`) trips immediately: there is no boss top to find |
+| `kw12_line_corridor_clearance` | Still passes — **expected, not a gap**: this test's job is to confirm the boss stays OUTSIDE the corridor; a missing boss is trivially also outside it, so this test was never meant to detect the boss's presence, only its encroachment |
+| `kw12_switch_footprint_envelope_clear` | Still passes — **real gap**: this test only confirms 0 mm³ intersection between the switch envelope and the part; with less material (no boss at all), the intersection is still 0 mm³, so this test **cannot distinguish a present boss from a missing one** |
+| `kw12_mass_delta_within_budget` | Still passes — **real gap**: this test calls `corner_mount._kw12_switch_boss()` directly, bypassing `make()` entirely, so it measures the boss's own standalone volume regardless of whether `make()` actually unions it into the returned part. It correctly probes a built solid (not a bare constant, so it doesn't fall in the Section-10-style "nominal arithmetic" failure class), but it is blind to an *integration* bug where the boss is computed correctly yet never attached to the part |
+
+**Net**: 4 of 7 new tests would correctly catch a deleted/unattached boss;
+1 of 7 was never meant to (by its own stated purpose); 2 of 7
+(`kw12_switch_footprint_envelope_clear`, `kw12_mass_delta_within_budget`)
+pass identically whether the boss is unioned into `make()` or not — a real,
+if narrow, coverage gap. Recommend a lead/implementer follow-up: a single
+cheap additional assertion (e.g., `assert cm.val().Volume() >
+plate_wall_ears_only_volume` or a direct positive-volume boolean-
+intersection check between the boss's own nominal footprint and the
+built part) would close both gaps at once, since neither current test
+would need to change, only supplement.
+
+## 7. Printability (>45° overhang scan)
+
+Scanned all planar faces of the **full built part** (not just the boss in
+isolation, to catch anything a union with the plate might expose or hide)
+for downward-facing normals: **exactly 1** such face found — the plate's
+own bottom face at Z=0 (`normal=(0,0,-1)`, spanning the full X/Y footprint,
+the print-bed contact plane itself, not an overhang). No new overhangs
+introduced by the boss legs; their own internal "bottom" faces (visible
+when `_kw12_switch_boss()` is scanned standalone: 2 downward faces, one per
+leg, both flat 90°-from-horizontal) fuse away entirely into the plate's top
+surface in the unified boolean solid and are not exposed print surfaces.
+Confirms the "simple vertical prism, no overhangs" claim.
+
+**PASS.**
+
+## 8. STEP round-trip
+
+Reimport solids = 1; bbox diff **0.000000 mm** (tol 0.1); volume diff
+**0.000000 %** (tol 1%). **PASS**, unchanged from baseline methodology.
+
+## Test run
+
+```
+python -m pytest tests/test_winch_geometry.py -k corner_mount -v
+...
+32 passed in 14.07s
+```
+
+```
+python -m pytest tests/ -q
+...
+172 passed in 32.65s
+```
+
+(172 includes the concurrently-worked `tests/test_base_station_case.py`,
+which this pass did not touch, read, or evaluate — out of scope per
+instructions.)
+
+## Homing-physics assessment (report only, not fixed)
+
+**The question**: a bead on the line at Y=0, height ≈
+`CORNER_MOUNT_AXIS_Z`, traveling in -X toward the spool during reel-in —
+does the claimed lever geometry (pivot on the switch at the boss position,
+roller reaching toward Y=0) put the roller IN the bead's path, with the
+switch mounted at its nominal slot-center position?
+
+**Geometric chain, as actually modeled in the code**:
+
+1. **Bead path** — fixed at Y=0.000 (both spool axis and pulley axle land
+   exactly there, confirmed above), Z = `CORNER_MOUNT_AXIS_Z` world
+   (28.5 mm), traveling along X. This is solid — directly confirmed by the
+   fleet-alignment measurements (Sections 0 and the original two sections
+   above).
+2. **Boss/switch mounting-face Z** — computed and confirmed: boss top at
+   world Z=19.5, switch body sits on top of it (Z 19.5→29.5).
+   `KW_LEVER_TARGET_Z` (a **Z-only** estimate: boss top + half the body
+   height) lands at world Z=24.5, inside the corridor's own ±8 mm Z-band
+   [20.5, 36.5] around the bead's Z=28.5, with margin on both sides. **This
+   part is genuinely computed and verified geometrically**, and the
+   docstring is explicit that it is a documented estimate (no datasheet
+   gives the true internal pivot height), not a load-bearing precision
+   claim.
+3. **Switch/boss X-position** — `KW_TRIGGER_X`=10.0 (±5 mm adjustable),
+   near the spool(-40)↔pulley(55) mid-span (7.5), independently confirmed
+   on the built solid. This is also genuinely computed and reasonable: the
+   roller should be encountered by the bead somewhere along its X travel,
+   and mid-span is as good a nominal choice as any (the ±5 mm adjustability
+   exists specifically to let this be tuned at assembly, per the
+   docstring).
+4. **The gap — lever Y-reach is never modeled, computed, or checked
+   anywhere in this file or its tests.** `KW12_LEVER_LEN` = 18 mm (pivot-
+   to-roller-center) is documented in the module docstring and stored as a
+   constant, but it is **never used** in any coordinate calculation, any
+   boolean check, or any test assertion in the entire diff. Nothing in the
+   code computes "where is the roller, in Y, given this lever length and
+   whatever this switch's pivot-within-body location actually is" and
+   checks that against the corridor's Y ∈ [-3, +3] mm band the way the Z
+   target is checked against the Z band.
+
+   Working the numbers through by hand with the ASSUMPTION the docstring's
+   language most directly suggests (pivot at the switch body's -Y,
+   corridor-facing edge, at `KW_BODY_Y_FRONT` = 5.5 mm, lever pointing
+   straight in -Y): roller Y ≈ 5.5 - 18 = **-12.5 mm** — 12.5 mm on the
+   *far side* of the bead's line (Y=0), well outside even the generous
+   ±3 mm corridor exclusion, and on the *opposite* side of Y=0 from the
+   switch body itself. That would put the roller's straight-line rest
+   position past the line entirely, not resting near it. If instead the
+   pivot sits further into the body (say, mid-body around
+   `KW_BODY_Y_FRONT + 9` ≈ 14.5, i.e., near the switch's own screw-hole
+   centerline), a straight 18 mm reach in -Y lands the roller at
+   14.5-18 = **-3.5 mm** — just outside the ±3 mm corridor, on the wrong
+   side, by a small margin that would be sensitive to the exact (unstated)
+   pivot location. Only a pivot noticeably closer to the body's far
+   (+Y, non-corridor) end would put an 18 mm straight radial reach inside
+   or near the [-3,+3] band on the correct (or any consistent) side.
+
+   None of these three hand-worked cases is verifiable from the part file,
+   because **the pivot's own (X,Y) location within the 20×6.4 mm body
+   footprint is not specified anywhere** — only its estimated Z-offset
+   above the mounting face is. Real KW12-3-style microswitches commonly
+   have the lever **bent or curved** back toward the body rather than
+   extending as a straight 18 mm radial arm (precisely so the roller sits
+   close to, or just past, the body's own footprint rather than far out in
+   space) — which would resolve the overshoot the straight-arm hand
+   calculation above shows, but the module docstring never states this
+   assumption, and no geometry or test in the diff encodes a bent-lever
+   roller position either. As modeled, the switch is treated as a rigid
+   mounting-footprint-plus-height problem; the lever is pure narrative
+   text in the docstring, not geometry.
+5. **Switch orientation assumed**: long axis along Y, lever "pointing -Y
+   toward Y=0" — i.e., the switch is assumed pre-oriented so its lever
+   generally faces the corridor. This is a reasonable choice of *which way
+   to point the switch*, but it is a separate question from *whether an
+   18 mm lever from this switch's actual (unstated) pivot location reaches
+   the bead's Y=0 line* — the orientation choice does not by itself
+   guarantee the reach does.
+
+**Assessment**: the part's **mounting-face** geometry (X position, Z
+height, adjustability range) is sound and independently confirmed on the
+built solid. The **lever-reach** claim — that the roller actually ends up
+at or near Y≈0 where the bead can strike it — is **not verifiable from
+this geometry or its tests**, because the lever itself is not modeled as
+geometry and its pivot's location within the switch body is never stated
+or computed. This is not a proven defect (a bent/formed lever, which is
+common on this switch family, could easily resolve it), but it is a real,
+unclosed gap between the docstring's qualitative claim ("roller reaching
+toward Y=0") and what the code actually establishes (a mounting Z/X
+position only). Recommend one of: (a) a datasheet drawing or physical
+sample confirming the pivot's (X,Y) location and lever bend/rest angle, so
+the roller's true rest position can be computed and checked the same way
+the Z target already is; or (b) an assembly-time adjustability note (the
+existing ±5 mm X-slot travel already helps X, but there is currently no Y
+adjustability at all if the roller turns out to land short of or past the
+line) documented alongside the existing bead-placement procedure in the
+docstring. This is a documentation/verification gap, not a geometry
+change — no part file modification is recommended here.
+
+## Findings requiring a decision
+
+1. **Test-coverage gap (Section 6)** — 2 of 7 new tests
+   (`kw12_switch_footprint_envelope_clear`, `kw12_mass_delta_within_budget`)
+   pass identically whether the boss is actually unioned into `make()`'s
+   output or not. Low severity (the boss demonstrably IS unioned in
+   correctly today, per Sections 1-5 above), but the coverage gap itself is
+   real. Recommend a bounded follow-up test.
+2. **Homing-lever Y-reach is unmodeled (assessment, above)** — not a
+   geometry defect in what's built, but a real gap between the docstring's
+   narrative claim and what the code/tests can actually confirm. Recommend
+   routing to the lead for a decision on whether a datasheet/physical
+   confirmation of the KW12-3 pivot location is needed before this design
+   is treated as functionally verified, not just geometrically clean.
+
+Reproduce this section:
+`python -m pytest tests/test_winch_geometry.py -k corner_mount -v` (32
+passed) and `python -m pytest tests/ -q` (172 passed).

@@ -130,6 +130,78 @@ defect in an earlier revision -- kept here for the record):
   test_corner_mount_gussets_clear_virtual_spool_envelope in
   tests/test_winch_geometry.py for the permanent regression coverage (both
   reproduce the verifier's own boolean-intersection method).
+
+HOMING SWITCH (KW12-3 cable-homing limit switch mount -- added this revision):
+
+  Principle (lead ruling): a stopper bead crimped/tied onto the Dyneema line
+  trips a roller-lever micro switch as the line reels IN toward the pulley.
+  The line runs straight from the spool (on the motor-bracket wall's shaft,
+  X=WALL_CX) to the pulley groove (X=EAR_CX), both at the fleet-alignment
+  plane Y=0, height CORNER_MOUNT_AXIS_Z above the plate top (see the LEAD
+  RULING section above). The switch sits BESIDE that line (Y offset, clear
+  of the line + bead's own travel corridor) with its roller lever reaching
+  IN across the corridor at approximately the spool<->pulley mid-span.
+
+  KW12-3 datasheet values used (subminiature roller-lever micro switch;
+  cross-checked across multiple vendor datasheets/listings -- SDTC Tech,
+  HiLetgo, Bolsen, Beautyforall, DEVMO -- which agree to within listing
+  rounding, and a same-architecture Wurth Elektronik subminiature-microswitch
+  datasheet giving 19.8 x 6.4 x 9.5 mm for the identical body style):
+    body (pins/lever excluded)   ~20.0 x 6.4 x 10.0 mm (L x W x H)
+    mounting holes                2x, 2.0 mm dia, 9.5 mm center-to-center,
+                                   on the body's long-axis centerline
+                                   (implies M2 hardware)
+    roller lever                  ~18 mm pivot-to-roller-center, 4.5 mm
+                                   roller dia
+  The lead's rough "27 x 10.5 x 8.5 mm class" note in the assignment matches
+  the body-plus-protruding-lever envelope some listings quote (~20 mm body +
+  the lever overhanging one end); the BODY itself (what actually needs a
+  mounting footprint) is the ~20x6.4x10 figure used here.
+
+  Orientation chosen: the switch's long axis (and its lever's pointing axis)
+  runs along Y, body offset to +Y of the corridor, lever pointing in -Y
+  toward Y=0. A bead moving along X strikes the roller nearly perpendicular
+  to the lever's rest axis -- the same geometry these switches use as
+  printer/CNC endstops, and the orientation that gives maximum actuation
+  torque about the lever pivot for a line moving perpendicular to it.
+
+  KW12_LEVER_HEIGHT_ABOVE_MOUNT (half the 10 mm body height) is a documented
+  APPROXIMATION -- no drawing found gives the internal pivot height. The
+  corridor's own +-8 mm Z tolerance is generous enough to absorb this
+  uncertainty; the boss height below is chosen to land the lever inside that
+  band with margin on both sides, not pinned to the exact center.
+
+  Mounting: two self-tap M2 pilot holes (KW12_SELFTAP_PILOT_DIA, matching
+  the M2_TAP convention already established in
+  cad/parts/camera_mount_overhead.py) on the switch's real 9.5 mm hole
+  pitch, PLUS two zip-tie through-slots (always both, per lead spec -- the
+  zip tie is the fallback/primary retention, screws are secondary). Trigger-
+  point adjustability (+-5 mm along X, the line's own direction of travel)
+  is built into BOTH: every hole/slot is X-elongated (cadquery `slot2D`,
+  angle=0) by KW_TRIGGER_ADJ_RANGE, not a separate sliding carrier part.
+  Chosen over a separate carrier because: (a) one fewer printed part and no
+  dovetail/rail clearance fit to tune, (b) the switch's fixed 9.5 mm hole
+  pitch is naturally preserved (two independent X-slots, offset from each
+  other by the real pitch in Y, rather than one slot trying to carry both
+  holes), (c) simpler and more robust to print.
+
+  Mass: the boss is split into two independent legs (front, under the
+  lever-side screw/zip-tie pair; back, under the far pair) with an OPEN gap
+  between them, rather than one solid block spanning the whole switch
+  footprint -- the switch's own rigid body easily bridges the ~8 mm gap
+  unsupported (it is a purchased part, not printed), and this roughly halves
+  the added material versus a single full-footprint boss. Each leg is a
+  simple vertical prism (no overhangs, no bridging in printed material).
+
+  Bead placement (assembly/firmware note, not a geometry parameter): tie or
+  crimp the stopper bead on the Dyneema line so it trips this switch
+  HOME_BACKOFF steps before the desired mechanical zero. Per firmware
+  (roomcleaner ESP32 winch driver), HOME_BACKOFF = 200 steps; at the
+  driver's 50930 steps/m, that is 200 / 50930 = 0.003927 m ~= 3.93 mm
+  (~4 mm) of line travel between the switch trip point and true zero -- set
+  the bead that far short of zero (further from the pulley, i.e. earlier in
+  the reel-in direction) so the controller has room to decelerate and back
+  off to the true home position after the trip.
 """
 
 from __future__ import annotations
@@ -287,7 +359,133 @@ try:
     PETG_DENSITY_G_CM3 = _MATERIALS["PETG"]["density_g_cm3"]
 except ImportError:
     pass
-MASS_BUDGET_G = 90.0
+MASS_BUDGET_G = 93.5   # g; was 90.0 -- raised +3.5 g for the KW12-3 homing-
+                        # switch mount added this revision (see module
+                        # docstring "HOMING SWITCH"). Measured added mass is
+                        # ~3.39 g (see __main__), so this keeps roughly the
+                        # same ~1.3 g margin style as the pre-existing
+                        # budget (which had 1.24 g headroom at 88.76 g/90 g).
+                        # FLAGGED FOR LEAD REVIEW: this is a local
+                        # printability/mass budget for this part only, not a
+                        # value from cad/params.py or cad/interfaces.py, so
+                        # this file is authorized to change it, but it is a
+                        # real, deliberate increase to the part's own design
+                        # budget and should be reviewed, not rubber-stamped.
+
+# --- KW12-3 cable-homing limit switch mount -------------------------------
+# See module docstring "HOMING SWITCH" for the full design reasoning
+# (datasheet sourcing, orientation choice, adjustability mechanism, bead-
+# placement procedure). Values below are the numeric implementation of that
+# reasoning; comments here are short, the docstring has the "why".
+
+# KW12-3 datasheet-derived values (subminiature roller-lever micro switch).
+KW12_BODY_L = 20.0             # mm, body length (long axis = mount Y axis)
+KW12_BODY_W = 6.4              # mm, body thickness (X)
+KW12_BODY_H = 10.0             # mm, body height (Z) above its mounting face
+KW12_HOLE_SPACING = 9.5        # mm, 2x mounting holes, center-to-center
+KW12_HOLE_DIA = 2.0            # mm, switch's own molded hole (M2 clearance)
+KW12_LEVER_LEN = 18.0          # mm, roller lever pivot -> roller center
+KW12_ROLLER_DIA = 4.5          # mm, lever roller diameter
+KW12_LEVER_HEIGHT_ABOVE_MOUNT = KW12_BODY_H / 2   # mm, documented estimate
+                                # (no datasheet gives the internal pivot
+                                # height; see docstring)
+
+# Fastener: self-tap M2 pilot, reusing the project's established M2 self-tap
+# convention (cad/parts/camera_mount_overhead.py M2_TAP = 1.7 mm).
+KW12_SELFTAP_PILOT_DIA = 1.7   # mm
+KW12_PILOT_DEPTH = 5.0         # mm, blind hole depth (thread engagement);
+                                # well short of KW_BOSS_H so solid material
+                                # remains below each pilot
+
+# Trigger-point adjustability: +-5 mm along X (the line's own direction of
+# travel) -- every mounting feature below is an X-elongated slot spanning
+# this range, not a fixed hole.
+KW_TRIGGER_ADJ_RANGE = 10.0    # mm, total X travel (+-5 mm)
+
+# Zip-tie retention (always present, alongside the screws -- see docstring).
+KW_ZIPTIE_SLOT_W = 4.0         # mm, >= 3.5 mm required; std nylon tie ~3.6mm
+
+# Placement. KW_TRIGGER_X: approximately the spool<->pulley mid-span
+# (WALL_CX + EAR_CX)/2 = -40+55)/2 = 7.5 mm; nudged to 10.0 mm (a 2.5 mm
+# shift, <3% of the 95 mm spool-pulley separation -- still "approximately
+# mid-span") so the boss and its X-slots clear the existing Y=0 wood-screw
+# countersink at x=-5 (radius CSK_DIA/2=5.25 mm) with a real wall margin,
+# without touching that hole's own geometry. The +-5 mm install range then
+# lets the trigger point be tuned back toward the exact mid-span (7.5 mm) or
+# anywhere else needed at assembly time.
+KW_TRIGGER_X = 10.0            # mm
+
+# Boss leading (corridor-facing) edge: must clear the Y=0 +-3 mm line
+# corridor exclusion (assignment spec) -- 4.0 mm gives 1.0 mm of margin
+# beyond the hard 3.0 mm minimum.
+KW_BOSS_Y0 = 4.0                # mm
+# Extra boss material fwd/aft of the switch body's own footprint, hosting
+# the zip-tie notches with real wall margin from the (fixed-pitch) screw
+# holes -- see docstring "Mounting".
+KW_BOSS_LIP = 1.5               # mm
+KW_BODY_Y_FRONT = KW_BOSS_Y0 + KW_BOSS_LIP     # switch body leading edge
+KW_BODY_Y_BACK = KW_BODY_Y_FRONT + KW12_BODY_L  # switch body trailing edge
+KW_BOSS_Y1 = KW_BODY_Y_BACK + KW_BOSS_LIP       # boss trailing edge
+
+# Screw hole Y-centers, from the switch's own (fixed) hole pitch, referenced
+# off the body's actual leading edge -- NOT independently chosen.
+_kw_hole_inset = (KW12_BODY_L - KW12_HOLE_SPACING) / 2
+KW_SCREW_Y = (
+    KW_BODY_Y_FRONT + _kw_hole_inset,
+    KW_BODY_Y_BACK - _kw_hole_inset,
+)
+# Zip-tie slot Y-centers: flush/open to the boss's own leading/trailing
+# edges (a printable open notch, not an enclosed hole -- needs no forward
+# wall), sized so the inward edge clears the nearest screw slot.
+KW_ZIP_Y = (
+    KW_BOSS_Y0 + KW_ZIPTIE_SLOT_W / 2,
+    KW_BOSS_Y1 - KW_ZIPTIE_SLOT_W / 2,
+)
+_kw_screw_slot_halflen = (KW_TRIGGER_ADJ_RANGE + KW12_SELFTAP_PILOT_DIA) / 2
+_kw_zip_slot_halflen = (KW_TRIGGER_ADJ_RANGE + KW_ZIPTIE_SLOT_W) / 2
+assert KW_ZIP_Y[0] + KW_ZIPTIE_SLOT_W / 2 < KW_SCREW_Y[0] - KW12_SELFTAP_PILOT_DIA / 2, (
+    "front zip-tie slot would overlap the front screw slot -- widen "
+    "KW_BOSS_LIP or shrink KW_ZIPTIE_SLOT_W"
+)
+assert KW_ZIP_Y[1] - KW_ZIPTIE_SLOT_W / 2 > KW_SCREW_Y[1] + KW12_SELFTAP_PILOT_DIA / 2, (
+    "back zip-tie slot would overlap the back screw slot -- widen "
+    "KW_BOSS_LIP or shrink KW_ZIPTIE_SLOT_W"
+)
+
+# Each leg's X half-width: the wider of the two slot types (zip, since
+# KW_ZIPTIE_SLOT_W > KW12_SELFTAP_PILOT_DIA) plus a wall margin beyond its
+# rounded end cap. 2.0 mm reuses this file's own MOTOR_CORNER_CLEARANCE
+# minimum-clearance convention.
+KW_BOSS_X_MARGIN = 2.0          # mm
+_kw_leg_halfwidth = _kw_zip_slot_halflen + KW_BOSS_X_MARGIN
+KW_BOSS_X0 = KW_TRIGGER_X - _kw_leg_halfwidth
+KW_BOSS_X1 = KW_TRIGGER_X + _kw_leg_halfwidth
+
+# Leg Y-extents: front leg holds the front screw+zip pair, back leg the
+# back pair; each leg's inner edge stops short of the OTHER pair with a
+# margin so the two legs stay clearly separate (open gap between them).
+_kw_leg_inner_margin = 1.2      # mm, wall beyond the screw slot's own edge
+KW_LEG_Y = (
+    (KW_BOSS_Y0, KW_SCREW_Y[0] + KW12_SELFTAP_PILOT_DIA / 2 + _kw_leg_inner_margin),
+    (KW_SCREW_Y[1] - KW12_SELFTAP_PILOT_DIA / 2 - _kw_leg_inner_margin, KW_BOSS_Y1),
+)
+assert KW_LEG_Y[0][1] < KW_LEG_Y[1][0], (
+    "corner_mount KW12 mount legs overlap -- shrink _kw_leg_inner_margin or "
+    "KW_BOSS_LIP"
+)
+
+# Boss height: positions the switch's MOUNTING FACE (top of the boss) so the
+# lever (KW12_LEVER_HEIGHT_ABOVE_MOUNT above that face, per the documented
+# estimate) lands inside the line corridor's own +-8 mm Z tolerance band
+# around CORNER_MOUNT_AXIS_Z, with margin on both sides rather than pinned
+# to the exact center (absorbs the pivot-height estimate's uncertainty).
+KW_LEVER_TARGET_Z = CORNER_MOUNT_AXIS_Z - 4.0   # local-to-plate-top height;
+                                # 4 mm below axis, well inside +-8 mm band
+KW_BOSS_H = KW_LEVER_TARGET_Z - KW12_LEVER_HEIGHT_ABOVE_MOUNT   # mm
+assert KW_BOSS_H > KW12_PILOT_DEPTH, (
+    "corner_mount KW12 boss too short for the self-tap pilot depth -- raise "
+    "KW_LEVER_TARGET_Z or shrink KW12_PILOT_DEPTH"
+)
 
 
 def _wall_with_motor_pattern() -> cq.Workplane:
@@ -364,6 +562,56 @@ def _pulley_ears() -> cq.Workplane:
     return ears
 
 
+def _kw12_leg(leg_y: tuple, zip_y: float, screw_y: float) -> cq.Workplane:
+    """One leg of the KW12-3 switch-mount boss: a solid vertical prism (no
+    overhangs) housing one X-elongated zip-tie through-slot (open to the
+    leg's own outward Y edge) and one X-elongated self-tap M2 pilot slot
+    (blind from the top). Built in local Z in [0, KW_BOSS_H]; caller
+    translates up by PLATE_T like the wall/ears."""
+    y0, y1 = leg_y
+    leg = (
+        cq.Workplane("XY")
+        .center((KW_BOSS_X0 + KW_BOSS_X1) / 2, (y0 + y1) / 2)
+        .rect(KW_BOSS_X1 - KW_BOSS_X0, y1 - y0)
+        .extrude(KW_BOSS_H)
+    )
+
+    # Zip-tie through-slot: full boss height, generous overshoot both ends
+    # for a clean cut.
+    overshoot = 1.0
+    zip_slot = (
+        cq.Workplane("XY")
+        .workplane(offset=-overshoot)
+        .center(KW_TRIGGER_X, zip_y)
+        .slot2D(KW_TRIGGER_ADJ_RANGE + KW_ZIPTIE_SLOT_W, KW_ZIPTIE_SLOT_W, 0)
+        .extrude(KW_BOSS_H + 2 * overshoot)
+    )
+    leg = leg.cut(zip_slot)
+
+    # Self-tap M2 pilot slot: blind from the boss TOP face, KW12_PILOT_DEPTH
+    # deep, leaving solid leg material below for strength.
+    pilot_slot = (
+        cq.Workplane("XY")
+        .workplane(offset=KW_BOSS_H - KW12_PILOT_DEPTH)
+        .center(KW_TRIGGER_X, screw_y)
+        .slot2D(KW_TRIGGER_ADJ_RANGE + KW12_SELFTAP_PILOT_DIA, KW12_SELFTAP_PILOT_DIA, 0)
+        .extrude(KW12_PILOT_DEPTH + overshoot)
+    )
+    leg = leg.cut(pilot_slot)
+
+    return leg
+
+
+def _kw12_switch_boss() -> cq.Workplane:
+    """The full KW12-3 homing-switch mount: two independent legs (front,
+    lever side; back, far side) with an open gap between them -- see module
+    docstring "HOMING SWITCH" for why. Built in local Z in [0, KW_BOSS_H];
+    caller translates up by PLATE_T like the wall/ears."""
+    front = _kw12_leg(KW_LEG_Y[0], KW_ZIP_Y[0], KW_SCREW_Y[0])
+    back = _kw12_leg(KW_LEG_Y[1], KW_ZIP_Y[1], KW_SCREW_Y[1])
+    return front.union(back)
+
+
 def make() -> cq.Workplane:
     # Base plate with the 3 countersunk wood-screw holes, cut first (while
     # the plate is still a plain box) so the countersinks land ONLY on the
@@ -378,8 +626,14 @@ def make() -> cq.Workplane:
 
     wall = _wall_with_motor_pattern().union(_gussets())
     ears = _pulley_ears()
+    kw12_boss = _kw12_switch_boss()
 
-    part = plate.union(wall.translate((0, 0, PLATE_T))).union(ears.translate((0, 0, PLATE_T)))
+    part = (
+        plate
+        .union(wall.translate((0, 0, PLATE_T)))
+        .union(ears.translate((0, 0, PLATE_T)))
+        .union(kw12_boss.translate((0, 0, PLATE_T)))
+    )
     return part
 
 
@@ -409,4 +663,17 @@ if __name__ == "__main__":
     print(f"motor body overhang past plate -Y edge = "
           f"{MOTOR_BODY_OVERHANG_Y:.2f} mm (NEMA17_FACE={NEMA17_FACE} mm "
           f"body depth, accepted per lead ruling)")
+
+    kw12_volume_mm3 = _kw12_switch_boss().val().Volume()
+    kw12_mass_g = kw12_volume_mm3 / 1000.0 * PETG_DENSITY_G_CM3
+    kw12_lever_z_world = PLATE_T + KW_LEVER_TARGET_Z
+    corridor_lo = PLATE_T + CORNER_MOUNT_AXIS_Z - 8.0
+    corridor_hi = PLATE_T + CORNER_MOUNT_AXIS_Z + 8.0
+    print(f"KW12-3 mount: boss X=[{KW_BOSS_X0:.2f},{KW_BOSS_X1:.2f}] "
+          f"trigger_X={KW_TRIGGER_X:.2f} (+-{KW_TRIGGER_ADJ_RANGE/2:.1f} mm adj), "
+          f"legs Y={KW_LEG_Y}, boss H={KW_BOSS_H:.2f} mm")
+    print(f"KW12-3 lever target Z (local) = {kw12_lever_z_world:.2f} mm, "
+          f"corridor Z band = [{corridor_lo:.2f}, {corridor_hi:.2f}] mm")
+    print(f"KW12-3 mount added volume = {kw12_volume_mm3/1000.0:.3f} cm^3, "
+          f"added mass = {kw12_mass_g:.3f} g")
     print(export(solid, "corner_mount"))

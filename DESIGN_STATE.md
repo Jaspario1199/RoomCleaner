@@ -145,3 +145,22 @@ sim). Target: ONE app — the operations console's session/command
 architecture absorbs the perception console's proven capture/inference
 threading (as LiveSession's feed) and its plan/3-D panels. Must be executed
 and validated where the camera is; docs/APP.md documents both until then.
+
+## CAD gap closure (both local-session findings resolved)
+1. corner_mount rev B: KW12-3 homing-switch boss (bead-trips-lever), M2
+   slots + zip-tie fallback, ±5 mm adjustability; verified, committed.
+   Bench items: confirm switch dims (~20 mm body / 9.5 mm hole pitch) on
+   the purchased units; set lever reach in the slots with the line strung.
+2. base_station_case (tray + lid, 135.15 g): full loop took 2 verification
+   passes + 2 repairs, 5 real defects caught pre-print — mid-air
+   countersinks (workplane-centroid trap), USB port rotated 90°, lid posts
+   inside the Uno footprint, one Uno hole coordinate 1.27 mm off vs a
+   KiCad footprint, and zip-tie holes merging across the motor↔endstop
+   port boundary (fixed by Z-flanking; also cured a 0.75 mm sliver on the
+   input wall). Final verdict PASS; 185/185 tests. Assumption on record:
+   CNC-shield connector heights are estimates absorbed by oversized
+   strain-relieved ports.
+Print queue when the printer returns: 4× corner_mount (rev B), 1× spool
+fit-test, claw stack (frame/standoffs/hub), base_station_case tray+lid,
+camera_mount_overhead. Still gated: tendon drum (horn measurement), fingers
+(TPU).

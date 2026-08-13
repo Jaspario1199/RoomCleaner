@@ -1,3 +1,7 @@
+> **SUPERSEDED (8/13):** this milestone completed successfully (see
+> `BRINGUP_LOG.md`). The current instructions for the local agent are in
+> **`UPDATE_8-13.md`** at the repo root — start there. Kept for history.
+
 # Handoff: finish the "software + camera" milestone on the user's machine
 
 **Audience:** an agent running with local machine access (or a network policy

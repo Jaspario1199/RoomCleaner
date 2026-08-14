@@ -1,5 +1,5 @@
 /*
- * RoomCleaner firmware -- Arduino Uno + CNC Shield V3 + 4x DRV8825 + 1 servo.
+ * RoomCleaner firmware -- Arduino Uno + CNC Shield V3 + 4x stepper drivers (A4988/DRV8825) + 1 servo.
  *
  * Drives the four winch steppers and the gripper servo, homes on limit switches,
  * and takes simple newline commands over USB serial from the Python host:

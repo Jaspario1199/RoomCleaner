@@ -36,6 +36,9 @@ fail-safe reading, and it's correct).
 
 1. Under each of the 4 driver sockets install **all three** microstep jumpers
    (1/16 — must match `MICROSTEP = 16` in `roomcleaner/hardware/hw_config.py`).
+   **Plus 2 more jumpers on the A-axis selection headers** (next to the A
+   socket) in the **D12/D13** position — without them the 4th socket is
+   connected to nothing and the A motor will never move. 14 jumpers total.
 2. Seat the 4 A4988s — **orientation kills**: match each driver's EN pin
    corner to the shield silkscreen; all four face the same way. The trimpot
    ends up toward the shield's power terminal on a standard V3 — verify by
@@ -58,9 +61,10 @@ reads ~12 V across the shield's VMOT terminal. Strip OFF.
 ## Phase 4 — Set driver current (Vref), motors still unplugged
 
 Strip ON, USB in. For each driver: black probe on shield GND, red probe on
-the driver's trimpot top. Adjust gently to **0.80 V** (that's ~1.0 A on
-standard R100-sense A4988s — the correct derate for our 1.5 A motors; see
-`docs/SHOPPING_LIST.md` driver note).
+the driver's trimpot top. Adjust gently to **0.80 V** on R100-sense
+boards — check the two tiny sense resistors on each driver first: **R050
+boards halve the target to 0.40 V** (same ~1.0 A motor current; see
+`docs/SHOPPING_LIST.md` and `docs/FIRMWARE.md`).
 
 **Checkpoint:** all four read 0.80 ± 0.05 V. Strip OFF.
 
@@ -85,9 +89,11 @@ revolution and return.
 
 1. For each of 4 switches: solder a wire tail to **C** (common) and **NC**
    (normally closed). Slip-proof with a zip tie around the pair if you like.
-2. Connect: X-switch → shield X endstop pins (D9 + GND side), Y → Y (D10),
-   Z → Z (D11); the 4th switch → **A3 + GND** on the aux header (check
-   silkscreen; see `docs/FIRMWARE.md` pin table).
+2. Connect each switch's two wires to the **two pins of ONE end-stop
+   connector** (signal + GND): X-switch → the X− connector (D9), Y → Y−
+   (D10), Z → Z− (D11). Do NOT bridge X+ to X− — those are separate
+   connectors sharing one signal pin. The 4th switch → **A3 (CoolEn) +
+   GND** on the aux header (check silkscreen; see `docs/FIRMWARE.md`).
 3. Serial: `S` → now `SW 0 0 0 0`. Hold each lever → its digit flips to 1,
    releases back to 0.
 
@@ -112,9 +118,11 @@ The MP1584 trimpots arrive at random voltages — often high enough to kill a
 servo. With the 12 V bench supply available (temporarily land buck IN+ / IN−
 on the shield's powered terminal or the PSU leads):
 
-For each of the 6 bucks: power its input, meter on OUT, turn the trimpot
-(often many turns) until **6.00 V**, then mark the board with a dot of
-marker. Store them labeled.
+For each of the 6 bucks: power its input (double-check IN+ / IN− — reversed
+input kills the board instantly), meter on OUT, and nudge the **single-turn,
+very sensitive** trimpot in 1/16-turn steps until **6.00 V**, then mark the
+board with a dot of marker. When all six are done, remove the bench hookup
+from the shield terminal and re-tighten the power wires. Store them labeled.
 
 **Checkpoint:** six bucks all reading 6.0 V under the same input. Never
 connect a servo to an unverified buck.
@@ -133,7 +141,7 @@ still on the shopping list):
 3. Wire the servo: signal → **GPIO 13**, servo power from the phone-charger
    5 V (later: buck 6.0 V from the LiPo), grounds common with the ESP32.
 4. From your laptop's browser or curl:
-   - `http://<ip>/status` → JSON state
+   - `http://<ip>/status` → plain-text state (READY + current angle)
    - `http://<ip>/setup` → parks the servo at the release angle (this is the
      drum-mounting zero — you'll use it during claw assembly)
    - `http://<ip>/grip` and `/release` → the servo sweeps.

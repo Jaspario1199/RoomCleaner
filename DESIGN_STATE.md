@@ -177,3 +177,19 @@ forwarder. Lead-verified headless in --sim (mission playback) and
 camera-only banner). 192/192 tests. Outstanding: the physical-camera smoke
 test on Jasper's machine (local agent's first task per UPDATE_8-13.md),
 plus the pre-existing live-motion bench items (docs/APP.md).
+
+## Camera case — DONE (8/28)
+New part camera_case_overhead (shell + bezel) fully encloses the innomaker
+board on the ceiling: 56x56 plate + 24.6 mm skirt, board on 10 mm M2
+standoffs (28 mm pitch imported from camera_mount_overhead), O18 lens
+opening in a screw-on bezel, cable exit through-plate or side notch at USB
+level. 45.0 g PETG (60 g budget). Independent verification PASS (52/52;
+verification/camera_case_overhead_report.md). It supersedes the open
+camera_mount_overhead bracket in the print queue (bracket file retained).
+VERIFY before printing: 28 mm board hole pitch; lens-barrel OD (O18 opening
+assumes M12). Watch items: skirt wall measures exactly the 2.4 mm floor;
+side notch fits a flexible cable, not a rigid strain-relief boot.
+Corner pulley ruling (8/28): BUY complete 3 mm-bore U-groove bearing
+pulleys (OD 18-22, width <10 mm, ~10-pack) + M3x25 bolts/nylocks/washers;
+printed sheave is fallback only. Corner_mount junction stresses checked:
+ears 5.5 MPa worst-case (SF ~5 vs PETG layer adhesion), wall <0.5 MPa.

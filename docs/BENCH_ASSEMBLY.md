@@ -48,7 +48,7 @@ fail-safe reading, and it's correct).
 
 ## Phase 3 — Power chain (multimeter from here on)
 
-1. Cut the barrel plug off the ALITOVE 12 V lead; strip both wires.
+1. Cut the barrel plug off the ALITOVE 12 V lead; strip both wires. (Plug-preserving alternative: a 5.5 × 2.1 mm female barrel-jack → screw-terminal adapter, see `docs/SHOPPING_LIST.md` Wiring — the brick plugs in and the adapter's +/− terminals take the place of the cut wires in every step below.)
 2. Strip ON, meter across the wires on DC volts → find and TAPE-MARK the
    **+12 V** lead. Strip OFF.
 3. Wire: **+ lead → inline fuse holder (7.5 A blade fuse) → shield power

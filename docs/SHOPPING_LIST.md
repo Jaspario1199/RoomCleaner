@@ -87,6 +87,7 @@ WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ⚙️ | Dupont jumpers | **Skip — the ELEGOO starter kit above includes jumper wires.** (If you took the Sevenmore budget path instead, add the ELEGOO 120-pc back: https://www.amazon.com/Elegoo-EL-CP-004-Multicolored-Breadboard-arduino/dp/B01EV70C78, $7) | — | 0 |
+| ☐ | Barrel-jack breakout (optional, keeps the ALITOVE plug intact) | **5.5 × 2.1 mm female DC barrel jack → screw-terminal adapter** (2-pack). Alternative to cutting the ALITOVE 12 V lead in Phase 3 of `docs/BENCH_ASSEMBLY.md`: brick plugs in, +/− screw out to the inline fuse → shield terminal. Verify 5.5×2.1 mm matches the ALITOVE plug. | https://www.amazon.com/s?k=5.5x2.1mm+female+dc+barrel+jack+screw+terminal+adapter | 5 |
 | ☐ | Hookup wire | 22 AWG silicone stranded, red + black | https://www.amazon.com/Silicone-Electrical-Conductor-Parallel-Flexible/dp/B07K9R9LBV | 9 |
 | ☐ | Zip ties | ALBO 500-pk assorted | https://www.amazon.com/Assorted-Sizes-Plastic-Resistant-Colors/dp/B08LNRH2TG | 8 |
 

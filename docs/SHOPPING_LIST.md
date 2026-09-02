@@ -80,6 +80,7 @@ WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | Corner mounting screws ⚠️ | **#10 × 3" wood screws** (12+, with washers) for the printed `corner_mount` plates — 3 per corner, driven into a ceiling JOIST or high wall STUD, pilot-drilled. (Replaced the hanging eye hooks, D13: a hook is a pivot — the anchor point wanders and kills repeatability; a screwed-down plate fixes it.) Hardware store or: | https://www.amazon.com/s?k=%2310+x+3+inch+exterior+wood+screws | 8 |
+| ☐ | Corner pulleys ⚠️ | **U-groove ball-bearing pulley, 3 mm bore, OD 18–22 mm, width < 10 mm** (10-pack; need 4 + spares). Rides an M3 × 25 axle bolt (nylock + washers from the M3 kit) between the `corner_mount` ears; washers center the groove at the ear midpoint. Bought, not printed — friction here is position error. Wrong-bore trap: 5 mm is common. | https://www.amazon.com/s?k=u+groove+ball+bearing+pulley+3mm+bore | 10 |
 | ✅ | M3 screw/nut kit | MroMax 640-pc M3 button-head, 304 stainless (6–30 mm + nuts + washers) — also provides the NEMA 17 mount screws | https://www.amazon.com/MroMax-Stainless-Button-Socket-Screws/dp/B0BZP89FQT | 10 |
 
 ## Wiring
@@ -87,7 +88,7 @@ WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ⚙️ | Dupont jumpers | **Skip — the ELEGOO starter kit above includes jumper wires.** (If you took the Sevenmore budget path instead, add the ELEGOO 120-pc back: https://www.amazon.com/Elegoo-EL-CP-004-Multicolored-Breadboard-arduino/dp/B01EV70C78, $7) | — | 0 |
-| ☐ | Barrel-jack breakout (optional, keeps the ALITOVE plug intact) | **5.5 × 2.1 mm female DC barrel jack → screw-terminal adapter** (2-pack). Alternative to cutting the ALITOVE 12 V lead in Phase 3 of `docs/BENCH_ASSEMBLY.md`: brick plugs in, +/− screw out to the inline fuse → shield terminal. Verify 5.5×2.1 mm matches the ALITOVE plug. | https://www.amazon.com/s?k=5.5x2.1mm+female+dc+barrel+jack+screw+terminal+adapter | 5 |
+| ⚙️ | Barrel-jack breakout (no longer needed — ALITOVE plug cut 8/28) | **5.5 × 2.1 mm female DC barrel jack → screw-terminal adapter** (2-pack). Alternative to cutting the ALITOVE 12 V lead in Phase 3 of `docs/BENCH_ASSEMBLY.md`: brick plugs in, +/− screw out to the inline fuse → shield terminal. Verify 5.5×2.1 mm matches the ALITOVE plug. | https://www.amazon.com/s?k=5.5x2.1mm+female+dc+barrel+jack+screw+terminal+adapter | 5 |
 | ☐ | Hookup wire | 22 AWG silicone stranded, red + black | https://www.amazon.com/Silicone-Electrical-Conductor-Parallel-Flexible/dp/B07K9R9LBV | 9 |
 | ☐ | Soldering iron + solder (tool, if not owned) | 60 W adjustable pen iron + 63/37 rosin-core solder; needed for the KW12-3 switch tails, servo/ESP32 side, and to redo the bench power splice properly (solder + heat-shrink) | https://www.amazon.com/s?k=60w+adjustable+soldering+iron+kit | 20 |
 | ☐ | M2 screws (optional) | M2 × 6 pan-head self-tapping, small assortment — secondary retention for the KW12-3 on the `corner_mount` boss (zip tie is primary) | https://www.amazon.com/s?k=m2x6+self+tapping+screws | 6 |
@@ -99,7 +100,7 @@ WiFi. Only the 4 Dyneema cables touch the claw. See `docs/FIRMWARE.md`.
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ☐ | TPU 95A (fingers) | OVERTURE TPU 95A, 1.75 mm, 1 kg | https://www.amazon.com/OVERTURE-Flexible-Printer-Filament-1-75mm/dp/B0991X92K8 | 22 |
-| ☐/⚙️ | Structural (if needed) | HATCHBOX PLA 1 kg (PLA is fine at ~15 N indoors) *or SUNLU PETG* | https://www.amazon.com/HATCHBOX-3D-Filament-Dimensional-Accuracy/dp/B00J0ECR5I | 20 |
+| ☐ | Structural PETG (corner mounts) | SUNLU/OVERTURE PETG 1 kg — **PETG for the 4 corner mounts + spools** (ceiling heat + sustained 40 N line load = PLA creep risk); PLA you already have is fine for the claw stack, cases, camera case. Skip if you already own PETG. | https://www.amazon.com/HATCHBOX-3D-Filament-Dimensional-Accuracy/dp/B00J0ECR5I | 20 |
 
 ---
 
@@ -128,7 +129,6 @@ hadn't line-itemed. Nothing changed in scope; the parts just cost what they cost
 | DRV8825 drivers (full 1.5 A, cooler, +1 spare) | HiLetgo DRV8825 5-pack — drop-in for the ACEIRMC A4988s | https://www.amazon.com/dp/B01NCE3ZW1 | 12 |
 | Autofocus webcam | Logitech C920x | *search "Logitech C920x"* | +30 |
 | Higher-torque servo | ANNIMOS DS3218 20 kg | https://www.amazon.com/ANNIMOS-Digital-Waterproof-DS3218MG-Control/dp/B076CNKQX4 | +5 |
-| Ceramic-bearing corner pulleys ×4 | *search "ceramic bearing pulley 3mm bore"* | — | +12 |
 
 ## ⚠️ Safety — the two non-negotiables
 - **Ceiling anchors into joists**, metal, derated hard (treat "breaking strength"

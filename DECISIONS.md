@@ -65,3 +65,16 @@ motor bolts to bracket, bracket to wood — nothing hangs from the motor or the
 drywall. BOM: eye hooks (−$14) out; wood screws (~$8) in. motor_mount and
 corner_guide remain in the repo for bench/legacy use but the corner install
 uses corner_mount.
+
+D14. **Homing switch moves from the spool–pulley span to the vertical drop
+below the pulley (user find, lead-approved, 8/28)** — with the switch
+mid-span, home = "bead between spool and pulley", so the stopper bead had to
+ride over the pulley groove on every descent and every homing run (groove is
+sized for 0.5 mm line; a bead climbs the flanges or jams). Relocating the
+KW12-3 to a short drop arm beside the vertical line under the pulley keeps
+the bead permanently on the vertical span — it never crosses the pulley.
+Wiring (C + NC, fail-safe), firmware (`H`, HOME_BACKOFF), and the ~4 mm bead
+set-back are unchanged; only the actuation direction becomes vertical.
+corner_mount rev C implements it; the mid-span boss is removed. New interface
+value CORNER_PULLEY_OD_NOM (20 mm, purchased U-groove bearing pulley, 18–22
+mm accepted) fixes the drop line's X offset from the ear centre.

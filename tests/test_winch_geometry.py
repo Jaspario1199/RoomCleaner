@@ -960,7 +960,10 @@ def test_corner_mount_kw12_pad_face_exists_and_is_horizontal():
     probes = [
         (corner_mount.DROP_X, y)
         for y in (
-            corner_mount.KW_PAD_Y0 + 0.5,
+            # 1.0 mm (not 0.5) in from the pad's nominal front: at X=DROP_X
+            # the front edge follows the r=KW_LINE_CORRIDOR_R notch, so the
+            # solid starts at Y=KW_LINE_CORRIDOR_R (3.0), not KW_PAD_Y0 (2.5).
+            corner_mount.KW_PAD_Y0 + 1.0,
             (corner_mount.KW_PAD_Y0 + corner_mount.KW_PAD_Y1) / 2,
             corner_mount.KW_PAD_Y1 - 0.5,
         )

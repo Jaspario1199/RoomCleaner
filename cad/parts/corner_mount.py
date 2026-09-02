@@ -194,7 +194,7 @@ HOMING SWITCH (KW12-3 cable-homing limit switch mount -- rev D, top pad):
        MOUNTING face at rest (body is KW12_BODY_H=10 mm tall; the lever
        rides ~2 mm above the body top).
     3. Which end is hinged: the FAR (non-roller) end, per (1).
-  Actuation direction: pressing the roller toward the mounting face (+Z on
+  Actuation direction: pressing the roller toward the mounting face (-Z on
   this pad) trips the switch -- a bead descending in -Z strikes the roller
   from above (+Z side) and pushes it toward the pad, i.e. the correct
   direction for this lever geometry, unlike rev C's along-the-lever
@@ -555,6 +555,29 @@ KW_PAD_Y0 = KW_BODY_END_Y   # mm
 KW_PAD_LIP = 1.5             # mm
 KW_PAD_Y1 = KW_BODY_END_Y + KW12_BODY_L + KW_PAD_LIP   # mm
 
+# Generic line-position-uncertainty corridor (Ø6 mm, i.e. r=3 mm, centered
+# on the drop line at DROP_X) used for clearance checks elsewhere on this
+# part (tests/test_winch_geometry.py
+# test_corner_mount_kw12_line_corridor_clearance_below_taper) -- wider than
+# the bead's own bare KW_HOMING_BEAD_DIA_NOM/2=2.5 mm reach that KW_PAD_Y0
+# is tangent to. FIX 2 (verification/corner_mount_revD_report.md finding 2):
+# the pad's flat capping step, tangent to the bead's own narrower radius,
+# put a small (1.125 mm^3 at r=3) sliver of PRINTED material inside this
+# wider corridor above the taper. Fixed in _kw12_mount_arm() by notching the
+# step's own front-lower edge back to this radius -- WITHOUT moving
+# KW_BODY_END_Y, KW_PAD_Y0, or the roller (KW_ROLLER_Y stays 1.0 mm). Net
+# effect: the purchased switch body (rigid, not printed) may overhang the
+# notched pad edge by up to KW_LINE_CORRIDOR_R - KW_PAD_Y0 mm at its own
+# X-center (X=DROP_X), tapering to 0 mm at the notch's X extent -- an
+# unsupported overhang of the switch's own hardware, not the printed pad,
+# and within the assignment's accepted <= 0.5 mm allowance.
+KW_LINE_CORRIDOR_R = 3.0   # mm
+KW_PAD_FRONT_OVERHANG_MAX = KW_LINE_CORRIDOR_R - KW_PAD_Y0   # mm, worst case
+assert 0.0 < KW_PAD_FRONT_OVERHANG_MAX <= 0.5 + 1e-9, (
+    "corner_mount KW12 pad-front notch overhang exceeds the assignment's "
+    "0.5 mm allowance -- KW_LINE_CORRIDOR_R too large relative to KW_PAD_Y0"
+)
+
 # Screw hole Y-centers, from the switch's own (fixed) 9.5 mm hole pitch,
 # inset (KW12_BODY_L - KW12_HOLE_SPACING)/2 from each end -- NOT
 # independently chosen.
@@ -633,8 +656,26 @@ KW_GROOVE_DEPTH = 1.5          # mm, matches the assignment's own accepted
                                 # step-overhang limit for this print
 KW_GROOVE_H = 4.0              # mm, tall enough for a standard nylon tie
                                 # (reuses the rev C zip-tie width convention)
-KW_GROOVE_Z1_LOCAL = KW_TAPER_Z0_LOCAL   # mm, groove top = taper start
+
+# Groove top: FIX 1 (verification/corner_mount_revD_report.md finding 1) --
+# rev D originally set the groove top at the taper start (KW_TAPER_Z0_LOCAL,
+# world 41.0 mm), which put the groove's Z band (world 37.0-41.0 mm) 1.5 mm
+# into the M2 pilots' own blind-hole Z band (world 39.5-44.5 mm), breaching
+# each pilot's outboard (+X), OD-22-tuned-extreme wall for its deepest
+# 1.5 mm of depth. Fixed by moving the groove DOWN (-Z) so its top clears
+# the pilots' own blind bottom by KW_GROOVE_PILOT_CLEARANCE, while it stays
+# entirely on the vertical shaft below the taper (Y >= KW_ARM_Y_LOWER,
+# unchanged) and at the same <= 1.5 mm KW_GROOVE_DEPTH.
+KW_GROOVE_PILOT_CLEARANCE = 1.0   # mm, min wall above the groove's own top
+_kw_pilot_blind_bottom = KW_PAD_Z - KW12_PILOT_DEPTH   # mm, world Z
+KW_GROOVE_Z1_LOCAL = (
+    _kw_pilot_blind_bottom - KW_GROOVE_PILOT_CLEARANCE - PLATE_T
+)   # mm, local-to-plate-top
 KW_GROOVE_Z0_LOCAL = KW_GROOVE_Z1_LOCAL - KW_GROOVE_H   # mm
+assert KW_GROOVE_Z1_LOCAL <= KW_TAPER_Z0_LOCAL, (
+    "corner_mount KW12 zip-tie groove reaches above the taper start -- "
+    "shrink KW_GROOVE_PILOT_CLEARANCE or raise KW_PAD_STANDOFF_ABOVE_EAR"
+)
 assert KW_GROOVE_Z0_LOCAL > 0.5, (
     "corner_mount KW12 zip-tie groove runs below the plate top -- raise "
     "KW_PAD_STANDOFF_ABOVE_EAR or shrink KW_GROOVE_H"
@@ -776,6 +817,25 @@ def _kw12_mount_arm() -> cq.Workplane:
     )
 
     arm = lower.union(chamfer).union(step)
+
+    # FIX 2 (verification/corner_mount_revD_report.md finding 2): notch the
+    # step's own front-lower edge back to the generic line corridor radius
+    # (KW_LINE_CORRIDOR_R) -- the 45 deg chamfer already clears it (its
+    # front Y never drops below KW_STEP_Y_MID=4.0 mm > KW_LINE_CORRIDOR_R,
+    # so this tool has no effect there), and the notch only removes step
+    # material within KW_LINE_CORRIDOR_R of the drop line (X=DROP_X, Y=0) --
+    # a shallow, tangent scallop, not a redesign of the pad. KW_BODY_END_Y,
+    # KW_PAD_Y0 and the roller position are untouched; see the
+    # KW_LINE_CORRIDOR_R comment above for the resulting (documented,
+    # <= 0.5 mm) switch-body overhang.
+    _corridor_notch = (
+        cq.Workplane("XY")
+        .workplane(offset=KW_CHAMFER_Z1_LOCAL)
+        .center(DROP_X, 0.0)
+        .circle(KW_LINE_CORRIDOR_R)
+        .extrude(KW_STEP_H)
+    )
+    arm = arm.cut(_corridor_notch)
 
     # Zip-tie retention groove: a shallow ring recess around the neck, just
     # below the taper -- recessed on both X sides and the back (Y_hi) face

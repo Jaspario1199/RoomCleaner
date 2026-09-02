@@ -494,19 +494,6 @@ def test_step_round_trip_volume_and_bbox(built, tmp_path):
 # record, per the assignment's instruction.
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "corner_mount rev D: both M2 pilot slots' outboard (+X) tuning-cap "
-        "tip loses its enclosing wall for the deepest 1.5 mm of the nominal "
-        "5.0 mm blind depth, breached by the X1-side zip-tie groove (groove "
-        "Z band 37-41 mm world overlaps the pilot's own Z band 39.5-44.5 mm "
-        "world). Self-tap thread engagement at the extreme +2 mm tuning "
-        "position (needed for OD=22 mm pulleys) loses partial wall support "
-        "over that 1.5 mm. See verification/corner_mount_revD_report.md "
-        "section 3."
-    ),
-)
 def test_XFAIL_pilot_outboard_tip_fully_enclosed_for_full_depth(built):
     part, ins = built
     cap_far_x = cm.DROP_X + cm.KW_ROLLER_TUNE_RANGE / 2 + 1.7 / 2
@@ -516,21 +503,6 @@ def test_XFAIL_pilot_outboard_tip_fully_enclosed_for_full_depth(built):
         assert any(ins(x, screw_y, z_bottom) for x in xs), "outboard tip wall breached"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "corner_mount rev D: the pad's own capping step (KW_PAD_Y0=2.5 mm "
-        "from the line, tangent to the assumed bead's OWN 2.5 mm radius, "
-        "not to the broader generic Ø6/r=3 mm line-position-margin "
-        "corridor used everywhere else on this part) puts a small but real "
-        "sliver of PRINTED material (1.125 mm^3) inside that generic "
-        "corridor, confined to the pad's own Z band (KW_TAPER_Z0..KW_PAD_Z, "
-        "41.0-44.5 mm world). The assignment's own rule: only the "
-        "purchased switch (roller) may intrude above the taper; here "
-        "printed material does too, by a small quantified amount. See "
-        "verification/corner_mount_revD_report.md section 5."
-    ),
-)
 def test_XFAIL_no_printed_material_above_taper_in_generic_corridor(built):
     part, _ins = built
     z_lo, z_hi = cm.KW_TAPER_Z0, cm.KW_PAD_Z

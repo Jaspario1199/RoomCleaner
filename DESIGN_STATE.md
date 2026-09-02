@@ -204,3 +204,20 @@ solder/heat-shrink or a lever nut in Phase 6. Phase 1: firmware flashed,
 READY / POS / SW verified. Phase 4: drivers confirmed R100, all four Vref
 set 0.75–0.85 V. Phase 5: one SIMAX motor spun 1 rev out/back on X, Y, Z
 and A — 4th-axis mapping proven. Next: Phase 6 limit switches (soldering).
+
+## corner_mount rev D — homing switch below the pulley, VERIFIED (8/28)
+D14 implemented: mid-span switch boss removed; KW12-3 now sits on a
+horizontal pad atop a drop arm beside the vertical line (roller at
+DROP_X = EAR_CX + CORNER_PULLEY_OD_NOM/2, Y=1.0, Z=56.5 local); a
+descending bead presses the roller toward the pad (-Z = reel-in). Rev C
+(switch on the arm's vertical face) FAILED independent verification --
+roller 5 mm off in X, 10.5 mm in Y (verification/corner_mount_revC_report.md);
+rev D PASSES (verification/corner_mount_revD_report.md), plus D.1 fixes:
+zip groove moved to Z 34.5-38.5 clear of the M2 pilots, r=3 corridor
+notch at the pad front (0 mm^3 intrusion). Mass 96.29 g / 105 g budget.
+100 corner-mount tests green. STL current -> print the 4-off set from this.
+Caliper-verify on a KW12-3 in hand: roller overhang past body end
+(assumed 1.5 mm), roller rest height above mounting face (12 mm),
+hinged end (assumed far end). Trigger height is set by bead placement
+(~4 mm below the roller contact). Bead nominal O5 (local assumption,
+KW_HOMING_BEAD_DIA_NOM).

@@ -114,3 +114,10 @@ CORNER_MOUNT_FLEET_COPLANAR_TOL = 2.0      # mm, pulley mid-plane vs spool
                                       # for what "mid-plane" means here)
 CORNER_MOUNT_FLEET_HEIGHT_TOL = 3.0        # mm, pulley axle height vs
                                       # spool axis height
+
+# D14: drop-arm homing-switch mount (rev C) -- purchased U-groove bearing
+# pulley OD used to locate the vertical drop line's X offset from the ear
+# centerline (EAR_CX). The line wraps the pulley's +X side and drops
+# vertically at X = EAR_CX + CORNER_PULLEY_OD_NOM / 2. 18-22 mm accepted;
+# the KW12-3 lever's 18 mm reach absorbs the resulting +-1 mm X uncertainty.
+CORNER_PULLEY_OD_NOM = 20.0           # mm, purchased U-groove bearing pulley

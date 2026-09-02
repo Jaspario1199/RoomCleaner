@@ -193,3 +193,14 @@ Corner pulley ruling (8/28): BUY complete 3 mm-bore U-groove bearing
 pulleys (OD 18-22, width <10 mm, ~10-pack) + M3x25 bolts/nylocks/washers;
 printed sheave is fallback only. Corner_mount junction stresses checked:
 ears 5.5 MPa worst-case (SF ~5 vs PETG layer adhesion), wall <0.5 MPa.
+
+## Bench bring-up — Phases 1–5 DONE (8/28, live session)
+Phase 2: 14 caps seated (12 microstep + 2 A-axis D12/D13). Phase 3: ALITOVE
+plug cut, meter-identified + lead, 7.5 A inline fuse, shield terminal reads
+**18 V** (brick label still to be read; within 12–36 V shield / 35 V A4988
+spec — never feed the Uno barrel jack from it). No VMOT LED on this clone;
+the meter reading is the checkpoint. Splice is twist + duct tape: REDO with
+solder/heat-shrink or a lever nut in Phase 6. Phase 1: firmware flashed,
+READY / POS / SW verified. Phase 4: drivers confirmed R100, all four Vref
+set 0.75–0.85 V. Phase 5: one SIMAX motor spun 1 rev out/back on X, Y, Z
+and A — 4th-axis mapping proven. Next: Phase 6 limit switches (soldering).

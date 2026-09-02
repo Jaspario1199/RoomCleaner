@@ -937,95 +937,211 @@ def test_corner_mount_step_round_trip():
 
 
 # ---------------------------------------------------------------------------
-# Check 9: corner_mount KW12-3 homing-switch DROP-ARM mount (rev C, D14).
+# Check 9: corner_mount KW12-3 homing-switch mount (rev D, top pad).
 # See cad/parts/corner_mount.py module docstring "HOMING SWITCH" for the
-# design reasoning (D14, line geometry, orientation, adjustability
-# mechanism, bead-placement procedure) these tests check against. Rev C
-# replaces the rev B mid-span-boss tests below: adjustability is now
-# Z-elongated (was X), the mount face is a vertical arm face at X=DROP_X
-# (was a horizontal boss top), and clearance is checked against the pulley
-# envelope (the new binding constraint) as well as the line corridor.
+# design reasoning (D14, the rev C wrong-by-construction failure --
+# verification/corner_mount_revC_report.md check 5 -- and the rev D fix:
+# re-orient the switch onto a horizontal pad so a bead descending -Z
+# presses the roller toward the pad). These tests replace the rev C arm
+# tests wholesale: there is no printed Z-adjustment slot band any more (the
+# bead's tie point sets the trigger point instead), and the key new
+# coverage is the roller-placement test (5c below) that rev C's own suite
+# never had -- see the report's "why the implementer's own test suite
+# didn't catch this" section.
 # ---------------------------------------------------------------------------
 
-def test_corner_mount_kw12_leg_present_at_declared_position():
-    """Solid probe midway between the front leg's zip-tie slot and its
-    screw slot (both cut features, both at the same Z=KW_TRIGGER_Z), at the
-    leg's mid-depth in X -- must be solid printed material, confirming the
-    leg actually exists at its declared position (not just a passing
-    constant computation)."""
+def test_corner_mount_kw12_pad_face_exists_and_is_horizontal():
+    """The switch's mounting face must be solid material just below
+    KW_PAD_Z and void just above it, at several points across the pad's own
+    X/Y footprint -- confirming a real, flat, horizontal +Z-facing surface,
+    not just a passing constant computation."""
     cm = corner_mount.make()
     ins = _inside_fn(cm.val())
-    x_probe = (corner_mount.KW_ARM_X0 + corner_mount.KW_ARM_X1) / 2
-    y_probe = (
-        (corner_mount.KW_ZIP_Y[0] + corner_mount.KW_ZIPTIE_SLOT_W / 2)
-        + (corner_mount.KW_SCREW_Y[0] - corner_mount.KW12_SELFTAP_PILOT_DIA / 2)
-    ) / 2
-    z_probe = corner_mount.KW_TRIGGER_Z
-    assert ins(x_probe, y_probe, z_probe), (
-        f"corner_mount KW12 arm: expected solid material at "
-        f"(x={x_probe:.3f}, y={y_probe:.3f}, z={z_probe:.3f}) -- the front "
-        "leg between its zip-tie slot and screw slot"
-    )
+    probes = [
+        (corner_mount.DROP_X, y)
+        for y in (
+            corner_mount.KW_PAD_Y0 + 0.5,
+            (corner_mount.KW_PAD_Y0 + corner_mount.KW_PAD_Y1) / 2,
+            corner_mount.KW_PAD_Y1 - 0.5,
+        )
+    ] + [
+        (corner_mount.KW_PAD_X0 + 0.5, (corner_mount.KW_PAD_Y0 + corner_mount.KW_PAD_Y1) / 2),
+        (corner_mount.KW_PAD_X1 - 0.5, (corner_mount.KW_PAD_Y0 + corner_mount.KW_PAD_Y1) / 2),
+    ]
+    for x, y in probes:
+        assert ins(x, y, corner_mount.KW_PAD_Z - 0.3), (
+            f"corner_mount KW12 pad: expected solid material just below "
+            f"KW_PAD_Z at (x={x:.2f}, y={y:.2f})"
+        )
+        assert not ins(x, y, corner_mount.KW_PAD_Z + 0.3), (
+            f"corner_mount KW12 pad: expected void just above KW_PAD_Z at "
+            f"(x={x:.2f}, y={y:.2f}) -- the pad face is not flat/at the "
+            "declared height"
+        )
 
 
-@pytest.mark.parametrize("leg_idx", [0, 1])
-def test_corner_mount_kw12_arm_is_vertical_prism_from_plate(leg_idx):
-    """Each leg must be a genuine no-overhang vertical prism: solid at its
-    own base (just above the plate top, where it connects down to the
-    plate -- the self-supporting print requirement) AND solid at its own
-    top (the cap above the Z-adjustment slot band, so the topmost slot cut
-    is capped by real wall rather than ending flush with an open top)."""
+def test_corner_mount_kw12_lower_shaft_is_no_overhang_prism():
+    """Below the taper, the shaft must be a genuine no-overhang vertical
+    prism: solid just above the plate top (self-supporting print
+    requirement) and solid again just below the taper start."""
     cm = corner_mount.make()
     ins = _inside_fn(cm.val())
-    x_probe = (corner_mount.KW_ARM_X0 + corner_mount.KW_ARM_X1) / 2
-    y0, y1 = corner_mount.KW_LEG_Y[leg_idx]
-    y_probe = (y0 + y1) / 2
+    x_probe = (corner_mount.KW_PAD_X0 + corner_mount.KW_PAD_X1) / 2
+    y_probe = (corner_mount.KW_ARM_Y_LOWER + corner_mount.KW_PAD_Y1) / 2
     z_base = corner_mount.PLATE_T + 0.5
-    z_top = corner_mount.PLATE_T + corner_mount.KW_ARM_H - 0.5
+    z_top = corner_mount.KW_TAPER_Z0 - 0.5
     assert ins(x_probe, y_probe, z_base), (
-        f"corner_mount KW12 leg {leg_idx}: expected solid material just "
-        f"above the plate top (z={z_base:.3f}) -- the leg must connect "
-        "directly to the plate to print without support"
+        f"corner_mount KW12 shaft: expected solid material just above the "
+        f"plate top (z={z_base:.3f})"
     )
     assert ins(x_probe, y_probe, z_top), (
-        f"corner_mount KW12 leg {leg_idx}: expected solid material near "
-        f"the arm top (z={z_top:.3f}) -- capping the slot band"
+        f"corner_mount KW12 shaft: expected solid material just below the "
+        f"taper start (z={z_top:.3f})"
     )
 
 
-def test_corner_mount_kw12_line_corridor_clearance():
-    """The Dyneema line + stopper bead travel corridor -- Ø6 mm (+-3 mm)
-    about the vertical drop line at (X=DROP_X, Y=0), +1 mm margin -- must
-    be entirely clear of built corner_mount material. The boss/legs are
-    kept at Y >= KW_BOSS_Y0 = 6.0 mm (see that constant's own comment in
-    corner_mount.py), outside the corridor's +-4 mm half-width by
-    construction, so this probes a generous box (+-4 mm in X and Y) over
-    the arm's full height and expects exactly 0 mm^3."""
+@pytest.mark.parametrize("screw_idx", [0, 1])
+def test_corner_mount_kw12_pilot_is_blind_and_x_elongated(screw_idx):
+    """Each self-tap M2 pilot must be a blind bore from the pad face (void
+    just below KW_PAD_Z, solid beyond KW12_PILOT_DEPTH) and X-elongated by
+    KW_ROLLER_TUNE_RANGE (void at the tuning range's edge, solid just
+    beyond it)."""
     cm = corner_mount.make()
-    half = 3.0 + 1.0   # mm, corridor radius + margin
-    z_lo = corner_mount.PLATE_T
-    z_hi = corner_mount.PLATE_T + corner_mount.KW_ARM_H + 10.0
-    corridor = (
-        cq.Workplane("XY").workplane(offset=z_lo)
-        .center(corner_mount.DROP_X, 0.0)
-        .rect(2 * half, 2 * half)
-        .extrude(z_hi - z_lo)
+    ins = _inside_fn(cm.val())
+    screw_y = corner_mount.KW_SCREW_Y[screw_idx]
+    assert not ins(corner_mount.DROP_X, screw_y, corner_mount.KW_PAD_Z - 0.2), (
+        f"corner_mount KW12 pilot {screw_idx}: expected void just below "
+        "the pad face"
     )
-    inter = corridor.intersect(cm)
-    volume = inter.val().Volume() if inter.solids().vals() else 0.0
-    assert volume < 1e-6, (
-        f"corner_mount intrudes into the drop-line corridor by "
-        f"{volume:.6f} mm^3 (expected 0)"
+    z_beyond = corner_mount.KW_PAD_Z - corner_mount.KW12_PILOT_DEPTH - 0.3
+    assert ins(corner_mount.DROP_X, screw_y, z_beyond), (
+        f"corner_mount KW12 pilot {screw_idx}: expected solid material "
+        f"beyond the blind depth (z={z_beyond:.3f}) -- not a blind bore"
+    )
+    x_edge_void = corner_mount.DROP_X + corner_mount.KW_ROLLER_TUNE_RANGE / 2 - 0.2
+    assert not ins(x_edge_void, screw_y, corner_mount.KW_PAD_Z - 0.2), (
+        f"corner_mount KW12 pilot {screw_idx}: expected void at the tuning "
+        f"range's edge (x={x_edge_void:.3f})"
+    )
+    x_edge_solid = (
+        corner_mount.DROP_X + corner_mount.KW_ROLLER_TUNE_RANGE / 2
+        + corner_mount.KW12_SELFTAP_PILOT_DIA / 2 + 0.3
+    )
+    assert ins(x_edge_solid, screw_y, corner_mount.KW_PAD_Z - 0.2), (
+        f"corner_mount KW12 pilot {screw_idx}: expected solid material "
+        f"beyond the tuning range + hole radius (x={x_edge_solid:.3f}) -- "
+        "not X-elongated by the declared range"
+    )
+
+
+def test_corner_mount_kw12_ziptie_groove_present():
+    """The zip-tie retention groove must be a real recess: void near the
+    outer (X-side) wall within the groove's Z band, solid at the same X
+    just outside that band, and solid at the groove's own recessed inner
+    core (proving a bounded shallow recess, not a full-depth cut)."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    y_probe = (corner_mount.KW_ARM_Y_LOWER + corner_mount.KW_PAD_Y1) / 2
+    z_mid = (corner_mount.KW_GROOVE_Z0_LOCAL + corner_mount.KW_GROOVE_Z1_LOCAL) / 2 + corner_mount.PLATE_T
+    x_outer = corner_mount.KW_PAD_X0 + 0.3
+    assert not ins(x_outer, y_probe, z_mid), (
+        f"corner_mount KW12 groove: expected void near the outer wall "
+        f"(x={x_outer:.3f}) within the groove band"
+    )
+    z_below = corner_mount.KW_GROOVE_Z0_LOCAL + corner_mount.PLATE_T - 1.0
+    assert ins(x_outer, y_probe, z_below), (
+        f"corner_mount KW12 groove: expected solid material at the same X "
+        f"just below the groove band (z={z_below:.3f})"
+    )
+    x_inner = corner_mount.KW_PAD_X0 + corner_mount.KW_GROOVE_DEPTH + 0.3
+    assert ins(x_inner, y_probe, z_mid), (
+        f"corner_mount KW12 groove: expected solid material at the "
+        f"recessed core (x={x_inner:.3f}) -- the groove must be a shallow "
+        "recess, not a full-depth cut"
+    )
+
+
+def test_corner_mount_kw12_groove_does_not_intrude_on_front_screw():
+    """The groove is deliberately NOT recessed on the front (-Y) face (see
+    _kw12_mount_arm docstring) so it cannot shallow out the front pilot
+    hole's own blind depth. Confirm the front screw's blind-depth wall is
+    solid at a Z that falls inside the groove's own Z band."""
+    cm = corner_mount.make()
+    ins = _inside_fn(cm.val())
+    screw_y = corner_mount.KW_SCREW_Y[0]
+    z_local = (corner_mount.KW_GROOVE_Z0_LOCAL + corner_mount.KW_GROOVE_Z1_LOCAL) / 2
+    z_world = z_local + corner_mount.PLATE_T
+    assert corner_mount.KW_TAPER_Z0 - corner_mount.KW12_PILOT_DEPTH < z_world < corner_mount.KW_TAPER_Z0, (
+        "test setup: probe Z should fall within the groove band"
+    )
+    assert ins(corner_mount.DROP_X, screw_y, z_world), (
+        f"corner_mount KW12: front screw pilot wall is void at "
+        f"(z={z_world:.3f}), inside the groove's own Z band -- the groove "
+        "is eating into the front pilot hole's blind depth"
+    )
+
+
+def test_corner_mount_kw12_roller_placement():
+    """THE KEY CHECK (replaces the rev C failure -- see report check 5):
+    compute the roller center from the mount geometry and the corrected
+    lever model, and confirm it actually lands on the drop line.
+      (a) |roller_X - line_X| <= 1.5 mm for OD in {18, 20, 22} AFTER
+          sliding the switch to the best position within the +-2 mm
+          tuning slot, and <= 1.0 mm at the untuned nominal (OD=20).
+      (b) |roller_Y| <= 1.5 mm (fixed by construction, not tunable).
+      (c) roller_Z sits beyond (below, in world terms) the pulley
+          envelope's own Z extent.
+    """
+    cm = corner_mount
+
+    # (a) X, with +-KW_ROLLER_TUNE_RANGE/2 tuning available per OD.
+    tune_half = cm.KW_ROLLER_TUNE_RANGE / 2
+    for od in (18.0, 20.0, 22.0):
+        x_line = cm.EAR_CX + od / 2.0
+        err_before_tune = abs(cm.KW_ROLLER_X - x_line)
+        err_after_tune = max(0.0, err_before_tune - tune_half)
+        assert err_after_tune <= 1.5, (
+            f"OD={od}: roller X error after tuning = {err_after_tune:.3f} mm "
+            "(> 1.5 mm) -- KW_ROLLER_TUNE_RANGE does not cover this OD"
+        )
+    nominal_err = abs(cm.KW_ROLLER_X - (cm.EAR_CX + I.CORNER_PULLEY_OD_NOM / 2.0))
+    assert nominal_err <= 1.0, (
+        f"nominal (untuned, OD={I.CORNER_PULLEY_OD_NOM}) roller X error = "
+        f"{nominal_err:.3f} mm (> 1.0 mm)"
+    )
+
+    # (b) Y.
+    assert abs(cm.KW_ROLLER_Y) <= 1.5, (
+        f"roller Y = {cm.KW_ROLLER_Y:.3f} mm (> 1.5 mm from the drop line's "
+        "own Y=0)"
+    )
+
+    # (c) Z beyond the pulley envelope.
+    pulley_envelope_top = cm.PLATE_T + I.CORNER_MOUNT_AXIS_Z + 22.0 / 2
+    assert cm.KW_ROLLER_Z > pulley_envelope_top, (
+        f"roller Z = {cm.KW_ROLLER_Z:.3f} mm sits inside the pulley "
+        f"envelope (top at {pulley_envelope_top:.3f} mm)"
+    )
+
+
+def test_corner_mount_kw12_bead_roller_overlap():
+    """A Ø5 mm bead riding the line at Y=0 must overlap the roller (a
+    KW12_ROLLER_DIA disc centered at KW_ROLLER_Y) by >= 2.0 mm along Y at
+    nominal -- the actual contact margin the switch relies on."""
+    bead_r = corner_mount.KW_HOMING_BEAD_DIA_NOM / 2
+    roller_r = corner_mount.KW12_ROLLER_DIA / 2
+    overlap = (bead_r + roller_r) - abs(corner_mount.KW_ROLLER_Y - 0.0)
+    assert overlap >= 2.0, (
+        f"corner_mount KW12 bead/roller Y overlap = {overlap:.3f} mm "
+        "(required >= 2.0 mm)"
     )
 
 
 def test_corner_mount_kw12_pulley_envelope_clearance():
     """Boolean-intersect the purchased pulley's own clearance envelope
-    (Ø22 mm -- the top of the 18-22 mm accepted OD range -- x 10 mm wide,
-    i.e. +-5 mm about Y=0, matching PULLEY_GAP, on the axle at X=EAR_CX,
-    Z=PLATE_T+CORNER_MOUNT_AXIS_Z) with the built bracket. This is the
-    binding clearance for the KW12 arm (wider in Y than the line corridor
-    above) since the arm sits right beside the pulley -- expect 0 mm^3."""
+    (Ø22 mm -- top of the 18-22 mm accepted OD range -- x 10 mm wide, i.e.
+    +-5 mm about Y=0, matching PULLEY_GAP, on the axle at X=EAR_CX,
+    Z=PLATE_T+CORNER_MOUNT_AXIS_Z) with the built bracket -- expect 0 mm^3."""
     cm = corner_mount.make()
     pulley_od = 22.0   # mm, top of the 18-22 mm accepted range
     half_w = corner_mount.PULLEY_GAP / 2   # mm, +-5 mm about Y=0
@@ -1044,137 +1160,97 @@ def test_corner_mount_kw12_pulley_envelope_clearance():
     )
 
 
+def test_corner_mount_kw12_line_corridor_clearance_below_taper():
+    """The Dyneema line's generic Ø6 mm (+-3 mm, +1 mm margin) travel
+    corridor about (X=DROP_X, Y=0) must be clear of printed material for
+    Z < KW_TAPER_Z0 -- the region below where the switch is designed to
+    approach the line. ABOVE KW_TAPER_Z0 the pad/roller are deliberately
+    close to the line (that is the whole point of the switch -- see the
+    module docstring and test_corner_mount_kw12_bead_roller_overlap for
+    the check that actually governs that region), so this test is
+    intentionally scoped to the lower, non-interaction band, not the
+    line's full vertical extent."""
+    cm = corner_mount.make()
+    half = 3.0 + 1.0   # mm, corridor radius + margin
+    z_lo = corner_mount.PLATE_T
+    z_hi = corner_mount.KW_TAPER_Z0
+    corridor = (
+        cq.Workplane("XY").workplane(offset=z_lo)
+        .center(corner_mount.DROP_X, 0.0)
+        .rect(2 * half, 2 * half)
+        .extrude(z_hi - z_lo)
+    )
+    inter = corridor.intersect(cm)
+    volume = inter.val().Volume() if inter.solids().vals() else 0.0
+    assert volume < 1e-6, (
+        f"corner_mount intrudes into the drop-line corridor (below the "
+        f"pulley-envelope boundary) by {volume:.6f} mm^3 (expected 0)"
+    )
+
+
 def test_corner_mount_kw12_arm_clears_csk_screw():
-    """The arm/legs must not overlap the X=45 mm countersunk wood-screw's
-    own footprint (radius CSK_DIA/2). Checked against the KW12 boss alone
+    """The pad/arm must not overlap the X=45 mm countersunk wood-screw's
+    own footprint (radius CSK_DIA/2). Checked against the KW12 mount alone
     (not the whole bracket, which legitimately has plate material near the
     screw -- that is the screw's own countersink, not a defect)."""
-    boss = corner_mount._kw12_switch_boss()
+    arm = corner_mount._kw12_mount_arm()
     csk_x = corner_mount.MOUNT_HOLE_X[2]
     csk_r = corner_mount.CSK_DIA / 2
     cyl = (
         cq.Workplane("XY")
         .center(csk_x, 0.0)
         .circle(csk_r)
-        .extrude(corner_mount.PLATE_T + corner_mount.KW_ARM_H + 10.0)
+        .extrude(corner_mount.PLATE_T + corner_mount.KW_PAD_Z_LOCAL + 10.0)
     )
-    inter = cyl.intersect(boss)
+    inter = cyl.intersect(arm)
     volume = inter.val().Volume() if inter.solids().vals() else 0.0
     assert volume < 1e-6, (
-        f"corner_mount KW12 arm overlaps the X=45 mm countersunk screw by "
-        f"{volume:.6f} mm^3 (expected 0)"
+        f"corner_mount KW12 mount overlaps the X=45 mm countersunk screw "
+        f"by {volume:.6f} mm^3 (expected 0)"
     )
 
 
-@pytest.mark.parametrize("leg_idx", [0, 1])
-def test_corner_mount_kw12_ziptie_slots_are_through_cuts(leg_idx):
-    """Each zip-tie slot must be void from just inside the mount (+X) face
-    to just inside the back (-X) face at the trigger height -- a genuine
-    through-cut in X, not a blind pocket -- while material near the plate
-    (well below the Z-adjustment band) stays solid, proving the cut is a
-    bounded tunnel through the slot band, not a gap spanning the whole
-    leg."""
-    cm = corner_mount.make()
-    ins = _inside_fn(cm.val())
-    zip_y = corner_mount.KW_ZIP_Y[leg_idx]
-    z = corner_mount.KW_TRIGGER_Z
-    x_near_mount = corner_mount.KW_ARM_X1 - 0.3
-    x_near_back = corner_mount.KW_ARM_X0 + 0.3
-    assert not ins(x_near_mount, zip_y, z), (
-        f"corner_mount KW12 zip-tie slot {leg_idx}: expected void near the "
-        f"mount face (x={x_near_mount:.3f}), found solid material"
-    )
-    assert not ins(x_near_back, zip_y, z), (
-        f"corner_mount KW12 zip-tie slot {leg_idx}: expected void near the "
-        f"back face (x={x_near_back:.3f}), found solid material -- not a "
-        "through-cut"
-    )
-    x_mid = (corner_mount.KW_ARM_X0 + corner_mount.KW_ARM_X1) / 2
-    z_near_plate = corner_mount.PLATE_T + 2.0
-    assert ins(x_mid, zip_y, z_near_plate), (
-        f"corner_mount KW12 zip-tie slot {leg_idx}: expected solid material "
-        f"near the plate (z={z_near_plate:.3f}), found void -- the "
-        "through-cut must be bounded to the slot band, not span the "
-        "whole leg"
+def test_corner_mount_kw12_clears_nema17_motor_body_envelope():
+    """The KW12 mount sits at X in [KW_PAD_X0, KW_PAD_X1] (near the +X
+    pulley end); the NEMA17 motor-body envelope sits at X=WALL_CX (near the
+    -X end) -- confirm the two boxes have zero X overlap, i.e. cannot
+    possibly intersect (reproduces the existing whole-bracket motor-body
+    clearance test's own envelope, scoped to this X-separation argument)."""
+    motor_x_max = corner_mount.WALL_CX + P.NEMA17_FACE / 2
+    assert motor_x_max < corner_mount.KW_PAD_X0, (
+        f"corner_mount KW12 mount (X0={corner_mount.KW_PAD_X0:.2f}) is no "
+        f"longer clear of the NEMA17 motor-body envelope in X "
+        f"(envelope max X={motor_x_max:.2f})"
     )
 
 
-@pytest.mark.parametrize("leg_idx", [0, 1])
-def test_corner_mount_kw12_pilot_slot_is_blind(leg_idx):
-    """Each self-tap M2 pilot must be void just inside the mount face and
-    solid beyond its own KW12_PILOT_DEPTH -- a blind bore, not a
-    through-cut, leaving KW_BOSS_MIN_WALL of material behind it."""
-    cm = corner_mount.make()
-    ins = _inside_fn(cm.val())
-    screw_y = corner_mount.KW_SCREW_Y[leg_idx]
-    z = corner_mount.KW_TRIGGER_Z
-    x_at_mount = corner_mount.KW_ARM_X1 - 0.3
-    x_beyond_pilot = corner_mount.KW_ARM_X1 - corner_mount.KW12_PILOT_DEPTH - 0.5
-    assert not ins(x_at_mount, screw_y, z), (
-        f"corner_mount KW12 pilot slot {leg_idx}: expected void just "
-        f"inside the mount face (x={x_at_mount:.3f}), found solid material"
+def test_corner_mount_kw12_no_overhang_beyond_declared_step():
+    """No printed face may overhang more than the assignment's declared
+    <= 1.5 mm step: the front-face chamfer must be an exact 45 deg run
+    (rise == run) and the capping step (and the zip-tie groove's own
+    recess depth) must each be <= 1.5 mm."""
+    assert abs(corner_mount.KW_CHAMFER_DY - corner_mount.KW_CHAMFER_H) < 1e-9, (
+        "corner_mount KW12 taper chamfer is not an exact 45 deg run"
     )
-    assert ins(x_beyond_pilot, screw_y, z), (
-        f"corner_mount KW12 pilot slot {leg_idx}: expected solid material "
-        f"behind the blind pilot depth (x={x_beyond_pilot:.3f}), found "
-        "void -- not a blind bore"
+    assert corner_mount.KW_STEP_DY <= 1.5 + 1e-9, (
+        f"corner_mount KW12 taper step = {corner_mount.KW_STEP_DY} mm "
+        "(> 1.5 mm declared allowance)"
     )
-
-
-def test_corner_mount_kw12_switch_footprint_envelope_clear():
-    """Boolean-intersect the KW12-3 switch BODY envelope (KW12_BODY_L along
-    Y x KW12_BODY_W along Z x KW12_BODY_H along X), positioned at its
-    nominal mounted location (flush against the arm's +X mount face,
-    centered on the nominal trigger Z), with the built bracket. The switch
-    sits entirely outside the arm (a measure-zero contact plane at
-    X=DROP_X, not a positive-volume overlap), so this must read 0 mm^3."""
-    cm = corner_mount.make()
-    switch_box = (
-        cq.Workplane("YZ").workplane(offset=corner_mount.DROP_X)
-        .center(
-            (corner_mount.KW_BODY_Y_FRONT + corner_mount.KW_BODY_Y_BACK) / 2,
-            corner_mount.KW_TRIGGER_Z,
-        )
-        .rect(corner_mount.KW12_BODY_L, corner_mount.KW12_BODY_W)
-        .extrude(corner_mount.KW12_BODY_H)
-    )
-    inter = switch_box.intersect(cm)
-    volume = inter.val().Volume() if inter.solids().vals() else 0.0
-    assert volume < 1e-6, (
-        f"corner_mount intersects the KW12-3 switch body envelope by "
-        f"{volume:.6f} mm^3 (expected 0) -- the switch cannot seat flush "
-        "on the arm"
+    assert corner_mount.KW_GROOVE_DEPTH <= 1.5 + 1e-9, (
+        f"corner_mount KW12 zip-tie groove depth = "
+        f"{corner_mount.KW_GROOVE_DEPTH} mm (> 1.5 mm declared allowance)"
     )
 
 
 def test_corner_mount_kw12_mass_delta_within_budget():
-    """The KW12-3 mount's own added mass (both legs) must be <= 10 g per
-    the assignment's mass-increase ceiling, independent of the part's
-    overall mass-budget test above."""
-    added_volume_cm3 = corner_mount._kw12_switch_boss().val().Volume() / 1000.0
+    """The KW12-3 mount's own added mass must be <= 10 g per the
+    assignment's mass-increase ceiling, independent of the part's overall
+    mass-budget test above."""
+    added_volume_cm3 = corner_mount._kw12_mount_arm().val().Volume() / 1000.0
     added_mass_g = added_volume_cm3 * corner_mount.PETG_DENSITY_G_CM3
     assert added_mass_g <= 10.0, (
         f"corner_mount KW12 mount added mass = {added_mass_g:.3f} g, "
         "required <= 10 g"
-    )
-
-
-def test_corner_mount_kw12_lever_reaches_drop_line():
-    """The KW12-3's 18 mm roller lever, pivoting near the switch's leading
-    (pulley-side) mounting edge and pointing -Y, must reach across to the
-    drop line at Y=0 with margin. The arm's mount face (KW_ARM_X1) must
-    also coincide exactly with the drop line's own X (DROP_X) -- see the
-    module docstring's KW12_LEVER_HEIGHT_ABOVE_MOUNT paragraph for why no
-    further X compensation is applied."""
-    reach_needed_y = corner_mount.KW_BODY_Y_FRONT   # pivot Y -> corridor Y=0
-    assert reach_needed_y < corner_mount.KW12_LEVER_LEN, (
-        f"KW12 lever reach {corner_mount.KW12_LEVER_LEN} mm insufficient "
-        f"for the {reach_needed_y:.2f} mm Y-offset from the pivot "
-        f"(Y={corner_mount.KW_BODY_Y_FRONT:.2f}) to the drop line (Y=0)"
-    )
-    assert abs(corner_mount.KW_ARM_X1 - corner_mount.DROP_X) < 1e-9, (
-        f"corner_mount KW12 mount face X ({corner_mount.KW_ARM_X1}) does "
-        f"not coincide with the drop line X ({corner_mount.DROP_X})"
     )
 
 

@@ -250,6 +250,13 @@
         <button id="btn-grip">Grip</button>
         <button id="btn-release">Release</button>
       </div>
+      <div id="live-setup" hidden>
+        <p>Setup: detach the claw, home cables, pay out setup lengths, then attach the claw at the measured pose.</p>
+        <label><input id="setup-detached" type="checkbox"> Claw detached; cables clear</label>
+        <button id="btn-prepare-pose">Pay out setup lengths</button>
+        <label><input id="setup-attached" type="checkbox"> Claw attached at measured setup pose</label>
+        <button id="btn-confirm-pose">Confirm setup pose</button>
+      </div>
       <div class="jog-wrap">
         <div class="jog-grid">
           <span></span><button data-jog="y,1" title="+y">&#8593;</button><span></span>
@@ -387,14 +394,19 @@ function renderTensions(t) {
 
 // ---- status polling -------------------------------------------------------
 function setButtons(s) {
+  const live = s.mode === "live";
+  $("live-setup").hidden = !live;
+  $("btn-home").textContent = live ? "Home detached cables" : "Home";
   const motion = s.motion_enabled !== false;   // false in camera-only/demo live
   const idleish = ["IDLE", "STOPPED", "DONE"].includes(s.phase);
   const jogOk = motion && (idleish || s.paused);
-  $("btn-start").disabled = !motion || s.mission_active;
+  $("btn-start").disabled = !motion || s.mission_active || (live && !s.homed);
   $("btn-pause").disabled = !(s.mission_active || s.phase === "MOVING") || s.paused;
   $("btn-resume").disabled = !s.paused;
   $("btn-stop").disabled = false;
-  $("btn-home").disabled = !motion || s.mission_active;
+  $("btn-home").disabled = !motion || s.mission_active || (live && !$("setup-detached").checked);
+  $("btn-prepare-pose").disabled = !motion || s.mission_active || !$("setup-detached").checked;
+  $("btn-confirm-pose").disabled = !motion || s.mission_active || !$("setup-attached").checked;
   $("btn-park").disabled = !motion || s.mission_active;
   $("btn-grip").disabled = !motion || (s.mission_active && !s.paused);
   $("btn-release").disabled = !motion || (s.mission_active && !s.paused);
@@ -591,7 +603,9 @@ $("btn-start").onclick   = () => sendCommand("start");
 $("btn-pause").onclick   = () => sendCommand("pause");
 $("btn-resume").onclick  = () => sendCommand("resume");
 $("btn-stop").onclick    = () => sendCommand("stop");
-$("btn-home").onclick    = () => sendCommand("home");
+$("btn-home").onclick    = () => sendCommand("home", {detached: $("setup-detached").checked});
+$("btn-prepare-pose").onclick = () => sendCommand("prepare_pose", {detached: $("setup-detached").checked});
+$("btn-confirm-pose").onclick = () => sendCommand("confirm_pose", {attached: $("setup-attached").checked});
 $("btn-park").onclick    = () => sendCommand("park");
 $("btn-grip").onclick    = () => sendCommand("grip");
 $("btn-release").onclick = () => sendCommand("release");

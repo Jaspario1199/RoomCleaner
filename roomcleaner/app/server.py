@@ -111,7 +111,7 @@ MIN_ITEM_BOX_M = 0.14         # smallest drawn detection box (real socks are sma
 HAMPER_DRAW_M = 0.34          # drawn hamper footprint (display only)
 
 VALID_COMMANDS = (
-    "start", "pause", "resume", "stop", "home", "park", "grip", "release", "jog",
+    "start", "pause", "resume", "stop", "home", "prepare_pose", "confirm_pose", "park", "grip", "release", "jog",
 )
 
 # The room/fan/hamper values an operator may edit from the settings drawer.
@@ -401,6 +401,10 @@ class RobotSession:
             )
         if args is not None and not isinstance(args, dict):
             raise CommandError("args must be a JSON object", 400)
+        # Live STOP must interrupt serial work even when a manual home/prepare
+        # request owns the session lock for the duration of its acknowledgement.
+        if cmd == "stop" and self.mode == "live":
+            return self._cmd_stop(args or {})
         with self._lock:
             if cmd != "stop":
                 self._stopped = False     # any new command clears the banner
@@ -436,6 +440,12 @@ class RobotSession:
                 "jog rejected: no feasible cable tensions at the target", 409
             )
         return target
+
+    def _cmd_prepare_pose(self, args: dict) -> dict:
+        raise CommandError("Detached cable setup is available in live mode only", 409)
+
+    def _cmd_confirm_pose(self, args: dict) -> dict:
+        raise CommandError("Physical setup confirmation is available in live mode only", 409)
 
     def _require_idle(self, what: str) -> None:
         if self._mission_active():
@@ -1195,13 +1205,20 @@ class LiveSession(RobotSession):
         self._require_hardware("start")
         if not self._homed:
             raise CommandError("home the winches before starting a mission", 409)
-        # One look at the floor: freeze the pipeline's current detections into
-        # a Detector the Controller can walk (same holder the plan panel uses).
-        from ..perception.live import LiveDetector
-
-        holder = LiveDetector(None)
-        holder._items = self._detection_objects()
-        controller = Controller(self.robot, holder, hamper_xy=self.hamper_xy)
+        from ..perception.verification import CameraVerifier, VerificationError
+        from ..hardware.hw_config import CAMERA_PROJECTION, HAMPER_ROI_PX, HOME_POSE_M
+        from ..perception.detector import Detector
+        if HOME_POSE_M is None:
+            raise CommandError("Measure the assembled HOME_POSE_M before live missions", 409)
+        observe = lambda: self.pipeline.verification_observation(self._stop_flag.is_set)
+        try:
+            verifier = CameraVerifier(observe, CAMERA_PROJECTION, HAMPER_ROI_PX)
+        except VerificationError as exc:
+            raise CommandError(str(exc), 409) from exc
+        class FreshDetector(Detector):
+            def detect(inner, frame=None):
+                return observe().detections
+        controller = Controller(self.robot, FreshDetector(), hamper_xy=self.hamper_xy, verifier=verifier)
         controller.position = self._position.copy()
         self._controller = controller
         self._stop_flag.clear()
@@ -1219,18 +1236,29 @@ class LiveSession(RobotSession):
         from ..hardware.executor import subsample_path
 
         consumed = 0
+        counted = 0
+        speed = None
         try:
             for kind, payload in controller.iter_actions():
                 with self._lock:
                     for line in controller.log_lines[consumed:]:
                         self._append_log(line)
                     consumed = len(controller.log_lines)
+                    self._picked_total += controller.picked_up-counted
+                    counted = controller.picked_up
+                if self._stop_flag.is_set():
+                    return
                 if kind == "move":
+                    if controller.motion_speed_m_s != speed:
+                        speed = controller.motion_speed_m_s
+                        self.driver.set_motion_speed(speed)
                     for wp in subsample_path(np.asarray(payload)):
                         if self._stop_flag.is_set():
                             return
                         while self._paused and not self._stop_flag.is_set():
                             time.sleep(0.1)
+                        if self._stop_flag.is_set():
+                            return
                         self.driver.move_to_point(wp)
                         with self._lock:
                             self._position = np.asarray(wp, dtype=float)
@@ -1242,12 +1270,16 @@ class LiveSession(RobotSession):
                     self.gripper.release()
                     with self._lock:
                         self._gripping = False
-                        self._picked_total += 1   # count at actual delivery
+                        # Release ACK is not delivery evidence.
         except Exception as exc:   # surface hardware faults in the log
             with self._lock:
                 self._append_log(f"MISSION FAULT: {exc}")
         finally:
             with self._lock:
+                self._picked_total += controller.picked_up-counted
+                self._homed = bool(self.driver.homed and self.driver.pose_initialized)
+                for line in controller.log_lines[consumed:]:
+                    self._append_log(line)
                 self._controller = None
 
     def _cmd_pause(self, args: dict) -> dict:
@@ -1266,20 +1298,39 @@ class LiveSession(RobotSession):
 
     def _cmd_stop(self, args: dict) -> dict:
         self._abort_all_motion()
+        if self.driver is not None:
+            self.driver.stop()
+        self._homed = False
         self._stopped = True
-        self._append_log(
-            "STOP: motion command stream halted. Physical kill switch = power strip."
-        )
+        self._append_log("STOP sent to firmware; drivers retain holding torque. Rehome required.")
         return {"ok": True, "phase": self._phase()}
 
     def _cmd_home(self, args: dict) -> dict:
         self._require_idle("home")
         self._require_hardware("home")
-        self.driver.home()
+        self._homed = False
+        self.driver.home(detached=args.get("detached") is True)
+        self._append_log("Detached cables homed. Prepare setup lengths, attach claw and confirm pose.")
+        return {"ok": True, "pose_initialized": False}
+
+    def _cmd_prepare_pose(self, args: dict) -> dict:
+        self._require_idle("prepare_pose")
+        self._require_hardware("prepare_pose")
+        from ..hardware.hw_config import HOME_POSE_M
+        if HOME_POSE_M is None:
+            raise CommandError("Fill measured HOME_POSE_M for assembly setup first", 409)
+        self._homed = False
+        self.driver.prepare_pose(HOME_POSE_M, detached=args.get("detached") is True)
+        self._append_log("Setup lengths paid out. Attach claw at measured setup pose before confirming.")
+        return {"ok": True, "pose_initialized": False}
+
+    def _cmd_confirm_pose(self, args: dict) -> dict:
+        self._require_idle("confirm_pose")
+        self._require_hardware("confirm_pose")
+        self._position = self.driver.confirm_pose(attached=args.get("attached") is True)
         self._homed = True
-        self._position = self.rest.copy()   # homed pose == calibrated rest pose
-        self._append_log("Winches homed against their limit switches.")
-        return {"ok": True}
+        self._append_log("Operator confirmed claw attachment at measured setup pose.")
+        return {"ok": True, "pose_initialized": True}
 
     def _cmd_park(self, args: dict) -> dict:
         self._require_idle("park")

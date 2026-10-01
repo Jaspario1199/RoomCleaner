@@ -46,9 +46,9 @@ def safe_transit(
 ) -> np.ndarray:
     """Move via a safe cruise height: up, across, then down.
 
-    This is how the real robot should travel -- lift to a clear height, move
-    horizontally over the target, then descend -- so the claw never drags
-    across the floor or clips furniture at grab height.
+    Build vertical/horizontal/vertical legs. This helper does not check furniture,
+    cable collisions or tension feasibility; the execution controller checks the
+    configured workspace, and an actual furniture map remains to be integrated.
     """
     start = np.asarray(start, dtype=float)
     goal = np.asarray(goal, dtype=float)

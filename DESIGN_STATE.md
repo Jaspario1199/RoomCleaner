@@ -221,3 +221,31 @@ Caliper-verify on a KW12-3 in hand: roller overhang past body end
 hinged end (assumed far end). Trigger height is set by bead placement
 (~4 mm below the roller contact). Bead nominal O5 (local assumption,
 KW_HOMING_BEAD_DIA_NOM).
+
+## 2026-09-30: verified execution and claw packaging prototype
+
+- Planning no longer retires laundry or increments delivered counts. Live
+  execution requires camera-confirmed probe movement and stable receiving-area
+  payload after release/claw retreat; three attempts maximum on pickup failure.
+- Bead-trigger lengths, physical setup pose after payout/attachment, elevated camera
+  projection and hamper ROI are explicit unmeasured placeholders. Real operation
+  is gated until calibrated. Nominal drum diameter remains for payout testing.
+- Firmware now bounds/rechecks homing, zeros AT bead trigger, retains backoff,
+  accepts STOP while moving, checks switches, and shares an accelerated scalar
+  Bresenham motion clock. Detached setup required for sequential home; pay out setup lengths and confirm
+  claw attachment before missions.
+- Python controller/camera/hardware/live/app/kinematic checks: 64 software tests pass; 42 existing claw geometry tests pass. Uno AVR firmware compiled AND linked: 18,396 bytes
+  flash, 1,173 bytes static RAM. Hardware timing/load behavior untested.
+- New `cad/claw_electronics.py` prototype uses existing claw/cover and adds
+  strap-mounted ESP32/battery bays. Valid solids, five STEP round trips and
+  pairwise interference checks pass. Board 55x26x13 and battery 55x25x18 mm are
+  provisional envelopes, not confirmed purchases. Regulator mounting, connector
+  alignment, wire routes and total mass require completion.
+- Candidate AS5600 spool-end sensing: USD6.50/module source checked; four sensors
+  intended. Magnet/bracket dimensions, local sampling/communications and closed
+  loop firmware are NOT implemented or ordered. No winch housing change yet.
+- Single-camera appearance tracking must be tested with real fabrics, occlusion,
+  look-alikes and floor drops. Need multi-view/depth/claw sensor if evidence
+  cannot distinguish carried versus dropped cloth. Electrical brownout/power-loss
+  behavior, furniture map and dynamic tension limits remain unresolved.
+- Details and commissioning procedure: `docs/CONTROL_AND_CLAW_UPDATE.md`.

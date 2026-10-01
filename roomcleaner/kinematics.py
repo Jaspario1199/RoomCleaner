@@ -159,7 +159,7 @@ class CableRobot:
         feasible = bool(np.all(tensions >= lo - 1e-6) and np.all(tensions <= hi + 1e-6))
         return tensions, feasible
 
-    def is_reachable(self, point: np.ndarray) -> bool:
+    def is_reachable(self, point: np.ndarray, *, min_z: float | None = None) -> bool:
         """True if `point` is inside the safe, statically-feasible workspace.
 
         A point is reachable only if ALL of these hold:
@@ -176,7 +176,7 @@ class CableRobot:
             return False
         if not (WALL_MARGIN <= y <= m.room_depth - WALL_MARGIN):
             return False
-        if not (SAFE_MIN_Z <= z <= m.room_height - 0.1):
+        if not ((SAFE_MIN_Z if min_z is None else min_z) - 1e-9 <= z <= m.room_height - 0.1):
             return False
         if not cables_clear_of_fan(self.anchors, np.asarray(point, float), m.fan):
             return False

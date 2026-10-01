@@ -67,6 +67,9 @@ class PerceptionPipeline:
 
         self._frame: np.ndarray | None = None
         self._frame_lock = threading.Lock()
+        self._vision_lock = threading.Lock()
+        self._frame_timestamp = 0.0
+        self._verified_timestamp = 0.0
         self._dets: list[dict] = []
         self._dets_lock = threading.Lock()
         self.stats = {
@@ -204,6 +207,8 @@ class PerceptionPipeline:
                 last_frame = frame
                 with self._frame_lock:
                     self._frame = frame
+                    if not frozen_since:
+                        self._frame_timestamp = time.monotonic()
                 n += 1
                 if n >= 30:
                     dt = now - t0
@@ -235,7 +240,8 @@ class PerceptionPipeline:
                 continue
             self._detector.confidence = self.conf  # live sensitivity changes
             try:
-                dets = self._detector.detect(frame)
+                with self._vision_lock:
+                    dets = self._detector.detect(frame)
                 self.stats["model_ready"] = True
             except Exception as exc:  # keep the app alive if a frame trips the model
                 print(f"[infer] {exc}", flush=True)
@@ -262,6 +268,26 @@ class PerceptionPipeline:
             time.sleep(0.01)
 
     # -- reads ---------------------------------------------------------------
+    def verification_observation(self, cancelled=lambda: False):
+        """Infer on a newly captured raw frame, never cached boxes/display overlays."""
+        from ..perception.verification import Observation, VerificationError
+        started = time.monotonic()
+        while time.monotonic()-started < 3.0:
+            if cancelled():
+                raise VerificationError("Mission stopped during camera verification")
+            with self._frame_lock:
+                stamp = self._frame_timestamp
+                frame = None if self._frame is None else self._frame.copy()
+            if frame is not None and stamp > self._verified_timestamp:
+                self._verified_timestamp = stamp
+                with self._vision_lock:
+                    dets = self._detector.detect(frame)
+                if cancelled():
+                    raise VerificationError("Mission stopped during camera verification")
+                return Observation(stamp, frame, dets)
+            time.sleep(0.02)
+        raise VerificationError("No fresh camera frame")
+
     def detections(self) -> list[dict]:
         with self._dets_lock:
             return list(self._dets)

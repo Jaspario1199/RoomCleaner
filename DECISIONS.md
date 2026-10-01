@@ -78,3 +78,25 @@ set-back are unchanged; only the actuation direction becomes vertical.
 corner_mount rev C implements it; the mid-span boss is removed. New interface
 value CORNER_PULLEY_OD_NOM (20 mm, purchased U-groove bearing pulley, 18–22
 mm accepted) fixes the drop line's X offset from the ear centre.
+
+D15. **Execution evidence precedes delivery accounting (user, 2026-09-30).**
+Grip, partial transit and camera-confirmed payload movement precede carrying to
+the hamper. Release and a camera-confirmed stationary payload with the claw
+clear precede counting delivery. Ambiguity stops; pickup retry limit is three.
+Planning previews have no physical success side effects.
+
+D16. **Trigger-based calibration and detached sequential homing.** Four
+measured bead-trigger cable lengths remain unknown placeholders. Zero is at
+trigger, final backoff retained. Sequential homing is bench/assembly-only with
+the claw detached until a suspended initialization procedure is proven. Payout
+to a known setup pose and operator-confirmed claw attachment precede a mission.
+
+D17. **Slow contact motion, coordinated ramps.** Provisional travel/contact
+cable-speed caps 0.020/0.008 m/s; one shared accelerated pulse clock. Nominal
+drum remains pending physical payout tests.
+
+D18. **Electronics packaging prototype builds on existing claw.** Removable
+board and battery bays align to existing strap slots. Purchased dimensions,
+regulator mounting, wiring, current budget and mass await confirmation. Four
+spool encoders requested; AS5600 is a candidate requiring mechanical/electrical
+validation, not a final purchased-part or control-architecture decision.

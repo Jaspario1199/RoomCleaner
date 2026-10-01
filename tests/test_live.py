@@ -68,6 +68,8 @@ def test_controller_plans_from_live_detections():
     robot = CableRobot(cfg)
     controller = Controller(robot, live, hamper_xy=(cfg.room_width - 0.5, 0.5))
     paths = controller.run()
-    # Both reachable items should be planned and picked up.
-    assert controller.picked_up >= 1
+    # Preview must never claim that physical delivery occurred.
+    assert paths
+    assert controller.picked_up == 0
+    assert len(live.detect()) == 2
     assert all(p.shape[1] == 3 for p in paths)   # each path is (N,3) waypoints

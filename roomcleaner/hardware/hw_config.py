@@ -35,3 +35,15 @@ EFFECTOR_PORT = 80
 
 # --- Motion ----------------------------------------------------------------
 MOVE_STEP_M = 0.15           # how finely to sample a path into hardware moves
+
+# Measured cable lengths AT bead switch trigger, ordered X,Y,Z,A. None is not zero.
+HOME_TRIGGER_LENGTHS_M = (None, None, None, None)
+# Measured assembly pose after paying out setup lengths and attaching the claw.
+# Four bead-trigger positions generally do NOT constitute a suspended claw pose.
+HOME_POSE_M = None
+# Commission with elevated calibration points; floor homography is insufficient.
+CAMERA_PROJECTION = None  # 3x4 world (metres) -> image projective matrix
+HAMPER_ROI_PX = None     # (x1,y1,x2,y2), visible receiving area
+# Provisional speeds; tune on the loaded bench. Firmware caps individual axes.
+TRAVEL_SPEED_M_S = 0.020
+PICKUP_SPEED_M_S = 0.008

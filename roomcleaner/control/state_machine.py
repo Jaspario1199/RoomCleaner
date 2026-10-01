@@ -25,6 +25,7 @@ from ..kinematics import CableRobot
 from ..perception.detector import Detector, Detection
 from .trajectory import safe_transit
 from ..config import GRAB_Z, SAFE_MIN_Z
+from ..hardware.hw_config import TRAVEL_SPEED_M_S, PICKUP_SPEED_M_S
 
 
 class State(Enum):
@@ -34,6 +35,9 @@ class State(Enum):
     APPROACH = auto()
     GRAB = auto()
     DELIVER = auto()
+    VERIFY_PICKUP = auto()
+    VERIFY_DELIVERY = auto()
+    FAULT = auto()
     DONE = auto()
 
 
@@ -46,7 +50,15 @@ class Controller:
         detector: Detector,
         hamper_xy: tuple[float, float],
         cruise_z: float | None = None,
+        verifier=None, max_grab_attempts: int = 3, probe_distance_m: float = 0.20,
     ):
+        if max_grab_attempts < 1 or probe_distance_m <= 0:
+            raise ValueError("Invalid retry/probe configuration")
+        self.verifier = verifier
+        self.max_grab_attempts = max_grab_attempts
+        self.probe_distance_m = probe_distance_m
+        self.motion_speed_m_s = 0.02
+        self._preview_seen = set()
         self.robot = robot
         self.detector = detector
         self.hamper = np.array([hamper_xy[0], hamper_xy[1], SAFE_MIN_Z + 0.3])
@@ -82,7 +94,7 @@ class Controller:
     # One full pickup cycle, as a list of structured ACTIONS.
     # ------------------------------------------------------------------
     def _plan_cycle(self) -> list[tuple] | None:
-        """Advance one item; return a list of actions, or None when done.
+        """Preview one item without claiming execution; None when no targets remain.
 
         Actions are tuples the sim and the hardware both understand:
             ("move", path)   -- follow this (N,3) waypoint array
@@ -98,7 +110,8 @@ class Controller:
 
         # SELECT: nearest reachable item first.
         self.state = State.SELECT
-        reachable = [d for d in items if self.robot.is_reachable(_above(d, SAFE_MIN_Z))]
+        reachable = [d for d in items if id(d) not in self._preview_seen
+                     and self.robot.is_reachable(_above(d, SAFE_MIN_Z))]
         if not reachable:
             self.state = State.DONE
             self.log("Remaining items are outside the safe workspace.")
@@ -116,13 +129,8 @@ class Controller:
         lift = safe_transit(grab_pt, approach_pt, cruise_z=self.cruise_z)
         to_hamper = safe_transit(approach_pt, self.hamper, self.cruise_z)
 
-        self.state = State.GRAB
-        self.log(f"Grabbing at {grab_pt.round(2)}.")
-        self.detector.remove(self.target) if hasattr(self.detector, "remove") else None
-        self.picked_up += 1
-        self.state = State.DELIVER
-        self.log(f"Delivered to hamper. Total: {self.picked_up}.")
-        self.position = self.hamper.copy()
+        # Preview only: no delivery count, detector removal or physical pose update.
+        self._preview_seen.add(id(self.target))
 
         return [
             ("move", path_to_item),
@@ -134,7 +142,7 @@ class Controller:
         ]
 
     def plan_next_cycle(self) -> np.ndarray | None:
-        """Advance one item; return the concatenated (N,3) path (for the sim)."""
+        """Preview one item as an (N,3) path; no physical success side effects."""
         actions = self._plan_cycle()
         if actions is None:
             return None
@@ -142,42 +150,108 @@ class Controller:
         return np.vstack(moves)
 
     def run(self, max_items: int = 20, return_to_rest: bool = True) -> list[np.ndarray]:
-        """Run cycles until the floor is clear; return the list of paths taken.
-
-        When done, the effector transits back to its safe parking pose so it
-        sits out of the way (and clear of the fan) between jobs.
-        """
+        """Simulate explicitly, or preview live detections without claiming delivery."""
+        from ..perception.detector import SimulatedDetector
+        if isinstance(self.detector, SimulatedDetector):
+            return [p for k, p in self.iter_actions(max_items, return_to_rest) if k == "move"]
         paths = []
         for _ in range(max_items):
             path = self.plan_next_cycle()
             if path is None:
                 break
             paths.append(path)
-        if return_to_rest and np.linalg.norm(self.position - self.rest) > 1e-3:
-            self.state = State.IDLE
-            park = safe_transit(self.position, self.rest, self.cruise_z)
-            self.position = self.rest.copy()
-            self.log(f"Parked at rest pose {self.rest.round(2)}.")
-            paths.append(park)
         return paths
 
     def iter_actions(self, max_items: int = 20, return_to_rest: bool = True):
-        """Yield every action across the whole run -- what HARDWARE executes.
+        """Resume after each acknowledged action; verify before advancing a cycle.
 
-        Same plan as run(), but as a stream of ("move"|"grip"|"release", payload)
-        so a hardware backend can move the winches and work the gripper in order.
+        Consumers MUST execute each action successfully before requesting the next.
+        Camera failures/ambiguity stop the mission; previews never call this path.
         """
-        for _ in range(max_items):
-            actions = self._plan_cycle()
-            if actions is None:
-                break
-            yield from actions
-        if return_to_rest and np.linalg.norm(self.position - self.rest) > 1e-3:
-            self.state = State.IDLE
-            park = safe_transit(self.position, self.rest, self.cruise_z)
-            self.position = self.rest.copy()
-            self.log(f"Parked at rest pose {self.rest.round(2)}.")
-            yield ("move", park)
+        from ..perception.verification import SimulatedVerifier, VerificationError
+        from ..perception.detector import SimulatedDetector
+        if self.verifier is None:
+            if isinstance(self.detector, SimulatedDetector):
+                self.verifier = SimulatedVerifier()
+            else:
+                raise VerificationError("Live execution requires a camera verifier")
+        self._preview_seen.clear()
+
+        def move(goal, cruise, speed):
+            self.motion_speed_m_s = speed
+            floor = min(SAFE_MIN_Z, GRAB_Z) if (goal[2] <= GRAB_Z+1e-9 or self.position[2] <= GRAB_Z+1e-9) else SAFE_MIN_Z
+            path = None
+            # A fan-aware endpoint does not imply its higher cruise leg is safe.
+            # Try progressively lower transit heights; never waive cable/tension checks.
+            for height in np.linspace(cruise, max(min(goal[2], self.position[2]), SAFE_MIN_Z), 12):
+                candidate = safe_transit(self.position, goal, height)
+                if all(self.robot.is_reachable(p, min_z=floor) for p in candidate):
+                    path = candidate
+                    break
+            if path is None:
+                raise VerificationError("No safe transit through configured cable/fan/tension workspace")
+            yield ("move", path)
+            self.position = np.asarray(goal).copy()
+
+        try:
+            for _ in range(max_items):
+                self.state = State.SCAN
+                items = self.detector.detect()
+                reachable = [d for d in items if self.robot.is_reachable(_above(d, SAFE_MIN_Z))]
+                if not reachable:
+                    self.state = State.DONE
+                    break
+                self.target = min(reachable, key=lambda d: np.linalg.norm(d.position[:2]-self.position[:2]))
+                target = self.target
+                approach = _above(target, max(SAFE_MIN_Z, GRAB_Z + 0.10))
+                grab = _above(target, GRAB_Z)
+                delta = self.hamper[:2] - approach[:2]
+                distance = np.linalg.norm(delta)
+                if distance < 0.05:
+                    raise VerificationError("Target too close to hamper for a visible pickup probe")
+                probe = np.array([*(approach[:2] + delta/distance*min(self.probe_distance_m, distance/2)), max(approach[2], 0.45)])
+                for attempt in range(self.max_grab_attempts):
+                    self.state = State.APPROACH
+                    yield from move(approach, self.cruise_z, TRAVEL_SPEED_M_S)
+                    yield from move(grab, SAFE_MIN_Z, PICKUP_SPEED_M_S)
+                    self.verifier.before_pickup(target)
+                    self.state = State.GRAB
+                    yield ("grip", grab.copy())
+                    yield from move(probe, self.cruise_z, PICKUP_SPEED_M_S)
+                    self.state = State.VERIFY_PICKUP
+                    if self.verifier.verify_pickup(target, probe):
+                        self.log("Camera confirmed payload movement.")
+                        break
+                    self.log(f"Pickup unconfirmed; attempt {attempt+1}/{self.max_grab_attempts}.")
+                    # Return to the original pickup before opening a possibly-held item.
+                    yield from move(grab, self.cruise_z, PICKUP_SPEED_M_S)
+                    yield ("release", grab.copy())
+                    if not self.verifier.retry_target_present(target):
+                        raise VerificationError("Target lost/occluded; cannot safely retry its old location")
+                else:
+                    raise VerificationError("Pickup retry limit reached")
+                self.state = State.DELIVER
+                yield from move(self.hamper, self.cruise_z, TRAVEL_SPEED_M_S)
+                self.verifier.before_release(target)
+                yield ("release", self.hamper.copy())
+                retreat = probe.copy()
+                if hasattr(self.verifier, "validate_retreat"):
+                    self.verifier.validate_retreat(retreat)
+                yield from move(retreat, self.cruise_z, PICKUP_SPEED_M_S)
+                self.state = State.VERIFY_DELIVERY
+                if not self.verifier.verify_delivery(target, self.hamper):
+                    raise VerificationError("Camera could not confirm payload released into hamper")
+                self.picked_up += 1
+                if hasattr(self.detector, "remove"):
+                    self.detector.remove(target)
+                self.log(f"Camera verified delivery. Total: {self.picked_up}.")
+            if return_to_rest and np.linalg.norm(self.position-self.rest) > 1e-3:
+                self.state = State.IDLE
+                yield from move(self.rest, self.cruise_z, TRAVEL_SPEED_M_S)
+        except Exception:
+            self.state = State.FAULT
+            self.log("Mission stopped; delivery count unchanged for unverified item.")
+            raise
 
 
 def _above(detection: Detection, z: float) -> np.ndarray:

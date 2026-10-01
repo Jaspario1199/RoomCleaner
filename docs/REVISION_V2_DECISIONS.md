@@ -1,3 +1,5 @@
+> Camera pod now designed: see [CLAW_CAMERA_V2_BUILD.md](CLAW_CAMERA_V2_BUILD.md). Earlier notes about an unfrozen camera pod describe the prior revision; physical/optical validation remains pending.
+
 # Spool, outlet and moving-camera revision — 2026-10-01
 
 This revision is a bench prototype. No order has been placed, no physical receipt confirmed, and no hardware fit, encoder response or camera pickup cycle verified. Existing motor dimensions are retained; do not reorder motors to match a new assumption.

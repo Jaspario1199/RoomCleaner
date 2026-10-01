@@ -59,3 +59,5 @@ Wire management/raceway,Room length,Not recorded ordered,Not applicable / invent
 Winch magnet cap M3 x 6 button screws and 1mm spacers,12 screws +12 spacers,Reuse M3 kit / check lengths,Inventory not verified,,,Three per cup; head/spacer OD <=6.4 mm. Total spacer thickness exactly1 mm nominal; verify engagement. M3 x5 with no spacer is alternative.
 Camera pod mounting hardware,2 M3x16 +2 nyloc +2 washers +2 M3x8,Reuse M3 kit / check lengths,Inventory not verified,,,Camera pod/keepers; <=6mm head diameter <=2mm height. No additional M2 for camera.
 Camera PCB insulating pads and harness ties,Small strips +4 ties,Not recorded ordered,Inventory not verified,,,Start0.3mm front /0.5mm rear silicone edge pads; test preload without stressing components.
+Printed extension flange fasteners,8 M3x20 +8 nyloc +8 washers,Reuse kit / confirm stock,Inventory not verified,,,Primary extended V3 upper/lower joints; max6mm headOD/2mm height.
+Lower servo extension wiring,1 three-conductor lead,Not recorded ordered,Inventory not verified,,,20–22AWG power; start350mm allowance and measure routed length; match actual servo3-pin connectors.

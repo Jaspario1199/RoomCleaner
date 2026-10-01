@@ -1,3 +1,5 @@
+> Primary build changed to [EXTENDED_CLAW_V3_BUILD.md](EXTENDED_CLAW_V3_BUILD.md):printed150mm extension, lower servo/clamp, upper electronics,28degree camera pose. Compact V2 remains a historical baseline.
+
 > Camera pod now designed: see [CLAW_CAMERA_V2_BUILD.md](CLAW_CAMERA_V2_BUILD.md). Earlier notes about an unfrozen camera pod describe the prior revision; physical/optical validation remains pending.
 
 # Spool, outlet and moving-camera revision — 2026-10-01

@@ -74,9 +74,7 @@ COVER_WALL = 2.4
 CABLE_HOLE_D = 3.2            # corner boss tie-off holes; knot spec: Palomar
 
 # ---- claw <-> motion software (D9) -----------------------------------------
-EFFECTOR_REACH_M = 0.118      # cable plane -> fingertips (integration-measured:
-                              # boss top 8 + standoffs 40 + finger 70; the hub 12 is
-                              # INSIDE the finger base, not additive — C5 corrected)
+EFFECTOR_REACH_M = 0.268      # primary extended V3:anchor Z21.5 to pad Z-246.5mm; nominal CAD
 
 # ---- corner mount: winch bracket + pulley redirect (ceiling/joist anchor) --
 # One printed part (cad/parts/corner_mount.py) replaces the separate

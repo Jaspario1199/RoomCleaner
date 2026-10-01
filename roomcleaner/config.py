@@ -86,11 +86,12 @@ MIN_CABLE_TENSION = 0.5       # N, keep a little tension so cables never go slac
 # Safety margins: the effector is not allowed within this distance of a wall,
 # and cannot go below this height except during a deliberate "reach down to grab".
 WALL_MARGIN = 0.20            # meters
-SAFE_MIN_Z = 0.15            # meters -- normal travel height floor clearance
+
 
 # D9: EFFECTOR_REACH is the cable plane -> fingertip distance (see
 # cad/interfaces.py EFFECTOR_REACH_M, the authoritative CAD value).
-EFFECTOR_REACH = 0.118       # meters -- cable plane to fingertips (cad/interfaces.py EFFECTOR_REACH_M; integration-measured)
+EFFECTOR_REACH = 0.268       # meters; nominal primary extended CAD, not physically measured
+SAFE_MIN_Z = EFFECTOR_REACH + 0.15 # cable-plane height giving150mm pad floor clearance
 # GRAB_Z is the height of the kinematic point (the cable plane, not the
 # fingertips) when grabbing: the fingertips reach the floor once the plate
 # is EFFECTOR_REACH above it, plus a small margin so the fingers don't drag.

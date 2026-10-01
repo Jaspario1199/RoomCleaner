@@ -1,3 +1,5 @@
+> Primary build changed to [EXTENDED_CLAW_V3_BUILD.md](EXTENDED_CLAW_V3_BUILD.md):printed150mm extension, lower servo/clamp, upper electronics,28degree camera pose. Compact V2 remains a historical baseline.
+
 # Claw camera assembly V2 — bench prototype
 
 Camera: Seeed XIAO ESP32-S3 Sense113991115, without soldered pin headers. This replaces the old claw ESP32 and its tray; the battery, servo regulator, logic regulator, tilt sensor, clamp and four cable anchors remain. No order or receipt is confirmed by this document.

@@ -9,7 +9,7 @@ Metal rings,4,Welded stainless OD12 ID8 section2mm,Buy pending supplier qualific
 Fuse and inline holder,1,5A fuse holder max35x20x16,Buy,Secure above logic module; no CAD claim of exact supplier geometry
 Servo round horn,1,Compatible supplied horn OD20 minimum,Check supplied,Thickness/shaft stack fit must be measured; do not assume clone spline
 M3 bolts,4,M3x30 rail mounts,Reuse M3 assortment,Plus washers and nuts
-M3 bolts,8,M3x16 TPU pad mounts,Reuse M3 assortment,Prefer low round heads
+M3 bolts,8,M3x16 TPU pad mounts,Reuse M3 assortment,Button heads max diameter6.0 height2.0
 M3 bolts,4,M3x20 clevis pins,Reuse M3 assortment,Use nyloc nuts
 M3 bolts,8,M3x12 servo and regulator mounting,Reuse M3 assortment,4 servo +2 servo regulator +2 logic regulator
 M3 bolts,4,M3x8 cover,Reuse M3 assortment,Check insert depth
@@ -30,5 +30,5 @@ Rack jaws,2,Printed PETG,Print,Left and right STL
 Pinion,1,Printed PETG,Print,Do not print horn reference
 Pads,2,Printed TPU95A,Print,Left and right STL
 Trays,2,Printed PETG,Print,ESP32 and battery
-Regulator mounts,2,Printed PETG,Print,Servo regulator and logic
+Regulator mounts,2,Printed PETG,Print,Servo regulator and logic with integrated fuse shelf
 Cover,1,Printed PETG,Print,Removable

@@ -94,6 +94,8 @@ def pad():
         for z in (-88,-68):
             cut=cq.Workplane('YZ').center(y,z).circle(1.7).extrude(12,both=True).translate((-JAW_X+4.5,0,0))
             shape=shape.cut(cut)
+            recess=cq.Workplane('YZ').center(y,z).circle(3.2).extrude(3).translate((-JAW_X+4.4,0,0))
+            shape=shape.cut(recess)
     return shape
 
 
@@ -191,7 +193,30 @@ def logic_mount():
     shape=box(30,28,3,(-48,0,4))
     for y in (-12,12):shape=hole_z(shape,-48,y,3.4,3,6)
     # Foam and two cable ties retain an unmeasured MP1584 module.
-    for x in (-58,-38):shape=shape.cut(box(2,16,5,(x,0,3)))
+    for x in (-58,-45):shape=shape.cut(box(2,16,5,(x,0,3)))
+    shape=shape.cut(box(8.6,14.6,4,(-34.5,0,3))) # actual servo ear clearance
+    return shape.union(fuse_mount())
+
+
+@lru_cache(maxsize=1)
+def fuse_mount():
+    # Shelf above logic buck, with outer support clear of its module envelope.
+    shape=box(35,24,2,(-49,0,22))
+    shape=shape.union(box(3,24,18,(-63,0,4)))
+    shape=shape.union(box(35,2,4,(-49,-11,24)))
+    shape=shape.union(box(35,2,4,(-49,11,24)))
+    for x in (-59,-37):shape=shape.cut(box(2,18,4,(x,0,21)))
+    return shape
+
+
+@lru_cache(maxsize=1)
+def servo_envelope():
+    shape=box(40.7,19.7,37,(-10.5,0,4))
+    for x in (-34.5,13.5):
+        shape=shape.union(box(8,14,3,(x,0,4)))
+        for y in (-5,5):shape=hole_z(shape,x,y,3.4,3,5)
+    # Provisional output projection. Actual horn stack remains a measured interface.
+    shape=shape.union(cq.Workplane('XY').circle(3).extrude(10).translate((0,0,-6)))
     return shape
 
 
@@ -204,9 +229,10 @@ def components(angle=0,with_cover=True):
            'pinion':pinion().rotate((0,0,0),(0,0,1),-angle),
            'esp32_tray':tray(*BOARD_CLEAR[:2],0,38),'battery_tray':tray(*BATTERY_CLEAR[:2],0,-36),
            'regulator_mount':regulator_mount(),'logic_mount':logic_mount(),
+           'fuse_reference':box(33,18,14,(-48,0,24)),
            'logic_reference':box(24,20,8,(-48,0,8)),
            'horn_reference':cq.Workplane('XY').circle(10).circle(3.25).extrude(2).translate((0,0,-8)),
-           'servo_reference':box(40.7,19.7,37,(-10.5,0,4)),
+           'servo_reference':servo_envelope(),
            'esp32_reference':box(60,30,17,(0,38,10)),
            'board_foam_reference':box(60,30,4,(0,38,6)),
            'battery_reference':box(76,37,14,(0,-36,8)),
@@ -218,6 +244,7 @@ def components(angle=0,with_cover=True):
             # Welded ring OD12/ID8, wire2, bearing against M3 clevis pin.
             ring=cq.Workplane('XZ').center(x,15.5).circle(6).circle(4).extrude(2).translate((0,y+1,0))
             parts[f'cable_ring_{x:g}_{y:g}']=ring
+            parts[f'clevis_pin_reference_{x:g}_{y:g}']=cq.Workplane('XZ').center(x,13).circle(1.5).extrude(20).translate((0,y+10,0))
     return parts
 
 

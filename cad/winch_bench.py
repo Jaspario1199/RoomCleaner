@@ -131,25 +131,36 @@ def build():
     bead=along_y(bead_local,EYE_X,-85,EYE_Z)
     parts=dict(base=base,cover=cover,guide_carrier=carrier,homing_collar=collar,switch_mount=switch_mount,metal_eyelet_reference=eyelet,motor_reference=motor,shaft_reference=shaft,spool_reference=spool,homing_stopper=bead)
     parts.update(extra)
-    # Front-of-spool magnetic encoder; no rear motor shaft is assumed.
-    # Generic replaceable board carrier. Electronics are retained with ties.
-    encoder=box(4,28,41,x=46,y=MOTOR_Y,z=PLATE)
-    encoder=encoder.union(box(4,28,4,x=46,y=MOTOR_Y,z=43))
-    # Slots in horizontal bridge hold ties around PCB; no assumed vendor holes.
+    # Grove SKU101020692: Eagle outline40x20, AS5600 on underside10mm
+    # off board center. Orient board long dimension vertically, chip at z33.
+    encoder=box(4,28,60,x=47.175,y=MOTOR_Y,z=PLATE)
+    encoder=encoder.cut(box(6,24,14,x=47.175,y=MOTOR_Y,z=47))
     for y in (20,40):
-        for z in (25,41):encoder=encoder.cut(along_x(cyl(1.5,6),43,y,z))
-    # PCB/package envelope includes front-facing chip at x40.0.
-    base=base.union(encoder) # encoder support is integral to the structural base
+        for z in (25,62):encoder=encoder.cut(along_x(cyl(1.5,6),44.175,y,z))
+    base=base.union(encoder)
+    # PCB bottom faces spool; top connector clearance sits above sensor.
+    parts['encoder_board_reference']=box(1.6,21,41,x=43.975,y=MOTOR_Y,z=22.5)
+    parts['encoder_chip_reference']=box(2,5,5,x=42.175,y=MOTOR_Y,z=30.5)
+    parts['encoder_lead_space_reference']=box(8,20,10,x=48.775,y=MOTOR_Y,z=48)
+    # Removable XIAO tray. Foam + nonconductive ties, USB faces -X.
+    tray=box(26,22,4,x=-22,y=61,z=6).cut(box(24,20,3,x=-22,y=61,z=8))
+    for x in (-37,-7):
+        tray=tray.union(box(6,6,2,x=x,y=61,z=6)).cut(cyl(1.7,4,x,61,5))
+        base=base.cut(cyl(1.7,8,x,61,-1))
+    for x in (-29,-15):tray=tray.cut(box(2,16,5,x=x,y=61,z=5))
+    tray=tray.cut(box(4,10,4,x=-34,y=61,z=8))
+    parts['encoder_node_holder']=tray
+    parts['encoder_node_reference']=box(21,17.8,6,x=-22,y=61,z=10)
+    parts['encoder_usb_space_reference']=box(15,10,8,x=-40,y=61,z=10)
+    cover=cover.cut(box(8,14,18,x=-55,y=61,z=6))
+    parts['cover']=cover
     parts['base']=base
-    parts['encoder_board_reference']=box(2,20,20,x=43,y=MOTOR_Y,z=23)
-    parts['encoder_chip_reference']=box(2,5,5,x=41,y=MOTOR_Y,z=30.5)
-    parts['encoder_lead_space_reference']=box(8,20,8,x=47,y=MOTOR_Y,z=48)
     # Cup clips over the unused outer flange. Clearance Ø36.4; glue/fit-test only.
-    cap=cyl(19.2,3).cut(cyl(18.2,3.1)).union(cyl(19.2,2,0,0,3))
-    cap=cap.cut(cyl(3.1,2.1,0,0,3))
+    cap=cyl(19.2,3).cut(cyl(18.2,3.1)).union(cyl(19.2,3.175,0,0,3))
+    cap=cap.cut(cyl(3.275,3.275,0,0,3))
     parts['encoder_magnet_cup']=along_x(cap,SPOOL_START+29,MOTOR_Y,SHAFT_Z)
-    parts['encoder_magnet_reference']=along_x(cyl(3,2),SPOOL_START+32,MOTOR_Y,SHAFT_Z)
-    # Nominal chip face x40, magnet face x38.5 => 1.5 mm axial gap.
+    parts['encoder_magnet_reference']=along_x(cyl(3.175,3.175),SPOOL_START+32,MOTOR_Y,SHAFT_Z)
+    # K&J D42DIA6.35x3.175: chip face41.175, magnet face39.675, gap1.5.
     return parts
 
 def bench_parts():

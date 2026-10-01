@@ -51,8 +51,20 @@ class WiFiGripper(Gripper):
         with urllib.request.urlopen(url, timeout=self.timeout) as resp:
             if resp.status >= 400:
                 raise RuntimeError(f"effector returned {resp.status} for {path}")
+            return resp.read()
+
+    def tilt_status(self):
+        import json
+        return json.loads(self._get('/tilt'))
 
     def grip(self):
+        import time
+        deadline=time.monotonic()+3
+        while True:
+            status=self.tilt_status()
+            if status.get('valid') and status.get('level'):break
+            if time.monotonic()>=deadline:raise RuntimeError('Clamp tilt not settled/level; pickup refused')
+            time.sleep(.05)
         self._get(f"/grip?angle={int(GRIP_ANGLE)}")
 
     def release(self):

@@ -1,3 +1,5 @@
+> Feedback revision2026-10-01: [encoder/tilt commissioning](../docs/ENCODER_AND_TILT_COMMISSIONING.md) supersedes older optional/unimplemented encoder and tilt descriptions. Use current cad/winch_bench.py and cad/clamp_v1.py exports. Physical commissioning remains required.
+
 # Bench print audit: winch first, clamp second
 
 This is the active print guide. Use `cad/winch_bench.py`, not the old standalone winch_v2 or legacy corner_mount files. Changes were driven by full component-pair and cover-removal checks. These files are prepared for **one instrumented bench prototype**, not four installed stations or unattended room operation.
@@ -59,11 +61,8 @@ The winch houses motor, spool, switch, encoder and restrained leads. Uno/CNC shi
 
 ## Encoder accommodation and integration hold
 
-A candidate AS5600-class on-axis sensor is reserved on the front of the spool: board envelope 20×20×2 mm at X42–44, sensor package envelope X40–42, centered Y30/Z33. An additional 8×20×8 mm lead-space envelope above the board at Z48–56 is kept clear; actual connectors still need confirmation. Ties and replaceable shims retain it on the fixed tower. Cup fits over the outside flange, ID36.4 and OD38.4; magnet seat Ø6.2×2 for a Ø6×2 **diametrically magnetized** magnet. Nominal magnet face X38.5 and chip face X40 yield 1.5 mm gap. Set the actual package center/face after selecting the board; actual chip thickness and leads vary. Adhesive retention is a bench arrangement; verify the cup cannot rotate relative to the spool. Do not choose an axially magnetized disc.
+The selected sensor is Seeed GroveAS5600 SKU101020692, with a41×21×1.6mm packaging envelope and sensor10mm off-center. Use the revised fixed support and K&J D42DIA6.35×3.175mm cup in cad/winch_bench.py. Chip faceX41.175 and magnet faceX39.675 give1.5mm nominal gap. The node tray fits XIAO ESP32-C3 and includes a USB exit. Exact positions, assembly and field checks are in ENCODER_AND_TILT_COMMISSIONING.md; older20×20/6×2generic packaging is superseded.
 
-Manufacturer reference: AS5600 datasheet, https://look.ams-osram.com/m/7059eac7531a86fd/original/AS5600-DS000365.pdf (magnetic gap, alignment, field-status guidance; link availability may change). Typical stated gap 0.5–3 mm depends on magnet; check field diagnostics with motor energized. This generic packaging is not a confirmed exact breakout-board purchase specification.
-
-No AS5600 driver, multi-turn tracking, communications or feedback fault handling is currently implemented. Four identical I²C addresses cannot share one bus directly; room-length I²C wiring also needs a real electrical design. Reserve motor-mounted sensor space now; select a short local bus/robust communication architecture before ordering four boards. AS5600 reports angle within a revolution; software must unwrap turns and restore position by homing after lost tracking/power. Encoders observe rotation, not payout radius, stretch, knot movement, slack, load tension or gripper attitude. This print package does not claim those problems are solved.
 
 ## Bench acceptance log
 
@@ -81,6 +80,6 @@ Offline diagnostic (`python -m verification.clamp_pose_diagnostic`) illustrates 
 
 Simple scale intuition, not a robot pose prediction: a 1 mm differential vertical displacement across a 138 mm span corresponds to about 0.42°; 5 mm to about 2.1°. The actual response depends on cable directions, compliance, slack and load. At a 3 mm intended ground gap even small tilt matters. Start higher, measure level/tilt and payload shifts, then reduce ground clearance.
 
-An optional 20×20×5 mm tilt-sensor envelope and tied shelf have been added above the servo regulator inside the enclosure. It is an accommodation only: no sensor is ordered or implemented, and no attitude controller is claimed. A tilt sensor can detect a problem and support a stop/adjustment strategy; it does not by itself eliminate it. Current ESP32 low-voltage shutdown, force feedback and position feedback remain absent; current startup commands the servo open. Test brownout/reboot behavior with a cloth on a bench before suspended use.
+Adafruit3886 MPU6050 packaging26×17.8×4.6mm and a tied shelf are above the servo regulator. Tilt telemetry and a calibrated settled pickup gate are implemented; no sensor purchase or physical validation has been performed, and no attitude controller is claimed. A tilt sensor can detect a problem and support a stop/adjustment strategy; it does not by itself eliminate it. Current ESP32 low-voltage shutdown, force feedback and position feedback remain absent; current startup commands the servo open. Test brownout/reboot behavior with a cloth on a bench before suspended use.
 
 The clamp otherwise retains the reviewed electronics slots, fuse shelf, removable lid and recessed TPU pad screws. Actual servo horn stack, PCB connectors, wiring bend radius, threaded fasteners and print distortion are still physical fit gates. Every modeled envelope is checked again after the optional shelf change. Measure total mass and center of gravity; the old 0.45 kg assembly constant has not been validated for this new print.

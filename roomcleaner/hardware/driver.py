@@ -86,7 +86,7 @@ class Driver:
     def set_motion_speed(self, speed_m_s):
         if not np.isfinite(speed_m_s) or speed_m_s <= 0:
             raise ValueError("Speed must be finite and positive")
-        self._command(f"V {min(1200.0, speed_m_s*self.steps_per_m):.3f}", expect="OK")
+        self._command(f"V {min(500.0, speed_m_s*self.steps_per_m):.3f}", expect="OK")
 
     def move_to_point(self, point):
         if not self.homed:
@@ -134,6 +134,9 @@ class SerialDriver(Driver):
         super().__init__(robot, home_lengths, **kw)
         self.port, self.baud, self.timeout = port, baud, timeout
         self._ser = None
+        self._relay = None
+        import threading
+        self._write_lock = threading.Lock()
 
     def home(self, *, detached=False):
         if not detached:
@@ -155,7 +158,22 @@ class SerialDriver(Driver):
         else:
             self.close()
             raise RuntimeError("Firmware did not send READY")
+        import json
+        from pathlib import Path
+        from .encoder_feedback import EncoderRelay
+        from .hw_config import ENCODER_CALIBRATION_FILE
+        try:
+            cfg=json.loads(Path(ENCODER_CALIBRATION_FILE).read_text())
+            if cfg.get('steps_per_rev') != 3200 or cfg.get('ticks_per_rev') != 4096:
+                raise ValueError('Encoder calibration must match 200-step motor, 16 microsteps and AS5600')
+            self._relay=EncoderRelay(self._write_line,cfg['node_ids'],cfg['signs']).start()
+            self._relay.wait_ready()
+        except Exception:
+            self.close();raise
         return self
+
+    def _write_line(self,line):
+        with self._write_lock:self._ser.write((line+"\n").encode())
 
     def _readline(self) -> str:
         return self._ser.readline().decode(errors="replace").strip()
@@ -163,7 +181,9 @@ class SerialDriver(Driver):
     def _command(self, line: str, expect: str | None = None):
         if self._ser is None:
             raise RuntimeError("Call open() before sending commands.")
-        self._ser.write((line + "\n").encode())
+        if line != "X" and self._relay and self._relay.error:
+            raise RuntimeError("Encoder feedback fault: "+self._relay.error)
+        self._write_line(line)
         if expect is None:
             return
         import time
@@ -171,7 +191,7 @@ class SerialDriver(Driver):
         while time.monotonic() < deadline:
             resp = self._readline()
             if resp.startswith(expect):
-                return
+                return resp
             if resp.startswith("ERR"):
                 raise RuntimeError(f"Firmware error for '{line}': {resp}")
             if resp == "":
@@ -180,6 +200,8 @@ class SerialDriver(Driver):
         raise TimeoutError(f"No '{expect}' reply to '{line}' within deadline")
 
     def close(self):
+        if self._relay is not None:
+            self._relay.close();self._relay=None
         if self._ser is not None:
             self._ser.close()
             self._ser = None

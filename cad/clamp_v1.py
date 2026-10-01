@@ -185,7 +185,7 @@ def regulator_mount():
         shape=shape.union(cq.Workplane('XY').center(x,y).circle(2.5).extrude(5).translate((0,0,7)))
         shape=hole_z(shape,x,y,1.7,6,7)
     for y in (-12,12):shape=hole_z(shape,46,y,3.4,3,6)
-    # Optional tilt-sensor tray above servo regulator, out of board keep-out.
+    # Adafruit3886 MPU6050,26x17.8, foam retained with nonconductive ties.
     for y in (-10,10):shape=shape.union(box(2,2,23,(59,y,7)))
     shelf=box(28,24,2,(46,0,28))
     for x in (35,57):shelf=shelf.cut(box(2,16,4,(x,0,27)))
@@ -242,7 +242,7 @@ def components(angle=0,with_cover=True):
            'battery_reference':box(76,37,14,(0,-36,8)),
            'battery_foam_reference':box(76,37,2,(0,-36,6)),
            'regulator_reference':box(17.8,20.3,8.8,(46,0,12)),
-           'optional_tilt_sensor_reference':box(20,20,5,(46,0,31))}
+           'tilt_sensor_reference':box(26,17.8,4.6,(46,0,31))}
     if with_cover:parts['cover']=cover()
     for x in (-CABLE_X,CABLE_X):
         for y in (-CABLE_Y,CABLE_Y):

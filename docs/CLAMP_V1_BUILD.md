@@ -58,10 +58,10 @@ The current ESP32 firmware uses GPIO13 and 20/140 degree release/grip commands. 
 
 ## Latest bench audit
 
-See `BENCH_PRINT_AUDIT.md` before suspended use. The point-mass planner does not currently account for the four separated clamp attachments. An optional 20×20×5 mm tilt-sensor envelope and tied shelf are provided above the servo regulator, with no implemented sensor/feedback claim.
+See `BENCH_PRINT_AUDIT.md` before suspended use. The point-mass planner does not currently account for the four separated clamp attachments. Adafruit3886 MPU6050 packaging26×17.8×4.6mm and a tied shelf sit above the servo regulator. Tilt telemetry and a calibrated settled pickup gate are implemented; active leveling and finite-anchor pose control are not. See ENCODER_AND_TILT_COMMISSIONING.md.
 
 ## Remaining release gates
 
-Actual component fit and horn stack; print sliding clearance; measured grip force/current/thermal behavior; low-battery handling; braid knot and clevis proof test; real assembly mass/center of gravity; cable attachment calibration; near-floor pickup test; camera calibration. Encoder and winch eyelet/spring purchases remain separate unresolved choices. No encoder housing changes are included in this clamp.
+Actual component fit and horn stack; print sliding clearance; measured grip force/current/thermal behavior; low-battery handling; braid knot and clevis proof test; real assembly mass/center of gravity; cable attachment calibration; near-floor pickup test; camera calibration. Encoder boards/nodes/magnets are selected in BOM_ENCODER_TILT.csv; winch eyelet/spring physical checks remain outstanding. Encoder mounts are in cad/winch_bench.py.
 
 See `CLAMP_ASSEMBLY_REVIEW.md` for the requirements-first review and complete-assembly checks. Generate STEP/STL: `python -m cad.clamp_v1`. Run sampled rigid clearance checks: `python -m verification.check_clamp_v1`. STEP reference parts represent purchased components and foam, and should not be printed. Metal rings should not be printed. Open and closed assemblies include reference envelopes. Sampled collision tests are not a continuous motion or physical validation.

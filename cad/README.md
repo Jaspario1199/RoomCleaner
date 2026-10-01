@@ -1,3 +1,5 @@
+> Feedback revision2026-10-01: [encoder/tilt commissioning](../docs/ENCODER_AND_TILT_COMMISSIONING.md) supersedes older optional/unimplemented encoder and tilt descriptions. Use current cad/winch_bench.py and cad/clamp_v1.py exports. Physical commissioning remains required.
+
 # RoomCleaner — 3D-Printed Parts (CAD)
 
 Every printable part, as **parametric CadQuery scripts** that export genuine

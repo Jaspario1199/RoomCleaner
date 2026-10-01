@@ -1,3 +1,5 @@
+> Required new encoder/tilt purchases: [BOM_ENCODER_TILT.csv](BOM_ENCODER_TILT.csv). Existing checkmarks are historical order flags; confirm physical receipt. No purchases were made by this revision.
+
 # RoomCleaner — Shopping List (exact products + links)
 
 The "shirts & jeans" build, with a specific product and direct link for every
@@ -14,7 +16,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ✅ | NEMA 17 stepper ×4 (+1 spare) | SIMAX3D NEMA 17 **42-38** size, ~36 N·cm, 1.5 A, 5 mm shaft (**5-pack**) — select the **42-38** option | https://www.amazon.com/s?k=SIMAX3D+Nema+17+42-38+5pcs | 33 |
-| ✅ | Cable/line | 9KM DWLIFE X8 braided Dyneema, **50 lb**, 150 m (select 50 lb, not 8 lb) | https://www.amazon.com/9KM-DWLIFE-Anti-Bite-Freshwater-Saltwater/dp/B0DLNQFQKK | 8 |
+| ✅ | Cable/line | 9KM DWLIFE X8 braided Dyneema, **120 lb**, 150 m (user-selected8-strand variant;actual diameter requires measurement) | https://www.amazon.com/9KM-DWLIFE-Anti-Bite-Freshwater-Saltwater/dp/B0DLNQFQKK | 8 |
 
 *Note: at 0.8–1.2 mm, UHMWPE line naturally rates ~200–350 lb (not 100) — that's a bonus: more abrasion life, still low-stretch.*
 

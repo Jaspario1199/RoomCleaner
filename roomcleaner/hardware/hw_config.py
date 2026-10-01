@@ -47,3 +47,6 @@ HAMPER_ROI_PX = None     # (x1,y1,x2,y2), visible receiving area
 # Provisional speeds; tune on the loaded bench. Firmware caps individual axes.
 TRAVEL_SPEED_M_S = 0.020
 PICKUP_SPEED_M_S = 0.008
+
+# Required measured node IDs/signs, produced by tools/commission_encoders.py.
+ENCODER_CALIBRATION_FILE = "encoder_calibration.json"

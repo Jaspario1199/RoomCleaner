@@ -32,4 +32,4 @@ Pads,2,Printed TPU95A,Print,Left and right STL
 Trays,2,Printed PETG,Print,ESP32 and battery
 Regulator mounts,2,Printed PETG,Print,Servo regulator and logic with integrated fuse shelf
 Cover,1,Printed PETG,Print,Removable
-Optional tilt sensor,1,Board envelope20x20x5,Deferred,Space reserved; no exact module selected or feedback implemented
+MPU6050 tilt sensor,1,Adafruit3886 26x17.8x4.6mm,Not ordered,Required;see BOM_ENCODER_TILT.csv and commissioning guide

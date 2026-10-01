@@ -1,3 +1,5 @@
+> Encoder/tilt update2026-10-01: use [BOM_ENCODER_TILT.csv](BOM_ENCODER_TILT.csv) and [commissioning guide](ENCODER_AND_TILT_COMMISSIONING.md) for required new feedback parts. Older encoder/optional-sensor recommendations below are superseded. Historical checkmarks do not verify receipt.
+
 # Clamp V1 purchase/build list
 
 The exact quantities and dimensions are in **BOM_CLAMP_V1.csv**. Use this for the two-jaw prototype; the old five-finger BOM is not the active gripper build.

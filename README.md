@@ -1,3 +1,5 @@
+> Bench feedback revision2026-10-01: [Encoder/tilt assembly and commissioning](docs/ENCODER_AND_TILT_COMMISSIONING.md), [purchase BOM](docs/BOM_ENCODER_TILT.csv). Four spaced anchor suspension still requires a finite-anchor pose/tension model; current point planner is not cleared for room-wide orientation control.
+
 # RoomCleaner 🧺🤖
 
 An autonomous robot that scans your room, spots dirty laundry on the floor,

@@ -9,6 +9,6 @@ Winch revised from standalone v2 and now stored in repository as cad/winch_bench
 
 Clamp: 4,037 sampled complete-assembly collision/lid-removal checks passed after adding optional sensor shelf and envelope, including 0.5° tooth-phase samples over one full pinion-tooth period. CAD exports valid with STEP volume agreement <0.0001 mm³.
 
-Offline spaced-attachment diagnostic is illustrative and not connected to the live motion planner. No encoder feedback or tilt sensing is implemented. Bench package does not authorize autonomous suspended operation.
+Offline spaced-attachment diagnostic is illustrative and not connected to the live motion planner. Superseded by encoder/tilt revision: feedback watchdogs and settled pickup tilt gate are now implemented; physical validation remains outstanding. See docs/ENCODER_AND_TILT_COMMISSIONING.md. Bench package does not authorize autonomous suspended operation.
 
 Physical gates remain: exact switch lever/trip geometry; springs and shoulder-screw supplier stack; polished threaded eyelet; actual breakout geometry/magnet alignment; print fit/strength; wires/connectors; servo horn stack; real mass/CG; angle-dependent stopper contact; cable wear; rotational stability; effective drum radius and attachment-aware control integration.

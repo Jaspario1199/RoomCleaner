@@ -1,3 +1,5 @@
+> Encoder/tilt update2026-10-01: use [BOM_ENCODER_TILT.csv](BOM_ENCODER_TILT.csv) and [commissioning guide](ENCODER_AND_TILT_COMMISSIONING.md) for required new feedback parts. Older encoder/optional-sensor recommendations below are superseded. Historical checkmarks do not verify receipt.
+
 # RoomCleaner — Final BOM (the "shirts & jeans" build)
 
 The locked-in parts list, sized for the real job: picking up **shirts, pants, and

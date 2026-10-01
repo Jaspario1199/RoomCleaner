@@ -4,8 +4,8 @@
  * The gripper servo lives here, not on the central Arduino. The ESP32 joins your
  * WiFi and runs a tiny HTTP server; the host computer sends grip/release:
  *
- *     GET /grip?angle=120     -> curl the tentacles, replies "OK 120"
- *     GET /release?angle=20   -> open the tentacles, replies "OK 20"
+ *     GET /grip?angle=140     -> close clamp, replies "OK 140"
+ *     GET /release?angle=20   -> open the clamp, replies "OK 20"
  *     GET /status             -> replies "READY <angle>"
  *     GET /setup               -> park at DEFAULT_RELEASE so the horn/drum can be
  *                                  attached at a known zero (D8), replies
@@ -38,12 +38,12 @@ Servo gripper;
 int currentAngle = DEFAULT_RELEASE;
 
 void setAngle(int a) {
-  currentAngle = constrain(a, 0, 180);
+  currentAngle = constrain(a, 20, 140);
   gripper.write(currentAngle);
 }
 
 void handleGrip() {
-  int a = server.hasArg("angle") ? server.arg("angle").toInt() : 120;
+  int a = server.hasArg("angle") ? server.arg("angle").toInt() : 140;
   setAngle(a);
   server.send(200, "text/plain", "OK " + String(currentAngle));
 }

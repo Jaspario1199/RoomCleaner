@@ -1,3 +1,7 @@
+# Active central effector: parallel clamp V1
+
+The two-jaw prototype in `cad/clamp_v1.py` supersedes the five-finger effector for the next build. See `docs/CLAMP_V1_BUILD.md` and `docs/BOM_CLAMP_V1.csv`. Historical finger geometry below is retained for later validation, not the current purchase list.
+
 # Design State
 
 ## Repository adaptation map (per CLAUDE.md structure)

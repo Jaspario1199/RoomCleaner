@@ -1,7 +1,7 @@
 """Complete nominal winch fit audit; explicit intentional contact exemptions."""
 from itertools import combinations
 import json
-from cad.winch_bench import build,OUT
+from cad.winch_bench import build,OUT,along_x,cyl,MOTOR_Y,SHAFT_Z,SPOOL_START
 p=build();rows=[]
 allowed={frozenset(x):why for x,why in [
  (('guide_carrier','guide_bolt_0_reference'),'M3 thread envelope in diameter2.8 printed pilot'),
@@ -30,6 +30,11 @@ for travel in range(13):
  for name in ('guide_carrier','metal_eyelet_reference','outlet_backplate'):
   v=volume(bead,p[name]);assert v<.01,('bead-travel',travel,name,v)
   rows.append(dict(bead_travel_mm=travel,a='homing_stopper',b=name,volume_mm3=v))
+# Complete rotation sweep of M3 button heads +1mm spacers (max head height2mm).
+heads=along_x(cyl(16.2,3).cut(cyl(9.8,3.1)),SPOOL_START+32+3.175-1,MOTOR_Y,SHAFT_Z)
+for fixed in ('base','cover','encoder_board_reference','encoder_chip_reference','guide_carrier'):
+ v=volume(heads,p[fixed]);assert v<.01,('M3-cap-head-sweep',fixed,v)
+ rows.append(dict(a='M3-cap-head-sweep',b=fixed,volume_mm3=v))
 # Cover extraction forward into room, motor and cable stationary. Release wiring first.
 for lift in range(1,76):
  for name in p:

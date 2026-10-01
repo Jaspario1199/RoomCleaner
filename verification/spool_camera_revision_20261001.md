@@ -8,3 +8,5 @@
 - 15 oriented winch STLs, including the new original-geometry V2 spool, screw-retained magnet cup and Ronstan outlet retaining plate. Metal ring, hardware, switch and electronics reference solids must not be printed as functional replacements.
 - This release does not validate real hardware, screw head envelopes, printed thread strength, KW12 lever travel/force, spring SKU/rate, braid friction/wear, electronics temperatures, camera field of view, pose accuracy or printer fit. Print a single cartridge and spool/cup first.
 - Order worksheet has historical purchases, new requirements, reusable inventory and unresolved specifications. It is not a claim of confirmed receipt or a fully frozen purchase BOM.
+
+- M3 revision: magnet cap uses M3x6 plus1mm head spacers (or M3x5 without spacers); 2735 checks passed including full-rotation head/spacer sweep for <=6.4mm diameter / <=2mm head height. Encoder board mounts retain M2. Physical thread retention remains unverified.

@@ -56,6 +56,10 @@ The current ESP32 firmware uses GPIO13 and 20/140 degree release/grip commands. 
 8. Bench-test unloaded opening/closing, then a folded cloth, then representative flat laundry. Measure actual gap, servo current, temperature, slippage and assembly mass. Confirm electrical stability while the servo reverses under load. Check both ESP32 logic power and servo rail.
 9. Suspend only after load-path testing. Existing software pickup height gives 20 mm nominal pad clearance. Reduce it in small measured steps for near-ground pickup; a 3 mm target corresponds to cable-plane Z=121 mm, but do not use it until floor height and actual reach are calibrated. Camera must verify payload motion after a partial lift and delivery after release. A commanded closure alone proves neither.
 
+## Latest bench audit
+
+See `BENCH_PRINT_AUDIT.md` before suspended use. The point-mass planner does not currently account for the four separated clamp attachments. An optional 20×20×5 mm tilt-sensor envelope and tied shelf are provided above the servo regulator, with no implemented sensor/feedback claim.
+
 ## Remaining release gates
 
 Actual component fit and horn stack; print sliding clearance; measured grip force/current/thermal behavior; low-battery handling; braid knot and clevis proof test; real assembly mass/center of gravity; cable attachment calibration; near-floor pickup test; camera calibration. Encoder and winch eyelet/spring purchases remain separate unresolved choices. No encoder housing changes are included in this clamp.

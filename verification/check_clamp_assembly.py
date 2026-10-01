@@ -19,6 +19,10 @@ for angle in range(5,121,5):
  for a,b in combinations(p,2):
   if not({a,b}&moving):continue
   check(p,a,b,angle)
+# Fine tooth-phase check: one 15-degree pinion tooth period, 0.5-degree steps.
+for index in range(31):
+ p=components(index*.5)
+ for b in ('jaw_left','jaw_right'):check(p,'pinion',b,f'fine-mesh-{index*.5}')
 # Cover lift with fixed components; cables/harness must be released from openings.
 p=components()
 for dz in (1,5,15,30,60):

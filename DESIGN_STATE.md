@@ -1,3 +1,7 @@
+# Bench release audit
+
+Use `docs/BENCH_PRINT_AUDIT.md` and `cad/winch_bench.py` for the revised homing casing. Essential gap: the point-mass planner omits the spaced clamp attachment offsets and rotational equilibrium. Encoders are physically accommodated but feedback is not implemented. Current scope is detached/low-height bench testing.
+
 # Active central effector: parallel clamp V1
 
 The two-jaw prototype in `cad/clamp_v1.py` supersedes the five-finger effector for the next build. See `docs/CLAMP_V1_BUILD.md` and `docs/BOM_CLAMP_V1.csv`. Historical finger geometry below is retained for later validation, not the current purchase list.

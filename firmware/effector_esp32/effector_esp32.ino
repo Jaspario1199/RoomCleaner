@@ -32,7 +32,12 @@ const char* WIFI_SSID = "YOUR_WIFI";
 const char* WIFI_PASS = "YOUR_PASSWORD";
 const char* HOSTNAME  = "roomcleaner-claw";   // -> http://roomcleaner-claw.local
 
+#ifdef ROOMCLEANER_CAMERA_S3
+#include <esp_camera.h>
+const int SERVO_PIN = 1; // XIAO D0; camera usesGPIO13
+#else
 const int SERVO_PIN = 13;
+#endif
 const int DEFAULT_RELEASE = 20;
 
 WebServer server(80);
@@ -112,11 +117,47 @@ void handleSetup() {
   server.send(200, "text/plain", "SETUP " + String(currentAngle) + " -- attach horn/drum now");
 }
 
+#ifdef ROOMCLEANER_CAMERA_S3
+bool cameraReady=false;unsigned long frameSequence=0;
+void initClawCamera(){
+ if(!psramFound())return;
+ camera_config_t c={};c.ledc_channel=LEDC_CHANNEL_7;c.ledc_timer=LEDC_TIMER_3;
+ c.pin_d0=15;c.pin_d1=17;c.pin_d2=18;c.pin_d3=16;c.pin_d4=14;c.pin_d5=12;c.pin_d6=11;c.pin_d7=48;
+ c.pin_xclk=10;c.pin_pclk=13;c.pin_vsync=38;c.pin_href=47;c.pin_sccb_sda=40;c.pin_sccb_scl=39;
+ c.pin_pwdn=-1;c.pin_reset=-1;c.xclk_freq_hz=20000000;c.pixel_format=PIXFORMAT_JPEG;
+ c.frame_size=FRAMESIZE_VGA;c.jpeg_quality=12;c.fb_count=1;c.fb_location=CAMERA_FB_IN_PSRAM;c.grab_mode=CAMERA_GRAB_WHEN_EMPTY;
+ cameraReady=esp_camera_init(&c)==ESP_OK;
+}
+void handleCapture(){
+ if(!cameraReady){server.send(503,"text/plain","Camera unavailable/PSRAM disabled");return;}
+ camera_fb_t* fb=esp_camera_fb_get(); // discard queued frame; request a newly acquired frame
+ if(fb)esp_camera_fb_return(fb);
+ fb=esp_camera_fb_get();if(!fb){server.send(503,"text/plain","Capture failed");return;}
+ server.sendHeader("Cache-Control","no-store");server.sendHeader("X-Frame-Sequence",String(++frameSequence));
+ server.sendHeader("X-Capture-Millis",String((unsigned long)millis()));
+ server.sendHeader("X-Vision-Mode","diagnostic-unlocalized");
+ server.setContentLength(fb->len);server.send(200,"image/jpeg","");
+ server.client().write(fb->buf,fb->len);esp_camera_fb_return(fb);
+}
+void handleCameraPage(){
+ server.send(200,"text/html","<!doctype html><title>Claw camera bench</title><h1>Claw camera diagnostic</h1><p>Live view only. Moving-camera localization and autonomous pickup are not enabled.</p><img id='v' width='640'><script>const v=document.getElementById('v');function next(){v.src='/capture?t='+Date.now()}v.onload=()=>setTimeout(next,300);v.onerror=()=>setTimeout(next,1000);next();</script>");
+}
+#endif
+
 void setup() {
   Serial.begin(115200);
-  Wire.begin(21,22);Wire.setClock(400000);Wire.setTimeOut(10);
+#ifdef ROOMCLEANER_CAMERA_S3
+  Wire.begin(5,6); // XIAO D4 SDA,D5 SCL; independent of camera SCCB39/40
+#else
+  Wire.begin(21,22);
+#endif
+  Wire.setClock(400000);Wire.setTimeOut(10);
   uint8_t who=0;imuPresent=imuRead(0x75,&who,1) && who==0x68;
   if(imuPresent){imuWrite(0x6B,0);imuWrite(0x1A,3);imuWrite(0x1B,0);imuWrite(0x1C,0);}
+#ifdef ROOMCLEANER_CAMERA_S3
+  ESP32PWM::allocateTimer(0); // servo restricted to timer0; camera uses timer3/channel7
+  initClawCamera(); // simultaneous camera/servo operation still requires bench verification
+#endif
   gripper.attach(SERVO_PIN);
   setAngle(DEFAULT_RELEASE);          // start open
 
@@ -133,6 +174,9 @@ void setup() {
   server.on("/tilt", handleTilt);
   server.on("/calibrate", handleCalibrate);
   server.on("/setup", handleSetup);
+#ifdef ROOMCLEANER_CAMERA_S3
+  server.on("/capture",handleCapture);server.on("/",handleCameraPage);
+#endif
   server.begin();
 }
 

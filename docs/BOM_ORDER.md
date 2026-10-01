@@ -1,3 +1,5 @@
+> Latest spool/outlet/camera decisions and consolidated order status: [REVISION_V2_DECISIONS.md](REVISION_V2_DECISIONS.md) and [ORDER_STATUS_V2.csv](ORDER_STATUS_V2.csv). Earlier generic outlet, friction-fit magnet cup, servo power and fixed-camera assumptions below are superseded where they conflict.
+
 > Encoder/tilt update2026-10-01: use [BOM_ENCODER_TILT.csv](BOM_ENCODER_TILT.csv) and [commissioning guide](ENCODER_AND_TILT_COMMISSIONING.md) for required new feedback parts. Older encoder/optional-sensor recommendations below are superseded. Historical checkmarks do not verify receipt.
 
 # RoomCleaner — Final BOM (the "shirts & jeans" build)

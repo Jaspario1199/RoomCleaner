@@ -1,3 +1,5 @@
+> Latest spool/outlet/camera decisions and consolidated order status: [REVISION_V2_DECISIONS.md](REVISION_V2_DECISIONS.md) and [ORDER_STATUS_V2.csv](ORDER_STATUS_V2.csv). Earlier generic outlet, friction-fit magnet cup, servo power and fixed-camera assumptions below are superseded where they conflict.
+
 > Feedback revision2026-10-01: [encoder/tilt commissioning](../docs/ENCODER_AND_TILT_COMMISSIONING.md) supersedes older optional/unimplemented encoder and tilt descriptions. Use current cad/winch_bench.py and cad/clamp_v1.py exports. Physical commissioning remains required.
 
 # Bench print audit: winch first, clamp second

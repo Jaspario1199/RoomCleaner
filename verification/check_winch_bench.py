@@ -17,13 +17,19 @@ for a,b in combinations(p,2):
  assert v<.01 or why,(a,b,v)
 for travel in (0,.25,.5,.75,1,1.25,1.5,1.75,2):
  moving=p['homing_collar'].translate((0,travel,0))
- for name in ('base','cover','guide_carrier','switch_mount','switch_body_reference','metal_eyelet_reference','stop_sleeve_0','stop_sleeve_1'):
+ for name in ('base','cover','guide_carrier','switch_mount','switch_body_reference','metal_eyelet_reference','outlet_backplate','stop_sleeve_0','stop_sleeve_1'):
   v=volume(moving,p[name]);assert v<.01,(travel,name,v)
   rows.append(dict(travel_mm=travel,a='homing_collar',b=name,volume_mm3=v))
 # Whole rotating spool/cup cylindrical envelopes cover every angular phase.
 for name in ('spool_reference','encoder_magnet_cup','encoder_magnet_reference'):
  for fixed in ('base','cover','encoder_board_reference','encoder_chip_reference','guide_carrier'):
   v=volume(p[name],p[fixed]);assert v<.01,(name,fixed,v)
+# Bead approaches10mm then presses collar2mm; check fixed ring/holder throughout.
+for travel in range(13):
+ bead=p['homing_stopper'].translate((0,travel,0))
+ for name in ('guide_carrier','metal_eyelet_reference','outlet_backplate'):
+  v=volume(bead,p[name]);assert v<.01,('bead-travel',travel,name,v)
+  rows.append(dict(bead_travel_mm=travel,a='homing_stopper',b=name,volume_mm3=v))
 # Cover extraction forward into room, motor and cable stationary. Release wiring first.
 for lift in range(1,76):
  for name in p:

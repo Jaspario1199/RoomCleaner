@@ -1,3 +1,5 @@
+> Latest spool/outlet/camera decisions and consolidated order status: [REVISION_V2_DECISIONS.md](REVISION_V2_DECISIONS.md) and [ORDER_STATUS_V2.csv](ORDER_STATUS_V2.csv). Earlier generic outlet, friction-fit magnet cup, servo power and fixed-camera assumptions below are superseded where they conflict.
+
 # Bench assembly — the printer-free electronics build
 
 Everything you can assemble and prove **before the 3D printer is available**,

@@ -1,3 +1,5 @@
+> Latest spool/outlet/camera decisions and consolidated order status: [REVISION_V2_DECISIONS.md](REVISION_V2_DECISIONS.md) and [ORDER_STATUS_V2.csv](ORDER_STATUS_V2.csv). Earlier generic outlet, friction-fit magnet cup, servo power and fixed-camera assumptions below are superseded where they conflict.
+
 > Required new encoder/tilt purchases: [BOM_ENCODER_TILT.csv](BOM_ENCODER_TILT.csv). Existing checkmarks are historical order flags; confirm physical receipt. No purchases were made by this revision.
 
 # RoomCleaner — Shopping List (exact products + links)

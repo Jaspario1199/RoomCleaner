@@ -1,5 +1,0 @@
-# Web console extras (the unified browser UI; the core package and CLI work
-# without it): python -m roomcleaner.app --sim | --live | --live --demo
-# Install alongside the vision stack for live camera mode:
-#   pip install -r requirements-vision.txt -r requirements-app.txt
-flask>=3.0

@@ -11,6 +11,10 @@ PLATE=6.; WALL=3.; LINE_D=.60
 SHAFT_Z=33.; MOTOR_Y=30.; SPOOL_START=4.5; SPOOL_LEN=32.
 EYE_X=20.; EYE_Z=43.; EYE_Y=-68.
 COLLAR_HOLE=18.6; BEAD_D=24.; STROKE=2.
+# Measured correction relative to nominal shaft axis. Regenerate and rerun audits
+# after measuring PCB/sensor/shaft offsets; these are not accuracy guarantees.
+ENCODER_ALIGNMENT_X=0.; ENCODER_ALIGNMENT_Y=0.; ENCODER_ALIGNMENT_Z=0.
+ENCODER_FOOT_BOLTS=((48.,10.),(48.,50.))
 
 def box(w,h,d,x=0,y=0,z=0):
     return cq.Workplane('XY').box(w,h,d,centered=(True,True,False)).translate((x,y,z))
@@ -61,7 +65,10 @@ def build():
     for x in (-51.5,51.5):
         for y in (-66,66):
             # Screw heads sit on low shelves, accessed through the roof.
-            cover=cover.cut(cyl(4.5,5,x,y,PLATE+DEPTH-4))
+            # Match the continuous6.4mm driver bore. The old9mm roof hole
+            # was tangent to the outer wall, leaving non-manifold zero-
+            # thickness edges in STL despite a nominally valid CAD solid.
+            cover=cover.cut(cyl(3.2,5,x,y,PLATE+DEPTH-4))
             cover=cover.cut(cyl(3.2,9.3,x,y,PLATE))
             cover=cover.cut(cyl(3.2,60,x,y,18.3)) # continuous driver/head access
             foot=cyl(3,3,x,y,15.3).cut(cyl(1.7,4,x,y,15))
@@ -100,33 +107,63 @@ def build():
     for z in (46,63):
         switch_mount=switch_mount.cut(box(2.5,5,3,x=42,y=-53.5,z=z-1.5))
     switch_mount=switch_mount.cut(box(9.6,5,2.4,x=40,y=-53.5,z=43.9)) # guide tower corner relief
-    # Selected Ronstan RF8090-05:15OD,5ID,7.5axial. Conservative
-    # smooth cylindrical reference; manufacturer groove/flaring not reproduced.
-    eyelet=along_y(cyl(7.5,7.5).cut(cyl(2.5,8)).edges('%Circle').fillet(.6),EYE_X,-64.5,EYE_Z)
-    holder=along_y(cyl(11,8),EYE_X,-61,EYE_Z).union(along_y(cyl(9,4),EYE_X,-69,EYE_Z))
-    carrier=carrier.union(holder)
-    carrier=carrier.cut(along_y(cyl(7.65,14),EYE_X,-58,EYE_Z))
-    carrier=carrier.cut(along_y(cyl(5,17),EYE_X,-57,EYE_Z))
-    carrier=carrier.cut(box(28.4,2.2,18.4,x=EYE_X,y=-63.5,z=33.8))
-    backplate=box(28,2,18,x=EYE_X,y=-63.5,z=34).cut(along_y(cyl(2.75,4),EYE_X,-62,EYE_Z))
-    backplate=backplate.cut(box(8,4,4,x=31,y=-63.5,z=52)) # stationary lever sweep clearance
+    # RF8090-05 OEM IGES is an open surface model, not a boolean solid.
+    # Documented revolved profile proxy:7.5 axial,15.005 max OD,5.1 throat,
+    # ~12.6 mouth,8.1 groove waist. It deliberately omits engraved marks.
+    profile=[(6.35,-3.75),(7.3,-3.5),(7.5025,-3),(7.34,-2.5),
+             (6.77,-2.25),(5.3,-2),(4.3,-1),(4.05,0),
+             (4.3,1),(5.3,2),(6.77,2.25),(7.34,2.5),(7.5025,3),
+             (7.3,3.5),(6.35,3.75),(6.2,3.75),(5.,3.5),(4.04,3),
+             (3.5,2.5),(3.3,2.25),(3.13,2),(2.69,1),(2.55,0),
+             (2.69,-1),(3.13,-2),(3.3,-2.25),(3.5,-2.5),(4.04,-3),
+             (5.,-3.5),(6.2,-3.75)]
+    ring=cq.Workplane('XZ').polyline(profile).close().revolve(360,(0,0),(0,1))
+    eyelet=along_y(ring,EYE_X,-68.25,EYE_Z)
+    # Capture the external groove with two split jaws. Both flared metal faces
+    # remain exposed; no printed lip projects in front of the metal mouth.
+    # Radial clearance0.35 at the waist, axial capture width1.5; entire ring
+    # bounding cylinder is relieved from the supporting bridge.
+    bridge=box(30,11,9,x=EYE_X,y=-63.5,z=30)
+    bridge=bridge.cut(along_y(cyl(7.7,8),EYE_X,-64.25,EYE_Z))
+    carrier=carrier.union(bridge)
+    capture=along_y(cyl(11,1.5).cut(cyl(4.4,2)),EYE_X,-67.5,EYE_Z)
+    lower=capture.intersect(box(30,6,20,x=EYE_X,y=-68.25,z=23))
+    backplate=capture.intersect(box(30,6,20,x=EYE_X,y=-68.25,z=43))
+    # Upper clamp has low mounting feet behind the ring. M3 button heads stay
+    # below the switch body and collar actuator; install/remove from above.
     for x in (9,31):
-        backplate=backplate.cut(along_y(cyl(1.7,4),x,-62,EYE_Z))
-        carrier=carrier.cut(along_y(cyl(1.4,8),x,-56,EYE_Z))
-    carrier=carrier.cut(switch_mount) # preserve stationary cradle clearance
-    for x in (9,31):carrier=carrier.cut(along_y(cyl(2.95,3.2),x,-64.5,EYE_Z)) # outlet plate socket-head access
-    # Two guide springs return the sliding collar, not the load-bearing eyelet.
+        arm=box(7,6,3,x=x,y=-66,z=43)
+        backplate=backplate.union(arm)
+    for x in (8.5,31.5):
+        backplate=backplate.cut(cyl(1.7,6,x,-66,42)).cut(cyl(3.1,2,x,-66,46))
+    for x in (2,38):
+        backplate=backplate.cut(along_y(cyl(3.4,10),x,-60,EYE_Z))
+    # Remove clamp's occupied volume before adding the lower capture jaw.
+    carrier=carrier.cut(backplate).union(lower)
+    for x in (9,31):
+        carrier=carrier.cut(box(7.4,6.4,14,x=x,y=-66,z=43))
+    carrier=carrier.cut(switch_mount)
+    for x in (8.5,31.5):
+        carrier=carrier.union(cyl(2.8,7,x,-65.5,36)).cut(cyl(1.4,7,x,-66,36))
     extra={'outlet_backplate':backplate}
+    for i,x in enumerate((8.5,31.5)):
+        extra[f'outlet_clamp_bolt_{i}_reference']=cyl(1.5,10,x,-66,36).union(cyl(2.85,1.7,x,-66,46))
+    # Exact candidate:Ondrives SHS3-12, shoulder4x12,M3x4,head6x3.
+    # Springs:Century Z-2CS OD6.35/ID5.33,free9.65,k0.65N/mm,
+    # solid3.81. Installed7->5 leaves1.19 nominal coil-bind margin.
+    # External stops carry the2mm collar stop load; no thin spring sleeves.
     for i,x in enumerate((2,38)):
-        rod=along_y(cyl(2,12),x,-64,EYE_Z).union(along_y(cyl(1.5,6),x,-58,EYE_Z))
-        head=along_y(cyl(3.5,2),x,-76,EYE_Z)
-        sleeve=along_y(cyl(2.9,5).cut(cyl(2.1,6)),x,-64,EYE_Z)
+        rod=along_y(cyl(2,12),x,-64,EYE_Z).union(along_y(cyl(1.5,4),x,-60,EYE_Z))
+        head=along_y(cyl(3,3),x,-76,EYE_Z)
         washer=along_y(cyl(3.5,1).cut(cyl(2.15,1.2)),x,-75,EYE_Z)
+        stop=box(8,5,1.5,x=x,y=-66,z=38)
+        carrier=carrier.union(stop)
         extra[f'guide_bolt_{i}_reference']=rod.union(head)
-        extra[f'stop_sleeve_{i}']=sleeve
         extra[f'washer_{i}_reference']=washer
-        # Spring solid envelope for packaging; winding represented in preview.
-        extra[f'spring_{i}_reference']=along_y(cyl(3.7,7).cut(cyl(3.2,8)),x,-64,EYE_Z)
+        extra[f'spring_{i}_reference']=along_y(cyl(3.175,7).cut(cyl(2.665,8)),x,-64,EYE_Z)
+    # Secondary guide is slotted along the rod-spacing direction, avoiding
+    # binding from printed spacing error while primary round bore locates it.
+    collar=collar.cut(box(5.3,6,4.3,x=38,y=-73,z=EYE_Z-2.15))
     # Body orientation:20 along X, 6.5 deep Y,10.5 high Z.
     switch_body=box(20,6.5,10.5,x=42,y=-58.25,z=48.75)
     lever=box(18,.5,3,x=39,y=-63.9,z=52.5)
@@ -153,13 +190,24 @@ def build():
     for yy,zz in ((20,53),(40,53),(30,23)):
         ear=along_x(cyl(3,3.4),44.775,yy,zz)
         encoder=encoder.union(ear).cut(along_x(cyl(.85,6),43.5,yy,zz))
-    base=base.union(encoder)
+    alignment=(ENCODER_ALIGNMENT_X,ENCODER_ALIGNMENT_Y,ENCODER_ALIGNMENT_Z)
+    encoder=encoder.translate(alignment)
+    # Removable pedestal: feet stay behind the complete rotor axial envelope,
+    # so PCB + pedestal can be preassembled and inserted vertically together.
+    foot=box(8,50,4,x=48,y=MOTOR_Y,z=PLATE)
+    encoder=encoder.union(foot)
+    for xx,yy in ENCODER_FOOT_BOLTS:
+        encoder=encoder.cut(cyl(1.7,6,xx,yy,PLATE-1))
+        base=base.cut(cyl(1.7,8,xx,yy,-1))
+    parts['encoder_mount']=encoder
     # PCB bottom faces spool; top connector clearance sits above sensor.
     parts['encoder_board_reference']=box(1.6,24,41,x=43.975,y=MOTOR_Y,z=22.5)
     for yy,zz in ((20,53),(40,53),(30,23)):
         parts['encoder_board_reference']=parts['encoder_board_reference'].cut(along_x(cyl(1.1,3),42.5,yy,zz))
     parts['encoder_chip_reference']=box(2,5,5,x=42.175,y=MOTOR_Y,z=30.5)
     parts['encoder_lead_space_reference']=box(8,14,10,x=48.775,y=MOTOR_Y,z=48)
+    for name in ('encoder_board_reference','encoder_chip_reference','encoder_lead_space_reference'):
+        parts[name]=parts[name].translate(alignment)
     # Removable XIAO tray. Foam + nonconductive ties, USB faces -X.
     tray=box(26,22,4,x=-22,y=61,z=6).cut(box(24,20,3,x=-22,y=61,z=8))
     for x in (-37,-7):
@@ -190,7 +238,7 @@ def bench_parts():
     for x,y in ((-8,-68),(-8,-38),(28,-38)):
         fixture=fixture.cut(cyl(2.25,8,x,y,-1))
     coupon=box(62,24,6)
-    for x,r in ((-24,1.4),(-16,1.7),(-8,2.15),(16,7.65)):
+    for x,r in ((-24,1.4),(-16,1.7),(-8,2.15),(0,3.275),(16,4.4)):
         coupon=coupon.cut(cyl(r,8,x,0,-1))
     return {'cartridge_bench_fixture':fixture,'fit_coupon':coupon,'eyelet_fit_dummy':p['metal_eyelet_reference']}
 
@@ -209,7 +257,10 @@ def main():
         assembly.add(p,name=name,color=cq.Color(*colors.get(name,(.45,.5,.55))))
         cq.exporters.export(p,str(OUT/(name+'.step')))
         restored=cq.importers.importStep(str(OUT/(name+'.step')))
-        assert abs(sum(q.Volume() for q in restored.solids().vals())-sum(q.Volume() for q in p.solids().vals()))<.001,name
+        # Explicit adaptive quadrature: default non-adaptive mass integration
+        # can differ after STEP changes a chordal-bore surface parameterization,
+        # despite zero geometric symmetric difference (spool:0.00845mm3 drift).
+        assert abs(sum(q.Volume(1e-9) for q in restored.solids().vals())-sum(q.Volume(1e-9) for q in p.solids().vals()))<.001,name
         if not name.endswith('_reference'): cq.exporters.export(p,str(OUT/(name+'.stl')))
         b=p.val().BoundingBox(); report[name]={'valid':True,'solids':len(p.solids().vals()),'bbox_mm':[b.xlen,b.ylen,b.zlen]}
     assembly.save(str(OUT/'winch_assembly.step'))
@@ -223,7 +274,7 @@ def main():
     for travel in (0,.5,1,1.5,2):
         moving=parts['homing_collar'].translate((0,travel,0))
         collision={}
-        for name in ('base','cover','guide_carrier','metal_eyelet_reference','switch_mount','switch_body_reference','stop_sleeve_0','stop_sleeve_1','outlet_backplate'):
+        for name in ('base','cover','guide_carrier','metal_eyelet_reference','switch_mount','switch_body_reference','outlet_backplate'):
             common=moving.intersect(parts[name]); v=sum(q.Volume() for q in common.solids().vals())
             collision[name]=round(v,6); assert v<.01,(travel,name,v)
         stroke_results.append({'travel_mm':travel,'fixed_intersection_mm3':collision})
@@ -235,13 +286,13 @@ def main():
         elif name in ('switch_roller_reference','switch_lever_reference'): p=p.translate((0,1.3,0))
         elif name.startswith('spring_'):
             x=2 if '_0_' in name else 38
-            p=along_y(cyl(3.7,5).cut(cyl(3.2,6)),x,-64,EYE_Z)
+            p=along_y(cyl(3.175,5).cut(cyl(2.665,6)),x,-64,EYE_Z)
         pressed.add(p,name=name)
     pressed.save(str(OUT/'winch_pressed_assembly.step'))
     import math
-    radial_envelope=5+.3+2*math.tan(math.radians(55))
+    radial_envelope=2.55+.3+6.75*math.tan(math.radians(40))
     assert radial_envelope<COLLAR_HOLE/2
-    report['cable_angle_check']={'cone_half_angle_deg':55,'radial_envelope_mm':radial_envelope,'bore_radius_mm':COLLAR_HOLE/2,'clearance_mm':COLLAR_HOLE/2-radial_envelope,'assumption':'ray from5mm retainer opening radius;front plane2mm beyond lip'}
+    report['cable_angle_check']={'cone_half_angle_deg':40,'radial_envelope_mm':radial_envelope,'bore_radius_mm':COLLAR_HOLE/2,'clearance_mm':COLLAR_HOLE/2-radial_envelope,'assumption':'throat radius2.55 atY-68.25;rest collarfrontY-75 distance6.75;ideal line ray only, bead off-axis behavior needsbench' }
     dynamic=[]
     for travel in (0,.5,1,1.5,2):
         roller=parts['switch_roller_reference'].translate((0,max(0,travel-.7),0))

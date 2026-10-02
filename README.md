@@ -1,5 +1,7 @@
 > Bench feedback revision2026-10-01: [Encoder/tilt assembly and commissioning](docs/ENCODER_AND_TILT_COMMISSIONING.md), [purchase BOM](docs/BOM_ENCODER_TILT.csv). Four spaced anchor suspension still requires a finite-anchor pose/tension model; current point planner is not cleared for room-wide orientation control.
 
+> Current removable mount bench release: [print/hardware guide](docs/MOUNT_PRINT_RELEASE_20261002.md) and [critical review](verification/mount_release_review_20261002.md). This corrects the first slide dock and older cap fastener recipes. Physical homing/load qualification remains pending.
+
 # RoomCleaner 🧺🤖
 
 An autonomous robot that scans your room, spots dirty laundry on the floor,

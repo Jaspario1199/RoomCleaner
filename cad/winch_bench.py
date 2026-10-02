@@ -36,12 +36,12 @@ def build():
             bracket=bracket.cut(along_x(cyl(1.7,8),-3,MOTOR_Y+dy,SHAFT_Z+dz))
     base=base.union(bracket)
     # Structural tower for stationary switch mounting plate.
-    tower=box(20,10,58,x=43,y=-47,z=PLATE)
+    tower=box(20,10,62,x=43,y=-47,z=PLATE)
     for x in (36,48):
-        for z in (46,62):
+        for z in (46,63):
             tower=tower.cut(along_y(cyl(1.4,12),x,-42,z))
     base=base.union(tower)
-    for z in (46,62):
+    for z in (46,63):
         base=base.cut(box(3,8,3,x=42,y=-51,z=z-1.5))
     # Cover fasteners, away from motor and spool.
     for x in (-51.5,51.5):
@@ -63,6 +63,7 @@ def build():
             # Screw heads sit on low shelves, accessed through the roof.
             cover=cover.cut(cyl(4.5,5,x,y,PLATE+DEPTH-4))
             cover=cover.cut(cyl(3.2,9.3,x,y,PLATE))
+            cover=cover.cut(cyl(3.2,60,x,y,18.3)) # continuous driver/head access
             foot=cyl(3,3,x,y,15.3).cut(cyl(1.7,4,x,y,15))
             cover=cover.union(foot)
     for x in (-35,-25,-15):
@@ -90,13 +91,13 @@ def build():
     carrier=carrier.cut(box(28,10,13,x=39,y=-59,z=48.25))
     carrier=carrier.cut(box(25,10,2,x=40.5,y=-59,z=46.75))
     # Stationary KW12 cradle: plate, bottom shelf, and zip-tie slots.
-    switch_mount=box(28,3,22,x=39,y=-53.5,z=44)
+    switch_mount=box(28,3,24,x=39,y=-53.5,z=44)
     for x in (36,48):
-        for z in (46,62):
+        for z in (46,63):
             cut=along_y(cq.Workplane('XY').center(x,z).slot2D(7.4,3.4,0).extrude(6),0,-50,0)
             switch_mount=switch_mount.cut(cut)
     switch_mount=switch_mount.union(box(23,7,1.5,x=40,y=-58.25,z=47.25))
-    for z in (46,62):
+    for z in (46,63):
         switch_mount=switch_mount.cut(box(2.5,5,3,x=42,y=-53.5,z=z-1.5))
     switch_mount=switch_mount.cut(box(9.6,5,2.4,x=40,y=-53.5,z=43.9)) # guide tower corner relief
     # Selected Ronstan RF8090-05:15OD,5ID,7.5axial. Conservative
@@ -113,6 +114,7 @@ def build():
         backplate=backplate.cut(along_y(cyl(1.7,4),x,-62,EYE_Z))
         carrier=carrier.cut(along_y(cyl(1.4,8),x,-56,EYE_Z))
     carrier=carrier.cut(switch_mount) # preserve stationary cradle clearance
+    for x in (9,31):carrier=carrier.cut(along_y(cyl(2.95,3.2),x,-64.5,EYE_Z)) # outlet plate socket-head access
     # Two guide springs return the sliding collar, not the load-bearing eyelet.
     extra={'outlet_backplate':backplate}
     for i,x in enumerate((2,38)):
@@ -165,13 +167,16 @@ def build():
         base=base.cut(cyl(1.7,8,x,61,-1))
     for x in (-29,-15):tray=tray.cut(box(2,16,5,x=x,y=61,z=5))
     tray=tray.cut(box(4,10,4,x=-34,y=61,z=8))
+    for x in (-37,-7):tray=tray.cut(cyl(3.2,4,x,61,8)) # node button-head clearance
     parts['encoder_node_holder']=tray
     parts['encoder_node_reference']=box(21,17.8,6,x=-22,y=61,z=10)
     parts['encoder_usb_space_reference']=box(15,10,8,x=-40,y=61,z=10)
     cover=cover.cut(box(8,14,18,x=-55,y=61,z=6))
     parts['cover']=cover
+    # Cut cartridge through-bolt passages after all intersecting towers are united.
+    for x in (0,40):base=base.cut(along_y(cyl(1.7,32),x,-35,32))
     parts['base']=base
-    # Cup pilots over the outer flange and is retained by three M2 screws.
+    # Cup pilots over the outer flange and is retained by three M3 screws.
     cap=magnet_cap()
     parts['encoder_magnet_cup']=along_x(cap,SPOOL_START+29,MOTOR_Y,SHAFT_Z)
     # Printable spool exported separately; reference uses identical V2 geometry.
@@ -184,8 +189,8 @@ def bench_parts():
     fixture=p['base'].intersect(box(75,45,68,x=21.5,y=-55,z=0))
     for x,y in ((-8,-68),(-8,-38),(28,-38)):
         fixture=fixture.cut(cyl(2.25,8,x,y,-1))
-    coupon=box(40,24,6)
-    for x,r in ((-12,1.4),(-4,1.7),(4,2.15),(14,4.15)):
+    coupon=box(62,24,6)
+    for x,r in ((-24,1.4),(-16,1.7),(-8,2.15),(16,7.65)):
         coupon=coupon.cut(cyl(r,8,x,0,-1))
     return {'cartridge_bench_fixture':fixture,'fit_coupon':coupon,'eyelet_fit_dummy':p['metal_eyelet_reference']}
 

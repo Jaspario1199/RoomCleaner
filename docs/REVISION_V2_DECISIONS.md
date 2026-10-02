@@ -1,3 +1,5 @@
+> Historical V2 decisions. For current mount printing and fasteners, use [MOUNT_PRINT_RELEASE_20261002.md](MOUNT_PRINT_RELEASE_20261002.md). Its M3×5 spacer-free cap,0.5mm recess and fastener stacks supersede the old ordering worksheet and recipes below.
+
 > Primary build changed to [EXTENDED_CLAW_V3_BUILD.md](EXTENDED_CLAW_V3_BUILD.md):printed150mm extension, lower servo/clamp, upper electronics,28degree camera pose. Compact V2 remains a historical baseline.
 
 > Camera pod now designed: see [CLAW_CAMERA_V2_BUILD.md](CLAW_CAMERA_V2_BUILD.md). Earlier notes about an unfrozen camera pod describe the prior revision; physical/optical validation remains pending.

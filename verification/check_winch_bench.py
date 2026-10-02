@@ -30,8 +30,8 @@ for travel in range(13):
  for name in ('guide_carrier','metal_eyelet_reference','outlet_backplate'):
   v=volume(bead,p[name]);assert v<.01,('bead-travel',travel,name,v)
   rows.append(dict(bead_travel_mm=travel,a='homing_stopper',b=name,volume_mm3=v))
-# Complete rotation sweep of M3 button heads +1mm spacers (max head height2mm).
-heads=along_x(cyl(16.2,3).cut(cyl(9.8,3.1)),SPOOL_START+32+3.175-1,MOTOR_Y,SHAFT_Z)
+# Complete rotation sweep of M3x5 button heads, no spacers (max head height1.7mm).
+heads=along_x(cyl(16.2,1.7).cut(cyl(9.8,1.8)),SPOOL_START+32+3.175-.5,MOTOR_Y,SHAFT_Z)
 for fixed in ('base','cover','encoder_board_reference','encoder_chip_reference','guide_carrier'):
  v=volume(heads,p[fixed]);assert v<.01,('M3-cap-head-sweep',fixed,v)
  rows.append(dict(a='M3-cap-head-sweep',b=fixed,volume_mm3=v))

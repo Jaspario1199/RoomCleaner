@@ -11,9 +11,11 @@ def main():
  names=['winch_spool_v2','fit_coupon','cartridge_bench_fixture','guide_carrier','outlet_backplate','homing_collar','switch_mount','homing_stopper','base','cover','encoder_magnet_cup','encoder_node_holder','eyelet_fit_dummy','stop_sleeve_0','stop_sleeve_1']
  for n in names:
   part=p[n]
-  if n in ('guide_carrier','outlet_backplate','homing_collar','switch_mount','homing_stopper','eyelet_fit_dummy','stop_sleeve_0','stop_sleeve_1'):
+  if n in ('guide_carrier','switch_mount'):
+   part=part.rotate((0,0,0),(1,0,0),-90)
+  elif n in ('guide_carrier','outlet_backplate','homing_collar','switch_mount','homing_stopper','eyelet_fit_dummy','stop_sleeve_0','stop_sleeve_1'):
    part=part.rotate((0,0,0),(1,0,0),90)
-  elif n=='encoder_magnet_cup':part=part.rotate((0,0,0),(0,1,0),-90)
+  elif n=='encoder_magnet_cup':part=part.rotate((0,0,0),(0,1,0),90)
   elif n=='cover':part=part.rotate((0,0,0),(1,0,0),180)
   b=part.val().BoundingBox();part=part.translate((-(b.xmin+b.xmax)/2,-(b.ymin+b.ymax)/2,-b.zmin))
   cq.exporters.export(part,str(out/(n+'.stl')))

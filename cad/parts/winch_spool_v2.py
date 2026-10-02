@@ -1,6 +1,6 @@
 """Encoder-ready generation of the original printed spool, mm.
 Preserves its D-bore, radial grub screw, tie hole, drum and flange dimensions.
-Three M3x6 screws with1mm head spacers retain a removable magnet cap; no adhesive-only cap retention.
+Three M3x5 button-head screws without spacers retain a removable magnet cap; no adhesive-only cap retention.
 """
 import math
 import cadquery as cq
@@ -28,5 +28,5 @@ def magnet_cap():
     cap=cap.cut(cq.Workplane('XY').circle((MAGNET_D+.2)/2).extrude(MAGNET_T+.1).translate((0,0,3)))
     for x,y in screw_points():
         cap=cap.cut(cq.Workplane('XY').center(x,y).circle(1.7).extrude(MAGNET_T+.1).translate((0,0,3)))
-        cap=cap.cut(cq.Workplane('XY').center(x,y).circle(3.2).extrude(1.1).translate((0,0,3+MAGNET_T-1)))
+        cap=cap.cut(cq.Workplane('XY').center(x,y).circle(3.2).extrude(.6).translate((0,0,3+MAGNET_T-.5)))
     return cap

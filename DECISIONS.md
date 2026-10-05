@@ -108,3 +108,8 @@ Separate local electronics variant preserves the reviewed bench baseline. Local 
 ## 2026-10-04 — parameter resolution skeleton
 
 A traceable57-group engineering closure ledger separates source/CAD nominal facts from measured calibration and physical qualification. User-selected four attachments, extended clamp, upper camera and M3 preference remain the development baseline. Keep three explicit control profiles and detached-homing/supported-setup procedure. IMU/encoder precision does not establish whole-room level equilibrium; finite-body force/moment and COM analysis is required. Study a wider fixed outlet and coherent bracket/front enclosure first;60° is a research candidate, not passed geometry or a final approved dimension. No new order or complete-station print release is made.
+
+
+## 2026-10-04 methodical execution
+
+Keep source configuration, nominal references and actual physical calibration separate. Preserve local bench defaults while exposing home/arrival timing in Config and rejecting invalid settings. Moving-camera localization geometry requires explicit calibrated intrinsics and per-image rigid pose; no static-ceiling fallback. All57 groups have one primary execution priority in `docs/PRIORITY_EXECUTION_20261004.md`. No synchronized transport or physical operating envelope is silently selected by this update.

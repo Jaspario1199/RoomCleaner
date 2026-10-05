@@ -98,6 +98,14 @@ def validate(d):
 def render(d):
     lines=['# Parameter closure register — 4 October 2026','',
     'Generated from `unknown_parameters.json`. Selected solutions do not close hardware tests. Null values remain unset. Work packages are staged contributions to shared records; completing a package does not automatically close every referenced group. Specialist audits contain alternatives, provenance and tests.','']
+    references=[(g['id'],p) for g in d['groups'] for p in g['parameters'] if p.get('reference_value') is not None]
+    lines+=['## Filled reference values','',f'{len(references)} fields have cited reference values. These are distinct from measured or resolved values.','',
+            '| Field | Reference | Basis | Qualification |','|---|---|---|---|']
+    for gid,p in references:
+        ref=p['reference_value']
+        lines.append('| '+gid+'.'+p['symbol']+' | '+json.dumps(ref['value'])+' '+p['units']+' | '+ref['basis']+' | '+ref['qualification']+' |')
+    if d.get('progress_record'):
+        lines+=['','Execution priorities and remaining user inputs: ['+d['progress_record']+'](../../'+d['progress_record']+').','']
     for w in d['work_packages']:
         lines+=['## '+w['id']+' — '+w['title'],'','Milestone dependencies: '+(', '.join(w['depends_on'])or'none')+'.', '',w['definition_of_done'],'']
     lines+=['## Parameter groups','','| ID | Named fields and unit labels | Solution state | Next action |','|---|---|---|---|']

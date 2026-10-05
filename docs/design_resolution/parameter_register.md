@@ -2,6 +2,37 @@
 
 Generated from `unknown_parameters.json`. Selected solutions do not close hardware tests. Null values remain unset. Work packages are staged contributions to shared records; completing a package does not automatically close every referenced group. Specialist audits contain alternatives, provenance and tests.
 
+## Filled reference values
+
+22 fields have cited reference values. These are distinct from measured or resolved values.
+
+| Field | Reference | Basis | Qualification |
+|---|---|---|---|
+| M07.spring_rate | 0.65 N/mm | supplier_nominal | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| M07.spring_free_length | 9.65 mm | supplier_nominal | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| M07.spring_solid_length | 3.81 mm | supplier_nominal | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| M07.spring_installed_lengths | [7, 5] mm | cad_nominal | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| M13.shaft_diameter | 5 mm | user_supplied | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| M13.shaft_projection | 24 mm | user_supplied | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| M23.extension_length | 150 mm | cad_nominal | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| M25.servo_endpoints | [20, 140] deg | cad_nominal | CAD design angles; actual horn indexing and travel stops remain unmeasured. |
+| M26.gear_module | 1.5 mm | cad_nominal | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| M26.gear_backlash | 0.2 mm | cad_nominal | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| M27.pad_thickness | 5 mm | cad_nominal | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| M28.assembled_reach | 268 mm | cad_nominal | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| M34.camera_angle | 28 deg | cad_nominal | Bracket tilt magnitude; signed local X rotation is -28 deg. Not optical extrinsic calibration. |
+| C06.microstep_factor | 16 1 | code_default | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| C06.encoder_counts_per_rev | 4096 count/rev | supplier_nominal | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| C07.run_error | 64 count | code_default | Detached local station tracking tolerance in encoder counts; central Uno guard uses a different profile. |
+| C07.run_error_dwell | 0.15 s | code_default | Detached local station default, seconds; physical error/dwell qualification remains open. |
+| C07.arrival_error | 4 count | code_default | Detached local station default, encoder counts; actual arrival precision remains open. |
+| C07.settling_interval | 0.05 s | code_default | Continuous in-tolerance arrival dwell in seconds; separate timeout is 0.5 s. |
+| C09.heartbeat_timeout | 0.5 s | code_default | Detached local station default in seconds; not machine-wide fault propagation latency. |
+| C12.quiet_interval | 0.5 s | code_default | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+| E02.supply_voltage | 12 V | proposed_station_nominal | Nominal/default or supplied fact; actual measurement and relevant hardware tests remain open. |
+
+Execution priorities and remaining user inputs: [docs/PRIORITY_EXECUTION_20261004.md](../../docs/PRIORITY_EXECUTION_20261004.md).
+
 ## W01 — Scope, architecture profiles and coordinate contracts
 
 Milestone dependencies: none.
@@ -115,16 +146,16 @@ One consistent hardware/software/print version with real inventory and remaining
 | C04 | payout_lookup [m/turn]; line_slip [m]; line_extension [m] | proposed | Execute W04 measurement/design and closure criteria in the cited audit. |
 | C05 | minimum_lengths [m]; maximum_lengths [m]; maximum_turns [turn]; stopping_margin [m] | proposed | Execute W04 measurement/design and closure criteria in the cited audit. |
 | C06 | motor_direction [1]; step_angle [rad]; microstep_factor [1]; encoder_counts_per_rev [count/rev] | proposed | Execute W01 measurement/design and closure criteria in the cited audit. |
-| C07 | run_error [count]; run_error_dwell [s]; arrival_error [count]; settling_interval [s] | implemented pending test | Execute W04 measurement/design and closure criteria in the cited audit. |
+| C07 | run_error [count]; run_error_dwell [s]; arrival_error [count]; settling_interval [s] | implemented pending test | Bench Config thresholds are explicit and invalid intervals are rejected. Measure actual encoder/pulse/fault timing; preserve central-versus-local profile distinction. |
 | C08 | axis_skew [s]; start_time [s]; clock_error [s]; segment_id [integer]; selected_transport [enum]; connector_contact_count [integer]; network_topology [text]; link_rate [bit/s]; interlock_pin_map [text]; clock_drift_limit [s/s] | proposed | Decide transport/connector/boot-safe pin resources at W01/W05 design milestones; implement and validate timing/global starts at W07. |
-| C09 | global_stop_latency [s]; heartbeat_timeout [s]; session_epoch [text]; power_loss_recovery [state_machine] | proposed | Define global pulse-stop, loss-of-power and supported recovery separately. |
+| C09 | global_stop_latency [s]; heartbeat_timeout [s]; session_epoch [text]; power_loss_recovery [state_machine] | proposed | Bench Config thresholds are explicit and invalid intervals are rejected. Measure actual encoder/pulse/fault timing; preserve central-versus-local profile distinction. |
 | C10 | pickup_speed [m/s]; travel_speed [m/s]; cable_speed [m/s]; cable_acceleration [m/s^2]; cable_jerk [m/s^3] | proposed | Execute W07 measurement/design and closure criteria in the cited audit. |
 | C11 | minimum_tensions [N]; maximum_tensions [N]; snag_tensions [N]; feasible_workspace [pose_set] | proposed | Execute W02 measurement/design and closure criteria in the cited audit. |
 | C12 | roll [rad]; pitch [rad]; yaw [rad]; quiet_interval [s]; imu_alignment [rad]; IMU_bias [rad]; gyro_drift [rad/s]; dynamic_acceleration_bias [m/s^2] | selected for development | Use IMU as settled attitude acceptance; full-room leveling remains a model/architecture gate. |
 | E01 | phase_current [A]; input_current [A]; driver_VREF [V]; driver_thermal_limit [degC]; regulator_thermal_limit [degC]; case_thermal_limit [degC] | proposed | Execute W05 measurement/design and closure criteria in the cited audit. |
 | E02 | supply_voltage [V]; wire_ampacity [A]; fuse_current [A]; fuse_DC_voltage [V]; interrupt_rating [A]; source_protection [text]; harness_voltage_drop [V]; connector_temperature_rise [degC]; supply_fault_current [A]; fuse_time_current_curve [text]; inrush_envelope [A]; transient_voltage_envelope [V]; reverse_polarity_policy [text]; USB_isolation_policy [text] | proposed | Model actual fuse lead bends and protection coordination; compare holder rotation, external service pocket and compact part. |
 | E03 | battery_capacity [Ah]; battery_discharge_limit [A]; low_voltage_cutoff [V]; runtime [s]; servo_peak_current [A] | proposed | Execute W05 measurement/design and closure criteria in the cited audit. |
-| V01 | intrinsic_matrix [pixel]; lens_distortion [1]; camera_body_transform [pose]; image_camera_pose [pose]; floor_plane [m]; hamper_plane [m] | proposed | Begin with calibrated settled camera viewpoints and surveyed visual references. |
+| V01 | intrinsic_matrix [pixel]; lens_distortion [1]; camera_body_transform [pose]; image_camera_pose [pose]; floor_plane [m]; hamper_plane [m] | implemented pending test | Calibrated moving-camera plane geometry utility exists separately; supply real K/T_WC/undistortion and validate localization before live integration. |
 | V02 | image_acquisition_time [s]; pose_age [s]; frame_age [s]; useful_frame_rate [frame/s]; pose_time_uncertainty [s] | proposed | Execute W10 measurement/design and closure criteria in the cited audit. |
 | V03 | probe_distance [m]; cloth_motion_threshold [m]; identity_confidence [1]; retry_count [integer]; delivery_evidence [text] | proposed | Register background/world motion before accepting pickup probe evidence; confirm release after retreat. |
 | V04 | garment_envelope [m]; usable_FOV [rad]; verification_view_set [pose_set] | proposed | Execute W10 measurement/design and closure criteria in the cited audit. |

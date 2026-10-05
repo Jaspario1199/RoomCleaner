@@ -12,6 +12,10 @@ struct Config {
  int homeDirection=-1, maxHomeSteps=6400, backoffSteps=256;
  int trackingTolerance=64; uint32_t trackingDwellUs=150000;
  uint32_t heartbeatTimeoutUs=500000, encoderTimeoutUs=30000;
+ // Encoder counts and microseconds; detached-bench placeholders, not qualification.
+ int arrivalTolerance=4;
+ uint32_t arrivalDwellUs=50000, settleTimeoutUs=500000;
+ uint32_t switchDebounceUs=10000, maxTickIntervalUs=10000;
  double acceleration=1000, maxSpeed=1000, seekSpeed=320, refineSpeed=80;
 };
 class MotionCore {
@@ -44,7 +48,7 @@ public:
   if(!encoderValid||now-lastEncoder>cfg.encoderTimeoutUs)return fail(Fault::Encoder);
   if(now-lastHeartbeat>cfg.heartbeatTimeoutUs)return fail(Fault::Heartbeat);
   uint32_t elapsed=now-lastTick;lastTick=now;
-  if(elapsed>10000 && active())return fail(Fault::Timing);
+  if(elapsed>cfg.maxTickIntervalUs && active())return fail(Fault::Timing);
   double expected=position*double(cfg.countsPerRev)/cfg.stepsPerRev;
   double actual=cfg.encoderSign*double(int64_t(encoderTicks)-origin);
   if(fabs(expected-actual)>cfg.trackingTolerance){
@@ -53,11 +57,11 @@ public:
   }else trackingBad=false;
   if((mode==Mode::Move||mode==Mode::Settle) && switchOpen)return fail(Fault::Switch);
   if(switchOpen!=candidateOpen){candidateOpen=switchOpen;edgeSince=now;}
-  if(now-edgeSince>=10000)filteredOpen=candidateOpen;
+  if(now-edgeSince>=cfg.switchDebounceUs)filteredOpen=candidateOpen;
   switchOpen=filteredOpen;
   if(mode==Mode::Settle){
-   if(fabs(expected-actual)<=4){if(!arrivalGood){arrivalGood=true;arrivalSince=now;}else if(now-arrivalSince>=50000){mode=Mode::Idle;return 0;}}else arrivalGood=false;
-   if(now-settleSince>=500000)return fail(Fault::Tracking);
+   if(fabs(expected-actual)<=cfg.arrivalTolerance){if(!arrivalGood){arrivalGood=true;arrivalSince=now;}else if(now-arrivalSince>=cfg.arrivalDwellUs){mode=Mode::Idle;return 0;}}else arrivalGood=false;
+   if(now-settleSince>=cfg.settleTimeoutUs)return fail(Fault::Tracking);
    return 0;
   }
   if(mode==Mode::Release && !switchOpen){mode=Mode::Seek;homeSteps=0;phase=0;}
@@ -99,7 +103,9 @@ private:
  uint32_t lastHeartbeat=0,lastEncoder=0,lastTick=0,badSince=0;
  int32_t encoderTicks=0;int64_t origin=0;bool encoderValid=false,trackingBad=false;
  int homeSteps=0,direction=1;double phase=0,velocity=0,requestedSpeed=0;
- bool validConfig()const{return cfg.stepsPerRev>0&&cfg.countsPerRev>0&&(cfg.encoderSign==1||cfg.encoderSign==-1)&&(cfg.homeDirection==1||cfg.homeDirection==-1)&&cfg.backoffSteps>0&&cfg.maxHomeSteps>cfg.backoffSteps&&cfg.trackingTolerance>0&&isfinite(cfg.acceleration)&&cfg.acceleration>0&&isfinite(cfg.maxSpeed)&&cfg.maxSpeed>0&&cfg.maxSpeed<=1000&&cfg.seekSpeed>0&&cfg.seekSpeed<=cfg.maxSpeed&&cfg.refineSpeed>0&&cfg.refineSpeed<=cfg.seekSpeed;}
+ // Keep intervals within the unambiguous half-range for wrapping timestamps.
+ static bool validInterval(uint32_t us){return us>0&&us<0x80000000u;}
+ bool validConfig()const{return validInterval(cfg.trackingDwellUs)&&validInterval(cfg.heartbeatTimeoutUs)&&validInterval(cfg.encoderTimeoutUs)&&validInterval(cfg.arrivalDwellUs)&&validInterval(cfg.settleTimeoutUs)&&validInterval(cfg.switchDebounceUs)&&validInterval(cfg.maxTickIntervalUs)&&cfg.arrivalDwellUs<cfg.settleTimeoutUs&&cfg.arrivalTolerance>0&&cfg.arrivalTolerance<=cfg.trackingTolerance&&cfg.stepsPerRev>0&&cfg.countsPerRev>0&&(cfg.encoderSign==1||cfg.encoderSign==-1)&&(cfg.homeDirection==1||cfg.homeDirection==-1)&&cfg.backoffSteps>0&&cfg.maxHomeSteps>cfg.backoffSteps&&cfg.trackingTolerance>0&&isfinite(cfg.acceleration)&&cfg.acceleration>0&&isfinite(cfg.maxSpeed)&&cfg.maxSpeed>0&&cfg.maxSpeed<=1000&&cfg.seekSpeed>0&&cfg.seekSpeed<=cfg.maxSpeed&&cfg.refineSpeed>0&&cfg.refineSpeed<=cfg.seekSpeed;}
  bool active()const{return mode==Mode::Move||mode==Mode::Release||mode==Mode::Seek||mode==Mode::Backoff||mode==Mode::Refine;}
  int fail(Fault f){fault=f;mode=Mode::Fault;homed=false;phase=velocity=0;return 0;}
 };

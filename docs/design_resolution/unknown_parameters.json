@@ -406,7 +406,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Existing5deg IMU gate and100\u2013250ms image-age goals are provisional code/design targets, not complete accuracy/validation requirements.",
+      "current_evidence_and_nominal": "Existing5deg IMU gate and100–250ms image-age goals are provisional code/design targets, not complete accuracy/validation requirements.",
       "recommendation": "Choose numerical acceptance budgets before testing; propagate camera/time/payout/survey/COM uncertainty into allowable operation rather than widening thresholds after failures.",
       "dependencies_and_test": "W01 first requirements; revise from W02 measurable capability before W03/W04/W07/W09/W10 closure.",
       "affected_CAD": "Angle/clearance/load envelope and every acceptance consumer",
@@ -422,7 +422,7 @@
     {
       "id": "M01",
       "domain": "mechanical",
-      "definition": "M01 `A_i,P_i` (mm), `a_i` (unit), `\u03b5_axis` (\u00b0)",
+      "definition": "M01 `A_i,P_i` (mm), `a_i` (unit), `ε_axis` (°)",
       "parameters": [
         {
           "symbol": "outlet_positions",
@@ -538,7 +538,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Default4\u00d73\u00d72.6m corner room; cantedaxis(1,-1,1)/\u221a3. Actual anchor/cable attachment survey absent.",
+      "current_evidence_and_nominal": "Default4×3×2.6m corner room; cantedaxis(1,-1,1)/√3. Actual anchor/cable attachment survey absent.",
       "recommendation": "Survey every throat and effector clevis; calculate enclosing cone of a bounded feasible region including tolerance. Do not assume ideal corners.",
       "dependencies_and_test": "Room survey, loaded reach, furniture envelope; require computed angle margin greater than combined survey/assembly/deflection budget.",
       "affected_CAD": "canted placement, wall bracket, claw clevises",
@@ -556,7 +556,7 @@
     {
       "id": "M02",
       "domain": "mechanical",
-      "definition": "M02 `\u03b1_out,\u03b1_home` (\u00b0), `\u03a9_work,\u03a9_home` (pose sets)",
+      "definition": "M02 `α_out,α_home` (°), `Ω_work,Ω_home` (pose sets)",
       "parameters": [
         {
           "symbol": "outgoing_half_angle",
@@ -631,11 +631,11 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Bench40\u00b0 nominal; canted55\u00b0 sampled. Home approach axial only.",
+      "current_evidence_and_nominal": "Bench40° nominal; canted55° sampled. Home approach axial only.",
       "recommendation": "Restricted validated home ray/region first; compare wider stationary collar or separate homing sensor only after geometry tests.",
-      "dependencies_and_test": "M01/M03\u201308; continuous swept geometry and real home returns at boundary angles/azimuths, declare accepted limits.",
+      "dependencies_and_test": "M01/M03–08; continuous swept geometry and real home returns at boundary angles/azimuths, declare accepted limits.",
       "affected_CAD": "collar, fork, guides, outlet opening",
-      "acceptance_evidence": "M01/M03\u201308; continuous swept geometry and real home returns at boundary angles/azimuths, declare accepted limits.",
+      "acceptance_evidence": "M01/M03–08; continuous swept geometry and real home returns at boundary angles/azimuths, declare accepted limits.",
       "source": "docs/UNKNOWN_MECHANICAL_AUDIT_20261004.md",
       "status": "unresolved",
       "solution_status": "proposed",
@@ -649,7 +649,7 @@
     {
       "id": "M03",
       "domain": "mechanical",
-      "definition": "M03 `d_line` (mm), `F_break,k_line,\u03b5_creep` (N,N/mm,%)",
+      "definition": "M03 `d_line` (mm), `F_break,k_line,ε_creep` (N,N/mm,%)",
       "parameters": [
         {
           "symbol": "line_diameter",
@@ -889,7 +889,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "No bead purchase confirmed. Canted28\u00d78,1mm fillet,1.2bore and7mm knot cavity are experimental.",
+      "current_evidence_and_nominal": "No bead purchase confirmed. Canted28×8,1mm fillet,1.2bore and7mm knot cavity are experimental.",
       "recommendation": "Start removable rounded stopper on test cable; choose mechanical retention after pull/abrasion tests.",
       "dependencies_and_test": "M03/M02; axial and oblique swept bead, repeated trip/reset and stopper slip/pull-through tests.",
       "affected_CAD": "stopper, collar, cable end",
@@ -907,7 +907,7 @@
     {
       "id": "M05",
       "domain": "mechanical",
-      "definition": "M05 `g_ring,\u03b4_capture,F_ring` (mm,N)",
+      "definition": "M05 `g_ring,δ_capture,F_ring` (mm,N)",
       "parameters": [
         {
           "symbol": "ring_fit_clearance",
@@ -1057,8 +1057,8 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "UserKW12body20\u00d710.5\u00d76.5. Generic drawing differs; lever/force/travel absent. Nominal2mm collarstroke.",
-      "recommendation": "Adjustable secured cradle; characterize actual switch, maintain\u22650.5mm trip margin before stop per interface control.",
+      "current_evidence_and_nominal": "UserKW12body20×10.5×6.5. Generic drawing differs; lever/force/travel absent. Nominal2mm collarstroke.",
+      "recommendation": "Adjustable secured cradle; characterize actual switch, maintain≥0.5mm trip margin before stop per interface control.",
       "dependencies_and_test": "Received revision, electrical continuity plus force/displacement sweep; terminals insulated and tool/service clearance.",
       "affected_CAD": "KW cradle, fork, hard stops",
       "acceptance_evidence": "Received revision, electrical continuity plus force/displacement sweep; terminals insulated and tool/service clearance.",
@@ -1195,7 +1195,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Z-2CS nominal0.65,9.65,3.81; installed7\u21925; pair3.45\u21926.05N. Selection, not receipt.",
+      "current_evidence_and_nominal": "Z-2CS nominal0.65,9.65,3.81; installed7→5; pair3.45→6.05N. Selection, not receipt.",
       "recommendation": "Keep as starting spring; change only after real switch plus friction force measured.",
       "dependencies_and_test": "M06/M08; test reset at every qualified angle/temp, no coil bind, residual margin measured.",
       "affected_CAD": "spring seats, stop stroke",
@@ -1213,7 +1213,7 @@
     {
       "id": "M08",
       "domain": "mechanical",
-      "definition": "M08 `p_g,\u03b4_parallel,c_slide,\u03bc_g` (mm,\u00b0 or mm/mm,mm,unitless)",
+      "definition": "M08 `p_g,δ_parallel,c_slide,μ_g` (mm,° or mm/mm,mm,unitless)",
       "parameters": [
         {
           "symbol": "guide_spacing",
@@ -1288,7 +1288,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "SHS3-12\u00d83.987/+0.005/\u22120.025;12.013/+0.05/\u22120;M3\u00d74; slotted secondary guide. CantedX\u00b124.",
+      "current_evidence_and_nominal": "SHS3-12Ø3.987/+0.005/−0.025;12.013/+0.05/−0;M3×4; slotted secondary guide. CantedX±24.",
       "recommendation": "Parallel guide assembly with one relieved guide; use measured fit, not tighter arbitrary CAD clearance.",
       "dependencies_and_test": "Printed guide coupons and oblique push tests; force, hysteresis, wear and full stroke without jamming.",
       "affected_CAD": "collar bores/slot, guide pilots",
@@ -1381,7 +1381,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Bench clampM3\u00d710; cantedM3\u00d712 at\u00b128,Y10. Canted head seats only\u224892% supported.",
+      "current_evidence_and_nominal": "Bench clampM3×10; cantedM3×12 at±28,Y10. Canted head seats only≈92% supported.",
       "recommendation": "Full annular seat via boss or moved screw; select actual screw envelopes, metal nut/insert if pilot retention fails.",
       "dependencies_and_test": "All-pair/head-bearing audit plus torque/pullout test; verify driver access and service sequence.",
       "affected_CAD": "capture screws/bosses",
@@ -1399,7 +1399,7 @@
     {
       "id": "M10",
       "domain": "mechanical",
-      "definition": "M10 `\u03b1_in,R_bend,\u03bc_ring,W_wear` (\u00b0,mm,unitless,loss or cycles)",
+      "definition": "M10 `α_in,R_bend,μ_ring,W_wear` (°,mm,unitless,loss or cycles)",
       "parameters": [
         {
           "symbol": "incoming_half_angle",
@@ -1474,7 +1474,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Canted incoming180 sampled rays max63.626\u00b0, rear65\u00b0. Last3.8mm excluded for actual metal turning.",
+      "current_evidence_and_nominal": "Canted incoming180 sampled rays max63.626°, rear65°. Last3.8mm excluded for actual metal turning.",
       "recommendation": "Model tangent outgoing winding paths and ring contact; physical abrasion rig at angular/radius extremes.",
       "dependencies_and_test": "M03/M05/M11; no printed contact, strand damage or unacceptable friction after declared duty.",
       "affected_CAD": "rear cone, spool-to-ring corridor",
@@ -1567,7 +1567,7 @@
     {
       "id": "M12",
       "domain": "mechanical",
-      "definition": "M12 `\u03c4_run(\u03c9,I,\u03b8),T_max,a_max` (N\u00b7m,N,mm/s\u00b2)",
+      "definition": "M12 `τ_run(ω,I,θ),T_max,a_max` (N·m,N,mm/s²)",
       "parameters": [
         {
           "symbol": "running_torque_curve",
@@ -1624,7 +1624,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "0.36N\u00b7m holding unverified;40N/240N are planning/screening figures.",
+      "current_evidence_and_nominal": "0.36N·m holding unverified;40N/240N are planning/screening figures.",
       "recommendation": "Dynamometer/known-weight bench characterization with actual driver/current and radius; derive bounded normal/fault tensions.",
       "dependencies_and_test": "M11/M13/thermal; measured torque-speed/stall/braking curve and safe stopped behavior.",
       "affected_CAD": "motor mount/load sections",
@@ -1765,7 +1765,7 @@
     {
       "id": "M14",
       "domain": "mechanical",
-      "definition": "M14 `c_hub,e_run,\u03c4_slip,F_axial` (mm,N\u00b7m,N)",
+      "definition": "M14 `c_hub,e_run,τ_slip,F_axial` (mm,N·m,N)",
       "parameters": [
         {
           "symbol": "hub_clearance",
@@ -1933,11 +1933,11 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "D42DIA6.35\u00d73.175\u00b10.1; facegap1.5 default;\u22640.25axis displacement data-sheet condition.",
+      "current_evidence_and_nominal": "D42DIA6.35×3.175±0.1; facegap1.5 default;≤0.25axis displacement data-sheet condition.",
       "recommendation": "Center magnet/cup while measuring runout, align removable PCB pedestal; precision locating insert if needed.",
-      "dependencies_and_test": "M13/M14/manufacture; AGC/magnitude/status throughout360\u00b0 energized, runout and gap measured including load deflection.",
+      "dependencies_and_test": "M13/M14/manufacture; AGC/magnitude/status throughout360° energized, runout and gap measured including load deflection.",
       "affected_CAD": "magnet cup, encoder pedestal",
-      "acceptance_evidence": "M13/M14/manufacture; AGC/magnitude/status throughout360\u00b0 energized, runout and gap measured including load deflection.",
+      "acceptance_evidence": "M13/M14/manufacture; AGC/magnitude/status throughout360° energized, runout and gap measured including load deflection.",
       "source": "docs/UNKNOWN_MECHANICAL_AUDIT_20261004.md",
       "status": "unresolved",
       "solution_status": "proposed",
@@ -1951,7 +1951,7 @@
     {
       "id": "M16",
       "domain": "mechanical",
-      "definition": "M16 `m_station,m_eff,m_payload,COM,I_body` (kg,mm,kg\u00b7mm\u00b2)",
+      "definition": "M16 `m_station,m_eff,m_payload,COM,I_body` (kg,mm,kg·mm²)",
       "parameters": [
         {
           "symbol": "station_mass",
@@ -2082,7 +2082,7 @@
     {
       "id": "M17",
       "domain": "mechanical",
-      "definition": "M17 `T_i(u),G_i,r_load,M_wall` (N,mm,N\u00b7mm)",
+      "definition": "M17 `T_i(u),G_i,r_load,M_wall` (N,mm,N·mm)",
       "parameters": [
         {
           "symbol": "pose_tensions",
@@ -2175,7 +2175,7 @@
     {
       "id": "M18",
       "domain": "mechanical",
-      "definition": "M18 `t_bracket,c_attach,\u03b4_bracket` (mm)",
+      "definition": "M18 `t_bracket,c_attach,δ_bracket` (mm)",
       "parameters": [
         {
           "symbol": "bracket_thickness",
@@ -2547,7 +2547,7 @@
     {
       "id": "M22",
       "domain": "mechanical",
-      "definition": "M22 `\u03c3_allow,\u03b4_allow,N_cycles,t_creep` (MPa,mm,cycles,h)",
+      "definition": "M22 `σ_allow,δ_allow,N_cycles,t_creep` (MPa,mm,cycles,h)",
       "parameters": [
         {
           "symbol": "process_allowable_stress",
@@ -2622,7 +2622,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Generic PETG TDS not K1/process allowables;24\u201372h screen not lifetime.",
+      "current_evidence_and_nominal": "Generic PETG TDS not K1/process allowables;24–72h screen not lifetime.",
       "recommendation": "Printed coupons and actual-joint warm load/creep tests; metal sustained load path if variability/life unresolved.",
       "dependencies_and_test": "M17/manufacture/temperature; declare failure criteria before test and release only tested revision/process.",
       "affected_CAD": "all load roots, nut seats/pilots",
@@ -2640,7 +2640,7 @@
     {
       "id": "M23",
       "domain": "mechanical",
-      "definition": "M23 `L_ext,k_ext,\u03b4_tip,\u03b8_joint` (mm,N/mm,mm,\u00b0)",
+      "definition": "M23 `L_ext,k_ext,δ_tip,θ_joint` (mm,N/mm,mm,°)",
       "parameters": [
         {
           "symbol": "extension_length",
@@ -2721,7 +2721,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "V3L150; two hollow14\u00d718uprights with8\u00d712channel;6thick flanges. Lower rail nut pockets leave4.35ligament.",
+      "current_evidence_and_nominal": "V3L150; two hollow14×18uprights with8×12channel;6thick flanges. Lower rail nut pockets leave4.35ligament.",
       "recommendation": "Printed V3 bench first; matched metal uprights if flex/creep excessive.",
       "dependencies_and_test": "M16/M17/M22; loaded flex, joint slip and repeated swing/assembly tests with actual hardware.",
       "affected_CAD": "uprights/decks, camera extrinsics",
@@ -2814,7 +2814,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Four anchors at inheritedX\u00b169/Y\u00b164,cableplane21.5. Exact cable end retention strength not established.",
+      "current_evidence_and_nominal": "Four anchors at inheritedX±69/Y±64,cableplane21.5. Exact cable end retention strength not established.",
       "recommendation": "Positive pins/rings and qualified knots or terminations; retain four points but solve equilibrium.",
       "dependencies_and_test": "M03/M16/M17; every pin/clevis pull/side-load test and cable chafe inspection.",
       "affected_CAD": "clevis roots, cable rings",
@@ -2832,7 +2832,7 @@
     {
       "id": "M25",
       "domain": "mechanical",
-      "definition": "M25 `\u03b8_servo,\u03c4_servo,I_stall,d_spline,h_horn,L_screw` (\u00b0,N\u00b7m,A,mm)",
+      "definition": "M25 `θ_servo,τ_servo,I_stall,d_spline,h_horn,L_screw` (°,N·m,A,mm)",
       "parameters": [
         {
           "symbol": "servo_endpoints",
@@ -2850,7 +2850,16 @@
           "value_definition": "servo endpoints; use group definition and referenced audit for datum, method and structured value format",
           "frame": "Declared world/body/station datum as applicable; required in evidence for any geometric value",
           "shape": "Scalar or structured numeric array/curve; specific purchased interface/coordinate shape required in evidence",
-          "canonical_alias": null
+          "canonical_alias": null,
+          "reference_value": {
+            "value": [
+              20,
+              140
+            ],
+            "basis": "cad_nominal",
+            "source": "cad/clamp_v1.py",
+            "qualification": "CAD design angles; actual horn indexing and travel stops remain unmeasured."
+          }
         },
         {
           "symbol": "servo_torque",
@@ -2943,7 +2952,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "MG996R envelope/horn projection provisional. Supplied\u226520mmround horn drilled atR7 withthree2.3holes; pinion bore6.5.",
+      "current_evidence_and_nominal": "MG996R envelope/horn projection provisional. Supplied≥20mmround horn drilled atR7 withthree2.3holes; pinion bore6.5.",
       "recommendation": "Measure received servo and horn; supplied matching spline horn, exact shaft screw stack; don't print assumed spline.",
       "dependencies_and_test": "Loaded torque/current/temperature and physical horn stack, reverse/slip tests.",
       "affected_CAD": "servo ears, horn/pinion, lowercarrier",
@@ -3048,7 +3057,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Module1.5,N24,R18,20\u00b0pressure,.20backlash;120\u00b0travel implies37.70mm per jaw.",
+      "current_evidence_and_nominal": "Module1.5,N24,R18,20°pressure,.20backlash;120°travel implies37.70mm per jaw.",
       "recommendation": "Fit rack/pinion/rail coupons; inspect motion under load and establish mechanical travel stops/force limits.",
       "dependencies_and_test": "M25/M22; full sweep with real screws/pads, tooth stripping and binding/holding tests.",
       "affected_CAD": "pinion,racks,jaw rails/stops",
@@ -3066,7 +3075,7 @@
     {
       "id": "M27",
       "domain": "mechanical",
-      "definition": "M27 `\u03bc_pad,k_pad,t_pad,F_hold` (unitless,N/mm,mm,N)",
+      "definition": "M27 `μ_pad,k_pad,t_pad,F_hold` (unitless,N/mm,mm,N)",
       "parameters": [
         {
           "symbol": "cloth_pad_friction",
@@ -3228,7 +3237,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "V3PAD_BOTTOM\u2212246.5,cableplane21.5 =>268reach;GRAB_Z288mm and normalmin418mm defaults.",
+      "current_evidence_and_nominal": "V3PAD_BOTTOM−246.5,cableplane21.5 =>268reach;GRAB_Z288mm and normalmin418mm defaults.",
       "recommendation": "Measure actual pad-to-cable-plane and floor/obstacle clearance in loaded/open/closed poses.",
       "dependencies_and_test": "M23/M25/M27; full body collision envelope including cable rings/pod and cloth; update geometry parameters.",
       "affected_CAD": "full effector/reach envelope",
@@ -3321,7 +3330,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "XIAO OEMSTEP24.363\u00d717.78\u00d713.96; low-profile soldered leads; header revision not modeled.",
+      "current_evidence_and_nominal": "XIAO OEMSTEP24.363×17.78×13.96; low-profile soldered leads; header revision not modeled.",
       "recommendation": "Verify received board revision/components, support bare motherboard edges only.",
       "dependencies_and_test": "Actual board/plug; keeper/pad retention, connector removal and vibration tests without lens/flex loading.",
       "affected_CAD": "camera cradle/keepers",
@@ -3396,7 +3405,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Camerafront.3/rear.5 pads compress\u2248.15 nominal; pilots2.8/keeperM3\u00d78. IMU/regulators strap mounts provisional.",
+      "current_evidence_and_nominal": "Camerafront.3/rear.5 pads compress≈.15 nominal; pilots2.8/keeperM3×8. IMU/regulators strap mounts provisional.",
       "recommendation": "Insulating edge pads and positive keeper/strap retention; qualify pilot engagement and module revisions.",
       "dependencies_and_test": "M29/M22 and real module envelope; pull/vibration/service tests, no component pressure or conductive contact.",
       "affected_CAD": "logic/IMU/regulator mounts/pod",
@@ -3489,7 +3498,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Batteryclear78\u00d739\u00d718; inheritedreference76\u00d737\u00d714, listing71\u00b15\u00d735\u00b12\u00d712\u00b12. Connector/lead geometry absent.",
+      "current_evidence_and_nominal": "Batteryclear78×39×18; inheritedreference76×37×14, listing71±5×35±2×12±2. Connector/lead geometry absent.",
       "recommendation": "Measure battery, pad/strap with protected edges and service clearance; avoid compressing pouch or allowing movement.",
       "dependencies_and_test": "Actual battery/connector, loaded motion and lid removal; reserve measured swelling/service allowance.",
       "affected_CAD": "battery tray/cover",
@@ -3582,7 +3591,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Rightupright8\u00d712route;350lead starting allowance;20\u201322AWG recommendation not exact connectors.",
+      "current_evidence_and_nominal": "Rightupright8×12route;350lead starting allowance;20–22AWG recommendation not exact connectors.",
       "recommendation": "Route actual loom/connectors before freezing channels; strain relief and small service loops outside rack sweep.",
       "dependencies_and_test": "M23/M25/PCB placement; verify loaded bends, all poses, lid/pod removal and abrasion.",
       "affected_CAD": "upright exits/tie slots/enclosure",
@@ -3600,7 +3609,7 @@
     {
       "id": "M33",
       "domain": "mechanical",
-      "definition": "M33 `T_motor,T_buck,T_batt,T_air,\u0394T` (\u00b0C)",
+      "definition": "M33 `T_motor,T_buck,T_batt,T_air,ΔT` (°C)",
       "parameters": [
         {
           "symbol": "motor_temperature",
@@ -3693,7 +3702,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Vent geometry exists; no sustained measured temperatures. Generic PETG HDT68\u00b0C is not safe structural working limit.",
+      "current_evidence_and_nominal": "Vent geometry exists; no sustained measured temperatures. Generic PETG HDT68°C is not safe structural working limit.",
       "recommendation": "Instrument enclosure and critical roots under streaming+servo+winch duty; thermal separation/vents/metal if required.",
       "dependencies_and_test": "M12/M22/M25/electronics packaging; declared temperature envelope, no brownout or material deformation.",
       "affected_CAD": "vents, heatclearance, load sections",
@@ -3711,7 +3720,7 @@
     {
       "id": "M34",
       "domain": "mechanical",
-      "definition": "M34 `\u03b8_cam,T_cam,r_view,occ` (\u00b0,mm,visibility)",
+      "definition": "M34 `θ_cam,T_cam,r_view,occ` (°,mm,visibility)",
       "parameters": [
         {
           "symbol": "camera_angle",
@@ -3729,7 +3738,13 @@
           "value_definition": "camera angle; use group definition and referenced audit for datum, method and structured value format",
           "frame": "Declared world/body/station datum as applicable; required in evidence for any geometric value",
           "shape": "Scalar or structured numeric array/curve; specific purchased interface/coordinate shape required in evidence",
-          "canonical_alias": null
+          "canonical_alias": null,
+          "reference_value": {
+            "value": 28,
+            "basis": "cad_nominal",
+            "source": "cad/extended_camera_pod.py",
+            "qualification": "Bracket tilt magnitude; signed local X rotation is -28 deg. Not optical extrinsic calibration."
+          }
         },
         {
           "symbol": "camera_extrinsics",
@@ -3789,7 +3804,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "V3camera28\u00b0,V2historical40\u00b0. Empty nine-ray sightlines do not establish cloth visibility/FOV.",
+      "current_evidence_and_nominal": "V3camera28°,V2historical40°. Empty nine-ray sightlines do not establish cloth visibility/FOV.",
       "recommendation": "Calibrate received lens and assembled pose; test pickup/holding/release with real fabric, offset pod only if failure.",
       "dependencies_and_test": "M23/M28/M29, garment classes; measurable required features visible across defined grasp/hamper poses.",
       "affected_CAD": "camera arm/pod",
@@ -3807,7 +3822,7 @@
     {
       "id": "M35",
       "domain": "mechanical",
-      "definition": "M35 `\u03b5_XY,\u03b5_Z,d_hole,warp,orientation` (mm,process)",
+      "definition": "M35 `ε_XY,ε_Z,d_hole,warp,orientation` (mm,process)",
       "parameters": [
         {
           "symbol": "xy_process_error",
@@ -3975,7 +3990,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "RailtoolR3.9,driverR3;M3\u00d720extension andM3\u00d730rail stacks nominal. Existing fasteners unconfirmed.",
+      "current_evidence_and_nominal": "RailtoolR3.9,driverR3;M3×20extension andM3×30rail stacks nominal. Existing fasteners unconfirmed.",
       "recommendation": "Select exact head/nut/washer/driver set, shortest full-engagement bolt; rehearse build/removal with retained wiring.",
       "dependencies_and_test": "M09/M23/M25/M32; tool sweep, tip clearance, lid removal, dock removal, no captive-inaccessible fastener.",
       "affected_CAD": "pockets, holes, access reliefs",
@@ -3993,7 +4008,7 @@
     {
       "id": "C01",
       "domain": "control",
-      "definition": "C01: wall outlet positions **a\u1d62** [m], claw cable attachment vectors **b\u1d62** [m], center of mass **c** [m]",
+      "definition": "C01: wall outlet positions **aᵢ** [m], claw cable attachment vectors **bᵢ** [m], center of mass **c** [m]",
       "parameters": [
         {
           "symbol": "surveyed_anchors",
@@ -4078,11 +4093,11 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Code uses ideal ceiling corners for4\u00d73\u00d72.6m room; CAD has four spaced claw attachments and wall-mounted outlet axes. Actual geometry unknown.",
-      "recommendation": "Survey outlet axes and attachment locations in one floor-based frame. Use finite attachment geometry **L\u1d62=\u2016a\u1d62\u2212(p+Rb\u1d62)\u2016**, force and moment balance. Retain passive near-level operation in a validated subset; do not claim arbitrary6DOF control.",
+      "current_evidence_and_nominal": "Code uses ideal ceiling corners for4×3×2.6m room; CAD has four spaced claw attachments and wall-mounted outlet axes. Actual geometry unknown.",
+      "recommendation": "Survey outlet axes and attachment locations in one floor-based frame. Use finite attachment geometry **Lᵢ=‖aᵢ−(p+Rbᵢ)‖**, force and moment balance. Retain passive near-level operation in a validated subset; do not claim arbitrary6DOF control.",
       "dependencies_and_test": "Physical installation, completed claw, payload/CG range.",
       "affected_CAD": null,
-      "acceptance_evidence": "Survey uncertainty recorded; measured supported poses and cable lengths agree within chosen **\u03b5L/\u03b5p/\u03b5R**; workspace excluded where positive-tension and moment balance cannot be satisfied.",
+      "acceptance_evidence": "Survey uncertainty recorded; measured supported poses and cable lengths agree within chosen **εL/εp/εR**; workspace excluded where positive-tension and moment balance cannot be satisfied.",
       "source": "docs/UNKNOWN_CONTROL_AUDIT_20261004.md",
       "status": "unresolved",
       "solution_status": "proposed",
@@ -4096,7 +4111,7 @@
     {
       "id": "C02",
       "domain": "control",
-      "definition": "C02: unloaded mass **m\u2080**, payload **m\u209a** [kg], inertias **J** [kg\u00b7m\u00b2]",
+      "definition": "C02: unloaded mass **m₀**, payload **mₚ** [kg], inertias **J** [kg·m²]",
       "parameters": [
         {
           "symbol": "unloaded_mass",
@@ -4174,7 +4189,7 @@
     {
       "id": "C03",
       "domain": "control",
-      "definition": "C03: bead-trigger lengths **Lh\u1d62** [m], attached setup pose **ph,Rh**, repeatability **\u03c3h** [m/rad]",
+      "definition": "C03: bead-trigger lengths **Lhᵢ** [m], attached setup pose **ph,Rh**, repeatability **σh** [m/rad]",
       "parameters": [
         {
           "symbol": "trigger_lengths",
@@ -4263,7 +4278,7 @@
       "source": "docs/UNKNOWN_CONTROL_AUDIT_20261004.md",
       "status": "unresolved",
       "solution_status": "selected_for_development",
-      "next_step": "Preserve detached home \u2192 measured payout \u2192 supported setup-pose verification; actual trigger lengths stay null.",
+      "next_step": "Preserve detached home → measured payout → supported setup-pose verification; actual trigger lengths stay null.",
       "blocking_groups": [
         "P01"
       ],
@@ -4273,7 +4288,7 @@
     {
       "id": "C04",
       "domain": "control",
-      "definition": "C04: effective payout radius **r\u1d62(\u03b8,T,n)** [m], slip **s\u1d62** [m], line extension **e\u1d62(T)** [m]",
+      "definition": "C04: effective payout radius **rᵢ(θ,T,n)** [m], slip **sᵢ** [m], line extension **eᵢ(T)** [m]",
       "parameters": [
         {
           "symbol": "payout_lookup",
@@ -4334,7 +4349,7 @@
       "recommendation": "Measure payout versus turns, winding layers and tension. Prefer reproducible winding or measured lookup model over simply enlarging error tolerances. Compare against independently measured cable payout/pose.",
       "dependencies_and_test": "Real line diameter, winding recipe, knots, tension.",
       "affected_CAD": null,
-      "acceptance_evidence": "Multi-turn payout/return tests over full useful range under representative loads; residual \u2264 chosen **\u03b5L**; no knot movement/line traction loss. Rotation agreement alone is insufficient.",
+      "acceptance_evidence": "Multi-turn payout/return tests over full useful range under representative loads; residual ≤ chosen **εL**; no knot movement/line traction loss. Rotation agreement alone is insufficient.",
       "source": "docs/UNKNOWN_CONTROL_AUDIT_20261004.md",
       "status": "unresolved",
       "solution_status": "proposed",
@@ -4348,7 +4363,7 @@
     {
       "id": "C05",
       "domain": "control",
-      "definition": "C05: allowed cable range **[Lmin\u1d62,Lmax\u1d62]** [m], spool capacity **Nmax\u1d62** [turns], travel margins **\u03b4Lstop\u1d62** [m]",
+      "definition": "C05: allowed cable range **[Lminᵢ,Lmaxᵢ]** [m], spool capacity **Nmaxᵢ** [turns], travel margins **δLstopᵢ** [m]",
       "parameters": [
         {
           "symbol": "minimum_lengths",
@@ -4445,7 +4460,7 @@
     {
       "id": "C06",
       "domain": "control",
-      "definition": "C06: direction **d\u1d62** [\u00b11], step angle **\u03b1\u1d62** [rad], microstep factor **\u00b5\u1d62**, counts/rev **Nenc**",
+      "definition": "C06: direction **dᵢ** [±1], step angle **αᵢ** [rad], microstep factor **µᵢ**, counts/rev **Nenc**",
       "parameters": [
         {
           "symbol": "motor_direction",
@@ -4552,7 +4567,7 @@
     {
       "id": "C07",
       "domain": "control",
-      "definition": "C07: run following error **Erun\u1d62** [counts/steps], dwell **\u03c4run** [s], arrival tolerance **Eend** [counts], settle **\u03c4end** [s]",
+      "definition": "C07: run following error **Erunᵢ** [counts/steps], dwell **τrun** [s], arrival tolerance **Eend** [counts], settle **τend** [s]",
       "parameters": [
         {
           "symbol": "run_error",
@@ -4570,7 +4585,13 @@
           "value_definition": "run error; use group definition and referenced audit for datum, method and structured value format",
           "frame": "Declared world/body/station datum as applicable; required in evidence for any geometric value",
           "shape": "Scalar or structured numeric array/curve; specific purchased interface/coordinate shape required in evidence",
-          "canonical_alias": null
+          "canonical_alias": null,
+          "reference_value": {
+            "value": 64,
+            "basis": "code_default",
+            "source": "firmware/local_station/motion_core.h",
+            "qualification": "Detached local station tracking tolerance in encoder counts; central Uno guard uses a different profile."
+          }
         },
         {
           "symbol": "run_error_dwell",
@@ -4588,7 +4609,13 @@
           "value_definition": "run error dwell; use group definition and referenced audit for datum, method and structured value format",
           "frame": "Declared world/body/station datum as applicable; required in evidence for any geometric value",
           "shape": "Scalar or structured numeric array/curve; specific purchased interface/coordinate shape required in evidence",
-          "canonical_alias": null
+          "canonical_alias": null,
+          "reference_value": {
+            "value": 0.15,
+            "basis": "code_default",
+            "source": "firmware/local_station/motion_core.h",
+            "qualification": "Detached local station default, seconds; physical error/dwell qualification remains open."
+          }
         },
         {
           "symbol": "arrival_error",
@@ -4606,7 +4633,13 @@
           "value_definition": "arrival error; use group definition and referenced audit for datum, method and structured value format",
           "frame": "Declared world/body/station datum as applicable; required in evidence for any geometric value",
           "shape": "Scalar or structured numeric array/curve; specific purchased interface/coordinate shape required in evidence",
-          "canonical_alias": null
+          "canonical_alias": null,
+          "reference_value": {
+            "value": 4,
+            "basis": "code_default",
+            "source": "firmware/local_station/motion_core.h",
+            "qualification": "Detached local station default, encoder counts; actual arrival precision remains open."
+          }
         },
         {
           "symbol": "settling_interval",
@@ -4624,7 +4657,13 @@
           "value_definition": "settling interval; use group definition and referenced audit for datum, method and structured value format",
           "frame": "Declared world/body/station datum as applicable; required in evidence for any geometric value",
           "shape": "Scalar or structured numeric array/curve; specific purchased interface/coordinate shape required in evidence",
-          "canonical_alias": null
+          "canonical_alias": null,
+          "reference_value": {
+            "value": 0.05,
+            "basis": "code_default",
+            "source": "firmware/local_station/motion_core.h",
+            "qualification": "Continuous in-tolerance arrival dwell in seconds; separate timeout is 0.5 s."
+          }
         }
       ],
       "current_evidence_and_nominal": "Central48microsteps/100ms+final check; local64counts/150ms and4counts/50ms with500ms settle timeout. These are different profiles and provisional thresholds.",
@@ -4635,7 +4674,7 @@
       "source": "docs/UNKNOWN_CONTROL_AUDIT_20261004.md",
       "status": "unresolved",
       "solution_status": "implemented_pending_test",
-      "next_step": "Execute W04 measurement/design and closure criteria in the cited audit.",
+      "next_step": "Bench Config thresholds are explicit and invalid intervals are rejected. Measure actual encoder/pulse/fault timing; preserve central-versus-local profile distinction.",
       "blocking_groups": [
         "P01"
       ],
@@ -4645,7 +4684,7 @@
     {
       "id": "C08",
       "domain": "control",
-      "definition": "C08: maximum axis skew **\u0394tsync** [s], start time **t\u2080**, clock uncertainty **\u03b4t\u1d62** [s], execution segment ID **q**",
+      "definition": "C08: maximum axis skew **Δtsync** [s], start time **t₀**, clock uncertainty **δtᵢ** [s], execution segment ID **q**",
       "parameters": [
         {
           "symbol": "axis_skew",
@@ -4832,7 +4871,7 @@
       "recommendation": "Options: retain central pulse executor; or add scheduled buffered local segments with acknowledged readiness, measured clock offsets, global commit/abort and segment IDs. Do not use sequential WiFi MOVE arrival as synchronization. Choose after measured jitter.",
       "dependencies_and_test": "Local compile/hardware timing, network topology and C05/C09.",
       "affected_CAD": null,
-      "acceptance_evidence": "Bound inter-axis progress error using **vL,max\u00b7\u0394tsync** plus clock/queue uncertainty; injected delayed/missing starts do not allow a partial four-axis move; tests use logic-analyzer traces and loaded supported pose measurements.",
+      "acceptance_evidence": "Bound inter-axis progress error using **vL,max·Δtsync** plus clock/queue uncertainty; injected delayed/missing starts do not allow a partial four-axis move; tests use logic-analyzer traces and loaded supported pose measurements.",
       "source": "docs/UNKNOWN_CONTROL_AUDIT_20261004.md",
       "status": "unresolved",
       "solution_status": "proposed",
@@ -4846,7 +4885,7 @@
     {
       "id": "C09",
       "domain": "control",
-      "definition": "C09: global stop latency **\u03c4stop** [s], heartbeat age **\u03c4HB** [s], session/boot epochs, power-loss state",
+      "definition": "C09: global stop latency **τstop** [s], heartbeat age **τHB** [s], session/boot epochs, power-loss state",
       "parameters": [
         {
           "symbol": "global_stop_latency",
@@ -4882,7 +4921,13 @@
           "value_definition": "heartbeat timeout; use group definition and referenced audit for datum, method and structured value format",
           "frame": "Declared world/body/station datum as applicable; required in evidence for any geometric value",
           "shape": "Scalar or structured numeric array/curve; specific purchased interface/coordinate shape required in evidence",
-          "canonical_alias": null
+          "canonical_alias": null,
+          "reference_value": {
+            "value": 0.5,
+            "basis": "code_default",
+            "source": "firmware/local_station/motion_core.h",
+            "qualification": "Detached local station default in seconds; not machine-wide fault propagation latency."
+          }
         },
         {
           "symbol": "session_epoch",
@@ -4929,7 +4974,7 @@
       "source": "docs/UNKNOWN_CONTROL_AUDIT_20261004.md",
       "status": "unresolved",
       "solution_status": "proposed",
-      "next_step": "Define global pulse-stop, loss-of-power and supported recovery separately.",
+      "next_step": "Bench Config thresholds are explicit and invalid intervals are rejected. Measure actual encoder/pulse/fault timing; preserve central-versus-local profile distinction.",
       "blocking_groups": [
         "P01"
       ],
@@ -4939,7 +4984,7 @@
     {
       "id": "C10",
       "domain": "control",
-      "definition": "C10: path speed **vpick,vtravel** [m/s], cable speed **vL\u1d62**, acceleration **aL\u1d62** [m/s\u00b2], jerk **jL\u1d62** [m/s\u00b3]",
+      "definition": "C10: path speed **vpick,vtravel** [m/s], cable speed **vLᵢ**, acceleration **aLᵢ** [m/s²], jerk **jLᵢ** [m/s³]",
       "parameters": [
         {
           "symbol": "pickup_speed",
@@ -5050,7 +5095,7 @@
     {
       "id": "C11",
       "domain": "control",
-      "definition": "C11: cable tension bounds **Tmin\u1d62,Tmax\u1d62** [N], stall/snags **Tstall\u1d62** [N], working workspace **W**",
+      "definition": "C11: cable tension bounds **Tminᵢ,Tmaxᵢ** [N], stall/snags **Tstallᵢ** [N], working workspace **W**",
       "parameters": [
         {
           "symbol": "minimum_tensions",
@@ -5147,7 +5192,7 @@
     {
       "id": "C12",
       "domain": "control",
-      "definition": "C12: roll/pitch **\u03c6,\u03b8** [rad], yaw **\u03c8** [rad], quiet period **\u03c4quiet** [s], alignment offset **Rimu**",
+      "definition": "C12: roll/pitch **φ,θ** [rad], yaw **ψ** [rad], quiet period **τquiet** [s], alignment offset **Rimu**",
       "parameters": [
         {
           "symbol": "roll",
@@ -5300,7 +5345,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "MPU6050 gate\u22645\u00b0 roll/pitch after500ms quiet; recalibrated2s per boot. It is not active leveling or absolute yaw sensing.",
+      "current_evidence_and_nominal": "MPU6050 gate≤5° roll/pitch after500ms quiet; recalibrated2s per boot. It is not active leveling or absolute yaw sensing.",
       "recommendation": "Maintain near-level passive geometry and stationary pickup gate. If wider leveling is needed, develop force/moment-aware correction within achievable4-cable actuation; define yaw observation separately through visual references.",
       "dependencies_and_test": "C01/C02, mounted IMU and C10/C02.",
       "affected_CAD": null,
@@ -5318,7 +5363,7 @@
     {
       "id": "E01",
       "domain": "control",
-      "definition": "E01: driver current **Iphase** [A], input current **Iin** [A], VREF [V], thermal maxima **Tdrv,Treg,Tcase** [\u00b0C]",
+      "definition": "E01: driver current **Iphase** [A], input current **Iin** [A], VREF [V], thermal maxima **Tdrv,Treg,Tcase** [°C]",
       "parameters": [
         {
           "symbol": "phase_current",
@@ -5429,7 +5474,7 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Driver open-air manufacturer figure is not enclosed rating. Existing motor listed\u224836N\u00b7cm/1.5A; oldBOM asks\u226550N\u00b7cm. Current limit and thermal performance unmeasured.",
+      "current_evidence_and_nominal": "Driver open-air manufacturer figure is not enclosed rating. Existing motor listed≈36N·cm/1.5A; oldBOM asks≥50N·cm. Current limit and thermal performance unmeasured.",
       "recommendation": "Verify exact motor/driver variant, conservative initial current and protected bench thermal tests including hold/stall. Separate phase-current limit from supply current/fuse calculation.",
       "dependencies_and_test": "Actual motor, regulator, cover/harness configuration.",
       "affected_CAD": null,
@@ -5961,15 +6006,15 @@
           "canonical_alias": null
         }
       ],
-      "current_evidence_and_nominal": "Fixed28\u00b0 CAD camera pose is nominal, not calibration. Existing localization uses static floor mapping; verifier expects fixed3\u00d74 projection and pixel hamper ROI. Claw pose/yaw not supplied for moving images.",
+      "current_evidence_and_nominal": "Fixed28° CAD camera pose is nominal, not calibration. Existing localization uses static floor mapping; verifier expects fixed3×4 projection and pixel hamper ROI. Claw pose/yaw not supplied for moving images.",
       "recommendation": "Calibrate actual lens/revision and rigid pose; use surveyed visual references/known planes and timestamped observed camera pose. Scanning from settled viewpoints is a simpler first moving-camera mode than unconstrained moving-frame localization.",
       "dependencies_and_test": "C01/C12, camera revision, mounting rigidity and V02.",
       "affected_CAD": null,
-      "acceptance_evidence": "Elevated/floor/hamper test targets yield chosen **\u03b5vision** over workspace; unknown pose/depth/occlusion rejects target; a fixed homography is never silently reused after camera motion.",
+      "acceptance_evidence": "Elevated/floor/hamper test targets yield chosen **εvision** over workspace; unknown pose/depth/occlusion rejects target; a fixed homography is never silently reused after camera motion.",
       "source": "docs/UNKNOWN_CONTROL_AUDIT_20261004.md",
       "status": "unresolved",
-      "solution_status": "proposed",
-      "next_step": "Begin with calibrated settled camera viewpoints and surveyed visual references.",
+      "solution_status": "implemented_pending_test",
+      "next_step": "Calibrated moving-camera plane geometry utility exists separately; supply real K/T_WC/undistortion and validate localization before live integration.",
       "blocking_groups": [
         "P01"
       ],
@@ -5979,7 +6024,7 @@
     {
       "id": "V02",
       "domain": "control",
-      "definition": "V02: image acquisition time **timg** [s], pose age **\u03c4pose**, frame age **\u03c4frame** [s], throughput **fps**",
+      "definition": "V02: image acquisition time **timg** [s], pose age **τpose**, frame age **τframe** [s], throughput **fps**",
       "parameters": [
         {
           "symbol": "image_acquisition_time",
@@ -6626,5 +6671,6 @@
   ],
   "package_policy": "Work-package dependencies order research/design milestones; parameter references show contributions, not automatic group closure. Powered station/power/thermal and full workspace gates require iterative joint evidence. No package alone validates all referenced groups.",
   "canonical_alias_policy": "Alias fields reference the same underlying record; do not independently fill duplicate geometry/mass/extrinsic facts. Validator checks equality when both values exist; unit conversions require explicit new contract.",
-  "reference_value_policy": "Reference values record existing supplier/user/CAD/code facts. They do not replace actual measured_value/resolved_value, close a physical group or enable runtime motion."
+  "reference_value_policy": "Reference values record existing supplier/user/CAD/code facts. They do not replace actual measured_value/resolved_value, close a physical group or enable runtime motion.",
+  "progress_record": "docs/PRIORITY_EXECUTION_20261004.md"
 }

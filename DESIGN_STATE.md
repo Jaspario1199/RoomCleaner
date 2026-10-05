@@ -1,3 +1,7 @@
+# Methodical execution pass — 2026-10-04 (America/Chicago)
+
+See `docs/PRIORITY_EXECUTION_20261004.md`: all57 skeleton groups scheduled in ten priorities. Local bench timing/arrival settings are explicit and invalid configurations are rejected; host encoder watchdog configuration rejects NaN/infinite/nonpositive ages. A standalone explicit-pose moving-camera ray/plane utility is implemented and synthetically tested, not integrated or physically calibrated. The ledger now exposes22 cited reference values, with physical measurements and parent closure still open. Exact user inputs, candidate inventory and remaining work are listed in that execution report. Reviewed bench exports are unchanged; no new whole-product print release or purchase.
+
 # Active resolution skeleton — 2026-10-04
 
 Read `docs/DESIGN_RESOLUTION_PLAN_20261004.md` first. The57-group/282-field closure ledger defines units, provenance, options, dependencies and evidence; no physical blanks were filled with CAD defaults. Preliminary research found insufficient55° outlet orientation margin, widened-collar sizing dependencies, oblique homing force changes, and a level-equilibrium conflict for the ideal four-point rectangular layout. Keep whole-room near-level capability open until the finite-body/COM model and measured poses pass. Next bounded work: freeze the outlet/home angle and load envelope, then design its bracket/switch/cradle/front casing coherently; harness/fuse envelope in parallel. Existing bench package remains current only within its documented bench scope.

@@ -123,3 +123,8 @@ Housing prototyping comes before the room survey. Plan a possible supported two-
 ## 2026-10-04 jeans working load and reserve
 
 User clarified that5lb is desired wiggle room for jeans pickup, not the normal garment requirement. Evaluate reserve against actual garment plus claw dead weight and declared dynamics; do not label5lb/garment mass as achieved component FoS. Proceed with bounded unpowered housing fit prototypes while actual fit/load and room-envelope qualification remain open.
+
+
+## 2026-10-05 fuse-service fit variant
+
+Preserve baseline housing sources. Add removable fuse support and revised carrier/cover with finite provisional wire clearances. Use R15mm bends, 4.4mm clearance envelope (not measured insulation OD), 5mm straight exits and3mm captive-nut roofs. Disconnect and deflect both leads before accessing support screws; lift support and holder together, then thread lower lead off-case. Combined power/data connector selection and full electrical harness remain open; no powered/load release is implied.

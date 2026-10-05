@@ -1,3 +1,7 @@
+# Fuse-service housing fit variant — 2026-10-05
+
+A separate revised cover, electronics carrier and removable fuse support now allocate finite R15 lead bends and 3.17mm nominal roof clearance. Nut-seat roofs are3mm; new support hardware is M3×10. This is an unpowered fit prototype, with physical wire bending, terminal threading, restraint installation and thermal/load qualification still open. See `docs/FUSE_SERVICE_PROTOTYPE_20261004.md` and independent `verification/FUSE_SERVICE_REVIEW_20261004.md`. Original housing kit is preserved.
+
 # Jeans-load clarification and prototype validation — 2026-10-04
 
 Jeans are the working payload;5lb is a reserve investigation, not a verified rating or exact safety factor. The0.9kg garment/0.45kg claw references are illustrative until weighed. Housing-first fit validation is underway on the40deg restricted bench station and matched experimental local housing. Actual PCB/horn/switch/harness fit remains to be checked with bought parts; full-room outlet and powered thermal/fuse qualification are not inferred. No room survey is required for this bounded unpowered fit print.

@@ -104,3 +104,7 @@ validation, not a final purchased-part or control-architecture decision.
 ## 2026-10-04 — experimental self-contained station
 
 Separate local electronics variant preserves the reviewed bench baseline. Local DRV8825,5V regulator, input fuse/capacitor and keyed retained low-voltage panel connector replace the conceptual motor-extension-only product connection. Detached serial bench firmware uses encoder comparison, bounded NC homing and latched pulse-stop faults retaining torque. Four-station synchronized control remains a release gate. Fixed-canted outlet supersedes a rejected pivot-at-throat swivel concept for further review; spool-side and room-side cones must both clear full routing.
+
+## 2026-10-04 — parameter resolution skeleton
+
+A traceable57-group engineering closure ledger separates source/CAD nominal facts from measured calibration and physical qualification. User-selected four attachments, extended clamp, upper camera and M3 preference remain the development baseline. Keep three explicit control profiles and detached-homing/supported-setup procedure. IMU/encoder precision does not establish whole-room level equilibrium; finite-body force/moment and COM analysis is required. Study a wider fixed outlet and coherent bracket/front enclosure first;60° is a research candidate, not passed geometry or a final approved dimension. No new order or complete-station print release is made.

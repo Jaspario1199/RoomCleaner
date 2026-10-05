@@ -1,3 +1,7 @@
+# Active resolution skeleton — 2026-10-04
+
+Read `docs/DESIGN_RESOLUTION_PLAN_20261004.md` first. The57-group/282-field closure ledger defines units, provenance, options, dependencies and evidence; no physical blanks were filled with CAD defaults. Preliminary research found insufficient55° outlet orientation margin, widened-collar sizing dependencies, oblique homing force changes, and a level-equilibrium conflict for the ideal four-point rectangular layout. Keep whole-room near-level capability open until the finite-body/COM model and measured poses pass. Next bounded work: freeze the outlet/home angle and load envelope, then design its bracket/switch/cradle/front casing coherently; harness/fuse envelope in parallel. Existing bench package remains current only within its documented bench scope.
+
 # Current status — 2026-10-04
 
 The current reviewed print baseline is `docs/FRESH_MOUNT_RELEASE_20261002.md`, explicitly bench-only. Existing encoder telemetry/guards are implemented; synchronized local four-station motion is not. New local power packaging and detached single-axis encoder motion control are experimental; see `docs/LOCAL_STATION_HARDWARE_20261004.md` and `docs/LOCAL_STATION_CONTROL_20261004.md`. Outlet redesign is under geometric review; the released40° outlet does not cover the planned room workspace. Older status sections below are historical and may describe superseded designs.

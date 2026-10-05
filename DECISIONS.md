@@ -113,3 +113,8 @@ A traceable57-group engineering closure ledger separates source/CAD nominal fact
 ## 2026-10-04 methodical execution
 
 Keep source configuration, nominal references and actual physical calibration separate. Preserve local bench defaults while exposing home/arrival timing in Config and rejecting invalid settings. Moving-camera localization geometry requires explicit calibrated intrinsics and per-image rigid pose; no static-ceiling fallback. All57 groups have one primary execution priority in `docs/PRIORITY_EXECUTION_20261004.md`. No synchronized transport or physical operating envelope is silently selected by this update.
+
+
+## 2026-10-04 user scope clarification
+
+Housing prototyping comes before the room survey. Plan a possible supported two-motor planar bench test followed by four-station installed pickup. New payload requirement is5lb (2.26796185kg), not4kg. Prior0.9kg is superseded as the requirement and remains an unverified model assumption in old calculations/code. Prefer a station combined power/data interface; driver/motor/encoder functions stay local to the station, separate from suspension line. Exact electrical transport/contact layout and bounded prototype load qualification remain open.

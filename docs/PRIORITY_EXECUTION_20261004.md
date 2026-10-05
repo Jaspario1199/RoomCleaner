@@ -1,3 +1,5 @@
+> User update,4October2026: housing prototype is now first priority; room survey deferred until installation. Possible supported two-motor planar test, then four-station installed pickup. Target payload5lb (2.26796185kg); no demonstrated capacity. Combined station power/data is preferred; protocol/connector remain open. Q1 demonstration/mass and Q2 cabling preference below have been answered; supply/driver identity remains open. Earlier0.9kg target and survey-first order below are superseded by this update.
+
 # Priority execution and remaining inputs — 4 October 2026 (America/Chicago)
 
 This pass follows the existing 57-group skeleton. Each group has one primary priority below; work-package dependencies still govern implementation. Completed source/code tasks are checked off individually. No physical parameter group was closed and no whole-product print release was issued.

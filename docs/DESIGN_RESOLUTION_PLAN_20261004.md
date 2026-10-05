@@ -1,3 +1,5 @@
+> User update,4October2026: housing prototype is now first priority; room survey deferred until installation. Possible supported two-motor planar test, then four-station installed pickup. Target payload5lb (2.26796185kg); no demonstrated capacity. Combined station power/data is preferred; protocol/connector remain open. Q1 demonstration/mass and Q2 cabling preference below have been answered; supply/driver identity remains open. Earlier0.9kg target and survey-first order below are superseded by this update.
+
 # RoomCleaner: research, design skeleton and methodical gap closure
 
 **Working revision: 4 October 2026.** This document defines the current system before further detailed CAD. It covers currently identified interfaces and gaps; new observations can add parameters rather than being forced into an unsuitable existing assumption. It is a research and resolution plan, not a complete-station print release. Existing reviewed bench exports remain unchanged. No purchase or physical measurement is inferred from a selected component or a passed simulation.

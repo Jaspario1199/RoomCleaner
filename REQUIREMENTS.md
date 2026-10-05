@@ -7,13 +7,15 @@ The active architecture and unresolved parameters are controlled by `docs/DESIGN
 - CR3: Stationary metal cable guide and bead-triggered sliding collar operate a retained KW12 switch; supported/detached calibration precedes suspended operation.
 - CR4: Two-jaw servo clamp with TPU95A pads, printed150mm extension first; battery, XIAO-S3 Sense camera and IMU above, servo below, removable lid and retained electronics/harness.
 - CR5: Four spaced upper cable attachments. No deliberate attitude maneuvers. Near-level settled pickup is required; achievable workspace and allowable attitude must be measured/modelled. An IMU is not assumed to guarantee level.
-- CR6: Dry-laundry payload0.9kg is a design target pending capacity validation. Actual mass/COM, current/torque/radius limits and structural working loads are measured; old0.45kg/40N constants are not verified ratings.
+- CR6: User-selected full-system dry-laundry payload target is5lb (2.26796185kg), superseding0.9kg. This is a target, not a demonstrated capacity. Actual mass/COM, current/torque/radius limits and structural working loads are measured; old0.45kg/40N constants are not verified ratings.
 - CR7: Slow final approach and payload probe; camera confirms pickup relative to scene before transit. Delivered count requires confirmed deposition after release/retreat. Ambiguous evidence cannot mark success.
 - CR8: Claw-mounted primary camera uses calibrated image-specific pose, freshness and visibility. A fixed-camera homography cannot be silently reused.
-- CR9: Intended product station has one retained low-voltage plug; power-only wireless versus combined power/data architecture remains a research decision. No AC mains inside printed housings.
+- CR9: Intended product station has one retained low-voltage plug; combined power/data is the preferred development direction after user clarification. Exact transport, connector and pins remain to be engineered. Suspension braid carries mechanical load only; encoder/driver/controller power and data are routed electrically at each wall station. No AC mains inside printed housings.
 - CR10: M3 preferred, documented M2 exceptions allowed; PETG structural/TPU pads with actual K1/K1Max profile, fit/strength/thermal/creep qualification.
 - CR11: Global coordinated motion and fault/boot recovery must be verified before room operation. A software pulse stop, loss of power and mechanical load holding are separate behaviors.
 - CR12: Complete-station print/order release requires one coherent assembly revision, resolved critical mates and source/physical verification. Current canted outlet and local power packaging remain experimental.
+
+- CR13: Immediate milestone is a complete housing prototype with bounded bench interfaces, before room survey. A possible supported two-motor planar test precedes installed four-station pickup. Room-specific geometry is deferred; this does not qualify the outlet for arbitrary room angles or provide a structural load rating.
 
 ## Historical five-finger requirements
 

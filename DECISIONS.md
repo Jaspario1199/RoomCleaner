@@ -118,3 +118,8 @@ Keep source configuration, nominal references and actual physical calibration se
 ## 2026-10-04 user scope clarification
 
 Housing prototyping comes before the room survey. Plan a possible supported two-motor planar bench test followed by four-station installed pickup. New payload requirement is5lb (2.26796185kg), not4kg. Prior0.9kg is superseded as the requirement and remains an unverified model assumption in old calculations/code. Prefer a station combined power/data interface; driver/motor/encoder functions stay local to the station, separate from suspension line. Exact electrical transport/contact layout and bounded prototype load qualification remain open.
+
+
+## 2026-10-04 jeans working load and reserve
+
+User clarified that5lb is desired wiggle room for jeans pickup, not the normal garment requirement. Evaluate reserve against actual garment plus claw dead weight and declared dynamics; do not label5lb/garment mass as achieved component FoS. Proceed with bounded unpowered housing fit prototypes while actual fit/load and room-envelope qualification remain open.

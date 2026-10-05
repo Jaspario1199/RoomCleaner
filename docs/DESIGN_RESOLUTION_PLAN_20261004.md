@@ -1,4 +1,4 @@
-> User update,4October2026: housing prototype is now first priority; room survey deferred until installation. Possible supported two-motor planar test, then four-station installed pickup. Target payload5lb (2.26796185kg); no demonstrated capacity. Combined station power/data is preferred; protocol/connector remain open. Q1 demonstration/mass and Q2 cabling preference below have been answered; supply/driver identity remains open. Earlier0.9kg target and survey-first order below are superseded by this update.
+> User update,4October2026: housing prototype is now first priority; room survey deferred until installation. Possible supported two-motor planar test, then four-station installed pickup. Jeans are the working payload;5lb (2.26796185kg) is reserve capacity to investigate, not an achieved safety factor; no demonstrated capacity. Combined station power/data is preferred; protocol/connector remain open. Q1 demonstration/mass and Q2 cabling preference below have been answered; supply/driver identity remains open. Earlier0.9kg target and survey-first order below are superseded by this update.
 
 # RoomCleaner: research, design skeleton and methodical gap closure
 

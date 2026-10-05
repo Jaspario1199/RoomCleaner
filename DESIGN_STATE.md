@@ -1,3 +1,7 @@
+# Jeans-load clarification and prototype validation — 2026-10-04
+
+Jeans are the working payload;5lb is a reserve investigation, not a verified rating or exact safety factor. The0.9kg garment/0.45kg claw references are illustrative until weighed. Housing-first fit validation is underway on the40deg restricted bench station and matched experimental local housing. Actual PCB/horn/switch/harness fit remains to be checked with bought parts; full-room outlet and powered thermal/fuse qualification are not inferred. No room survey is required for this bounded unpowered fit print.
+
 # Housing-first scope update — 2026-10-04
 
 User clarified: prototype the complete station housing first; defer room dimensions/mount survey until installation. Possible supported two-motor planar bench test, then installed four-station pickup. Full-system payload target is5lb (2.26796185kg), replacing0.9kg; demonstrated maximum remains unknown. Combined power/data to each wall station is the preferred development direction, not an already frozen protocol/connector. Suspension Dyneema remains mechanical only. Develop bounded bench clearance, retained electronics/harness and service geometry without claiming arbitrary room-angle or suspended-load qualification. Runtime0.9kg model assumptions remain historical pending deliberate load-model revision; do not enable5lb operation from a requirement update.

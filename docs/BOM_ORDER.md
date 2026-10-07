@@ -1,3 +1,9 @@
+> Historical purchasing/design reference. Current configuration and unresolved ordering/qualification fields are in [DESIGN_RESOLUTION_PLAN_20261004.md](DESIGN_RESOLUTION_PLAN_20261004.md) and [FRESH_PARTS_DELTA_20261002.md](FRESH_PARTS_DELTA_20261002.md). Older totals, capacity claims, spring/guide/cap recipes and wiring profiles below do not constitute a current whole-product order release.
+
+> Latest spool/outlet/camera decisions and consolidated order status: [REVISION_V2_DECISIONS.md](REVISION_V2_DECISIONS.md) and [ORDER_STATUS_V2.csv](ORDER_STATUS_V2.csv). Earlier generic outlet, friction-fit magnet cup, servo power and fixed-camera assumptions below are superseded where they conflict.
+
+> Encoder/tilt update2026-10-01: use [BOM_ENCODER_TILT.csv](BOM_ENCODER_TILT.csv) and [commissioning guide](ENCODER_AND_TILT_COMMISSIONING.md) for required new feedback parts. Older encoder/optional-sensor recommendations below are superseded. Historical checkmarks do not verify receipt.
+
 # RoomCleaner — Final BOM (the "shirts & jeans" build)
 
 The locked-in parts list, sized for the real job: picking up **shirts, pants, and

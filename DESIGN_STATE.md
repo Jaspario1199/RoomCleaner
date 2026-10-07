@@ -1,3 +1,35 @@
+# Fuse-service housing fit variant — 2026-10-05
+
+A separate revised cover, electronics carrier and removable fuse support now allocate finite R15 lead bends and 3.17mm nominal roof clearance. Nut-seat roofs are3mm; new support hardware is M3×10. This is an unpowered fit prototype, with physical wire bending, terminal threading, restraint installation and thermal/load qualification still open. See `docs/FUSE_SERVICE_PROTOTYPE_20261004.md` and independent `verification/FUSE_SERVICE_REVIEW_20261004.md`. Original housing kit is preserved.
+
+# Jeans-load clarification and prototype validation — 2026-10-04
+
+Jeans are the working payload;5lb is a reserve investigation, not a verified rating or exact safety factor. The0.9kg garment/0.45kg claw references are illustrative until weighed. Housing-first fit validation is underway on the40deg restricted bench station and matched experimental local housing. Actual PCB/horn/switch/harness fit remains to be checked with bought parts; full-room outlet and powered thermal/fuse qualification are not inferred. No room survey is required for this bounded unpowered fit print.
+
+# Housing-first scope update — 2026-10-04
+
+User clarified: prototype the complete station housing first; defer room dimensions/mount survey until installation. Possible supported two-motor planar bench test, then installed four-station pickup. Full-system payload target is5lb (2.26796185kg), replacing0.9kg; demonstrated maximum remains unknown. Combined power/data to each wall station is the preferred development direction, not an already frozen protocol/connector. Suspension Dyneema remains mechanical only. Develop bounded bench clearance, retained electronics/harness and service geometry without claiming arbitrary room-angle or suspended-load qualification. Runtime0.9kg model assumptions remain historical pending deliberate load-model revision; do not enable5lb operation from a requirement update.
+
+# Methodical execution pass — 2026-10-04 (America/Chicago)
+
+See `docs/PRIORITY_EXECUTION_20261004.md`: all57 skeleton groups scheduled in ten priorities. Local bench timing/arrival settings are explicit and invalid configurations are rejected; host encoder watchdog configuration rejects NaN/infinite/nonpositive ages. A standalone explicit-pose moving-camera ray/plane utility is implemented and synthetically tested, not integrated or physically calibrated. The ledger now exposes22 cited reference values, with physical measurements and parent closure still open. Exact user inputs, candidate inventory and remaining work are listed in that execution report. Reviewed bench exports are unchanged; no new whole-product print release or purchase.
+
+# Active resolution skeleton — 2026-10-04
+
+Read `docs/DESIGN_RESOLUTION_PLAN_20261004.md` first. The57-group/282-field closure ledger defines units, provenance, options, dependencies and evidence; no physical blanks were filled with CAD defaults. Preliminary research found insufficient55° outlet orientation margin, widened-collar sizing dependencies, oblique homing force changes, and a level-equilibrium conflict for the ideal four-point rectangular layout. Keep whole-room near-level capability open until the finite-body/COM model and measured poses pass. Next bounded work: freeze the outlet/home angle and load envelope, then design its bracket/switch/cradle/front casing coherently; harness/fuse envelope in parallel. Existing bench package remains current only within its documented bench scope.
+
+# Current status — 2026-10-04
+
+The current reviewed print baseline is `docs/FRESH_MOUNT_RELEASE_20261002.md`, explicitly bench-only. Existing encoder telemetry/guards are implemented; synchronized local four-station motion is not. New local power packaging and detached single-axis encoder motion control are experimental; see `docs/LOCAL_STATION_HARDWARE_20261004.md` and `docs/LOCAL_STATION_CONTROL_20261004.md`. Outlet redesign is under geometric review; the released40° outlet does not cover the planned room workspace. Older status sections below are historical and may describe superseded designs.
+
+# Bench release audit
+
+Use `docs/BENCH_PRINT_AUDIT.md` and `cad/winch_bench.py` for the revised homing casing. Essential gap: the point-mass planner omits the spaced clamp attachment offsets and rotational equilibrium. Encoder telemetry and host guards are implemented; local synchronized motion control remains incomplete. Current scope is detached/low-height bench testing.
+
+# Active central effector: parallel clamp V1
+
+The two-jaw prototype in `cad/clamp_v1.py` supersedes the five-finger effector for the next build. See `docs/CLAMP_V1_BUILD.md` and `docs/BOM_CLAMP_V1.csv`. Historical finger geometry below is retained for later validation, not the current purchase list.
+
 # Design State
 
 ## Repository adaptation map (per CLAUDE.md structure)
@@ -221,3 +253,31 @@ Caliper-verify on a KW12-3 in hand: roller overhang past body end
 hinged end (assumed far end). Trigger height is set by bead placement
 (~4 mm below the roller contact). Bead nominal O5 (local assumption,
 KW_HOMING_BEAD_DIA_NOM).
+
+## 2026-09-30: verified execution and claw packaging prototype
+
+- Planning no longer retires laundry or increments delivered counts. Live
+  execution requires camera-confirmed probe movement and stable receiving-area
+  payload after release/claw retreat; three attempts maximum on pickup failure.
+- Bead-trigger lengths, physical setup pose after payout/attachment, elevated camera
+  projection and hamper ROI are explicit unmeasured placeholders. Real operation
+  is gated until calibrated. Nominal drum diameter remains for payout testing.
+- Firmware now bounds/rechecks homing, zeros AT bead trigger, retains backoff,
+  accepts STOP while moving, checks switches, and shares an accelerated scalar
+  Bresenham motion clock. Detached setup required for sequential home; pay out setup lengths and confirm
+  claw attachment before missions.
+- Python controller/camera/hardware/live/app/kinematic checks: 64 software tests pass; 42 existing claw geometry tests pass. Uno AVR firmware compiled AND linked: 18,396 bytes
+  flash, 1,173 bytes static RAM. Hardware timing/load behavior untested.
+- New `cad/claw_electronics.py` prototype uses existing claw/cover and adds
+  strap-mounted ESP32/battery bays. Valid solids, five STEP round trips and
+  pairwise interference checks pass. Board 55x26x13 and battery 55x25x18 mm are
+  provisional envelopes, not confirmed purchases. Regulator mounting, connector
+  alignment, wire routes and total mass require completion.
+- Candidate AS5600 spool-end sensing: USD6.50/module source checked; four sensors
+  intended. Magnet/bracket dimensions, local sampling/communications and closed
+  loop firmware are NOT implemented or ordered. No winch housing change yet.
+- Single-camera appearance tracking must be tested with real fabrics, occlusion,
+  look-alikes and floor drops. Need multi-view/depth/claw sensor if evidence
+  cannot distinguish carried versus dropped cloth. Electrical brownout/power-loss
+  behavior, furniture map and dynamic tension limits remain unresolved.
+- Details and commissioning procedure: `docs/CONTROL_AND_CLAW_UPDATE.md`.

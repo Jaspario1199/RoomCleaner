@@ -78,3 +78,53 @@ set-back are unchanged; only the actuation direction becomes vertical.
 corner_mount rev C implements it; the mid-span boss is removed. New interface
 value CORNER_PULLEY_OD_NOM (20 mm, purchased U-groove bearing pulley, 18–22
 mm accepted) fixes the drop line's X offset from the ear centre.
+
+D15. **Execution evidence precedes delivery accounting (user, 2026-09-30).**
+Grip, partial transit and camera-confirmed payload movement precede carrying to
+the hamper. Release and a camera-confirmed stationary payload with the claw
+clear precede counting delivery. Ambiguity stops; pickup retry limit is three.
+Planning previews have no physical success side effects.
+
+D16. **Trigger-based calibration and detached sequential homing.** Four
+measured bead-trigger cable lengths remain unknown placeholders. Zero is at
+trigger, final backoff retained. Sequential homing is bench/assembly-only with
+the claw detached until a suspended initialization procedure is proven. Payout
+to a known setup pose and operator-confirmed claw attachment precede a mission.
+
+D17. **Slow contact motion, coordinated ramps.** Provisional travel/contact
+cable-speed caps 0.020/0.008 m/s; one shared accelerated pulse clock. Nominal
+drum remains pending physical payout tests.
+
+D18. **Electronics packaging prototype builds on existing claw.** Removable
+board and battery bays align to existing strap slots. Purchased dimensions,
+regulator mounting, wiring, current budget and mass await confirmation. Four
+spool encoders requested; AS5600 is a candidate requiring mechanical/electrical
+validation, not a final purchased-part or control-architecture decision.
+
+## 2026-10-04 — experimental self-contained station
+
+Separate local electronics variant preserves the reviewed bench baseline. Local DRV8825,5V regulator, input fuse/capacitor and keyed retained low-voltage panel connector replace the conceptual motor-extension-only product connection. Detached serial bench firmware uses encoder comparison, bounded NC homing and latched pulse-stop faults retaining torque. Four-station synchronized control remains a release gate. Fixed-canted outlet supersedes a rejected pivot-at-throat swivel concept for further review; spool-side and room-side cones must both clear full routing.
+
+## 2026-10-04 — parameter resolution skeleton
+
+A traceable57-group engineering closure ledger separates source/CAD nominal facts from measured calibration and physical qualification. User-selected four attachments, extended clamp, upper camera and M3 preference remain the development baseline. Keep three explicit control profiles and detached-homing/supported-setup procedure. IMU/encoder precision does not establish whole-room level equilibrium; finite-body force/moment and COM analysis is required. Study a wider fixed outlet and coherent bracket/front enclosure first;60° is a research candidate, not passed geometry or a final approved dimension. No new order or complete-station print release is made.
+
+
+## 2026-10-04 methodical execution
+
+Keep source configuration, nominal references and actual physical calibration separate. Preserve local bench defaults while exposing home/arrival timing in Config and rejecting invalid settings. Moving-camera localization geometry requires explicit calibrated intrinsics and per-image rigid pose; no static-ceiling fallback. All57 groups have one primary execution priority in `docs/PRIORITY_EXECUTION_20261004.md`. No synchronized transport or physical operating envelope is silently selected by this update.
+
+
+## 2026-10-04 user scope clarification
+
+Housing prototyping comes before the room survey. Plan a possible supported two-motor planar bench test followed by four-station installed pickup. New payload requirement is5lb (2.26796185kg), not4kg. Prior0.9kg is superseded as the requirement and remains an unverified model assumption in old calculations/code. Prefer a station combined power/data interface; driver/motor/encoder functions stay local to the station, separate from suspension line. Exact electrical transport/contact layout and bounded prototype load qualification remain open.
+
+
+## 2026-10-04 jeans working load and reserve
+
+User clarified that5lb is desired wiggle room for jeans pickup, not the normal garment requirement. Evaluate reserve against actual garment plus claw dead weight and declared dynamics; do not label5lb/garment mass as achieved component FoS. Proceed with bounded unpowered housing fit prototypes while actual fit/load and room-envelope qualification remain open.
+
+
+## 2026-10-05 fuse-service fit variant
+
+Preserve baseline housing sources. Add removable fuse support and revised carrier/cover with finite provisional wire clearances. Use R15mm bends, 4.4mm clearance envelope (not measured insulation OD), 5mm straight exits and3mm captive-nut roofs. Disconnect and deflect both leads before accessing support screws; lift support and holder together, then thread lower lead off-case. Combined power/data connector selection and full electrical harness remain open; no powered/load release is implied.

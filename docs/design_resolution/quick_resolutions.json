@@ -1,0 +1,145 @@
+{
+  "date": "2026-10-05",
+  "scope": "Source-defined quick resolutions; not measured calibration or group closure",
+  "items": [
+    {
+      "id": "Q01",
+      "group": "M23",
+      "name": "Extension length",
+      "value": 150,
+      "units": "mm",
+      "source": "cad/clamp_extended_v3.py",
+      "source_anchor": "EXTENSION=150.",
+      "status": "source_verified",
+      "qualification": "CAD nominal; stiffness and joint tests remain open."
+    },
+    {
+      "id": "Q02",
+      "group": "M26",
+      "name": "Gear module",
+      "value": 1.5,
+      "units": "mm",
+      "source": "cad/clamp_v1.py",
+      "source_anchor": "MODULE=1.5",
+      "status": "source_verified",
+      "qualification": "CAD nominal; printed gear fit remains open."
+    },
+    {
+      "id": "Q03",
+      "group": "M26",
+      "name": "Gear backlash",
+      "value": 0.2,
+      "units": "mm",
+      "source": "cad/clamp_v1.py",
+      "source_anchor": "BACKLASH=.20",
+      "status": "source_verified",
+      "qualification": "CAD nominal; actual backlash remains open."
+    },
+    {
+      "id": "Q04",
+      "group": "M25",
+      "name": "Clamp design endpoints",
+      "value": [
+        20,
+        140
+      ],
+      "units": "deg",
+      "source": "cad/clamp_v1.py",
+      "source_anchor": "OPEN_ANGLE=20; CLOSED_ANGLE=140",
+      "status": "source_verified",
+      "qualification": "CAD commanded angles; horn indexing and safe physical stops remain open."
+    },
+    {
+      "id": "Q05",
+      "group": "M27",
+      "name": "Pad envelope",
+      "value": [
+        5,
+        40,
+        36
+      ],
+      "units": "mm",
+      "source": "cad/clamp_v1.py",
+      "source_anchor": "box(5,40,36",
+      "status": "source_verified",
+      "qualification": "CAD nominal; TPU grip and compression remain open."
+    },
+    {
+      "id": "Q06",
+      "group": "M34",
+      "name": "Camera bracket tilt",
+      "value": 28,
+      "units": "deg",
+      "source": "cad/extended_camera_pod.py",
+      "source_anchor": "TILT=28.",
+      "status": "source_verified",
+      "qualification": "CAD rotation about local X is negative 28 degrees; optical extrinsics/FOV remain uncalibrated."
+    },
+    {
+      "id": "Q07",
+      "group": "C07",
+      "name": "Local bench tracking error threshold",
+      "value": 64,
+      "units": "encoder counts",
+      "source": "firmware/local_station/motion_core.h",
+      "source_anchor": "trackingTolerance=64",
+      "status": "source_verified",
+      "qualification": "Current bench default; not a qualified room accuracy target."
+    },
+    {
+      "id": "Q08",
+      "group": "C07",
+      "name": "Local bench tracking dwell",
+      "value": 0.15,
+      "units": "s",
+      "source": "firmware/local_station/motion_core.h",
+      "source_anchor": "trackingDwellUs=150000",
+      "status": "source_verified",
+      "qualification": "Current bench default; missed-step testing remains open."
+    },
+    {
+      "id": "Q09",
+      "group": "C07",
+      "name": "Local bench arrival tolerance",
+      "value": 4,
+      "units": "encoder counts",
+      "source": "firmware/local_station/motion_core.h",
+      "source_anchor": "arrivalTolerance=4",
+      "status": "source_verified",
+      "qualification": "Current bench default; distinct from running tolerance."
+    },
+    {
+      "id": "Q10",
+      "group": "C07",
+      "name": "Local bench arrival continuous dwell",
+      "value": 0.05,
+      "units": "s",
+      "source": "firmware/local_station/motion_core.h",
+      "source_anchor": "arrivalDwellUs=50000",
+      "status": "source_verified",
+      "qualification": "Current bench default; settlement timeout is separately 0.5 s."
+    },
+    {
+      "id": "Q11",
+      "group": "C09",
+      "name": "Local bench heartbeat timeout",
+      "value": 0.5,
+      "units": "s",
+      "source": "firmware/local_station/motion_core.h",
+      "source_anchor": "heartbeatTimeoutUs=500000",
+      "status": "source_verified",
+      "qualification": "Single-axis bench timeout; global stop latency is still unknown."
+    },
+    {
+      "id": "Q12",
+      "group": "C12",
+      "name": "Effector stationary interval",
+      "value": 0.5,
+      "units": "s",
+      "source": "firmware/effector_esp32/effector_esp32.ino",
+      "source_anchor": "millis()-stationarySince>=500",
+      "status": "source_verified",
+      "qualification": "Existing IMU gate; does not implement active leveling."
+    }
+  ]
+}

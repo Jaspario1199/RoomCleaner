@@ -1,3 +1,9 @@
+> Current research and methodical design closure: [DESIGN_RESOLUTION_PLAN_20261004.md](docs/DESIGN_RESOLUTION_PLAN_20261004.md), [parameter register](docs/design_resolution/parameter_register.md), and [measurement worksheet](docs/design_resolution/measurement_worksheet.md). New local-station/outlet concepts remain experimental; use the reviewed bench package only within its stated limits.
+
+> Bench feedback revision2026-10-01: [Encoder/tilt assembly and commissioning](docs/ENCODER_AND_TILT_COMMISSIONING.md), [purchase BOM](docs/BOM_ENCODER_TILT.csv). Four spaced anchor suspension still requires a finite-anchor pose/tension model; current point planner is not cleared for room-wide orientation control.
+
+> Fresh removable mount revision: [assembly and print guide](docs/FRESH_MOUNT_RELEASE_20261002.md), [interface inspection](docs/MOUNT_INTERFACE_CONTROL_20261002.md) and [structural qualification](docs/FRESH_STRUCTURAL_REVIEW_20261002.md). Supersedes earlier print packs; physical homing/load qualification remains pending.
+
 # RoomCleaner 🧺🤖
 
 An autonomous robot that scans your room, spots dirty laundry on the floor,

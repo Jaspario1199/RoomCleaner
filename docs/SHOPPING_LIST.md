@@ -1,3 +1,9 @@
+> Historical purchasing/design reference. Current configuration and unresolved ordering/qualification fields are in [DESIGN_RESOLUTION_PLAN_20261004.md](DESIGN_RESOLUTION_PLAN_20261004.md) and [FRESH_PARTS_DELTA_20261002.md](FRESH_PARTS_DELTA_20261002.md). Older totals, capacity claims, spring/guide/cap recipes and wiring profiles below do not constitute a current whole-product order release.
+
+> Latest spool/outlet/camera decisions and consolidated order status: [REVISION_V2_DECISIONS.md](REVISION_V2_DECISIONS.md) and [ORDER_STATUS_V2.csv](ORDER_STATUS_V2.csv). Earlier generic outlet, friction-fit magnet cup, servo power and fixed-camera assumptions below are superseded where they conflict.
+
+> Required new encoder/tilt purchases: [BOM_ENCODER_TILT.csv](BOM_ENCODER_TILT.csv). Existing checkmarks are historical order flags; confirm physical receipt. No purchases were made by this revision.
+
 # RoomCleaner — Shopping List (exact products + links)
 
 The "shirts & jeans" build, with a specific product and direct link for every
@@ -14,7 +20,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 | ✓ | Item | Product | Link | ~$ |
 |---|------|---------|------|----|
 | ✅ | NEMA 17 stepper ×4 (+1 spare) | SIMAX3D NEMA 17 **42-38** size, ~36 N·cm, 1.5 A, 5 mm shaft (**5-pack**) — select the **42-38** option | https://www.amazon.com/s?k=SIMAX3D+Nema+17+42-38+5pcs | 33 |
-| ✅ | Cable/line | 9KM DWLIFE X8 braided Dyneema, **50 lb**, 150 m (select 50 lb, not 8 lb) | https://www.amazon.com/9KM-DWLIFE-Anti-Bite-Freshwater-Saltwater/dp/B0DLNQFQKK | 8 |
+| ✅ | Cable/line | 9KM DWLIFE X8 braided Dyneema, **120 lb**, 150 m (user-selected8-strand variant;actual diameter requires measurement) | https://www.amazon.com/9KM-DWLIFE-Anti-Bite-Freshwater-Saltwater/dp/B0DLNQFQKK | 8 |
 
 *Note: at 0.8–1.2 mm, UHMWPE line naturally rates ~200–350 lb (not 100) — that's a bonus: more abrasion life, still low-stretch.*
 
@@ -28,7 +34,7 @@ Legend: 🟢 buy · ⚙️ reuse/own · ⬆️ optional upgrade
 
 *Why this replaced the sold-out DAOKI kit: you plan an array of projects, so the extra ~$28 buys a whole component library instead of a bare no-name Uno clone. **Budget alternative** if you'd rather match the old price: Sevenmore CNC Shield + UNO R3 + 4× DRV8825 kit (~$23–27, the closest 1:1 DAOKI substitute): https://www.amazon.com/Arduino-Printer-Sevenmore-Shield-DRV8825/dp/B07PXWBQTQ*
 
-*Driver note (A4988 path): the ACEIRMC A4988s drive our motors fine **derated to ~1.0–1.2 A** — still >2× torque margin at our ≤40 N cable loads, and their 1/16 microstep max exactly matches firmware `MICROSTEP=16`. Set Vref ≈ **0.8 V per amp** (typical 0.1 Ω sense resistors → 0.8 V for 1.0 A, 0.96 V for 1.2 A) — this differs from DRV8825 (0.75 V ≈ 1.5 A). ⬆️ Optional: HiLetgo **DRV8825 5-pack** (~$12, https://www.amazon.com/dp/B01NCE3ZW1) for full 1.5 A + cooler running + a spare. **4-axis caveat (any CNC shield):** the stock 4th "A" slot clones another axis; our custom firmware drives all 4 independently via the step/dir pins (incl. D12/D13), so this is fine for us.*
+*Driver note (A4988 path): the ACEIRMC A4988s drive our motors fine **derated to ~1.0–1.2 A** — available running torque must be measured; the previous >2× margin claim was incorrect. Even the unverified 0.36 N·m holding-torque figure corresponds to only 36 N at a 10 mm winding radius (24 N at 15 mm), before current derating and speed losses; software 40 N is not a measured actuator limit, and their 1/16 microstep max exactly matches firmware `MICROSTEP=16`. Set Vref ≈ **0.8 V per amp** (typical 0.1 Ω sense resistors → 0.8 V for 1.0 A, 0.96 V for 1.2 A) — this differs from DRV8825 (0.75 V ≈ 1.5 A). ⬆️ Optional: HiLetgo **DRV8825 5-pack** (~$12, https://www.amazon.com/dp/B01NCE3ZW1) for full 1.5 A + cooler running + a spare. **4-axis caveat (any CNC shield):** the stock 4th "A" slot clones another axis; our custom firmware drives all 4 independently via the step/dir pins (incl. D12/D13), so this is fine for us.*
 
 ## Power + protection
 

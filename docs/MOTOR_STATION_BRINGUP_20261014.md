@@ -1,4 +1,12 @@
-# Motor station electrical bring-up — Rev A
+# Motor station electrical bring-up — Rev B
+
+## Inventory correction — 2026-10-14
+
+The supplied Amazon history establishes an **A4988 four-driver kit**, three **XIAO ESP32-C3s**, three older **ELEGOO ESP-WROOM-32s**, six **DROK buck modules**, and an **ATC/ATO blade fuse holder/fuse assortment** as marked delivered. User also confirms WAGOs and holders are on hand. See [inventory reconciliation](INVENTORY_RECONCILIATION_20261014.md) for quantities, evidence and pending deliveries.
+
+The next station is therefore based on a C3 and an actual A4988 carrier, subject to board inspection. The older DRV8825 wiring and firmware are not directly applicable: A4988 needs logic VDD, has different microstep selection, lacks the same nFAULT interface, and needs a carrier-specific current-limit calculation. No A4988 firmware or wiring has been validated by this inventory update. Purchased fuse/regulator/connector envelopes differ from the earlier CAD candidates.
+
+The original Rev A planning text follows for provenance; generic bring-up sequencing still applies, but its component uncertainty is superseded by the inventory record. Remaining photos are for board revisions and markings, not to re-establish the known product families.
 
 Recorded 2026-10-14. Status: assembly plan, not a hardware test report.
 

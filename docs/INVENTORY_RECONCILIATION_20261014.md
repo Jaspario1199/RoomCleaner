@@ -4,6 +4,10 @@ Evidence: user-supplied Amazon order-history text, `Pasted text(2).txt`, and the
 
 Repeated product-title lines are display duplicates, not additional packs. Quantities below come from listing pack sizes, not a physical stock count. **Amazon marked delivered** does not establish remaining quantity, electrical testing or installation. **Arriving today** is preserved as shown in the supplied text, not promoted to delivered.
 
+## Later user correction — 2026-10-14
+
+WAGOs have **not arrived**; user says expected tomorrow (October 15). This supersedes the earlier possession statement below. Existing main fuse is marked **7.5 A**; rating suitability is not yet confirmed. Wire recommendation: [selection note](POWER_WIRE_SELECTION_20261014.md).
+
 ## Motor-station parts and tools
 
 | Item | Listed quantity | Evidence/status | Build implication |

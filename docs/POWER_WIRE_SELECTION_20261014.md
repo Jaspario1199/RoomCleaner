@@ -1,3 +1,5 @@
+> **Routing update:** [Room layout Rev B](ROOM_LAYOUT_20261014.md) establishes a possible 32 ft longest branch, not 14 ft. Recheck the earlier 18 AWG candidate; 16 AWG copper is preferred for voltage margin under the new route. The original recommendation below is preserved for decision history.
+
 # Station power wiring — selection note, Rev A
 
 Recorded 2026-10-14. Status: recommendation, not ordered or electrically qualified.

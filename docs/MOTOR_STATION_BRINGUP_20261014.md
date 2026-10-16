@@ -1,5 +1,11 @@
 # Motor station electrical bring-up — Rev B
 
+## Progress addendum — 2026-10-16
+
+The user has now identified the ALITOVE 12 V / 6 A supply and red A4988 carrier, reported motor coil pairs identified, measured buck/XIAO power rails (5.00 V / approximately 4.7 V / 3.3 V), confirmed USB serial execution on the ESP32-C3, and confirmed switch released/pressed readings. These are user-reported bench results, not suspended-motion validation. Capacitor installation, current limit, encoder operation and motor motion remain unverified in the record. WAGOs were not yet available during the last reported switch wiring; the earlier on-hand statement below was corrected in conversation.
+
+The selected floor-start, visual calibration and bead-verification development plan is now [Startup calibration V1](STARTUP_CALIBRATION_V1_20261016.md). It is a new proposed mode; existing detached homing remains restricted to its original use.
+
 ## Inventory correction — 2026-10-14
 
 The supplied Amazon history establishes an **A4988 four-driver kit**, three **XIAO ESP32-C3s**, three older **ELEGOO ESP-WROOM-32s**, six **DROK buck modules**, and an **ATC/ATO blade fuse holder/fuse assortment** as marked delivered. User also confirms WAGOs and holders are on hand. See [inventory reconciliation](INVENTORY_RECONCILIATION_20261014.md) for quantities, evidence and pending deliveries.

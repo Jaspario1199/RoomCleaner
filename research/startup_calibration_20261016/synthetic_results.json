@@ -1,0 +1,78 @@
+{
+  "status": "SYNTHETIC ONLY; not a camera, startup, or robot validation",
+  "seed": 20261016,
+  "numpy": "2.3.5",
+  "scipy": "1.17.0",
+  "assumptions": {
+    "room_m": [
+      3.3528,
+      2.7432,
+      2.7432
+    ],
+    "reference_attachment_height_m": 0.6,
+    "trials_per_case": 30,
+    "poses_per_trial": 60,
+    "anchors_per_trial": 4,
+    "position_noise_std_per_axis_m": 0.002,
+    "payout_noise_std_m": 0.0003,
+    "prior_anchor_error_uniform_halfwidth_m": 0.1,
+    "fit_anchor_bounds_around_prior_m": 0.3,
+    "witness_box_full_width_m": [
+      1.2,
+      1.2,
+      0.6
+    ],
+    "not_modeled": [
+      "camera bias/pose ambiguity",
+      "tension and slack",
+      "collisions",
+      "spool radius change",
+      "motor dynamics",
+      "suspension orientation",
+      "camera field of view",
+      "network latency"
+    ]
+  },
+  "results": {
+    "small_3d": {
+      "sample_box_full_width_m": [
+        0.05,
+        0.05,
+        0.05
+      ],
+      "median_anchor_error_mm": 397.6548526448732,
+      "p95_anchor_error_mm": 522.383040001108,
+      "median_fit_residual_rms_mm": 1.98061081594197,
+      "median_heldout_cable_delta_rms_mm": 8.273486740130718,
+      "p95_heldout_cable_delta_rms_mm": 14.47043184434366,
+      "median_geometric_jacobian_condition": 118570.78348979188
+    },
+    "medium_3d": {
+      "sample_box_full_width_m": [
+        0.3,
+        0.3,
+        0.2
+      ],
+      "median_anchor_error_mm": 295.8352843799789,
+      "p95_anchor_error_mm": 478.1921044615233,
+      "median_fit_residual_rms_mm": 1.9467476315575245,
+      "median_heldout_cable_delta_rms_mm": 3.6302830950416536,
+      "p95_heldout_cable_delta_rms_mm": 6.934503263127385,
+      "median_geometric_jacobian_condition": 3996.1257078392136
+    },
+    "larger_3d": {
+      "sample_box_full_width_m": [
+        0.8,
+        0.8,
+        0.5
+      ],
+      "median_anchor_error_mm": 55.21429639038654,
+      "p95_anchor_error_mm": 161.99641361340386,
+      "median_fit_residual_rms_mm": 1.9596075539169568,
+      "median_heldout_cable_delta_rms_mm": 0.8323783162610233,
+      "p95_heldout_cable_delta_rms_mm": 1.5685837190824445,
+      "median_geometric_jacobian_condition": 580.6865386386264
+    }
+  },
+  "noiseless_fit_anchor_error_m": 9.111948763821684e-15
+}

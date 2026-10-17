@@ -1,3 +1,5 @@
+> **October 16 evening fault review - Rev C supersedes earlier station wiring guidance.** User reported VDD/RESET/SLEEP at 3.3V, VMOT at 0V, then XIAO heating and loss of USB recognition. Root cause and isolation status are unresolved. Keep suspect hardware disconnected. See [the reviewed electrical schematic and restart sequence](electrical/station_revC_20261016/README.md). Rev C adds an explicit buck-positive disconnect for USB use, defined STEP/DIR bias, and a complete net ledger. Do not install a replacement controller into the unchanged assembly.
+
 # Motor station electrical bring-up — Rev B
 
 ## Progress addendum — 2026-10-16

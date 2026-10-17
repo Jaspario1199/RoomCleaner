@@ -1,5 +1,8 @@
 # Motor station electrical review - Rev C
 
+> **October 17 effectiveness review:** [Architecture and change audit](../STATION_ARCHITECTURE_REVIEW_20261017.md). Retain Rev C wiring; R1-R4 have different priorities and are not overvoltage protection. The switch internal pull-up remains sufficient for the earlier short-wire bench test. Power-fault isolation precedes reuse or replacement of the controller.
+
+
 Date: October 16, 2026 (America/Chicago). Scope: one unloaded motor station, repeated four times, using a XIAO ESP32-C3, red A4988 carrier, DROK buck and KW12-3 NC switch. This is not the S3 camera-claw circuit or a DRV8825 pinout.
 
 ## Read the drawing

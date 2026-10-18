@@ -4,6 +4,8 @@
 
 ## Latest update — 2026-10-18
 
+- **Later cost review:** [screenless alternatives and optional diagnostics](claw_cost_review_20261018.md). User reopened purchasing to reduce cost; proposed substitutions are not confirmed purchases or a new qualified circuit.
+
 - [Current decisions, claw power selection, procurement status and integration gaps](decisions_20261018.md).
 - [SpaceX presentation narrative, evidence boundaries and milestone roadmap](presentation_roadmap_20261018.md).
 - One ESP32-C3/A4988 station now has **user-reported successful bench motion** after a logic-supply connection fix. Earlier pending-motion statements below are historical, not the latest status. Four-axis/load qualification remains open.

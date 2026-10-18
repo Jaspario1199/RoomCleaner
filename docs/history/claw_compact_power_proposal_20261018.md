@@ -1,5 +1,7 @@
 # Claw compact power proposal — 2026-10-18
 
+> Update: See the final section for the later A1653 dual-output power-bank recommendation prioritizing simplicity and cost. The XTAR/Pololu proposal below is preserved for design history.
+
 Status: RESEARCHED PROPOSAL, not purchased, assembled, load-tested, or a released wiring/CAD revision. User requested detailed research after rejecting the cost and mass of earlier arrangements. This proposal supersedes earlier shopping recommendations only if adopted; preserve the previous decision history.
 
 ## Recommendation
@@ -141,3 +143,43 @@ The central winch controller can stay powered while the claw is off. If the claw
 - Waveshare manual: https://m.media-amazon.com/images/I/A1ieAi-DS7L.pdf
 
 No hardware, firmware, CAD or purchase status changed. This research is stored on the design-history branch, not a claim that the repository default branch or every historical CAD file was updated.
+
+## Later recommendation — prioritize simplicity and low assembly cost (15:15 CDT)
+
+Status: proposed architecture, not purchased or hardware validated. User requested the simplest/cheapest practical overall setup after asking for MG996R running-current averages. This recommendation takes precedence over the earlier XTAR+Pololu preference for the current prototype when ease of assembly and charging are prioritized. The XTAR path remains a lower-mass alternative, not an additional purchase.
+
+Recommend Anker Nano A1653 5000mAh plus Adafruit HUSB238 breakout #5807:
+- Manufacturer price $29.99 for A1653; 100 g; 3.03 x 1.45 x 0.98 in (about 77 x 37 x 25 mm).
+- Manufacturer lists 5 V / 3 A per USB-C output and 5 V / 3.6 A total (18 W) when shared. This is not 6 A combined.
+- One output powers XIAO S3 Sense through a USB-C cable.
+- Other output feeds HUSB238 set to 5 V / 3 A, then appropriate servo branch wiring, branch protection and local bulk capacitor to MG996R.
+- HUSB238 $5.95; keep 5 V jumper closed, cut 1 A jumper, leave 2 A jumper open for 3 A selection. It requests power, not generates extra current or independently charges a battery. Verify 5 V before connecting electronics.
+- All signal grounds referenced together. Do not parallel the positive outputs or add the earlier external 5 V feed to XIAO. Servo current returns directly through its own power branch.
+- Secure the bank body and adapter independently in the housing; do not use folding USB plug as a structural support.
+- FSR remains on XIAO's existing 3.3 V sensing circuit. Existing camera/servo retained. Wall-mount electronics remain separate on the ALITOVE 12 V system.
+- Two core new parts total $35.94 before cables/passives/tax/shipping. Approximate budget $40–45 if cables and small suitable components are partly reused; not a confirmed complete checkout price.
+- Manufacturer stock page lists 3–7 business day delivery estimate, not address-specific guaranteed delivery. Exact Amazon price/stock not established.
+
+Load reasoning:
+Published current references do not establish actual Deegoo clone draw: TowerPro lists 10 mA idle, 170 mA no-load running and 1.4 A stall; circulated datasheet hosted by DigiKey specifies 0.5–0.9 A running and 2.5 A stall at 6 V. Do not mix these into one measured data set or transfer 6 V values exactly to 5 V.
+Keep provisional servo 2.5 A pulse and camera/electronics 0.7 A allowance = 3.2 A combined. Separate outputs with published 3.6 A shared limit make this a more plausible simple option than splitting a single 3 A output. Margin is modest; actual dual-port limits, voltage drops, transients and thermal behavior must pass testing.
+
+Charging/operation:
+Support claw, stop motion, disconnect both robot outputs, charge bank through its intended input. No separate RC balance charger, raw-cell holder, display cutoff box, external buck or boost is required by this candidate arrangement.
+Anker advertises pass-through, but this does not establish uninterrupted source changes, 3.6 A availability while charging, automatic wake or a complete robotic docking implementation. Keep automatic contact charging as a separate integration stage with hook support, charger input interface and source-transition tests.
+
+Validation required:
+- Simultaneous camera streaming and representative loaded gripping at full and low bank state of charge, without reset/output cutoff.
+- Servo supply >=4.8 V under the tested load; capture transients if possible.
+- Bank wake, low-load timeout, port reallocation when connecting second load and motion-disarmed boot.
+- Charging/reconnect causes no uncommanded motion.
+- Do not claim software grip-force limiting or capacitance alone makes an undersized source adequate.
+
+Sources:
+- https://www.anker.com/products/a1653-usb-c-portable-charger-5000mah
+- https://www.adafruit.com/product/5807
+- https://learn.adafruit.com/adafruit-husb238-usb-type-c-power-delivery-breakout/pinouts
+- https://towerpro.com.tw/product/mg996R/
+- https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/204/MG996R.pdf
+
+No firmware/CAD/hardware or purchase status changed.

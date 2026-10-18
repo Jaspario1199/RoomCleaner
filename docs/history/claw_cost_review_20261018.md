@@ -64,3 +64,15 @@ Sources checked 2026-10-18:
 - https://www.adafruit.com/product/5807
 
 No hardware, firmware, approved BOM, or purchase status changed in this discussion.
+
+## User clarification: compact embedded battery rather than a large power bank
+
+User challenged the cost and mass of the 215 g power-bank example. Clarified the embedded approach used by many phones and rechargeable toys: a single lithium cell with compact charging, cell protection and required voltage regulation, often integrated on the product PCB. Some toys instead run motors directly from AA/NiMH or a suitably matched cell. Neither comparison proves our existing 5 V servo can run directly from a single lithium cell.
+
+Candidate architecture to size, not a frozen BOM: protected 1S LiPo plus a compact USB charger/5 V boost assembly with an output and battery path rated for the measured combined servo/camera demand. No separate display, RC balance charger or pack-level relay box is inherently required if equivalent protection is properly integrated. A module must actually include the protection functions; charging alone is not discharge protection. Charge-while-running/power-path behavior must be checked if needed for docking.
+
+For an illustrative 5 V / 3 A load and 90% efficiency, battery demand at 3.3 V is 15/(3.3*0.9) = 5.05 A. The cell, protection circuit, connector and boost converter must all support the pulse/continuous demand. Do not use a generic 1 A charging/boost board or assume an internal switch-current rating equals usable 5 V output. Exact MG996R surge/hold current has not been measured; the earlier 6 A regulator was headroom, not a measured consumption requirement.
+
+Energy tradeoff: 1S 2200 mAh at 3.7 V = 8.14 Wh, half of 2S 2200 mAh at 7.4 V = 16.28 Wh. Approximately 1S 4400 mAh is needed for comparable nominal energy. Lower mass and lower cost cannot be promised at unchanged runtime without specific parts.
+
+TI BQ25895 illustrates integrated single-cell USB charging and up to 3.1 A boost operation; it is an IC/reference architecture, not a recommended ready-to-wire module or completed design. Source: https://www.ti.com/product/BQ25895 . A compact 1S design is technically credible but the module/cell selection, cost, mass and transient tests remain unresolved. No new purchases or hardware changes approved.

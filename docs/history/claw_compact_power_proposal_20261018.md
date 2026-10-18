@@ -309,3 +309,12 @@ Not suitable direct substitutions:
 - Large IRLZ44N/IRF4905 MOSFETs may support future designed switching, but their current labels do not establish direct3.3V GPIO compatibility.
 
 Still unconfirmed in this upload: 100k/33k1% resistors,100nF capacitor,suitable copper cable,5V2AUSB supply/cable. No duplicate kit purchases inferred.
+
+## Charger image inspection — 2026-10-18
+
+User supplied front/back product image image(20261018-205454).png; viewed successfully. Rear is ink-marked 2S and 2A; input marked3–6V. Front sense resistor markedR050 (0.05ohm); controller marking appearsCN3302, pending actual-board identity confirmation. Rear white boxes appear variant-identification markings, not demonstrated solder jumpers; do not instruct bridging them.
+
+CN3302 manufacturer datasheet Rev2.1 specifies average inductor/input current approximately0.106/RCS, and battery charge current approximately VIN*IL*efficiency/VBAT. ForR050:IL~2.12A. At5V input,7.4V pack and assumed85% efficiency, battery charge current~1.22A. This is a calculation, not a measurement. It exceeds proposedTenergy31003 maximum1A charge rating; do not approve this unmodified board/pack pairing.
+
+Possible reuse requires a qualified current-sense resistor change (higher resistance) and charging/termination checks. Exact resistor package/rating and board matching still need confirmation. Do not treat a weaker phone adapter or changing printed selection marks as a controlled current-setting modification. Existing single-cell battery must not connect to this2S charger.
+Source: https://make.net.za/wp-content/datasheets/Consonance%20Elec%20CN3302%20Datasheet%20v2.1.pdf (manufacturer-authored datasheet).

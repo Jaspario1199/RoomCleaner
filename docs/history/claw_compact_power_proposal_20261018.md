@@ -272,3 +272,17 @@ All three Amazon pages returned no featured offer in accessible data; price, sel
 Small parts: reuse owned XT60 connectors, fuse holders, WAGO/perfboard and suitable wire/capacitors where available. Remaining quantity/specifications not confirmed. Suggested provision: one 1000 uF >=10 V bulk capacitor (16 V acceptable), 100k + 33k 1% divider resistors and 100nF filter capacitor, appropriately rated wiring and DC switch/disconnect. A 3 A fuse is an initial candidate only if its physical type matches the owned holder and its curve tolerates measured startup; protect wiring and do not simply increase on nuisance opening. Use an existing XT60 as the manual master disconnect if a suitable switch is not owned. Existing USB 5 V/2 A adapter plus USB-A-to-C cable can supply candidate charger.
 
 No duplicate ESP32, camera, servo, FSR, XT60 kit, external BMS, display, or additional MT3608 required. Inventory unknowns must be labeled, not asserted as missing or delivered.
+
+## Inventory audit correction — 2026-10-18, 15:45 CDT request
+
+Read docs/INVENTORY_RECONCILIATION_20261014.md, which records supplied Amazon order-history evidence. A Gmail search found no matching receipts; it does not establish absence of purchases.
+
+- JCCON electrolytics ordered were 10 x 100 uF / 50 V (not 1000 uF). No 1000 uF purchase established.
+- ELEGOO UNO R3 Super Starter Kit was delivered August 7. Exact 100k/33k resistor values, tolerance and remaining count are not established by the inventory. Do not assume contents of the different Most Complete kit.
+- No 100nF/104 capacitor purchase established.
+- No 18AWG copper spool purchase established. Suitable 16AWG copper can cover power runs; still under selection in chat.
+- USB programming cable was used successfully, but USB-A-to-C connector type and availability for charging are not established. No 5V2A adapter purchase established; ALITOVE12V is not that adapter.
+- IMPORTANT: Two ACEIRMC Type-C USB 2S boost/charging boards are already marked delivered August 13 in the order-history inventory. The earlier shopping response overlooked this. Hold the AITIAO charger purchase until the ACEIRMC exact version/output current and charging behavior are checked; this is not a qualified substitute yet.
+- Existing fuse assortment explicitly includes 3A among its listed values. Check remaining stock rather than purchasing another assortment automatically.
+
+No unconfirmed part is marked missing, purchased or delivered by this audit. Requested evidence: resistor labels/kit contents, ACEIRMC board/link, spare capacitor markings and USB adapter label.

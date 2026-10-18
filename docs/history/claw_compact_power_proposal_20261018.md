@@ -286,3 +286,26 @@ Read docs/INVENTORY_RECONCILIATION_20261014.md, which records supplied Amazon or
 - Existing fuse assortment explicitly includes 3A among its listed values. Check remaining stock rather than purchasing another assortment automatically.
 
 No unconfirmed part is marked missing, purchased or delivered by this audit. Requested evidence: resistor labels/kit contents, ACEIRMC board/link, spare capacitor markings and USB adapter label.
+
+## Reuse review from new order-history attachment — 2026-10-18
+
+User supplied Pasted text(3).txt. See updated inventory note for delivery distinctions.
+
+Reuse without duplicate purchase where unallocated:
+- XT60H connectors for removable battery connection/manual disconnect.
+- Existing fuse holder and appropriate 3A fuse candidate from recorded assortment, subject to inrush/wire protection checks.
+- WAGO connectors for stationary enclosed distribution or soldered perfboard wiring where weight/space favor it.
+- Existing XIAO S3 Sense/camera, MG996R and DF9-16 FSR.
+- Existing 100uF/50V electrolytics remain suitable component candidates for local decoupling. Four reserve for four winch drivers; if all ten are unused initially, six remaining in parallel give 600uF rated 50V. This falls within the earlier provisional 470–1000uF bulk-capacitance range. This is a bulky low-cost prototype alternative to buying 1000uF, not equivalent ESR/layout or guaranteed transient performance. Keep leads short and observe polarity; do not remove installed driver capacitors to build it.
+
+Conditional reuse:
+- ACEIRMC 2S 2A USB charger boards: hold duplicate AITIAO purchase, but do not yet approve connection to Tenergy31003. Verify actual 8.4V CC/CV version, charge current and termination. Tenergy maximum rapid-charge current is 1A; similar module families use 2A as INPUT and about1.1A battery charge, so title alone cannot establish compatibility. If charge current exceeds pack specification, qualify a documented current-setting change or select a compatible charger; do not assume weak USB adapter is a charge-current regulator.
+- EBOOT MP1584EN or spare DROK could power MCU-only branch if needed, but do not replace the selected combined servo/camera UBEC based only on advertised current. User previously said no spare DROKs. Keep primary topology unless a change is tested.
+
+Not suitable direct substitutions:
+- Existing 1S3.7V battery cannot feed selected 2S buck topology and must never connect to 8.4V charger.
+- MT3608 modules are not qualified for combined servo/camera power.
+- 1N5819 is a1A diode, not the full servo/battery current path.
+- Large IRLZ44N/IRF4905 MOSFETs may support future designed switching, but their current labels do not establish direct3.3V GPIO compatibility.
+
+Still unconfirmed in this upload: 100k/33k1% resistors,100nF capacitor,suitable copper cable,5V2AUSB supply/cable. No duplicate kit purchases inferred.

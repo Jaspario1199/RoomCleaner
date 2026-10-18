@@ -76,3 +76,7 @@ For an illustrative 5 V / 3 A load and 90% efficiency, battery demand at 3.3 V i
 Energy tradeoff: 1S 2200 mAh at 3.7 V = 8.14 Wh, half of 2S 2200 mAh at 7.4 V = 16.28 Wh. Approximately 1S 4400 mAh is needed for comparable nominal energy. Lower mass and lower cost cannot be promised at unchanged runtime without specific parts.
 
 TI BQ25895 illustrates integrated single-cell USB charging and up to 3.1 A boost operation; it is an IC/reference architecture, not a recommended ready-to-wire module or completed design. Source: https://www.ti.com/product/BQ25895 . A compact 1S design is technically credible but the module/cell selection, cost, mass and transient tests remain unresolved. No new purchases or hardware changes approved.
+
+## Detailed follow-up proposal
+
+See [Compact claw power proposal](claw_compact_power_proposal_20261018.md) for the researched XTAR protected USB-C 18650 + Pololu U3V70F5 architecture, costs, runtime calculations, alternative comparison and validation gates. This newer proposal reopens the earlier 2S restriction in response to the user's cost/weight requirements. It is not an approved purchase or completed electrical revision. Exact holder/current-path qualification and automatic dock power-path remain open; manual switched-off USB charging is the proposed first implementation.

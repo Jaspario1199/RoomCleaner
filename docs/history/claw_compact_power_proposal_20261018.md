@@ -257,3 +257,18 @@ Sources:
 - https://docs.sparkfun.com/SparkFun_Buck_Regulator_AP63357DV-7/single_page/
 
 Only design documentation changed. No hardware, CAD, firmware, inventory or procurement status is claimed changed. This is the preferred component-level proposal pending user adoption and load qualification.
+
+## Amazon-only sourcing constraint — 2026-10-18
+
+User requires Amazon links for missing parts. No purchases confirmed. Keep 2S protected pack / charger / 5 V regulator architecture. Exact DFR0564/DFR0753 Amazon listings were not located; do not label their manufacturer prices as Amazon prices.
+
+Amazon candidate substitutions:
+- Tenergy 31003 protected 7.4 V 2200 mAh pack: https://www.amazon.com/dp/B002Y2LJW0 — direct listing inspected; same intended battery.
+- AITIAO 2S 1A Type-C charger, 2-pack: https://www.amazon.com/dp/B0BV291D2J — select 2S 1A / 8.4 V version. Listing explicitly specifies 1 A INPUT but only 0.55 A battery charge current. Candidate replacement for DFR0564, not identical. Charge with load disconnected. Not a balancing board or a replacement for pack protection. Seller documentation is less complete than DFRobot; verify charge behavior/termination before unattended use. At 2.2 Ah, ideal charge-current equivalent is 4 h; allow about 5–6 h including taper as an estimate.
+- ZTW 6 A UBEC: https://www.amazon.com/dp/B071CHGWRM — set to 5.0 V before electronics connection; candidate replacement for DFR0753. Manufacturer 6–25 V input; 6 A continuous/10 A burst. Amazon bullets inconsistently mention 5 A and 6 A; either exceeds provisional 3.2 A load, but confirm exact supplied module. Do not substitute 7 V-minimum G2 variant. Manufacturer reference: https://www.ztwshop.com/product/accessory/2017/0814/ZTW-6A-UBEC.html
+
+All three Amazon pages returned no featured offer in accessible data; price, seller stock and destination delivery remain unverified. These are identified listings, not a confirmed purchasable cart or confirmed $31.99 Amazon total.
+
+Small parts: reuse owned XT60 connectors, fuse holders, WAGO/perfboard and suitable wire/capacitors where available. Remaining quantity/specifications not confirmed. Suggested provision: one 1000 uF >=10 V bulk capacitor (16 V acceptable), 100k + 33k 1% divider resistors and 100nF filter capacitor, appropriately rated wiring and DC switch/disconnect. A 3 A fuse is an initial candidate only if its physical type matches the owned holder and its curve tolerates measured startup; protect wiring and do not simply increase on nuisance opening. Use an existing XT60 as the manual master disconnect if a suitable switch is not owned. Existing USB 5 V/2 A adapter plus USB-A-to-C cable can supply candidate charger.
+
+No duplicate ESP32, camera, servo, FSR, XT60 kit, external BMS, display, or additional MT3608 required. Inventory unknowns must be labeled, not asserted as missing or delivered.

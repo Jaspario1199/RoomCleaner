@@ -44,3 +44,23 @@ Charger LED status is appropriate even though a large LCD is unnecessary. The S1
 - Example seller/manufacturer BMS specifications with uncertain thresholds: https://www.diymore.cc/products/2s-5a-li-ion-battery-overcurrent-protection-board-bms-pcm-lipo-cell-pack-18650-bms-pcm-mos-transistor-short-circuit-low-power
 
 No confirmed Amazon checkout prices or delivery dates were available. No complete-system saving total is asserted. Previous design record: [decisions_20261018.md](decisions_20261018.md).
+
+## Later architecture alternative — integrated USB-C power bank
+
+User asked whether battery use/charging could be fundamentally simpler. Proposed direction: an enclosed USB-C PD power bank with its own cell-management and USB charging electronics. This is a candidate architecture, not an approved purchase or validated substitute.
+
+- Removes user integration of a bare 2S pack, separate balance charger and separate battery-side alarm/cutoff modules when the selected power bank provides the required protection. Retain appropriate output wiring/fusing, servo decoupling and mechanically safe behavior on power loss.
+- Candidate power path with headroom: USB-C PD power bank supplying a negotiated 9 V / 3 A contract; small PD sink/trigger; suitable 5 V buck regulator; separate servo and XIAO branches. 27 W input at an assumed 90% buck efficiency gives 24.3 W, or 4.86 A at 5 V, as an upper planning estimate limited by every component and transient behavior. It is not a tested output rating.
+- Direct 5 V USB power is even simpler only if measured combined peaks fit the available 5 V contract with margin. A 30 W headline does not imply 30 W at 5 V. Use a compliant USB-C sink/interface; do not route servo power through XIAO USB/PCB, parallel bank outputs, or assume a cable splice negotiates PD.
+- Anker A1259 is an existence/reference example, not a final cost-optimized selection: official listing $49.99, 215 g, 104 × 52.3 × 26 mm, single-port 5 V / 3 A or 9 V / 3 A, up to 30 W USB-C input. Its own display is not a requirement; a cheaper screenless equivalent can be assessed. It may be simpler without being lighter or cheaper overall.
+- Adafruit HUSB238 fixed/jumper PD sink example: $5.95, 24.5 × 20.2 × 4.9 mm, 2.2 g. Configure and verify requested voltage/current; reset/fallback can yield 5 V before negotiation. Keep actuator disarmed during startup and test negotiation loss.
+- Normal use: operate from bank; stop and support gripper, disconnect robot output and charge bank through its intended USB input with a compatible wall charger. No exposed cell charging, raw cell wiring, or DIY balance harness.
+- Required selection/qualification: servo surge response, cable voltage drop, low-load automatic shutoff, boot/restart behavior, thermal limits and actual mass. Battery percentage/state must be available or runtime managed conservatively before hard cutoff; regulated 5/9 V output alone does not reveal internal state of charge.
+- Automatic hook charging remains separate. Do not assume simultaneous input/output, uninterrupted pass-through, automatic wake, or seamless switching. Verify the exact bank for dock integration; a 9 V output trigger is not an input charger or a bidirectional docking interface.
+- Prior runtime estimate (2S pack): 16.28 Wh nominal × assumed 0.8 usable fraction × 0.9 efficiency = 11.72 Wh. At 5 V and average 0.5/1/2 A, estimates 4.69/2.34/1.17 hours. These are scenarios, not measured usage. S10 ideal 2.2 Ah / 0.8 A = 2.75 hours plus taper/balancing, approximately 3–4 hours for near-empty equivalent recharge. They do not transfer unchanged to a power bank.
+
+Sources checked 2026-10-18:
+- https://www.anker.com/products/a1259-built-in-cable-power-bank-10000mah
+- https://www.adafruit.com/product/5807
+
+No hardware, firmware, approved BOM, or purchase status changed in this discussion.

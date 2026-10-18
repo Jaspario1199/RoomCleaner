@@ -58,3 +58,15 @@ The pasted records do not identify the motor part number/current rating, the 12 
 6. Next evidence: photographs of both sides of one A4988 and one DROK board, the power-supply and motor labels, fuse markings, plus confirmation that the capacitors have arrived. Begin with one C3 on USB only while this is resolved.
 
 Technical reference checked 2026-10-14: https://www.pololu.com/product/1182 . Pololu documentation establishes A4988 interface behavior, not the exact sense resistance, thermal rating or physical dimensions of the user's ACEIRMC carrier.
+
+## Updated supplied order-history evidence — 2026-10-18
+
+Source: user attachment Pasted text(3).txt, read in full. Only product/status data retained here; no order identifiers, addresses or order totals. Repeated product-title lines are not additional quantities. Delivery status is Amazon's report, not a physical remaining-stock count or camera verification.
+
+- WAGO 221 12-piece assortment: order placed October 14, marked delivered October 15. Separate October 11 WAGO order was cancelled; do not count a second assortment. This resolves the earlier arrival uncertainty.
+- XT60H 10 connector pairs, JCCON 10 x 100 uF / 50 V capacitors, and SUNLU grey PETG 4 kg: marked delivered October 15.
+- ACEIRMC charger order title specifically says two Type-C USB 2S 2A boost/charging boards, delivered August 13. Title also generically lists 8.4/12.6/16.8 V; inspect actual version. Charge current is not established by the 2A title alone.
+- Six EBOOT MP1584EN buck boards, delivered August 13, are available purchase history distinct from the six DROK boards delivered October 13. Remaining spare allocation not known.
+- JLJLUP protected 3.7 V 2000 mAh LiPo is a single-cell battery; not a substitute for selected 2S pack with a buck converter and 8.4 V charger.
+- Existing fuse assortment lists 3 A; physical remaining count unverified.
+- New attachment does not show 1000 uF capacitors, 100k/33k resistor purchases, 100nF capacitors, 18/16AWG copper spool, or a 5V2A USB adapter. It also does not include the ELEGOO UNO starter-kit entry in the prior source; omission does not cancel earlier evidence of ownership.

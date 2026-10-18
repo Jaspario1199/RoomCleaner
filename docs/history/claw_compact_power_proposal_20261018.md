@@ -1,6 +1,6 @@
 # Claw compact power proposal — 2026-10-18
 
-> Update: See the final section for the later A1653 dual-output power-bank recommendation prioritizing simplicity and cost. The XTAR/Pololu proposal below is preserved for design history.
+> Current direction: See the final section, Revised component-built design. The user rejected a finished power bank; the preferred proposal is now a protected 2S battery, embedded USB charger and 5 V buck. Earlier options remain as design history.
 
 Status: RESEARCHED PROPOSAL, not purchased, assembled, load-tested, or a released wiring/CAD revision. User requested detailed research after rejecting the cost and mass of earlier arrangements. This proposal supersedes earlier shopping recommendations only if adopted; preserve the previous decision history.
 
@@ -183,3 +183,77 @@ Sources:
 - https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/204/MG996R.pdf
 
 No firmware/CAD/hardware or purchase status changed.
+
+## Revised component-built design — user rejects finished power bank (2026-10-18)
+
+CURRENT PREFERRED PROPOSAL. User explicitly wants an engineering build from components/modules, not a finished power bank. The A1653 recommendation above is rejected for this project's design goals. Preserve all preceding alternatives as history; do not buy them in addition to this system.
+
+Architecture: factory-assembled protected 2S Li-ion battery + embedded 2S USB charger + fixed 5 V buck regulator. Existing XIAO ESP32-S3 Sense, camera, MG996R and FSR remain. Four wall stations remain on their separate 12 V supply.
+
+### Core parts
+
+| Part | Proposed component | Checked price | Key specification |
+|---|---|---|---|
+| Battery | Tenergy 31003 protected 7.4 V 2200 mAh 2S1P pack | $18.49 | Treat as 3 A continuous per detailed specs, despite legacy URL/metadata saying 4 A; 1 A maximum rapid charging; 72 x 38 x 19 mm; 99 g |
+| Charger | DFRobot DFR0564 | $5.00 | 5 V USB input; 8.4 V +/-1% CC/CV charge; up to 1 A; 28 x 37 mm; micro-USB and input solder pads; supplied heatsink |
+| Regulator | DFRobot DFR0753 | $8.50 | 6–14 V input; fixed 5 V output; manufacturer advertises up to 8 A |
+
+Core subtotal $31.99 before tax/shipping. Allow roughly $5–10 for any missing suitable fuse, switch, connectors, voltage-divider passives and bulk capacitor; reuse owned parts where appropriate. This is not a complete verified cart. USB 5 V / 2 A adapter and micro-USB cable assumed reusable. No purchases confirmed.
+
+DFR0753 is selected for input range and inexpensive current headroom, not an assertion that an enclosed module delivers 8 A under every condition. Its >93% efficiency figure is specified at 12 V/full load; use an assumed 90% only for preliminary 2S calculations. Verify thermal behavior and regulation at 6.8–8.4 V and actual load. Exact board mounting dimensions/clearance must be measured or obtained before freezing CAD.
+
+Battery protection is not a charger. Charger is not cell balancing. No balancing capability is established for the selected pack or charger; do not describe it as a balance charger or substitute unmatched loose cells. Pairing is based on published chemistry/voltage/current specifications, not manufacturer certification of the entire robot. Use the pack's protected external leads only.
+
+### Power topology
+
+Charging:
+5 V USB adapter -> DFR0564 USB/input pads -> protected battery terminals, through appropriately protected wiring.
+Battery positive -> near-battery fuse -> junction.
+One junction branch connects charger BAT+; the other connects master RUN switch -> DFR0753 VIN.
+Battery protected negative connects charger BAT-, regulator ground and system ground.
+DFR0753 5 V output -> separate servo and XIAO power branches.
+Servo return -> regulator ground directly.
+XIAO return -> regulator ground separately.
+FSR remains on the existing XIAO 3.3 V sensor circuit.
+Servo PWM remains a common-ground GPIO signal; retain/validate any existing signal buffer.
+
+The charger is connected on the battery side of the RUN switch, so the switch can remove robot loads while allowing charging. Do not connect 8.4 V battery/charger output to XIAO 5 V, XIAO BAT or servo. Leave XIAO BAT unused in this architecture. This single regulated rail is 5 V, not 6 V. Confirm servo voltage stays >=4.8 V at its connector during intended operation.
+
+Initial local servo bulk capacitance: 470–1000 uF, >=10 V, plus existing board decoupling; final choice subject to startup/transient tests. Capacitance is not a substitute for sufficient source capability. Fuse and switch must be selected against actual wiring, battery-current budget and surge behavior; do not copy the winch supply's 7.5 A fuse. No specific fuse value is released here.
+
+For PC USB programming, disconnect the external XIAO 5 V branch and leave the servo unpowered unless a verified source-selection circuit is fitted. Avoid powering the servo through XIAO/PC USB.
+
+### Why 2S and expected performance
+
+Provisional allowance retained: servo 2.5 A short pulse plus camera/electronics 0.7 A = 3.2 A at 5 V, or 16 W. This is not measured Deegoo servo demand.
+At 6.8 V battery and assumed 90% conversion efficiency, battery current is 16/(6.8*0.90) = 2.61 A. This fits a 3 A battery rating with modest margin. The 8 A regulator rating does not change the battery's 3 A limit.
+A single cell at 3.2 V would need about 5.7 A at 88% efficiency for the same load. Two cells reduce upstream current and permit a cheaper buck converter, at the cost of more battery mass.
+
+Battery-voltage monitoring should request parking before protection cutoff. Provisional threshold: 6.8 V, to be tuned for sag, reserve and actual pack behavior. One proposed divider is 100k upper / 33k lower with 100nF filtering at a suitable free S3 ADC, giving about 2.08 V at 8.4 V. This supersedes earlier 1S divider calculations ONLY for this candidate architecture. Pin assignment, calibration, filtering and firmware are not implemented. Total-pack measurement cannot detect individual-cell imbalance; the pack protection remains essential.
+
+Nominal stored energy about 16.3 Wh. With 80% usable allowance and 90% converter efficiency, usable output energy approximately 11.7 Wh:
+- 2.5 W average: 4.7 hours.
+- 5 W average: 2.3 hours.
+- 7.5 W average: 1.6 hours.
+These are conditional calculations, not measured runtime.
+Charging at up to 1 A: 2.2 hours ideal constant-current equivalent plus taper/other losses; budget approximately 3–4 hours with adequate USB input and cooling, then measure.
+
+### Charging/docking scope
+
+Initial implementation: support claw, switch RUN off, plug USB into charger, charge, unplug, switch RUN on. No battery removal or large RC balance charger required.
+Future hook contacts can deliver regulated 5 V to this SAME charger's input pads. Contacts do not touch raw cells and do not carry the claw mechanically.
+Do not promise fully autonomous charge/wake from these three parts alone. Keeping the ESP32 awake while charging requires a designed power-path/load-sharing arrangement; otherwise implement a separate hardware load-disconnect/wake mechanism. Initial manual switch does not complete that roadmap.
+
+### Validation and rejected shortcut
+
+Check regulator output unloaded, then actual camera streaming plus representative gripping, at full and near-reserve input voltage. Capture transient voltage/current and check enclosure temperatures. Stop normal motion before battery protection trips. Measure actual average load/runtime. Do not deliberately sustain a servo stall.
+
+SparkFun BabyBuck AP63357 was examined but not selected: its 3.5 A headline is not its practical no-heatsink continuous output; manufacturer guidance recommends <=1.5 A without heatsink, <=2.5 A with heatsink, and added airflow around 3 A. It would add cooling complications to this compact combined rail.
+
+Sources:
+- https://power.tenergy.com/tenergy-li-ion-7-4v-2200mah-rechargeable-battery-w-pcb-2s1p-16-25wh-4a-rate/
+- https://www.dfrobot.com/product-1713.html
+- https://www.dfrobot.com/product-2162.html
+- https://docs.sparkfun.com/SparkFun_Buck_Regulator_AP63357DV-7/single_page/
+
+Only design documentation changed. No hardware, CAD, firmware, inventory or procurement status is claimed changed. This is the preferred component-level proposal pending user adoption and load qualification.

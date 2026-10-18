@@ -2,6 +2,15 @@
 
 # RoomCleaner design history and roadmap
 
+## Latest update — 2026-10-18
+
+- [Current decisions, claw power selection, procurement status and integration gaps](decisions_20261018.md).
+- [SpaceX presentation narrative, evidence boundaries and milestone roadmap](presentation_roadmap_20261018.md).
+- One ESP32-C3/A4988 station now has **user-reported successful bench motion** after a logic-supply connection fix. Earlier pending-motion statements below are historical, not the latest status. Four-axis/load qualification remains open.
+- The latest claw baseline is **2S + DROK 200359 at 5 V**, with manual balance charging. Exact additional purchases are recommendations, not confirmed orders. This changes the older two-regulator proposal; the detailed schematic must be reconciled before assembly.
+- Gripper V2 lower-module spur reduction is recorded in the new decision log. Its full CAD/source/export package is not uploaded by this update.
+
+
 Index established 2026-10-14 following the user's 2026-10-12 request to preserve stages, designs and decision rationale for presentations. This is a retrospective index of available evidence, not a reconstruction of missing commits or physical test results.
 
 ## How to read the record
@@ -53,7 +62,7 @@ The five-pound goal is a reserve investigation, not a demonstrated load or autom
 
 ## Version storage and presentation discipline
 
-- The archive branch preserves all available nonignored project files and the explicitly included claw PDF. Earlier remote branches are retained independently; no automatic merge changes the default branch.
+- The local archive contains additional project files and exports that are not all published on this GitHub branch. This branch is a documentation history, not a verified complete backup. Earlier remote branches remain separate; no automatic merge changes the default branch.
 - [Snapshot manifest](snapshot_20261014.json) records paths, sizes and SHA-256 hashes. A hash verifies file identity, not engineering correctness. CAD sources and exports may represent different revisions; only a matching build record establishes reproducibility.
 - [Decision register](decisions_20261014.md) gives the problem, choice, rationale and open tradeoffs. Do not present a proposal as a user-approved purchase.
 - For every subsequent milestone, add a dated record using [the template](stage_template.md), commit source and deliverables together, and use a unique tag. Never move an existing milestone tag to newer files.

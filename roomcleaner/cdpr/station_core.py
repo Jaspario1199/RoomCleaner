@@ -178,6 +178,12 @@ class StationCore:
                 self.track_bad_since = None
                 self.capture = self.release = None
                 self._ack("clear", True)
+            elif self.state == State.OFF and self.fault != Fault.NONE:
+                # disarmed with a latched fault: clearing is safe (no torque, no motion)
+                self.fault = Fault.NONE
+                self.track_bad_since = None
+                self.capture = self.release = None
+                self._ack("clear", True)
             elif self.state in (State.IDLE, State.OFF) and self.fault == Fault.NONE:
                 self._ack("clear", True)                  # idempotent
             else:
@@ -468,6 +474,8 @@ class StationCore:
         if edge and self.sw_raw and ref == 1 and self.capture is None:
             self.capture = {"ts": now, "pos": self.pos, "enc": self.enc, "tau": int(self.tau),
                             "m": self.motion, "confirmed": False}
+        if self.capture is not None and not self.capture["confirmed"] and not self.sw_raw and not self.sw:
+            self.capture = None           # contact shorter than the debounce: a glitch, not the bead
         if self.sw and ref == 1:
             if self.capture is None:      # debounced without a seen edge (started active)
                 self.capture = {"ts": now, "pos": self.pos, "enc": self.enc, "tau": int(self.tau),

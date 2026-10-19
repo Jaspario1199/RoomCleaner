@@ -36,6 +36,8 @@
 #include "as5600.h"
 #include "stepgen.h"
 
+using namespace roomcleaner::winch;
+
 constexpr int STEP_PIN = 3, DIR_PIN = 4, EN_PIN = 5, HOME_PIN = 10, SDA_PIN = 6, SCL_PIN = 7;
 constexpr uint16_t UDP_PORT = 8771;          // stations listen here
 constexpr uint16_t HOST_PORT = 8770;         // host transport binds here

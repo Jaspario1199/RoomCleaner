@@ -415,7 +415,12 @@ measurements and failures (`data/cdpr/` holds calibration and trust JSON).
 
 ---
 
-## 13. Evidence (simulation, `pytest tests/cdpr`)
+## 13. Evidence (simulation, `pytest tests/cdpr tests/firmware`)
+
+* Firmware: the C++ station core replays 16 Python-generated traces (21.6k
+  events, 1,527 messages) with identical steps and field-identical messages;
+  the XIAO-C3 sketch builds warning-free and runs against Arduino stubs (not
+  yet built for the ESP32).
 
 * Station core: 16 tests (segments, parking, holds, lease, underrun, capture,
   faults).

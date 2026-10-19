@@ -169,6 +169,12 @@ class StationCore {
         capture_.valid = false;
         release_.valid = false;
         ack("clear", true, "");
+      } else if (state_ == State::OFF && fault_ != Fault::NONE) {
+        fault_ = Fault::NONE;        // disarmed with a latched fault: safe to clear
+        hasTrackBad_ = false;
+        capture_.valid = false;
+        release_.valid = false;
+        ack("clear", true, "");
       } else if ((state_ == State::IDLE || state_ == State::OFF) && fault_ == Fault::NONE) {
         ack("clear", true, "");      // idempotent
       } else {
@@ -785,6 +791,8 @@ class StationCore {
   void checkSwitch(int64_t now, bool edge) {
     const int ref = activeRef();
     if (edge && swRaw_ && ref == 1 && !capture_.valid) capture_ = snapshot(now);
+    if (capture_.valid && !capture_.confirmed && !swRaw_ && !sw_)
+      capture_.valid = false;       // contact shorter than the debounce: a glitch, not the bead
     if (sw_ && ref == 1) {
       if (!capture_.valid) capture_ = snapshot(now);      // debounced without a seen edge (started active)
       if (!capture_.confirmed) {

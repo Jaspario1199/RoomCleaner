@@ -509,14 +509,15 @@ def sc_ref_capture_glitch():
     r.step(5)                                                 # glitch shorter than the debounce
     r.sw = False
     r.step(60)
-    expect(any(m["t"] == "tel" and m["cap"] and not m["cap"]["confirmed"] for _, m in r.all_out),
-           "unconfirmed capture visible")
+    expect(r.core.capture is None, "glitch snapshot discarded")
     expect(not r.msgs("evt", k="capture"), "no capture yet")
     r.step_until(lambda: r.core.pos <= -700)
+    p_contact = r.core.pos
     r.sw = True
     r.step(700)
     cap = r.msgs("evt", k="capture")
     expect(len(cap) == 1, "capture")
+    expect(abs(cap[0]["pos"] - p_contact) <= 2, "capture at the real contact, not the glitch")
     return r
 
 
@@ -605,10 +606,13 @@ def sc_disarm_clear():
     r.send({"t": "disarm", "confirm": "claw_supported"})      # disarm from FAULT latches the fault
     expect(r.last_ack("disarm")["ok"] and r.core.state == State.OFF and r.core.fault == Fault.ENCODER,
            "disarm from fault")
-    r.send({"t": "clear"})
-    expect(r.last_ack("clear")["why"] == "moving", "reference quirk: clear refused after disarm-in-fault")
     r.send({"t": "arm"})
     expect(r.last_ack("arm")["why"] == "fault latched", "fault latched")
+    r.send({"t": "clear"})
+    expect(r.last_ack("clear")["ok"] and r.core.fault == Fault.NONE and r.core.state == State.OFF,
+           "clear after disarm-in-fault (stays OFF)")
+    r.send({"t": "arm"})
+    expect(r.last_ack("arm")["ok"] and r.core.state == State.IDLE, "re-arm after clear")
     r.step(30)
     return r
 

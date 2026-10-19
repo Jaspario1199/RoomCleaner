@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "profile": "hardware",
+  "_comment": "HARDWARE TEMPLATE: null = not yet measured. Stages needing a null field refuse to run. Copy to config/robot.json and fill from measurements; see docs/CONTROL_SYSTEM_V1.md.",
+  "room": {
+    "width_m": 3.3528,
+    "depth_m": 2.7432,
+    "height_m": 2.7432,
+    "surveyed": false
+  },
+  "stations": [
+    {
+      "id": "A",
+      "anchor_room_m": null,
+      "anchor_sigma_m": 0.1,
+      "address": null,
+      "drive": {
+        "full_steps_per_rev": 200,
+        "microsteps": 1,
+        "step_sign": 1,
+        "max_step_rate_hz": null
+      },
+      "encoder": {
+        "counts_per_rev": 4096,
+        "sign": null,
+        "mount": "spool",
+        "max_age_s": null
+      },
+      "spool": {
+        "core_radius_m": 0.0075,
+        "drum_width_m": 0.016,
+        "flange_radius_m": 0.018,
+        "line_diameter_m": null,
+        "packing": 0.85,
+        "line_total_m": null,
+        "payout_scale": 1.0,
+        "payout_table": null
+      },
+      "bead": {
+        "present": true,
+        "trigger_length_m": null,
+        "uncertainty_m": null,
+        "switch_normally_closed": true,
+        "debounce_s": 0.01,
+        "approach_speed_m_s": null,
+        "search_window_m": null,
+        "max_overtravel_m": null,
+        "backoff_m": null,
+        "repeatability_tol_m": null,
+        "min_length_margin_m": 0.02
+      }
+    },
+    {
+      "id": "B",
+      "anchor_room_m": null,
+      "anchor_sigma_m": 0.1,
+      "address": null,
+      "drive": {
+        "full_steps_per_rev": 200,
+        "microsteps": 1,
+        "step_sign": 1,
+        "max_step_rate_hz": null
+      },
+      "encoder": {
+        "counts_per_rev": 4096,
+        "sign": null,
+        "mount": "spool",
+        "max_age_s": null
+      },
+      "spool": {
+        "core_radius_m": 0.0075,
+        "drum_width_m": 0.016,
+        "flange_radius_m": 0.018,
+        "line_diameter_m": null,
+        "packing": 0.85,
+        "line_total_m": null,
+        "payout_scale": 1.0,
+        "payout_table": null
+      },
+      "bead": {
+        "present": true,
+        "trigger_length_m": null,
+        "uncertainty_m": null,
+        "switch_normally_closed": true,
+        "debounce_s": 0.01,
+        "approach_speed_m_s": null,
+        "search_window_m": null,
+        "max_overtravel_m": null,
+        "backoff_m": null,
+        "repeatability_tol_m": null,
+        "min_length_margin_m": 0.02
+      }
+    },
+    {
+      "id": "C",
+      "anchor_room_m": null,
+      "anchor_sigma_m": 0.1,
+      "address": null,
+      "drive": {
+        "full_steps_per_rev": 200,
+        "microsteps": 1,
+        "step_sign": 1,
+        "max_step_rate_hz": null
+      },
+      "encoder": {
+        "counts_per_rev": 4096,
+        "sign": null,
+        "mount": "spool",
+        "max_age_s": null
+      },
+      "spool": {
+        "core_radius_m": 0.0075,
+        "drum_width_m": 0.016,
+        "flange_radius_m": 0.018,
+        "line_diameter_m": null,
+        "packing": 0.85,
+        "line_total_m": null,
+        "payout_scale": 1.0,
+        "payout_table": null
+      },
+      "bead": {
+        "present": true,
+        "trigger_length_m": null,
+        "uncertainty_m": null,
+        "switch_normally_closed": true,
+        "debounce_s": 0.01,
+        "approach_speed_m_s": null,
+        "search_window_m": null,
+        "max_overtravel_m": null,
+        "backoff_m": null,
+        "repeatability_tol_m": null,
+        "min_length_margin_m": 0.02
+      }
+    },
+    {
+      "id": "D",
+      "anchor_room_m": null,
+      "anchor_sigma_m": 0.1,
+      "address": null,
+      "drive": {
+        "full_steps_per_rev": 200,
+        "microsteps": 1,
+        "step_sign": 1,
+        "max_step_rate_hz": null
+      },
+      "encoder": {
+        "counts_per_rev": 4096,
+        "sign": null,
+        "mount": "spool",
+        "max_age_s": null
+      },
+      "spool": {
+        "core_radius_m": 0.0075,
+        "drum_width_m": 0.016,
+        "flange_radius_m": 0.018,
+        "line_diameter_m": null,
+        "packing": 0.85,
+        "line_total_m": null,
+        "payout_scale": 1.0,
+        "payout_table": null
+      },
+      "bead": {
+        "present": true,
+        "trigger_length_m": null,
+        "uncertainty_m": null,
+        "switch_normally_closed": true,
+        "debounce_s": 0.01,
+        "approach_speed_m_s": null,
+        "search_window_m": null,
+        "max_overtravel_m": null,
+        "backoff_m": null,
+        "repeatability_tol_m": null,
+        "min_length_margin_m": 0.02
+      }
+    }
+  ],
+  "claw": {
+    "attachment": "common",
+    "attachment_points_body_m": [
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "mass_kg": null,
+    "camera_in_body": null,
+    "lowest_point_body_m": null,
+    "imu": false,
+    "grip_tilt_max_rad": 0.08726646259971647,
+    "address": null
+  },
+  "marker": {
+    "family": "apriltag_36h11",
+    "id": 0,
+    "edge_m": null,
+    "heading_prior_rad": null,
+    "heading_sigma_rad": 0.3490658503988659,
+    "position_prior_room_m": null,
+    "position_sigma_m": 0.5
+  },
+  "camera": {
+    "intrinsics_file": null,
+    "max_frame_age_s": null,
+    "pose_sigma_m": 0.004,
+    "pose_sigma_rad": 0.01,
+    "min_marker_pixels": 40.0,
+    "max_reprojection_px": 2.0,
+    "ambiguity_ratio_min": 3.0
+  },
+  "motion": {
+    "max_cable_speed_m_s": null,
+    "max_cable_accel_m_s2": null,
+    "max_cart_speed_m_s": null,
+    "max_cart_accel_m_s2": null,
+    "hold_time_s": 0.25,
+    "min_tension_n": 0.5,
+    "max_tension_n": null,
+    "workspace_margin_m": 0.2,
+    "ceiling_margin_m": 0.4,
+    "segment_s": 0.1,
+    "lookahead_s": 0.8,
+    "start_lead_s": 0.4
+  },
+  "startup": {
+    "probe_packet_m": null,
+    "probe_speed_m_s": null,
+    "max_slack_m": null,
+    "onset_translation_m": 0.002,
+    "onset_tilt_rad": 0.010471975511965976,
+    "onset_noise_k": 4.0,
+    "onset_backoff_m": null,
+    "lift_packet_m": null,
+    "target_clearance_m": 0.075,
+    "max_lift_m": null,
+    "max_lateral_drift_m": null,
+    "max_tilt_rad": 0.13962634015954636,
+    "still_samples": 10,
+    "settle_s": 0.5,
+    "max_marker_wait_s": 120.0
+  },
+  "faults": {
+    "tracking_tol_counts": null,
+    "tracking_dwell_s": null,
+    "lease_s": null,
+    "clock_uncertainty_max_s": null,
+    "telemetry_max_age_s": null,
+    "sync_interval_s": 0.2
+  },
+  "calibration": {
+    "min_samples": 20,
+    "witness_samples": 5,
+    "witness_rms_max_m": 0.006,
+    "noise_capture_frames": 10,
+    "bead_k_sigma": 3.0,
+    "bead_length_sigma_max_m": 0.01,
+    "local_box_m": [
+      0.15,
+      0.15,
+      0.1
+    ],
+    "expanded_box_m": [
+      0.8,
+      0.8,
+      0.5
+    ],
+    "fit_payout_scale": false
+  },
+  "authorization": {
+    "suspended_motion_authorized": false,
+    "qualified_by": null,
+    "qualification_ref": null
+  },
+  "obstacles": []
+}

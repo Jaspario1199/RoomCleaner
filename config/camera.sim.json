@@ -1,0 +1,32 @@
+{
+  "_comment": "SIMULATION camera (OV2640-class SVGA guess); real intrinsics come from tools/calibrate_camera.py",
+  "image_size": [
+    800,
+    600
+  ],
+  "K": [
+    [
+      520.0,
+      0,
+      400.0
+    ],
+    [
+      0,
+      520.0,
+      300.0
+    ],
+    [
+      0,
+      0,
+      1
+    ]
+  ],
+  "dist": [
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "calibration_id": "sim-v1"
+}

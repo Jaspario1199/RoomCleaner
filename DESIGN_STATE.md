@@ -297,3 +297,15 @@ writes, disarm only after a fresh vision floor check plus a per-boot station
 disarm key, hold resend, exception-safe motion, pause in every state, session
 token on the operator API, measured-dt path time, dynamic tension margin.
 Open before any hardware bead search: station-enforced travel floor (D-F).
+
+## Station cover v4 — concept only, not adopted (10/19)
+`cad/parts/station_cover_v4.py` (fin alcove, perfboard/buck bosses, vents,
+USB port; built from Jasper's v3 Shell_Casing) is kept as a reference concept.
+Jasper is designing the cover himself in SolidWorks; the independent
+verification was stopped and this part is NOT verified or released. Useful
+numbers for his design (station frame: origin on the motor shaft at the
+flange, x out of the wall, z up): fin occupies y[-T,0], x[-22,22], from
+z=-21; motor back face moves to y=-38-T (only 0.33 mm to the old shell's
+inner -y wall with T=4.76 — relieve that wall); motor top z=21.15, slip-in
+pin top z≈24.9 (alcove floor ≥ 25.5); 12 mm air gap per fin face; the fin
+slot must run out to the mating rim at x=-21.15 so the cover slides on.

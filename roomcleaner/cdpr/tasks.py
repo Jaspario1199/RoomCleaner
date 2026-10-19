@@ -66,7 +66,11 @@ class TrustedVolume:
         pts = ctx.validated_volume
         if ctx.ledger.level != "VERIFIED" and pts is not None and len(pts) >= 5:
             from scipy.spatial import Delaunay
-            self.hull = Delaunay(np.asarray(pts))
+            from scipy.spatial import QhullError
+            try:
+                self.hull = Delaunay(np.asarray(pts))
+            except QhullError:                       # flat/degenerate validated set: no trusted volume
+                self.hull = None
 
     def allows(self, q, *, below_ok=False) -> bool:
         ctx = self.ctx

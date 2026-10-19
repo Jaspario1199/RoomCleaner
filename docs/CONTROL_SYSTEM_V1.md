@@ -109,6 +109,9 @@ message list in `roomcleaner/cdpr/protocol.py`.
   Out-of-order segments are parked. Duplicates are re-acknowledged. Lost
   ones are resent after 40 ms.
 * **Coordinated stop = feed-hold in path time.** A hold names a path time τ.
+  The host resends it every 20 ms to any station still reporting RUN, so a
+  lost datagram cannot leave one winch running while three hold. Any host-side
+  exception during a motion also sends the hold before propagating.
   Each station ramps its path-rate to 0 over `hold_us`, so all four
   decelerate **along the same geometric path**.
 * **Lease.** No valid host message within `lease_s` → the station holds
@@ -119,7 +122,14 @@ message list in `roomcleaner/cdpr/protocol.py`.
 * **Completion** is read from repeated telemetry (loss-tolerant): 10/10 lossy
   motions completed in simulation at 2–5 % packet loss.
 * **Monitor hook.** A host predicate (e.g. "vision saw the claw move") can
-  trigger the same coordinated hold mid-motion. Slack take-up uses it.
+  trigger the same coordinated hold mid-motion. Slack take-up uses it. If the
+  monitor raises, that is a stop reason.
+* **Path time** on each station integrates the *measured* elapsed time, so
+  loop jitter cannot make one winch lag the others.
+* **Host loop.** While no command runs, the service keeps pumping (keep-alive
+  pings at ≤ lease/4, clock sync) and polls the supervisor every 100 ms. Real
+  camera frames are fetched on their own thread so the control loop never
+  waits on the network.
 
 ### Station fault reactions
 
@@ -132,8 +142,10 @@ message list in `roomcleaner/cdpr/protocol.py`.
 | LEASE / UNDERRUN | coordination at risk, motion itself fine | coordinated hold | kept |
 
 **Stop ≠ disable.** No fault removes torque. Only `disarm` with
-`confirm:"claw_supported"` does. The supervisor sends it only when vision
-shows the claw on the floor, or the state already records it as supported.
+`confirm:"claw_supported"` **and the station's per-boot disarm key** (`dk`,
+reported only in unicast telemetry) does. A stray or replayed datagram
+cannot drop the claw. The supervisor sends it only after a **fresh vision
+check** shows the claw on the floor; no stored flag substitutes for that check.
 
 ### Encoder role (AS5600 on the spool)
 
@@ -151,7 +163,7 @@ the spool, or absolute multi-turn length: a reboot starts a new epoch and
 
 | Event | Station references | Room geometry | Result |
 |---|---|---|---|
-| coordinated stop (pause, lease, underrun, peer hold) | kept | kept | unchanged |
+| coordinated stop (pause, lease, underrun, peer hold) | kept | kept | unchanged; a latched lease/underrun shows FAULT until `acknowledge` |
 | tracking / encoder / timing fault | that station invalid | kept | RECOVERY |
 | unexpected bead switch | that station suspect | kept | RECOVERY |
 | station reboot | that station's epoch lost | kept | RECOVERY |
@@ -160,7 +172,15 @@ the spool, or absolute multi-turn length: a reboot starts a new epoch and
 | marker moved / missing | kept | marker registration invalid | LOCAL_ONLY until re-registered |
 | camera calibration changed | kept | visual products invalid | NONE for vision |
 
-A reboot of anything never resumes a task or a startup.
+A reboot of anything never resumes a task or a startup. `claw_supported`
+fails closed:
+* unknown means "may be hanging";
+* it is written durably (atomic, fsync) False before the first lift command;
+* it is written True only after a vision floor check.
+
+The calibrated model (`data/cdpr/model.json`) is persisted. After a host
+restart, stations with unchanged boot ids keep their references, so a hanging
+claw can still be recovered or lowered by software.
 
 ---
 
@@ -270,12 +290,12 @@ outcome, not a bug. Options are in §9 (open decision D-B).
 | Command | Allowed in | Effect |
 |---|---|---|
 | start | DISARMED, PARKED | runs the startup (page requires the checklist) |
-| pause | STARTUP, TASK, READY | coordinated hold → PAUSED |
+| pause | any state | coordinated hold of whatever is moving (incl. lowering/recovery); moving states → PAUSED |
 | resume | PAUSED | on floor: restart from SELF_CHECK; suspended: visual model check first |
-| acknowledge | FAULT | clears station faults → DISARMED/PARKED (on floor) or RECOVERY_REQUIRED (hanging) |
-| recover | RECOVERY_REQUIRED | ≤ 1 invalid station: reconfigure, clear, re-arm, re-reference its L0 from vision (LOCAL_ONLY), then a slack-aware model-vs-vision check |
-| lower | READY, PAUSED, RECOVERY_REQUIRED, FAULT | move over the marker, descend, final packets until vision sees no further descent, slacken → PARKED |
-| disarm | PARKED, DISARMED, FAULT, RECOVERY_REQUIRED | needs `claw_supported` **and** vision/state confirming support |
+| acknowledge | FAULT | clears station faults; on the floor → PARKED/DISARMED; hanging with all references valid and the model agreeing with vision → READY; else RECOVERY_REQUIRED |
+| recover | RECOVERY_REQUIRED, FAULT | reconfigure/clear/re-arm stations; ≤ 1 invalid station is re-referenced from vision, then tautened slowly under vision (bounded) and re-referenced (LOCAL_ONLY); READY only if every station is ready and model and vision agree |
+| lower | READY, PAUSED, RECOVERY_REQUIRED, FAULT | restore stations; move over the marker (model, tension-checked), descend, then equal-payout packets (bounded count, drift and tilt checked) until vision sees the floor; slacken → PARKED. Without a vision floor confirmation → RECOVERY_REQUIRED |
+| disarm | PARKED, DISARMED, FAULT, RECOVERY_REQUIRED, PAUSED | typed `claw_supported` **and** a fresh vision floor check, always |
 
 **Host restart:**
 * claw known supported → DISARMED;
@@ -325,6 +345,13 @@ RELEASE → DELIVERY_VERIFICATION.
   and the 1 lb test weight first.
 * **D-D Garment perception** for hardware (see §8).
 * **D-E Station address assignment / discovery.** Static IPs in the config.
+* **D-F Station-enforced travel floor for bead searches** (review M3). Today
+  the over-travel bound comes from the host's model. A station-side absolute
+  floor per `ref=1` segment (protocol and both cores) is required before any
+  bead search on hardware.
+* **Operator page access.** A session token printed at start, plus JSON-only
+  requests. Use it on a trusted home network only; it is not hardened for
+  hostile networks.
 
 ---
 

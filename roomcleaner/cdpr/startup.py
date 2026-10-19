@@ -59,6 +59,7 @@ from .frames import inv_T, make_T, planar_T
 from .kinematics import Geometry, tension_distribution, workspace_from_config
 from .perception import to_marker, to_room
 from .spool import CableMap
+from .protocol import State
 from .trajectory import PlanError, limits_from_config, model_from, plan_cable_move, plan_line_from
 
 STARTUP_STATES = ("DISARMED", "SELF_CHECK", "SLACK_TAKEUP", "INITIAL_LIFT", "VISUAL_INITIALIZATION",
@@ -99,6 +100,7 @@ class RobotContext:
         self.ws = None
         self.validated_volume = None        # room-frame points where the model is validated
         self.T_B_C = cfg.claw.T_body_cam
+        self.persist = lambda: None         # supervisor installs its durable save here
 
     # -- time ------------------------------------------------------------
     def wait(self, s):
@@ -115,17 +117,56 @@ class RobotContext:
         self.model = model_from(geo, self.cfg, L0)
         self.ws = workspace_from_config(self.cfg, np.asarray(anchors_room),
                                         lowest_point_z=float(self.cfg.claw.lowest_point_body_m[2]))
+        self._bead_margin()
+
+    def _bead_margin(self):
+        """Until the beads are verified the absolute length can be off by
+        k*sigma_abs: widen the normal-motion keep-out from each bead so an
+        ordinary move cannot pull a bead onto its switch (review M2)."""
+        if self.result is None or self.ws is None or self.ledger.level == "VERIFIED":
+            return
+        k = self.cfg.calibration.bead_k_sigma
+        sig = self.cal.absolute_sigma(self.result)
+        for i, s in enumerate(self.cfg.stations):
+            if s.bead.present and s.bead.trigger_length_m is not None and not self.ledger.stations[s.id].bead_verified:
+                self.ws.min_lengths[i] = s.bead.trigger_length_m + s.bead.min_length_margin_m + k * float(sig[i])
 
     def apply_result(self, res, source):
         self.result = res
+        self.ledger.anchors_room = res.anchors_room.tolist()
         self.set_model(res.anchors_room, dict(zip(IDS, res.L0)), res.T_R_M)
         sig = res.sigma()
         boots = {s: self.co.links[s].boot for s in IDS}
         for i, s in enumerate(IDS):
             self.ledger.set_reference(s, boots[s], res.L0[i], float(sig[f"L0 {s}"]), source)
-        self.ledger.anchors_room = res.anchors_room.tolist()
         self.ledger.T_R_M = res.T_R_M.tolist()
         self.ledger.marker_valid = True
+        self.save_model()
+
+    # -- persistence (host restart while suspended) ----------------------------
+    def save_model(self):
+        if self.data_dir is None or self.result is None or self.model is None:
+            return
+        from .trust import atomic_write
+        st = {"result": self.result.to_state(), "T_R_M": self.T_R_M.tolist(),
+              "L0": {s: self.model.maps[s].L0 for s in IDS},
+              "boots": {s: self.co.links[s].boot for s in IDS},
+              "validated_volume": None if self.validated_volume is None else np.asarray(self.validated_volume).tolist(),
+              "beads": [[b.i, b.P, b.trigger, b.sigma] for b in self.cal.beads]}
+        atomic_write(self.data_dir / "model.json", json.dumps(st))
+
+    def load_model(self) -> bool:
+        if self.data_dir is None or not (self.data_dir / "model.json").exists():
+            return False
+        from .calibration import CalibrationResult
+        d = json.loads((self.data_dir / "model.json").read_text())
+        self.result = CalibrationResult.from_state(d["result"])
+        self.set_model(self.result.anchors_room, d["L0"], d["T_R_M"])
+        vv = d.get("validated_volume")
+        self.validated_volume = None if vv is None else np.asarray(vv)
+        self.cal.beads = [BeadObs(int(i), P, t, sg) for i, P, t, sg in d.get("beads", [])]
+        self.saved_boots = d.get("boots", {})
+        return True
 
     def room_pose(self, sp):
         return to_room(self.T_R_M, sp.p)
@@ -196,7 +237,10 @@ class StartupSequencer:
             self.rep.outcome = "PAUSED" if e.paused else "FAULT"
             self.rep.reasons.append(e.reason)
             self.rep.measurements["suspended"] = e.suspended
-            self.ctx.ledger.claw_supported = not e.suspended
+            if e.suspended:                             # never set True from an abort (fail closed)
+                self.ctx.ledger.claw_supported = False
+            self.rep.measurements["suspended"] = not self.ctx.ledger.claw_supported
+            self.ctx.persist()
             self._enter(self.rep.outcome, f"in {e.state}: {e.reason}")
             return self.rep
         self.rep.outcome = "READY"
@@ -218,14 +262,32 @@ class StartupSequencer:
             raise StartupAbort(S, "claw offline")
         if st.get("battery_v") is not None and st["battery_v"] < cfg.startup.battery_min_v:
             raise StartupAbort(S, f"claw battery {st['battery_v']:.2f} V < {cfg.startup.battery_min_v} V")
+        # 1) the claw must demonstrably rest upright on the floor BEFORE any
+        #    station is touched; only then is clearing latched faults safe
+        sp = self._still(state=S)
+        self.noise_m = max(sp.spread_m, 2e-4)
+        zf = -float(cfg.claw.lowest_point_body_m[2])
+        if abs(sp.p[2] - zf) > cfg.startup.floor_height_tol_m:
+            raise StartupAbort(S, f"claw origin {sp.p[2]:.3f} m above the marker, expected {zf:.3f} m: "
+                                  "not resting upright on the floor (or marker edge / camera mount wrong)")
+        tilt = max(sp.tilt_rad, ctx.claw.tilt())
+        if tilt > cfg.startup.max_tilt_rad:
+            raise StartupAbort(S, f"claw tilted {math.degrees(tilt):.1f} deg")
+        ctx.ledger.claw_supported = True
+        ctx.persist()
+        # 2) stations
         co = ctx.co
         try:
             co.wait(300000)
+            for s_ in IDS:                           # e.g. LEASE latched while parked: safe on the floor
+                if (co.links[s_].tel or {}).get("st") == State.FAULT:
+                    co.clear(s_)
             co.configure()
             co.wait_synced(5.0)
+            co.wait(200000)                          # telemetry reflecting the new configuration
         except Exception as e:                      # CoordinatorError: station unreachable / config
             raise StartupAbort(S, f"stations: {e}")
-        bad = {s: [x for x in r if x != "state OFF"] for s, r in co.readiness().items()}
+        bad = {s: [x for x in r if x not in ("state OFF", "state IDLE")] for s, r in co.readiness().items()}
         bad = {s: r for s, r in bad.items() if r}
         if bad:
             raise StartupAbort(S, f"stations not healthy: {bad}")
@@ -240,15 +302,6 @@ class StartupSequencer:
         bad = {s: r for s, r in co.readiness().items() if r}
         if bad:
             raise StartupAbort(S, f"stations not ready after arming: {bad}")
-        sp = self._still(state=S)
-        self.noise_m = max(sp.spread_m, 2e-4)
-        zf = -float(cfg.claw.lowest_point_body_m[2])
-        if abs(sp.p[2] - zf) > cfg.startup.floor_height_tol_m:
-            raise StartupAbort(S, f"claw origin {sp.p[2]:.3f} m above the marker, expected {zf:.3f} m: "
-                                  "not resting upright on the floor (or marker edge / camera mount wrong)")
-        tilt = max(sp.tilt_rad, ctx.claw.tilt())
-        if tilt > cfg.startup.max_tilt_rad:
-            raise StartupAbort(S, f"claw tilted {math.degrees(tilt):.1f} deg")
         self.p_floor = sp
         self.rep.measurements["vision_noise_m"] = self.noise_m
         self.rep.measurements["claw_on_floor_M"] = sp.p.tolist()
@@ -309,8 +362,11 @@ class StartupSequencer:
                     f"toward {math.degrees(o.bearing):.0f} deg (marker frame)")
             back = np.zeros(4)
             back[i] = st.onset_backoff_m / ppu
-            self._execute(plan_cable_move(ctx.co.positions(), back, rate * 2, rate * 10,
-                                          segment_s=cfg.motion.segment_s, label=f"backoff {sid}"), S, suspended=False)
+            rb = self._execute(plan_cable_move(ctx.co.positions(), back, rate * 2, rate * 10,
+                                               segment_s=cfg.motion.segment_s, label=f"backoff {sid}"),
+                               S, suspended=False)
+            if not rb.ok:
+                raise StartupAbort(S, f"station {sid}: backoff {rb.reason}")
         # bearings vs anchor entries, then the first fit
         claw = np.array([0.5 * (o.p + o.bearing_from) for o in ctx.onsets])
         psi, cov, rms = align_from_bearings(ctx.priors, claw, [o.bearing for o in ctx.onsets],
@@ -345,6 +401,8 @@ class StartupSequencer:
         st = cfg.startup
         sp = self._still(state=S)
         p0 = ctx.room_pose(sp)
+        ctx.ledger.claw_supported = False          # durable BEFORE the first command that can lift
+        ctx.persist()
         # bring all four to just-taut at the current pose (they were backed off)
         P = ctx.co.positions()
         target = ctx.model.positions_for(p0)
@@ -372,7 +430,9 @@ class StartupSequencer:
                 raise StartupAbort(S, f"no {st.target_clearance_m * 1e3:.0f} mm clearance after "
                                       f"{st.max_lift_m * 1e3:.0f} mm commanded lift", suspended=True)
             nxt = cur + [0, 0, st.lift_packet_m]
-            self._packet(cur, nxt, st.probe_speed_m_s * 2, "lift", S)
+            r = self._packet(cur, nxt, st.probe_speed_m_s * 2, "lift", S)
+            if r is not None and not r.ok:
+                raise StartupAbort(S, f"lift packet stopped: {r.reason}", suspended=True)
             lifted += st.lift_packet_m
             cur = nxt
             ctx.wait(st.settle_s)
@@ -391,7 +451,7 @@ class StartupSequencer:
             if sp2.p[2] - zf >= st.target_clearance_m:
                 self.rep.measurements["lift_commanded_m"] = lifted
                 self.rep.measurements["lift_observed_m"] = float(rise)
-                ctx.ledger.claw_supported = False
+                ctx.persist()
                 return
 
     # ---------------------------------------------------- VISUAL_INITIALIZATION
@@ -417,7 +477,8 @@ class StartupSequencer:
         if ctx.ws.violations(ctx.model.geometry, q_R):
             return False
         t = tension_distribution(ctx.model.geometry, q_R, cfg.claw.mass_kg, t_min=cfg.motion.min_tension_n,
-                                 t_max=cfg.motion.max_tension_n * 0.8)
+                                 t_max=cfg.motion.max_tension_n * 0.75,
+                                 accel=(0.0, 0.0, cfg.motion.dynamic_accel_m_s2))
         if not t.feasible:
             return False
         T_M_B = make_T(R_M, to_marker(ctx.T_R_M, q_R))
@@ -500,6 +561,7 @@ class StartupSequencer:
         self.rep.measurements["absolute_sigma_m"] = ctx.cal.absolute_sigma(res).tolist()
         ok_pts = [q for q in vol if np.max(ctx.cal.length_sigma(res, to_marker(res.T_R_M, q))) <= cc.length_sigma_max_m]
         ctx.validated_volume = np.array(ok_pts)
+        ctx.save_model()
         if report["accepted"]:
             ctx.ledger.set_level("LOCAL_ONLY")      # VERIFIED only after the beads
         else:
@@ -526,7 +588,12 @@ class StartupSequencer:
         if missing:
             self.rep.reasons.append(f"bead verification blocked: unmeasured {missing}")
         else:
-            sig_abs = ctx.cal.absolute_sigma(ctx.result)
+            # absolute sigma + spool-model (payout scale) error over the distance
+            # between the calibrated region and the bead (review M3)
+            Lh = ctx.model.geometry.lengths(home)
+            sig_abs = np.hypot(ctx.cal.absolute_sigma(ctx.result),
+                               self.cfg.calibration.payout_scale_sigma * np.abs(Lh - np.array(
+                                   [s.bead.trigger_length_m for s in self.cfg.stations])))
             bv = BeadVerifier(self.cfg, ctx.co, ctx.model, ctx.lim, ctx.ws, lambda q: sig_abs, log=ctx.log)
             for i, sid in enumerate(IDS):
                 out = bv.run(i, p_home=home)

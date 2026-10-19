@@ -44,6 +44,7 @@ class MarkerObservation:
     frame_id: int | None = None
     capture_us: float | None = None
     edge_eff: float | None = None          # span of the tag set used (marker board), else None
+    imu_rp: tuple | None = None            # claw roll/pitch sampled with this frame (gravity fusion)
 
     def sigma_cam(self, cam_fx: float, edge_m: float, pixel_sigma=0.3) -> np.ndarray:
         """Rough 1-sigma of the marker position in the camera frame (m):

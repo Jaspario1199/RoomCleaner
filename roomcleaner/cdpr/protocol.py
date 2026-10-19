@@ -19,7 +19,8 @@ Messages host -> station
 cfg     {"t":"cfg", "p":{firmware params}}              -> ack (with "hash")
 sync    {"t":"sync","h":host_us}                         -> sync_r
 arm     {"t":"arm"}                                      -> ack  (driver enabled, holding)
-disarm  {"t":"disarm","confirm":"claw_supported"}        -> ack  (removes holding torque!)
+disarm  {"t":"disarm","confirm":"claw_supported","k":dk} -> ack  (removes holding torque!)
+            dk = per-boot random key from this station's telemetry; wrong key -> nack "key"
 seg     {"t":"seg","m":motion,"i":index,"t0":local_us,"d":us,
          "p0":usteps,"p1":usteps,"v0":usteps_s,"v1":usteps_s,
          "last":bool,"ref":0|1|2}                        -> ack/nack
@@ -74,7 +75,7 @@ class Fault:
     REACTION = {1: "stop", 2: "stop", 3: "stop", 4: "hold", 5: "hold", 6: "stop", 7: "stop"}
 
 
-TELEMETRY_FIELDS = ("sid", "boot", "seq", "now", "st", "flt", "pos", "enc", "encv", "sw",
+TELEMETRY_FIELDS = ("sid", "boot", "seq", "now", "st", "flt", "pos", "enc", "encv", "sw", "dk",
                     "swr", "m", "i", "tau", "buf", "terr", "cap")
 
 REQUIRED_PARAMS = ("sid", "usteps_per_rev", "step_sign", "max_rate_hz", "counts_per_rev",

@@ -111,14 +111,51 @@ class DetectorFrameSource:
             return MarkerObservation(False, f"no frame: {e}")
         if self.mode and mode != self.mode:
             return MarkerObservation(False, f"camera mode {mode!r} != calibrated {self.mode!r}")
+        rp = None
         try:
-            r, p = self.client.roll_pitch()
+            self.client._status = None                 # fresh attitude, taken right after the frame
+            rp = self.client.roll_pitch()
             from .frames import rpy_to_matrix
-            up_body = rpy_to_matrix(r, p, 0.0).T @ np.array([0, 0, 1.0])   # world up in body
+            up_body = rpy_to_matrix(rp[0], rp[1], 0.0).T @ np.array([0, 0, 1.0])   # world up in body
             up_cam = self.R_C_B @ up_body
         except Exception:
             up_cam = (0, 0, -1)
         obs = self.det.detect(img, prev_T_C_M=self.prev, up_in_cam=up_cam, frame_id=fid, capture_us=cap)
+        obs.imu_rp = rp
         if obs.ok:
             self.prev = obs.T_C_M
         return obs
+
+
+class ThreadedFrameSource:
+    """Runs a (blocking, HTTP) frame source on its own thread so the control
+    loop never waits on the network (review H4). ``observe`` returns the
+    newest result without blocking; staleness is judged by VisionSource from
+    the frame's capture time."""
+
+    def __init__(self, inner, *, period_s=0.05):
+        import threading
+        from .vision.marker import MarkerObservation
+        self.inner = inner
+        self.period = period_s
+        self.latest = MarkerObservation(False, "no frame yet")
+        self.error = None
+        self._stop = threading.Event()
+        threading.Thread(target=self._loop, daemon=True, name="claw-frames").start()
+
+    def _loop(self):
+        while not self._stop.is_set():
+            try:
+                self.latest = self.inner.observe(None)
+                self.error = None
+            except Exception as e:                    # surfaced through the observation reason
+                from .vision.marker import MarkerObservation
+                self.error = f"{type(e).__name__}: {e}"
+                self.latest = MarkerObservation(False, f"frame thread: {self.error}")
+            time.sleep(self.period)
+
+    def observe(self, now_us):
+        return self.latest
+
+    def stop(self):
+        self._stop.set()

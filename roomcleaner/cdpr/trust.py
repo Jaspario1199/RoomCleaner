@@ -44,6 +44,18 @@ from .protocol import Fault
 LEVELS = ("NONE", "LOCAL_ONLY", "VERIFIED")
 
 
+def atomic_write(path, text: str) -> None:
+    import os
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_name(p.name + ".tmp")
+    with open(tmp, "w") as f:
+        f.write(text)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, p)
+
+
 @dataclass
 class StationTrust:
     boot: int | None = None
@@ -65,7 +77,8 @@ class TrustLedger:
     camera_calibration_id: str | None = None
     level: str = "NONE"
     recovery_required: bool = False
-    claw_supported: bool = True        # on the floor / on a support, not hanging
+    claw_supported: bool = False       # FAIL CLOSED: unknown means "may be hanging"; set True only by
+                                       # a vision floor check, False before the first lift command
     history: list = field(default_factory=list)
 
     # ------------------------------------------------------------- events
@@ -94,9 +107,8 @@ class TrustLedger:
         elif code == Fault.SWITCH:
             self.invalidate(sid, "bead switch opened unexpectedly (or wire broken)")
         elif code in (Fault.LEASE, Fault.UNDERRUN):
-            # coordinated path stop: positions remain mutually consistent
+            # coordinated path stop: positions remain mutually consistent, references kept
             self._note(f"{sid}: {Fault.NAMES[code]} stop; references kept")
-            self.recovery_required = True
 
     def on_boot_change(self, sid, new_boot):
         self.stations[sid].boot = new_boot
@@ -140,9 +152,11 @@ class TrustLedger:
         self._note(f"level -> {level}")
 
     def _update_level(self):
-        if not all(st.valid for st in self.stations.values()):
+        if not any(st.valid for st in self.stations.values()):
+            self.level = "NONE"
+        elif not all(st.valid for st in self.stations.values()):
             if self.level == "VERIFIED":
-                self.level = "LOCAL_ONLY" if any(st.valid for st in self.stations.values()) else "NONE"
+                self.level = "LOCAL_ONLY"
         if not self.marker_valid and self.level == "VERIFIED":
             self.level = "LOCAL_ONLY"
 
@@ -158,8 +172,9 @@ class TrustLedger:
 
     # -------------------------------------------------------- persistence
     def save(self, path):
-        d = asdict(self)
-        Path(path).write_text(json.dumps(d, indent=2))
+        """Atomic, durable write (temp file + fsync + rename): a crash can never
+        leave a truncated or stale-but-plausible ledger."""
+        atomic_write(path, json.dumps(asdict(self), indent=2))
 
     @classmethod
     def load(cls, path):

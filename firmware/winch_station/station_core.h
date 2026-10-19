@@ -95,7 +95,12 @@ class StationCore {
     bool confirmed = false;
   };
 
-  explicit StationCore(uint32_t boot_id, int64_t period_us = 1000) : boot_(boot_id), period_us_(period_us) {
+  // disarm_key: per-boot random number the host must echo in "disarm" (firmware
+  // passes esp_random()); default mirrors the Python reference for tests.
+  explicit StationCore(uint32_t boot_id, int64_t period_us = 1000, int64_t disarm_key = -1)
+      : boot_(boot_id), period_us_(period_us), dt_(period_us),
+        disarmKey_((disarm_key >= 0 ? static_cast<uint64_t>(disarm_key)
+                                    : (static_cast<uint64_t>(boot_id) * 2654435761ULL) >> 7) & 0xFFFFFFULL) {
     emitEvt("boot");
   }
 
@@ -135,8 +140,11 @@ class StationCore {
     } else if (tv.strEq("arm")) {
       onArm(msg, now);
     } else if (tv.strEq("disarm")) {
+      double k;
       if (!msg.get("confirm").strEq("claw_supported")) {
         ack("disarm", false, "confirm");
+      } else if (!msg.get("k").toDouble(k) || k != static_cast<double>(disarmKey_)) {
+        ack("disarm", false, "key");
       } else if (state_ == State::RUN || state_ == State::HOLD) {
         ack("disarm", false, "moving");
       } else if (state_ == State::OFF) {
@@ -194,6 +202,15 @@ class StationCore {
       encValid_ = false;
     }
     const bool edge = debounce(sw_active, now);
+    // path time integrates the measured elapsed time (clamped to 3 periods)
+    if (hasLastUpdate_) {
+      int64_t e = now - lastUpdate_;
+      if (e < 0) e = 0;
+      if (e > 3 * period_us_) e = 3 * period_us_;
+      dt_ = e;
+    } else {
+      dt_ = period_us_;
+    }
     if (hasLastUpdate_ && armed() && static_cast<double>(now - lastUpdate_) > 3.0 * static_cast<double>(period_us_))
       setFault(Fault::TIMING, now);
     lastUpdate_ = now;
@@ -248,6 +265,7 @@ class StationCore {
   int64_t pos() const { return pos_; }
   int queueDepth() const { return qn_; }
   uint32_t paramsHash() const { return hash_; }
+  uint64_t disarmKey() const { return disarmKey_; }
   // Accepted host configuration (nullptr until a valid cfg has been accepted).
   bool configured() const { return hasParams_; }
   const Params* params() const { return hasParams_ ? &p_ : nullptr; }
@@ -262,6 +280,8 @@ class StationCore {
   // ---- state (names follow the Python attributes)
   uint32_t boot_;
   int64_t period_us_;
+  int64_t dt_;
+  uint64_t disarmKey_;
   Params p_;
   bool hasParams_ = false;
   uint32_t hash_ = 0;
@@ -716,7 +736,7 @@ class StationCore {
 
   int run(int64_t now) {
     if (qn_ == 0) return 0;     // cannot happen in RUN/HOLD; guard instead of UB
-    const double dt = static_cast<double>(period_us_);
+    const double dt = static_cast<double>(dt_);
     if (!holding_ && hasHoldTau_ && tau_ >= holdTau_) beginHold(now, false);
     if (holding_) {
       const double r = 1.0 - static_cast<double>(now - holdT_) / p_.hold_us;
@@ -862,6 +882,7 @@ class StationCore {
     w.kvFixed("rate", rate_, 4);
     w.kvInt("hash", hash_);
     w.kvBool("en", armed());
+    w.kvInt("dk", static_cast<int64_t>(disarmKey_));
     finish(w, false, false);
   }
 };

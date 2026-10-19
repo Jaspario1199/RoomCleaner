@@ -111,3 +111,50 @@ def test_lossy_network_still_completes_or_stops_safely():
     else:
         taus = stop_taus(plan, res.final_pos)
         assert np.ptp(taus) < 0.06
+
+
+def test_lost_hold_datagrams_are_resent_until_every_station_stops():
+    """Review H1: both initial hold datagrams to C are lost; C must still stop
+    at (nearly) the same path point as the others, not run on to underrun."""
+    cfg, net, st, rt, co = build(21)
+    bring_up(co)
+    plan = cable_plan(co, (6000, -4000, 3000, -2000))
+    dropped = {"n": 0}
+
+    def drop(src, dest, msg):
+        if src == "host" and dest == "C" and msg.get("t") == "hold" and dropped["n"] < 2:
+            dropped["n"] += 1
+            return True
+        return False
+    net.drop_fn = drop
+    rt.hooks.append(lambda t, t_pause=rt.t + 1.2e6: co.request_pause("test") if abs(t - t_pause) < 500 else None)
+    res = co.execute(plan)
+    assert dropped["n"] == 2
+    assert not res.ok and "paused" in res.reason
+    taus = stop_taus(plan, res.final_pos)
+    assert np.ptp(taus) < 0.06, taus             # C stops within a few resend periods of the others
+
+
+def test_host_exception_still_stops_every_station():
+    cfg, net, st, rt, co = build(22)
+    bring_up(co)
+    plan = cable_plan(co, (6000, -4000, 3000, -2000))
+
+    def boom(tau):
+        if tau > 0.8:
+            raise RuntimeError("vision thread died")
+        return None
+    res = co.execute(plan, monitor=boom)          # monitor errors are a stop reason
+    assert not res.ok and "monitor error" in res.reason
+    assert all(co.links[s].tel["st"] != State.RUN for s in "ABCD")
+
+
+def test_pause_pressed_between_motions_holds_the_next_one():
+    cfg, net, st, rt, co = build(23)
+    bring_up(co)
+    co.request_pause("operator")
+    p0 = co.positions().copy()
+    res = co.execute(cable_plan(co))
+    assert not res.ok and "paused" in res.reason
+    assert np.allclose(co.positions(), p0)
+    assert co.execute(cable_plan(co)).ok            # the pause is consumed, not sticky

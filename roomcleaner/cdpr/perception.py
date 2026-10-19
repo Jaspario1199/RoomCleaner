@@ -70,7 +70,10 @@ class VisionSource:
         if obs.capture_us is not None and now - obs.capture_us > self.max_age_us:
             return PoseObs(False, f"frame {(now - obs.capture_us) / 1e3:.0f} ms old", t_us=obs.capture_us)
         if self.imu is not None:
-            T, cov = self._fused(obs)
+            try:
+                T, cov = self._fused(obs)
+            except Exception as e:                    # IMU unavailable: no pose, never a guess
+                return PoseObs(False, f"IMU: {e}", t_us=obs.capture_us)
         else:
             T = claw_pose_in_marker(obs.T_C_M, self.T_B_C)
             cov = claw_position_cov(obs, self.T_B_C, self.fx, self.edge, pixel_sigma=self.pixel_sigma,
@@ -80,7 +83,9 @@ class VisionSource:
         return self.last
 
     def _fused(self, obs):
-        roll, pitch = self.imu.roll_pitch()
+        # prefer the attitude sampled together with this frame (no blocking call,
+        # time-aligned); fall back to asking the IMU
+        roll, pitch = obs.imu_rp if obs.imu_rp is not None else self.imu.roll_pitch()
         T_raw = claw_pose_in_marker(obs.T_C_M, self.T_B_C)
         R_raw = T_raw[:3, :3]
         yaw = math.atan2(R_raw[1, 0], R_raw[0, 0])

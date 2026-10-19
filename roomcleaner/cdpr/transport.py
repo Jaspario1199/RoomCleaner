@@ -82,6 +82,7 @@ class SimNetwork:
         self.inbox: dict[str, list] = {k: [] for k in ["host"] + self.nodes}
         self.down: set[str] = set()          # nodes whose link is cut (both directions)
         self.stats = {"sent": 0, "dropped": 0}
+        self.drop_fn = None                  # test hook: drop_fn(src, dest, msg) -> True drops it
 
     def send(self, src: str, dest: str, msg: dict, now: float) -> None:
         data = protocol.encode(msg)
@@ -91,7 +92,8 @@ class SimNetwork:
             dests = [dest]
         for d in dests:
             self.stats["sent"] += 1
-            if src in self.down or d in self.down or self.rng.random() < self.loss:
+            if src in self.down or d in self.down or self.rng.random() < self.loss or \
+                    (self.drop_fn is not None and self.drop_fn(src, d, msg)):
                 self.stats["dropped"] += 1
                 continue
             lat = self.latency_us + self.rng.uniform(0, self.jitter_us)

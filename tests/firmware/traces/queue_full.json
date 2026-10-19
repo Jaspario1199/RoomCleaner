@@ -1,6 +1,6 @@
 {"name":"queue_full","boot":12648430,"period_us":1000,"init_out":[{"d":"host","m":{"t":"evt","k":"boot","sid":"?","boot":12648430,"seq":1,"e":1,"v":1}}],"events":[
 {"op":"h","now":0,"raw":"{\"t\":\"cfg\",\"p\":{\"sid\":\"A\",\"usteps_per_rev\":3200,\"step_sign\":1,\"max_rate_hz\":4000,\"counts_per_rev\":4096,\"enc_sign\":1,\"enc_max_age_us\":30000,\"track_tol\":60,\"track_dwell_us\":150000,\"lease_us\":300000,\"sw_nc\":true,\"debounce_us\":10000,\"hold_us\":250000},\"v\":1}","host":true,"acc":true,"out":[{"d":"host","m":{"t":"ack","re":"cfg","ok":true,"why":"","hash":41447259,"sid":"A","boot":12648430,"seq":2,"v":1}}]},
-{"op":"u","now":0,"enc":0,"ev":true,"sw":false,"steps":0,"out":[{"d":"host","m":{"t":"tel","now":0,"st":0,"flt":0,"pos":0,"enc":0,"encv":true,"sw":false,"swr":false,"m":-1,"i":-1,"tau":0,"buf":0,"terr":0.0,"cap":null,"rate":0.0,"hash":41447259,"en":false,"sid":"A","boot":12648430,"seq":3,"v":1}}]},
+{"op":"u","now":0,"enc":0,"ev":true,"sw":false,"steps":0,"out":[{"d":"host","m":{"t":"tel","now":0,"st":0,"flt":0,"pos":0,"enc":0,"encv":true,"sw":false,"swr":false,"m":-1,"i":-1,"tau":0,"buf":0,"terr":0.0,"cap":null,"rate":0.0,"hash":41447259,"en":false,"dk":4003043,"sid":"A","boot":12648430,"seq":3,"v":1}}]},
 {"op":"u","now":1000,"enc":0,"ev":true,"sw":false,"steps":0},
 {"op":"u","now":2000,"enc":0,"ev":true,"sw":false,"steps":0},
 {"op":"u","now":3000,"enc":0,"ev":true,"sw":false,"steps":0},
@@ -89,7 +89,7 @@
 {"op":"u","now":17000,"enc":0,"ev":true,"sw":false,"steps":0},
 {"op":"u","now":18000,"enc":0,"ev":true,"sw":false,"steps":0},
 {"op":"u","now":19000,"enc":0,"ev":true,"sw":false,"steps":0},
-{"op":"u","now":20000,"enc":0,"ev":true,"sw":false,"steps":0,"out":[{"d":"host","m":{"t":"tel","now":20000,"st":1,"flt":0,"pos":0,"enc":0,"encv":true,"sw":false,"swr":false,"m":-1,"i":-1,"tau":0,"buf":0,"terr":0.0,"cap":null,"rate":0.0,"hash":41447259,"en":true,"sid":"A","boot":12648430,"seq":73,"v":1}}]},
+{"op":"u","now":20000,"enc":0,"ev":true,"sw":false,"steps":0,"out":[{"d":"host","m":{"t":"tel","now":20000,"st":1,"flt":0,"pos":0,"enc":0,"encv":true,"sw":false,"swr":false,"m":-1,"i":-1,"tau":0,"buf":0,"terr":0.0,"cap":null,"rate":0.0,"hash":41447259,"en":true,"dk":4003043,"sid":"A","boot":12648430,"seq":73,"v":1}}]},
 {"op":"u","now":21000,"enc":0,"ev":true,"sw":false,"steps":0},
 {"op":"u","now":22000,"enc":0,"ev":true,"sw":false,"steps":0},
 {"op":"u","now":23000,"enc":0,"ev":true,"sw":false,"steps":0},

@@ -240,6 +240,26 @@ class CalibrationResult:
         names = lay.names() + ["marker x", "marker y", "marker yaw"]
         return dict(zip(names, sd))
 
+    def to_state(self) -> dict:
+        """Lossless state for persistence (host restart while suspended)."""
+        return {"anchors_M": self.anchors_M.tolist(), "L0": self.L0.tolist(), "scale": self.scale.tolist(),
+                "psi": self.psi.tolist(), "cov_theta": self.cov_theta.tolist(), "chi2": self.chi2,
+                "norm_rms": self.norm_rms, "n_rows": self.n_rows, "residuals_m": np.asarray(self.residuals_m).tolist(),
+                "outliers": self.outliers, "fit_scale": self.fit_scale, "notes": self.notes,
+                "ident": {"sv": self.identifiability.singular_values.tolist(),
+                          "weak": [[float(a), b] for a, b in self.identifiability.weak],
+                          "ok": self.identifiability.ok}}
+
+    @classmethod
+    def from_state(cls, d: dict) -> "CalibrationResult":
+        a = lambda k: np.asarray(d[k], float)
+        idt = d["ident"]
+        return cls(anchors_M=a("anchors_M"), L0=a("L0"), scale=a("scale"), psi=a("psi"), cov_theta=a("cov_theta"),
+                   chi2=d["chi2"], norm_rms=d["norm_rms"], n_rows=d["n_rows"], residuals_m=a("residuals_m"),
+                   outliers=d["outliers"], identifiability=Identifiability(np.asarray(idt["sv"]),
+                                                                           [tuple(w) for w in idt["weak"]], idt["ok"]),
+                   fit_scale=d["fit_scale"], notes=d.get("notes", []))
+
     def to_jsonable(self) -> dict:
         return {"anchors_marker_m": self.anchors_M.tolist(), "anchors_room_m": self.anchors_room.tolist(),
                 "L0_m": dict(zip(IDS, self.L0.tolist())), "payout_scale": dict(zip(IDS, self.scale.tolist())),

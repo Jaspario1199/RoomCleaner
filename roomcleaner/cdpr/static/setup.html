@@ -71,6 +71,7 @@
     <button id="resume">Resume</button>
     <button id="ack">Acknowledge fault</button>
     <button id="recover">Recover (re-reference from camera)</button>
+    <button id="task">Run pickup task</button>
     <button id="lower">Lower claw to the floor</button>
     <button id="disarm">Disarm (claw must rest on the floor)</button>
   </div>
@@ -78,10 +79,13 @@
 <script>
 const STEPS = ["SELF_CHECK","SLACK_TAKEUP","INITIAL_LIFT","VISUAL_INITIALIZATION","CALIBRATION","REFERENCE_VERIFICATION","READY"];
 const $ = id => document.getElementById(id);
+const TOKEN = new URLSearchParams(location.search).get("token") || "";
 let checks = [];
 
 async function api(path, body) {
-  const r = await fetch(path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {});
+  const headers = {"X-Token": TOKEN};
+  if (body) headers["Content-Type"] = "application/json";
+  const r = await fetch(path, body ? {method:"POST", headers, body:JSON.stringify(body)} : {headers});
   const j = await r.json().catch(() => ({}));
   if (!r.ok) alert(j.error || ("HTTP " + r.status));
   return j;
@@ -108,10 +112,11 @@ function render(s) {
   $("start").dataset.allowed = idle && (st === "DISARMED" || st === "PARKED");
   $("resume").disabled = !(idle && st === "PAUSED");
   $("ack").disabled = !(idle && st === "FAULT");
-  $("recover").disabled = !(idle && st === "RECOVERY_REQUIRED");
+  $("recover").disabled = !(idle && ["RECOVERY_REQUIRED","FAULT"].includes(st));
   $("lower").disabled = !(idle && ["READY","PAUSED","RECOVERY_REQUIRED","FAULT"].includes(st));
+  $("task").disabled = !(idle && st === "READY");
   $("disarm").disabled = !(idle && ["PARKED","DISARMED","FAULT","RECOVERY_REQUIRED"].includes(st));
-  $("pause").disabled = !["STARTUP","TASK","READY"].includes(st);
+  $("pause").disabled = false;               // pause is always accepted
   $("roomcard").style.opacity = (st === "DISARMED" || st === "PARKED") ? 1 : .5;
   gate();
 }
@@ -128,6 +133,7 @@ async function refresh() {
 $("pause").onclick = () => cmd("pause");
 $("start").onclick = () => cmd("start", {checklist:true});
 $("resume").onclick = () => cmd("resume");
+$("task").onclick = () => cmd("task");
 $("ack").onclick = () => cmd("acknowledge");
 $("recover").onclick = () => cmd("recover");
 $("lower").onclick = () => confirm("Lower the claw to the floor now?") && cmd("lower");

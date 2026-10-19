@@ -62,9 +62,14 @@ class Segment:
 
 
 class StationCore:
-    def __init__(self, boot_id: int, period_us: int = 1000):
+    def __init__(self, boot_id: int, period_us: int = 1000, disarm_key: int | None = None):
         self.boot = boot_id & 0xFFFFFFFF
         self.period_us = period_us
+        # disarm must echo this per-boot random key (reported only in unicast
+        # telemetry to the host), so a stray or replayed datagram cannot drop
+        # a hanging claw. Firmware passes a hardware random number.
+        self.disarm_key = (disarm_key if disarm_key is not None else (self.boot * 2654435761) >> 7) & 0xFFFFFF
+        self.dt = period_us
         self.params: dict | None = None
         self.hash = 0
         self.state = State.OFF
@@ -154,6 +159,8 @@ class StationCore:
         elif t == "disarm":
             if msg.get("confirm") != "claw_supported":
                 self._ack("disarm", False, "confirm")
+            elif msg.get("k") != self.disarm_key:
+                self._ack("disarm", False, "key")
             elif self.state in (State.RUN, State.HOLD):
                 self._ack("disarm", False, "moving")
             elif self.state == State.OFF:
@@ -382,6 +389,10 @@ class StationCore:
         elif not enc_valid:
             self.enc_valid = False
         edge = self._debounce(bool(sw_active), now)
+        # path time integrates the MEASURED elapsed time (loop jitter must not
+        # make one winch lag the others); a gap > 3 periods is a TIMING fault
+        self.dt = self.period_us if self.last_update is None else min(max(now - self.last_update, 0),
+                                                                      3 * self.period_us)
         if self.last_update is not None and self.armed and now - self.last_update > 3 * self.period_us:
             self._set_fault(Fault.TIMING, now)
         self.last_update = now
@@ -419,7 +430,7 @@ class StationCore:
         return None
 
     def _run(self, now, edge):
-        dt = self.period_us
+        dt = self.dt
         if not self.holding and self.hold_tau is not None and self.tau >= self.hold_tau:
             self._begin_hold(now, broadcast=False)
         if self.holding:
@@ -519,5 +530,5 @@ class StationCore:
             "enc": self.enc, "encv": self._encoder_fresh(now), "sw": self.sw, "swr": self.sw_raw,
             "m": self.motion, "i": self.queue[0].i if self.queue else -1, "tau": int(self.tau),
             "buf": len(self.queue), "terr": round(self.terr, 1), "cap": self.capture,
-            "rate": round(self.rate, 4), "hash": self.hash, "en": self.armed,
+            "rate": round(self.rate, 4), "hash": self.hash, "en": self.armed, "dk": self.disarm_key,
         })

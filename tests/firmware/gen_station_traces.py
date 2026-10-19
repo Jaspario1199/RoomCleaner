@@ -575,17 +575,19 @@ def sc_disarm_clear():
     expect(r.last_ack("disarm")["why"] == "confirm", "disarm needs confirm")
     r.send({"t": "disarm", "confirm": "yes"})
     expect(r.last_ack("disarm")["why"] == "confirm", "wrong confirm")
+    r.send({"t": "disarm", "confirm": "claw_supported", "k": r.core.disarm_key ^ 1})
+    expect(r.last_ack("disarm")["why"] == "key", "wrong key")
     for s in segs(r.t + 20000, 0, 2000, 1_000_000, 10, m=1):
         r.send(s)
     r.step(200)
-    r.send({"t": "disarm", "confirm": "claw_supported"})
+    r.send({"t": "disarm", "confirm": "claw_supported", "k": r.core.disarm_key})
     expect(r.last_ack("disarm")["why"] == "moving", "disarm while moving")
     r.send({"t": "clear"})
     expect(r.last_ack("clear")["why"] == "moving", "clear while moving")
     r.step(900)
-    r.send({"t": "disarm", "confirm": "claw_supported"})
+    r.send({"t": "disarm", "confirm": "claw_supported", "k": r.core.disarm_key})
     expect(r.last_ack("disarm")["ok"] and r.core.state == State.OFF, "disarmed")
-    r.send({"t": "disarm", "confirm": "claw_supported"})
+    r.send({"t": "disarm", "confirm": "claw_supported", "k": r.core.disarm_key})
     expect(r.last_ack("disarm")["ok"], "disarm idempotent")
     r.send(segs(r.t + 20000, r.core.pos, 0, 500_000, 2, m=2)[0])
     expect(r.last_ack("seg")["why"] == "not armed", "seg while off")
@@ -603,7 +605,7 @@ def sc_disarm_clear():
     r.step(5)
     r.send({"t": "arm"})
     expect(r.last_ack("arm")["why"] == "busy", "arm while in fault")
-    r.send({"t": "disarm", "confirm": "claw_supported"})      # disarm from FAULT latches the fault
+    r.send({"t": "disarm", "confirm": "claw_supported", "k": r.core.disarm_key})      # disarm from FAULT latches the fault
     expect(r.last_ack("disarm")["ok"] and r.core.state == State.OFF and r.core.fault == Fault.ENCODER,
            "disarm from fault")
     r.send({"t": "arm"})

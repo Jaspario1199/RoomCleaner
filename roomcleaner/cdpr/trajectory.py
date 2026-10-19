@@ -139,6 +139,8 @@ class Limits:
     t_min: float = 0.5
     t_max: float = math.inf
     mass_kg: float | None = None
+    tension_derate: float = 0.8        # plan to 80 % of the measured pull limit
+    dynamic_accel: float = 0.0         # extra vertical acceleration allowance (m/s^2)
 
 
 def plan_line(model: RobotModel, p_from, p_to, lim: Limits, *, R=None, ws: Workspace | None = None,
@@ -158,7 +160,7 @@ def plan_line(model: RobotModel, p_from, p_to, lim: Limits, *, R=None, ws: Works
     n = max(2, int(math.ceil(T / lim.segment_s)))
     times = np.linspace(0, T, n + 1)
     cart = np.array([p_from + direction * s(t) for t in times])
-    _check_path(model, cart, ws, lim, R, allow_low, check_tension)
+    _check_path(model, cart, ws, lim, R, allow_low, check_tension, accels=(a * direction, -a * direction))
     pos = np.array([model.positions_for(q, R) for q in cart])
     vel = np.zeros_like(pos)
     for k, (q, t) in enumerate(zip(cart, times)):
@@ -228,17 +230,24 @@ def plan_cable_move(start_pos, delta_usteps, max_rate, max_acc, *, segment_s=0.1
     return Plan(times, pos, vel, refs, None, label, {})
 
 
-def _check_path(model, cart, ws, lim, R, allow_low, check_tension):
+def _check_path(model, cart, ws, lim, R, allow_low, check_tension, accels=((0.0, 0.0, 0.0),)):
     if ws is not None:
         for q in cart:
             v = ws.violations(model.geometry, q, R, allow_low=allow_low)
             if v:
                 raise PlanError("workspace: " + "; ".join(v))
     if check_tension and lim.mass_kg is not None:
+        # review M8: include the path acceleration both ways plus the specified
+        # dynamic load, and keep a derating margin under the motor limit
+        t_max = lim.t_max * lim.tension_derate
+        dyn = np.array([0.0, 0.0, lim.dynamic_accel])
         for q in cart:
-            r = tension_distribution(model.geometry, q, lim.mass_kg, t_min=lim.t_min, t_max=lim.t_max, R=R)
-            if not r.feasible:
-                raise PlanError(f"tension infeasible at {np.round(q, 3)} (max {r.max_tension:.1f} N)")
+            for acc in accels:
+                r = tension_distribution(model.geometry, q, lim.mass_kg, t_min=lim.t_min, t_max=t_max, R=R,
+                                         accel=np.asarray(acc, float) + dyn)
+                if not r.feasible:
+                    raise PlanError(f"tension infeasible at {np.round(q, 3)} (max {r.max_tension:.1f} N "
+                                    f"> {t_max:.1f} N incl. dynamics)")
 
 
 def limits_from_config(cfg, *, scale: float = 1.0, mass_kg=None) -> Limits:
@@ -246,7 +255,8 @@ def limits_from_config(cfg, *, scale: float = 1.0, mass_kg=None) -> Limits:
     return Limits(cart_v=m.max_cart_speed_m_s * scale, cart_a=m.max_cart_accel_m_s2 * scale,
                   cable_v=m.max_cable_speed_m_s * scale, cable_a=m.max_cable_accel_m_s2 * scale,
                   segment_s=m.segment_s, t_min=m.min_tension_n, t_max=m.max_tension_n,
-                  mass_kg=cfg.claw.mass_kg if mass_kg is None else mass_kg)
+                  mass_kg=cfg.claw.mass_kg if mass_kg is None else mass_kg,
+                  dynamic_accel=m.dynamic_accel_m_s2)
 
 
 def model_from(geometry: Geometry, cfg, L0: dict) -> RobotModel:

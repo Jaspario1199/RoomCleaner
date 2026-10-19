@@ -14,7 +14,11 @@ from roomcleaner.cdpr.startup import StartupSequencer
 from roomcleaner.cdpr.supervisor import CommandRefused, Supervisor
 from roomcleaner.cdpr.tasks import SimItemPerception, TaskRunner
 from roomcleaner.cdpr.trajectory import limits_from_config, model_from
+from roomcleaner.cdpr.coordinator import Coordinator
 from roomcleaner.cdpr.frames import planar_T
+from roomcleaner.cdpr.startup import RobotContext
+from roomcleaner.cdpr.transport import SimHostTransport
+from roomcleaner.cdpr.trust import TrustLedger
 
 from .simkit import bring_up, build, fast_cfg
 
@@ -49,6 +53,13 @@ def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
     out = sup.run_task(TaskRunner(r.ctx, SimItemPerception(r.world)))
     assert out["done"] == ["sock", "jeans"] and sup.state == "READY"
     assert all(it["state"] == "hamper" for it in r.world.items)
+    # the host stalls longer than the lease while the claw hangs: every station
+    # holds itself; that is a coordinated stop, references are kept (review C2)
+    r.rt.wait(1.0e6)
+    sup.poll()
+    assert sup.state == "FAULT" and r.ctx.ledger.all_valid()
+    sup.acknowledge()
+    assert sup.state == "READY", sup.reasons[-3:]
     # a station reboots while the claw hangs: recovery is required, nothing resumes
     r.stations["B"].reboot()
     r.co.wait(500000)
@@ -57,22 +68,63 @@ def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
     with pytest.raises(CommandRefused):
         sup.run_task(TaskRunner(r.ctx, SimItemPerception(r.world)))
     with pytest.raises(CommandRefused):
-        sup.disarm("claw_supported")               # not allowed while hanging
+        sup.disarm("claw_supported")               # vision: not on the floor
     assert sup.recover() and sup.state == "READY"
     assert r.ctx.ledger.stations["B"].source == "visual-recovery"
-    # park and disarm
-    sup.lower()
-    assert sup.state == "PARKED" and r.world.on_floor
+    # host process restart while hanging: a new host (new coordinator, links,
+    # supervisor) must come up in RECOVERY_REQUIRED and be able to recover
+    r.rt.wait(1.0e6)                               # host down: stations lease-hold
+    co2 = Coordinator(cfg, SimHostTransport(r.net, r.rt.now_us), r.rt)
+    ctx2 = RobotContext(cfg, co2, r.claw, r.vision, r.camera, TrustLedger(), data_dir=tmp_path, log=r.ctx.log)
+    sup2 = Supervisor(ctx2, state_path=tmp_path / "state.json", ledger_path=tmp_path / "ledger.json")
+    assert sup2.state == "RECOVERY_REQUIRED" and ctx2.result is not None
     with pytest.raises(CommandRefused):
-        sup.disarm("yes")
-    sup.disarm("claw_supported")
-    assert sup.state == "DISARMED"
+        sup2.disarm("claw_supported")
+    assert sup2.recover(), sup2.reasons[-3:]
+    assert ctx2.ledger.all_valid()
+    # pause while lowering stops the descent; lowering again completes
+    t_pause = r.rt.t + 3.0e6
+    r.rt.hooks.append(lambda t: sup2.pause("operator") if abs(t - t_pause) < 500 else None)
+    with pytest.raises(CommandRefused, match="paused"):
+        sup2.lower()
+    assert not r.world.on_floor
+    sup2.lower()
+    assert sup2.state == "PARKED" and r.world.on_floor
+    with pytest.raises(CommandRefused):
+        sup2.disarm("yes")
+    sup2.disarm("claw_supported")
+    assert sup2.state == "DISARMED"
+
+
+def test_crash_mid_calibration_fails_closed(tmp_path):
+    """Review C3: a host crash while the claw hangs must leave a durable
+    'may be hanging' record, and no disarm without vision seeing the floor."""
+    cfg = fast_cfg()
+    r = SimRobot(cfg, seed=12, data_dir=tmp_path)
+    sup = Supervisor(r.ctx, state_path=tmp_path / "state.json", ledger_path=tmp_path / "ledger.json")
+
+    def crash(self):
+        raise RuntimeError("host crashed")
+    orig = StartupSequencer.calibrate
+    StartupSequencer.calibrate = crash
+    try:
+        with pytest.raises(RuntimeError):
+            sup.start()
+    finally:
+        StartupSequencer.calibrate = orig
+    assert not r.world.on_floor
+    assert TrustLedger.load(tmp_path / "ledger.json").claw_supported is False
+    sup2 = Supervisor(r.ctx, state_path=tmp_path / "state.json", ledger_path=tmp_path / "ledger.json")
+    assert sup2.state == "RECOVERY_REQUIRED"
+    with pytest.raises(CommandRefused):
+        sup2.disarm("claw_supported")
+    assert all(r.co.links[s].tel["st"] != 0 for s in IDS)       # torque still on everywhere
 
 
 def test_host_restart_while_suspended_never_resumes(tmp_path):
     r = SimRobot(fast_cfg(), seed=1)
     sup = Supervisor(r.ctx, state_path=tmp_path / "s.json", ledger_path=tmp_path / "l.json")
-    r.ctx.ledger.claw_supported = False
+    assert r.ctx.ledger.claw_supported is False        # unknown -> fail closed
     sup._set("READY", "pretend calibrated and hanging")
     r2 = SimRobot(fast_cfg(), seed=1)
     sup2 = Supervisor(r2.ctx, state_path=tmp_path / "s.json", ledger_path=tmp_path / "l.json")

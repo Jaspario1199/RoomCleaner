@@ -260,9 +260,11 @@ def test_disarm_requires_confirmation_and_stillness():
         b.send(s)
     b.step(200)
     b.send({"t": "disarm", "confirm": "claw_supported"})
+    assert b.ack("disarm")[-1]["why"] == "key"              # no key: refused
+    b.send({"t": "disarm", "confirm": "claw_supported", "k": b.core.disarm_key})
     assert b.ack("disarm")[-1]["why"] == "moving"
     b.step(900)
-    b.send({"t": "disarm", "confirm": "claw_supported"})
+    b.send({"t": "disarm", "confirm": "claw_supported", "k": b.core.disarm_key})
     assert b.ack("disarm")[-1]["ok"] and b.core.state == State.OFF
 
 

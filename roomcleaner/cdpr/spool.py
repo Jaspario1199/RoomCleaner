@@ -120,8 +120,9 @@ class CableMap:
     def length(self, P: float) -> float:
         self._need_ref()
         if self.table is not None:
-            return self.L0 + float(np.interp(P, self.table[:, 0], self.table[:, 1],
-                                             left=np.nan, right=np.nan)) - float(
+            if not self.table[0, 0] <= P <= self.table[-1, 0]:
+                raise SpoolRangeError(f"position {P:.0f} outside the measured payout table")
+            return self.L0 + float(np.interp(P, self.table[:, 0], self.table[:, 1])) - float(
                 np.interp(0.0, self.table[:, 0], self.table[:, 1]))
         phi = self._phi0() - 2 * math.pi * P / self.spr
         return self.cfg.line_total_m - self.spool.wound_from_angle(phi)
@@ -131,8 +132,10 @@ class CableMap:
         self._need_ref()
         if self.table is not None:
             base = float(np.interp(0.0, self.table[:, 0], self.table[:, 1]))
-            return float(np.interp(L - self.L0 + base, self.table[:, 1], self.table[:, 0],
-                                   left=np.nan, right=np.nan))
+            x = L - self.L0 + base
+            if not self.table[0, 1] <= x <= self.table[-1, 1]:
+                raise SpoolRangeError(f"length {L:.3f} m outside the measured payout table")
+            return float(np.interp(x, self.table[:, 1], self.table[:, 0]))
         phi = self.spool.angle_from_wound(self.cfg.line_total_m - L)
         return (self._phi0() - phi) * self.spr / (2 * math.pi)
 

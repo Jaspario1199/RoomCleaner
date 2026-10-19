@@ -98,7 +98,7 @@ void setup() {
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   while (WiFi.status() != WL_CONNECTED) delay(100);
   udp.begin(UDP_PORT);
-  core = new StationCore(esp_random(), PERIOD_US);   // one allocation at boot, none afterwards
+  core = new StationCore(esp_random(), PERIOD_US, esp_random() & 0xFFFFFF);   // one allocation at boot, none afterwards
   Serial.printf("station %s %s boot\n", STATION_ID, WiFi.localIP().toString().c_str());
   nextTick = nowUs();
 }

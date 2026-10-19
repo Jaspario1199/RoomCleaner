@@ -14,7 +14,7 @@ def verified_ledger():
 def test_coordinated_stops_keep_references():
     t = verified_ledger()
     t.on_fault("B", Fault.LEASE)
-    assert t.all_valid() and t.level == "VERIFIED" and t.recovery_required
+    assert t.all_valid() and t.level == "VERIFIED" and not t.recovery_required   # spec 5: unchanged
 
 
 def test_tracking_fault_and_reboot_invalidate_only_that_station():
@@ -42,3 +42,19 @@ def test_visual_reference_does_not_count_as_bead_verified():
     t.invalidate("D", "test")
     t.set_reference("D", 104, 2.3, 0.004, "visual")
     assert t.stations["D"].valid and not t.stations["D"].bead_verified
+
+
+def test_unknown_support_fails_closed_and_save_is_atomic(tmp_path):
+    t = TrustLedger()
+    assert t.claw_supported is False                   # unknown = may be hanging
+    t.save(tmp_path / "l.json")
+    assert not (tmp_path / "l.json.tmp").exists()
+    assert TrustLedger.load(tmp_path / "l.json").claw_supported is False
+
+
+def test_level_drops_to_none_when_every_reference_is_lost():
+    t = verified_ledger()
+    t.set_level("LOCAL_ONLY")
+    for s in "ABCD":
+        t.invalidate(s, "test")
+    assert t.level == "NONE"

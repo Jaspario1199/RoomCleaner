@@ -287,3 +287,13 @@ and the station core in C++ (conformance-tested against Python).
   hardware, D-E station addressing.
 - Nothing has run on the physical four-station rig. Next physical step:
   commissioning steps 1-4 (doc §10) on one XIAO-C3 station.
+
+## Independent review of control V1 — findings fixed (10/19)
+`verification/control_system_v1_review.md` (independent reviewer; 3 Critical,
+4 High, 12 Medium). Lead disposition at the end of that file. Fixed: idle host
+loop (no silent lease faults), software recovery/lowering after lease stops and
+host restarts (model persisted), fail-closed `claw_supported` with durable
+writes, disarm only after a fresh vision floor check plus a per-boot station
+disarm key, hold resend, exception-safe motion, pause in every state, session
+token on the operator API, measured-dt path time, dynamic tension margin.
+Open before any hardware bead search: station-enforced travel floor (D-F).

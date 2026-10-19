@@ -158,6 +158,7 @@ class MotionConfig:
     hold_time_s: float = 0.25                        # path-time feed-hold duration at full speed
     min_tension_n: float = 0.5
     max_tension_n: float | None = None               # measured pull capability at speed / margin
+    dynamic_accel_m_s2: float = 2.0                  # requirement: payload + 2 m/s^2 dynamic
     workspace_margin_m: float = 0.20
     ceiling_margin_m: float = 0.40                   # keep claw this far below anchor plane
     segment_s: float = 0.10
@@ -221,6 +222,7 @@ class CalibrationConfig:
     huber_k: float = 2.5                            # robust weighting threshold (sigmas)
     outlier_k: float = 5.0                          # sample rejected beyond this (sigmas)
     slack_k: float = 3.0                            # longest-cable excess classifying it slack
+    payout_scale_sigma: float = 0.003               # spool-model scale uncertainty (bead gate)
     ambiguity_dchi2: float = 25.0                   # alternate optimum closer than this -> ambiguous
 
 

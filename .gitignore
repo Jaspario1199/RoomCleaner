@@ -27,3 +27,5 @@ output/
 # Auto-downloaded model weights (ultralytics/CLIP fetch these at first run)
 *.pt
 firmware/**/secrets.h
+# runtime robot state (per machine): ledger, model, supervisor state
+data/cdpr/

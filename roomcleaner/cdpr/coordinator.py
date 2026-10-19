@@ -163,7 +163,10 @@ class Coordinator:
         return bool(ack["ok"])
 
     def disarm(self, sid, confirm: str) -> bool:
-        ack = self.request(sid, {"t": "disarm", "confirm": confirm}, "disarm")
+        key = (self.links[sid].tel or {}).get("dk")
+        if key is None:
+            raise CoordinatorError(f"station {sid}: no telemetry yet (disarm key unknown)")
+        ack = self.request(sid, {"t": "disarm", "confirm": confirm, "k": key}, "disarm")
         return bool(ack["ok"])
 
     # ---------------------------------------------------------- queries
@@ -191,7 +194,56 @@ class Coordinator:
     def execute(self, plan: Plan, *, stop_on_capture=True, timeout_s=None, monitor=None) -> MotionResult:
         """Run one synchronized motion. ``monitor(tau_s)`` (optional) is polled
         while moving; returning a string stops every station with a coordinated
-        feed-hold at the same path point (e.g. vision saw the claw move)."""
+        feed-hold at the same path point (e.g. vision saw the claw move).
+
+        Any exception on the host side still stops the stations (hold, resent
+        until every station reports stopped) before it propagates."""
+        if self.pause_requested:                 # a pause pressed between motions holds the next one
+            why = f"paused: {self.pause_requested}"
+            self.pause_requested = None
+            return MotionResult(False, why)
+        self._active = None
+        try:
+            return self._execute(plan, stop_on_capture=stop_on_capture, timeout_s=timeout_s, monitor=monitor)
+        except BaseException:
+            if self._active is not None:
+                mid, T0 = self._active
+                tau = max(self.rt.now_us() - T0, 0) + 20000
+                self._abort(mid, tau, "host exception")
+                end = self.rt.now_us() + 300000
+                while self.rt.now_us() < end and not self._all_stopped(mid):
+                    self.rt.wait(1000)
+                    try:
+                        self.pump()
+                    except Exception:
+                        pass
+                    self._resend_holds(mid)
+            raise
+        finally:
+            self._active = None
+
+    def _all_stopped(self, mid):
+        return all(self.links[s].tel is not None and self.links[s].tel["st"] not in (State.RUN, State.HOLD)
+                   for s in self.ids)
+
+    def _resend_holds(self, mid):
+        """H1: a hold is a datagram that can be lost. While any station still
+        reports RUN for this motion, resend it every 20 ms (escalation logged
+        after 300 ms)."""
+        h = getattr(self, "_hold", None)
+        if h is None or h[0] != mid:
+            return
+        now = self.rt.now_us()
+        for s in self.ids:
+            tel = self.links[s].tel or {}
+            if tel.get("m") == mid and tel.get("st") == State.RUN and now - h[2].get(s, -1e18) >= 20000:
+                self._send(s, {"t": "hold", "m": mid, "tau": int(h[1])})
+                h[2][s] = now
+                if now - h[3] > 300000 and s not in h[4]:
+                    h[4].add(s)
+                    self._log(f"station {s} still running {(now - h[3]) / 1e3:.0f} ms after hold")
+
+    def _execute(self, plan, *, stop_on_capture, timeout_s, monitor):
         rd = self.readiness()
         bad = {s: r for s, r in rd.items() if r}
         if bad:
@@ -203,6 +255,7 @@ class Coordinator:
         mid = self.motion_id
         lead = self.cfg.motion.start_lead_s * 1e6
         T0 = self.rt.now_us() + lead
+        self._active = (mid, T0)
         segs = {}
         for j, s in enumerate(self.ids):
             t0l = self.links[s].clock.to_local(T0)
@@ -292,7 +345,10 @@ class Coordinator:
                     why = f"hold originated by station {peer}"
                     res.held_by = peer
                 if why is None and monitor is not None and tau > 0:
-                    why = monitor(tau / 1e6)
+                    try:
+                        why = monitor(tau / 1e6)
+                    except Exception as e:            # a failing check is a reason to stop
+                        why = f"monitor error: {type(e).__name__}: {e}"
                     if why:
                         res.held_by = "monitor"
                 caps = self._collect_events(mid, res)
@@ -303,6 +359,7 @@ class Coordinator:
                     self._abort(mid, hold_at, why)
             else:
                 self._collect_events(mid, res)
+                self._resend_holds(mid)
             for s in self.ids:
                 for e in self.links[s].take_events():
                     if e.get("m") == mid and e.get("k") in ("done", "hold"):
@@ -343,10 +400,12 @@ class Coordinator:
         return self._finish(res, mid)
 
     def _finish(self, res, mid):
-        # settle: wait for fresh telemetry reflecting the stop
+        # settle: wait for fresh telemetry reflecting the stop (re-sending a hold
+        # to any station that has not acted on it)
         try:
-            self.wait_for(lambda: all(self.links[s].tel and self.links[s].tel["st"] in
-                                      (State.IDLE, State.FAULT, State.OFF) for s in self.ids), 2.0, "stop")
+            self.wait_for(lambda: (self._resend_holds(mid), all(
+                self.links[s].tel and self.links[s].tel["st"] in (State.IDLE, State.FAULT, State.OFF)
+                for s in self.ids))[1], 2.0, "stop")
         except CoordinatorError:
             res.ok = False
             res.reason += " | stations did not report stopped"
@@ -357,7 +416,9 @@ class Coordinator:
 
     def _abort(self, mid, tau_us, why):
         self._log(f"motion {mid} HOLD at tau={tau_us / 1e3:.0f} ms: {why}")
-        for _ in range(2):                     # redundancy against a lost datagram
+        now = self.rt.now_us()
+        self._hold = (mid, tau_us, {s: now for s in self.ids}, now, set())
+        for _ in range(2):                     # redundancy against a lost datagram (+ resend loop)
             self._send("*", {"t": "hold", "m": mid, "tau": int(tau_us)})
 
     def _check_running(self, now):

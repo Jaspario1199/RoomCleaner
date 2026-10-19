@@ -31,6 +31,7 @@ concept.
 | R7 | Sensing | Camera moved onto a swinging claw: view and localization trade-off | Medium | Decision to state |
 | R8 | Electronics | Standalone A4988 needs a 47–100 µF bulk capacitor at VMOT on every station | High (blocker) | Open |
 | R10 | Capacity | Worst-case lift anywhere in the room is 1.0–1.5 lb **total** at 1.0 A (claw included); 1 lb test + ~1 lb claw is not guaranteed everywhere | **High** | Open: current, workspace shape, claw mass |
+| R11 | Thermal | In a sealed shell the motor exceeds 60 °C even at 1.0 A (~66 °C), and the PETG around the motor bolts runs close to that temperature | **High** | Open: vent or heat path |
 | R9 | Electronics | Driver logic supply: the 1.14 V fault shows the 3.3 V feed is a single point of failure | Low-Med | Partly fixed |
 
 Positives worth presenting: the 24T/24T stage is a clean way to get two
@@ -282,3 +283,55 @@ Assumptions (all conservative, all listed so they can be replaced by tests):
   is holding torque divided by the empty-spool radius: **32 N at 1.0 A and
   48 N at 1.5 A**, per cable. Use 32 N and 64 N (×2 dynamic) at 1.0 A, or
   48 N and 96 N if you raise the current.
+
+## R11 — Motor heat inside a printed, sealed shell (High)
+
+Raised by Jasper: with stagnant air, the motor can only dump heat by
+conduction into the PETG it is bolted to. PETG conducts about 0.2 W/m·K
+(roughly 1/1000 of aluminium), so it does not act as a heatsink. The housing
+interface simply climbs toward the motor's temperature, and that interface is
+the loaded joint carrying the cable force through the motor bolts.
+
+Model: `calculations/gen2_motor_thermal.py`, figure
+`docs/presentation/figures/motor_thermal.png`. Two thermal nodes (motor case,
+then shell interior and PETG). The A4988 holds full current whenever the
+claw is held, and the driver, regulator and XIAO add about 1.5 W inside the
+same shell. Rough model; all inputs are assumptions.
+
+| Current | Open air | Vented shell | Sealed shell | Sealed: passes 60 °C after |
+|---|---|---|---|---|
+| 1.0 A | 52 °C | 55 °C | **67 °C** | 84 min |
+| 1.25 A | 64 °C | 68 °C | **84 °C** | 37 min |
+| 1.5 A | 79 °C | 84 °C | **106 °C** | 22 min |
+
+Consequences:
+- **Creep at the motor bolts.** Hot, loaded PETG loosens the motor, so the
+  spool tilts and the anchor point moves. This is slow and invisible in a
+  short test.
+- **Driver shutdown.** The A4988 in the same hot air hits thermal shutdown
+  sooner, and shutdown drops the claw.
+- **Raising current to buy payload (R10) is limited by heat**, not by the
+  driver or the power supply.
+
+Fixes, roughly by effort:
+1. **Vent the shell:** an inlet near the bottom and an outlet near the top so
+   warm air rises out. This gets close to the open-air numbers.
+2. **Aluminium heat-spreader plate** (2–3 mm) between the motor face and the
+   PETG housing, extending outside the shell as a fin. It also spreads the
+   bolt load, which directly fixes the creep risk. This is cheap and the
+   biggest single gain.
+3. **Clip-on NEMA 17 heatsink** on the motor body (about $5), plus vents.
+4. **Mount the electronics outside the motor's air space,** or in their own
+   vented pocket.
+5. **Drivers with standstill current reduction** (TMC2209): full current
+   while moving and roughly half while holding. Heat goes with current
+   squared, so holding heat drops by about 75 %.
+6. **Higher-temperature material for the motor housing only:** ASA or ABS
+   (glass transition about 100–105 °C) or PC, instead of PETG (about 80 °C).
+7. **Monitor it:** a 10 kΩ NTC thermistor on one motor case, read by the
+   XIAO's ADC. Firmware lowers the claw and parks if it passes 60 °C.
+
+Verification: hold the 1 lb load at 1.0 A inside the closed shell for 90
+minutes and log the motor case and housing-interface temperatures every 10
+minutes. Pass: both stay under 60 °C. That plot replaces this model on the
+slide.

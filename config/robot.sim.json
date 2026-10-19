@@ -265,7 +265,7 @@
     "onset_translation_m": 0.002,
     "onset_tilt_rad": 0.010471975511965976,
     "onset_noise_k": 4.0,
-    "onset_backoff_m": 0.001,
+    "onset_backoff_m": 0.02,
     "lift_packet_m": 0.005,
     "target_clearance_m": 0.075,
     "max_lift_m": 0.25,
@@ -307,5 +307,13 @@
     "qualified_by": "simulation-only",
     "qualification_ref": null
   },
-  "obstacles": []
+  "obstacles": [],
+  "tasks": {
+    "hamper_room_m": [
+      2.1764,
+      1.0716
+    ],
+    "hamper_radius_m": 0.2,
+    "max_payload_kg": 0.9
+  }
 }

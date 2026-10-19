@@ -188,7 +188,10 @@ class Coordinator:
         self.pause_requested = reason
 
     # ---------------------------------------------------------- motion
-    def execute(self, plan: Plan, *, stop_on_capture=True, timeout_s=None) -> MotionResult:
+    def execute(self, plan: Plan, *, stop_on_capture=True, timeout_s=None, monitor=None) -> MotionResult:
+        """Run one synchronized motion. ``monitor(tau_s)`` (optional) is polled
+        while moving; returning a string stops every station with a coordinated
+        feed-hold at the same path point (e.g. vision saw the claw move)."""
         rd = self.readiness()
         bad = {s: r for s, r in rd.items() if r}
         if bad:
@@ -288,6 +291,10 @@ class Coordinator:
                 if why is None and peer:
                     why = f"hold originated by station {peer}"
                     res.held_by = peer
+                if why is None and monitor is not None and tau > 0:
+                    why = monitor(tau / 1e6)
+                    if why:
+                        res.held_by = "monitor"
                 caps = self._collect_events(mid, res)
                 if why is None and caps and stop_on_capture:
                     why = "reference captured"

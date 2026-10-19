@@ -1,0 +1,234 @@
+"""Pickup-and-delivery tasks with visual verification.
+
+Workflow per item (each step bounded; failures are counted, never ignored):
+
+SCAN                  claw at scan height; perception lists candidate items.
+APPROACH              move above the item (lowest point ``approach_clearance``
+                      above it) inside the trusted volume.
+GRIP                  wait for the claw to hang still and upright (IMU tilt <=
+                      grip_tilt_max), descend vertically to grip height, close.
+PICKUP_VERIFICATION   lift back to approach height; perception must confirm
+                      the item is held (and the floor spot is empty). Else
+                      open, retry up to ``max_grip_attempts``.
+TRANSPORT             move over the hamper at transport height, planned with
+                      the claw mass + max payload.
+RELEASE               descend to release height, open.
+DELIVERY_VERIFICATION perception must confirm the claw is empty and the item
+                      is in the hamper. Else count a failure.
+
+``max_consecutive_failures`` failed items -> the task pauses for the operator.
+
+Trusted volume: VERIFIED -> the configured workspace; LOCAL_ONLY -> the
+validated calibration volume (convex hull), plus straight vertical descents
+below it to the floor for gripping.
+"""
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass, replace
+
+import numpy as np
+
+from .startup import StartupAbort
+from .trajectory import PlanError, plan_line_from
+
+TASK_STATES = ("SCAN", "APPROACH", "GRIP", "PICKUP_VERIFICATION", "TRANSPORT", "RELEASE",
+               "DELIVERY_VERIFICATION")
+
+
+@dataclass
+class ItemSighting:
+    id: str
+    xy: np.ndarray            # room frame
+    height_m: float
+    confidence: float
+
+
+class ItemPerception:
+    """Interface. The real implementation needs a garment detector on the claw
+    camera (open item: docs/CONTROL_SYSTEM_V1.md); SimItemPerception is the
+    simulator's."""
+
+    def scan(self, ctx) -> list:
+        raise NotImplementedError("garment detection is not implemented for hardware yet")
+
+    def holding(self, ctx) -> tuple:
+        raise NotImplementedError
+
+    def item_at(self, ctx, xy, radius) -> bool:
+        raise NotImplementedError
+
+
+class TrustedVolume:
+    def __init__(self, ctx):
+        self.ctx = ctx
+        self.hull = None
+        pts = ctx.validated_volume
+        if ctx.ledger.level != "VERIFIED" and pts is not None and len(pts) >= 5:
+            from scipy.spatial import Delaunay
+            self.hull = Delaunay(np.asarray(pts))
+
+    def allows(self, q, *, below_ok=False) -> bool:
+        ctx = self.ctx
+        if ctx.ws.violations(ctx.model.geometry, q, allow_low=below_ok):
+            return False
+        if ctx.ledger.level == "VERIFIED":
+            return True
+        if self.hull is None:
+            return False
+        if self.hull.find_simplex(np.asarray(q)) >= 0:
+            return True
+        if below_ok:                     # vertical descent below a validated point
+            top = np.array([q[0], q[1], float(np.min(self.hull.points[:, 2])) + 1e-3])
+            return bool(self.hull.find_simplex(top) >= 0)
+        return False
+
+
+class TaskRunner:
+    def __init__(self, ctx, perception: ItemPerception):
+        self.ctx = ctx
+        self.cfg = ctx.cfg
+        self.tc = ctx.cfg.tasks
+        self.per = perception
+        self.vol = TrustedVolume(ctx)
+        self.zf = -float(ctx.cfg.claw.lowest_point_body_m[2])      # origin height when the claw rests
+        self.log = []
+
+    # -------------------------------------------------------------- motion
+    def _move(self, q, *, label, below_ok=False, payload=0.0):
+        ctx = self.ctx
+        if not self.vol.allows(q, below_ok=below_ok):
+            raise StartupAbort("TASK", f"{label}: target {np.round(q, 3).tolist()} outside the trusted volume")
+        lim = replace(ctx.lim, mass_kg=self.cfg.claw.mass_kg + payload)
+        try:
+            plan = plan_line_from(ctx.model, ctx.co.positions(), q, lim, ws=ctx.ws, allow_low=below_ok,
+                                  label=label)
+        except PlanError as e:
+            raise StartupAbort("TASK", f"{label}: {e}")
+        r = ctx.co.execute(plan)
+        if not r.ok:
+            raise StartupAbort("TASK", f"{label}: {r.reason}", paused=r.reason.startswith("paused"))
+        return r
+
+    def _here(self):
+        return self.ctx.model.pose_from_positions(self.ctx.co.positions())[0]
+
+    def _wait_upright(self, timeout_s=5.0):
+        ctx = self.ctx
+        t = 0.0
+        while t < timeout_s:
+            if ctx.claw.tilt() <= self.cfg.claw.grip_tilt_max_rad:
+                return True
+            ctx.wait(0.2)
+            t += 0.2
+        return False
+
+    # -------------------------------------------------------------- run
+    def run(self, *, on_state=lambda s, m="": None, max_items=10):
+        ctx, tc = self.ctx, self.tc
+        if tc.hamper_room_m is None:
+            raise StartupAbort("TASK", "tasks.hamper_room_m not configured")
+        hamper = np.asarray(tc.hamper_room_m, float)
+        done, failed, consecutive = [], [], 0
+        skip = set()
+        for _ in range(max_items):
+            on_state("SCAN")
+            here = self._here()
+            scan = np.array([here[0], here[1], tc.scan_height_m])
+            self._move(scan, label="scan")
+            ctx.wait(self.cfg.startup.settle_s)
+            items = [it for it in self.per.scan(ctx) if it.id not in skip]
+            if not items:
+                return {"done": done, "failed": failed, "summary": f"{len(done)} delivered, room clear"}
+            items.sort(key=lambda it: np.linalg.norm(it.xy - scan[:2]))
+            item = items[0]
+            ok, why = self._handle(item, hamper, on_state)
+            if ok:
+                done.append(item.id)
+                consecutive = 0
+            else:
+                failed.append((item.id, why))
+                skip.add(item.id)
+                consecutive += 1
+                if consecutive >= tc.max_consecutive_failures:
+                    return {"done": done, "failed": failed,
+                            "pause": f"{consecutive} consecutive failures (last: {why})"}
+        return {"done": done, "failed": failed, "summary": f"{len(done)} delivered (item limit)"}
+
+    def _handle(self, item, hamper, on_state):
+        ctx, tc = self.ctx, self.tc
+        above = np.array([item.xy[0], item.xy[1], self.zf + item.height_m + tc.approach_clearance_m])
+        for attempt in range(1, tc.max_grip_attempts + 1):
+            on_state("APPROACH", f"{item.id} attempt {attempt}")
+            self._move(above, label=f"approach {item.id}")
+            on_state("GRIP", item.id)
+            ctx.claw.grip(False)
+            if not self._wait_upright():
+                return False, "claw would not settle upright"
+            self._move(np.array([item.xy[0], item.xy[1], self.zf + tc.grip_clearance_m]), below_ok=True,
+                       label=f"descend {item.id}")
+            ctx.claw.grip(True)
+            ctx.wait(tc.grip_settle_s)
+            self._move(above, label=f"lift {item.id}", payload=tc.max_payload_kg, below_ok=True)
+            on_state("PICKUP_VERIFICATION", item.id)
+            held, conf = self.per.holding(ctx)
+            if held:
+                break
+            ctx.claw.grip(False)
+            ctx.wait(tc.grip_settle_s)
+            # re-locate the item before the next attempt (it may have been nudged)
+            seen = [s for s in self.per.scan(ctx) if s.id == item.id]
+            if not seen:
+                return False, "item lost after a failed grip"
+            item = seen[0]
+            above = np.array([item.xy[0], item.xy[1], self.zf + item.height_m + tc.approach_clearance_m])
+        else:
+            return False, f"not held after {tc.max_grip_attempts} attempts"
+        on_state("TRANSPORT", item.id)
+        z_t = max(above[2], self.zf + tc.hamper_height_m + tc.release_clearance_m)
+        self._move(np.array([above[0], above[1], z_t]), label="raise", payload=tc.max_payload_kg)
+        self._move(np.array([hamper[0], hamper[1], z_t]), label="transport", payload=tc.max_payload_kg)
+        on_state("RELEASE", item.id)
+        if not self._wait_upright():
+            return False, "claw would not settle over the hamper"
+        ctx.claw.grip(False)
+        ctx.wait(tc.grip_settle_s)
+        on_state("DELIVERY_VERIFICATION", item.id)
+        held, _ = self.per.holding(ctx)
+        if held:
+            return False, "item still in the claw after release"
+        if not self.per.item_at(ctx, hamper, tc.hamper_radius_m):
+            return False, "item not seen in the hamper"
+        return True, "delivered"
+
+
+# --------------------------------------------------------------- simulation
+class SimItemPerception(ItemPerception):
+    """Truth-based perception with a camera footprint, position noise and a
+    miss probability, for exercising the workflow logic."""
+
+    def __init__(self, world, *, noise_m=0.01, miss=0.0, seed=0):
+        self.w = world
+        self.noise = noise_m
+        self.miss = miss
+        self.rng = np.random.default_rng(seed)
+
+    def scan(self, ctx):
+        out = []
+        cam_xy = self.w.p[:2]
+        h = self.w.p[2]
+        half = h * 300 / 520                      # rough footprint half-width at the floor
+        for it in self.w.items:
+            if it["state"] != "floor":
+                continue
+            if np.max(np.abs(it["xy"] - cam_xy)) > half or self.rng.random() < self.miss:
+                continue
+            out.append(ItemSighting(it["id"], it["xy"] + self.rng.normal(0, self.noise, 2), it["height"], 0.9))
+        return out
+
+    def holding(self, ctx):
+        return (self.w.held is not None), 0.95
+
+    def item_at(self, ctx, xy, radius):
+        return any(it["state"] == "hamper" for it in self.w.items if it.get("last_drop") is not None
+                   and np.linalg.norm(it["last_drop"] - np.asarray(xy)) <= radius)

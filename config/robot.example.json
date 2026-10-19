@@ -271,5 +271,10 @@
     "qualified_by": null,
     "qualification_ref": null
   },
-  "obstacles": []
+  "obstacles": [],
+  "tasks": {
+    "hamper_room_m": null,
+    "hamper_radius_m": 0.2,
+    "max_payload_kg": 0.9
+  }
 }

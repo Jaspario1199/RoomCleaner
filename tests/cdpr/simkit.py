@@ -31,3 +31,21 @@ def bring_up(co, *, sw_ok=False):
     co.wait_synced(3.0)
     co.arm(sw_ok=sw_ok)
     co.wait(100000)
+
+
+def fast_cfg(**overrides):
+    """Simulation profile with coarser microstepping and faster moves so whole
+    startups run in tens of seconds of wall time (same logic, same checks)."""
+    import json
+    raw = json.load(open(SIM))
+    for s in raw["stations"]:
+        s["drive"]["microsteps"] = 4
+    raw["motion"].update(max_cable_speed_m_s=0.15, max_cable_accel_m_s2=0.3, max_cart_speed_m_s=0.15,
+                         max_cart_accel_m_s2=0.3)
+    for path, v in overrides.items():
+        d = raw
+        keys = path.split(".")
+        for k in keys[:-1]:
+            d = d[int(k)] if isinstance(d, list) else d[k]
+        d[keys[-1]] = v
+    return load_config(raw)

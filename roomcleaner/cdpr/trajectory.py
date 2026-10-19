@@ -170,6 +170,37 @@ def plan_line(model: RobotModel, p_from, p_to, lim: Limits, *, R=None, ws: Works
     return Plan(times, pos, vel, refs, cart, label, {"v": v, "a": a, "dist": dist})
 
 
+def plan_line_from(model: RobotModel, P_actual, p_to, lim: Limits, *, R=None, p_guess=None,
+                   max_offset_m: float = 0.005, **kw) -> Plan:
+    """Line move that starts exactly at the stations' actual positions.
+
+    After a hold or a capture the four positions are no longer exactly on the
+    model's geometry (feed-hold ramps, post-capture shortening suppression,
+    rounding). The start pose is solved from the actual positions and the
+    small per-station offset is faded out linearly along the path. A large
+    offset means the model and the cables disagree, which is refused.
+    """
+    P_actual = np.asarray(P_actual, float)
+    p_from, rms = model.pose_from_positions(P_actual, p_guess, R)
+    plan = plan_line(model, p_from, p_to, lim, R=R, **kw)
+    off = P_actual - plan.pos[0]
+    L = model.lengths(p_from, R)
+    off_m = np.array([o * model.maps[s].payout_per_ustep(Li) for o, s, Li in zip(off, model.ids, L)])
+    if np.max(np.abs(off_m)) > max_offset_m:
+        raise PlanError(f"actual positions differ from the model by {np.round(off_m * 1e3, 1).tolist()} mm "
+                        "of cable: model and cables disagree")
+    dist = plan.meta["dist"]
+    _, sf, sdf = trapezoid(dist, plan.meta["v"], plan.meta["a"])
+    s = np.array([sf(t) for t in plan.times]) / dist
+    sd = np.array([sdf(t) for t in plan.times]) / dist
+    plan.pos = plan.pos + off[None, :] * (1.0 - s)[:, None]
+    plan.vel = plan.vel - off[None, :] * sd[:, None]
+    plan.vel[0] = plan.vel[-1] = 0.0
+    plan.meta["start_offset_usteps"] = off.tolist()
+    plan.meta["start_fk_rms_m"] = rms
+    return plan
+
+
 def plan_waypoints(model, points, lim, **kw) -> list[Plan]:
     return [plan_line(model, a, b, lim, **kw) for a, b in zip(points, points[1:])]
 

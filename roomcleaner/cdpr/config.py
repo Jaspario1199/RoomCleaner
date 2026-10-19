@@ -182,6 +182,14 @@ class StartupConfig:
     still_samples: int = 10
     settle_s: float = 0.5
     max_marker_wait_s: float = 120.0
+    battery_min_v: float = 7.0                       # 2S LiPo: refuse to lift below this
+    floor_height_tol_m: float = 0.03                 # claw must be resting upright on the floor
+    bearing_translation_m: float = 0.006             # keep pulling past onset to see the slide direction
+    bearing_sigma_rad: float = 0.15
+    bearing_rms_max: float = 3.0                     # slide directions vs anchor entries (whitened)
+    lift_slack_budget_m: float = 0.015               # commanded - observed lift before abort
+    frame_interval_s: float = 0.1
+    still_spread_max_m: float = 0.003
 
 
 @dataclass
@@ -205,6 +213,30 @@ class CalibrationConfig:
     local_box_m: list = field(default_factory=lambda: [0.15, 0.15, 0.10])
     expanded_box_m: list = field(default_factory=lambda: [0.80, 0.80, 0.50])
     fit_payout_scale: bool = False
+    length_sigma_m: float = 0.001                   # spool-model / stretch noise per length reading
+    onset_sigma_m: float = 0.010                    # taut-onset length observation (low weight)
+    data_sv_min: float = 1.0                        # data info >= prior info in every direction
+    length_sigma_max_m: float = 0.005               # predicted L sigma allowed in the work volume
+    norm_rms_max: float = 2.0                       # whitened residual RMS (model adequacy)
+    huber_k: float = 2.5                            # robust weighting threshold (sigmas)
+    outlier_k: float = 5.0                          # sample rejected beyond this (sigmas)
+    slack_k: float = 3.0                            # longest-cable excess classifying it slack
+    ambiguity_dchi2: float = 25.0                   # alternate optimum closer than this -> ambiguous
+
+
+@dataclass
+class TaskConfig:
+    hamper_room_m: list | None = None               # hamper opening centre (x, y), room frame
+    hamper_radius_m: float = 0.20
+    max_payload_kg: float = 0.9                     # jeans (requirement)
+    scan_height_m: float = 1.2                      # claw origin height for scanning
+    approach_clearance_m: float = 0.25              # lowest point above the item before descending
+    grip_clearance_m: float = 0.01                  # lowest point above the floor when closing
+    release_clearance_m: float = 0.35               # lowest point above the hamper rim height
+    hamper_height_m: float = 0.6
+    grip_settle_s: float = 0.8
+    max_grip_attempts: int = 3
+    max_consecutive_failures: int = 3
 
 
 @dataclass
@@ -227,6 +259,7 @@ class SystemConfig:
     faults: FaultConfig
     calibration: CalibrationConfig
     authorization: Authorization
+    tasks: TaskConfig = field(default_factory=TaskConfig)
     obstacles: list = field(default_factory=list)   # vertical cylinders {x,y,r,z_low,z_high}
     profile: str = "hardware"
     source: str | None = None
@@ -440,6 +473,7 @@ def load_config(path_or_dict) -> SystemConfig:
         faults=_dc(FaultConfig, raw.get("faults"), "faults"),
         calibration=_dc(CalibrationConfig, raw.get("calibration"), "calibration"),
         authorization=_dc(Authorization, raw.get("authorization"), "authorization"),
+        tasks=_dc(TaskConfig, raw.get("tasks"), "tasks"),
         obstacles=list(raw.get("obstacles", [])),
         profile=raw.get("profile", "hardware"), source=src,
     )

@@ -43,6 +43,7 @@ class MarkerObservation:
     candidates: list = field(default_factory=list)
     frame_id: int | None = None
     capture_us: float | None = None
+    edge_eff: float | None = None          # span of the tag set used (marker board), else None
 
     def sigma_cam(self, cam_fx: float, edge_m: float, pixel_sigma=0.3) -> np.ndarray:
         """Rough 1-sigma of the marker position in the camera frame (m):
@@ -193,3 +194,19 @@ def render_marker_view(cam, family, marker_id, edge_m, T_C_M, *, background=200,
         rng = rng or np.random.default_rng(0)
         img = np.clip(img.astype(float) + rng.normal(0, noise, img.shape), 0, 255).astype(np.uint8)
     return img
+
+
+def claw_position_cov(obs: MarkerObservation, T_B_C: np.ndarray, cam_fx: float, edge_m: float, *,
+                      pixel_sigma=0.3, rot_sigma_rad=0.01) -> np.ndarray:
+    """Covariance (marker frame, m^2) of the claw body origin from one detection.
+
+    Marker-position error in the camera frame (lateral/depth, see sigma_cam) is
+    rotated into the marker frame; the camera-orientation error acts on the
+    lever arm from the camera to the body origin.
+    """
+    T_M_C = inv_T(obs.T_C_M)
+    R_M_C = T_M_C[:3, :3]
+    s = obs.sigma_cam(cam_fx, edge_m, pixel_sigma)
+    C = R_M_C @ np.diag(s ** 2) @ R_M_C.T
+    lever_m = float(np.linalg.norm(T_B_C[:3, 3]))
+    return C + np.eye(3) * (rot_sigma_rad * lever_m) ** 2

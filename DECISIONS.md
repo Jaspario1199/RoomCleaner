@@ -78,3 +78,44 @@ set-back are unchanged; only the actuation direction becomes vertical.
 corner_mount rev C implements it; the mid-span boss is removed. New interface
 value CORNER_PULLEY_OD_NOM (20 mm, purchased U-groove bearing pulley, 18–22
 mm accepted) fixes the drop line's X offset from the ear centre.
+
+---
+
+## Generation 2 (SolidWorks redesign, October 2026)
+
+Recorded 2026-10-19 from Jasper's Drive files (folders v1 Oct 7, V2 Oct 11,
+v3 Oct 18, Claw_V1 Oct 12, V5 Oct 18–19) and "RoomCleaner — SpaceX Technical
+Presentation — Outline v1". These are Jasper's decisions; rationale is as
+stated in the outline. Generation-1 decisions D1–D14 remain on record; where a
+D15+ decision changes direction it says so, it does not erase the earlier one.
+
+D15. **Removable wall station replaces the one-piece corner mount.** A fixed
+wall frame accepts a slide-in motor housing with a shell cover. Reason:
+serviceability; a station can be pulled and swapped without disturbing the
+installed frame and its calibrated anchor position. Supersedes the
+installation role of `corner_mount` (D13); `cad/parts/corner_mount.py` and its
+rev A–D.1 history stay as the gen-1 record. Open item: positive retention so
+the housing cannot slide out under cable load or vibration (review R3).
+
+D16. **Shortened spool.** Spool length reduced to match the motor shaft's
+usable engagement; target ~20 ft of stored line. Supersedes the gen-1 spool
+length (26 mm drum). Open item: wound-radius change vs force and
+length-per-revolution (review R4).
+
+D17. **Distributed winch electronics.** Each station carries a Seeed XIAO
+ESP32, an A4988 and a step-down regulator, fed by one 12 V pair; stations are
+coordinated over Wi-Fi. Supersedes the central Uno + CNC Shield architecture
+for the installed robot (the shield remains the bench reference). Open items:
+synchronized motion, boot-time and comms-loss behavior, kill switch coverage
+(review R1, R2).
+
+D18. **Two-jaw geared clamp gripper.** MG996R → 18T pinion → 54T/24T compound
+→ 24T follower: 3:1 reduction, second jaw counter-rotates through the 1:1
+stage. Electronics/camera housing above a rigid extension ("Griper Cylinder").
+Supersedes the five-finger tendon claw (gen-1 `tentacle_*`, `tendon_drum`
+parts kept on record). Open item: printed gear tooth strength at servo stall
+(review R5).
+
+D19. **First integration target is a 1 lb test weight on four stations**, not
+the 0.9 kg laundry payload; no payload, accuracy or reliability rating is
+claimed until measured.

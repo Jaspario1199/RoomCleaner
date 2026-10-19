@@ -221,3 +221,18 @@ Caliper-verify on a KW12-3 in hand: roller overhang past body end
 hinged end (assumed far end). Trigger height is set by bead placement
 (~4 mm below the roller contact). Bead nominal O5 (local assumption,
 KW_HOMING_BEAD_DIA_NOM).
+
+## Generation 2 — SolidWorks redesign recorded (10/19)
+Between Sep 2 and Oct 19 Jasper redesigned the system in SolidWorks (Drive):
+removable wall station (frame + slide-in housing + shell, v1–v3), shortened
+spool (v1–v3), per-station XIAO ESP32 + A4988 + buck electronics, and a 3:1
+geared two-jaw clamp gripper (Claw_V1, V5). Recorded as DECISIONS D15–D19;
+history in docs/DESIGN_HISTORY.md; file manifest in solidworks/README.md.
+Generation-1 CadQuery design, tests and reports are kept, not purged.
+Bench: one gen-2 station jogged its motor and read its homing switch; a
+no-motion fault was traced to a bad 3.3 V logic connection (~1.14 V).
+Design review: verification/design_review_gen2.md (calcs:
+calculations/gen2_screening.py). Presentation: SpaceX onsite Oct 27, draft
+due Oct 22 — docs/presentation/SPACEX_OUTLINE.md.
+Next: sync the remaining SolidWorks files + STEP exports into solidworks/,
+then measure the gear module/face width and the slide-in retention.

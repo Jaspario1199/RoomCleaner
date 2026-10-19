@@ -170,17 +170,27 @@ class TaskRunner:
             ctx.claw.grip(False)
             if not self._wait_upright():
                 return False, "claw would not settle upright"
+            if hasattr(self.per, "note_target"):
+                self.per.note_target(item)
             self._move(np.array([item.xy[0], item.xy[1], self.zf + tc.grip_clearance_m]), below_ok=True,
                        label=f"descend {item.id}", slow=0.3)        # slow near the object
             ctx.claw.grip(True)
             ctx.wait(tc.grip_settle_s)
             self._move(above, label=f"lift {item.id}", payload=tc.max_payload_kg, below_ok=True)
+            # handoff: move a short way toward the destination, then confirm the
+            # garment moved WITH the claw (its old spot is no longer under the jaws)
+            d = hamper - above[:2]
+            shift = above.copy()
+            if np.linalg.norm(d) > 1e-6:
+                shift[:2] += d / np.linalg.norm(d) * min(tc.verify_shift_m, float(np.linalg.norm(d)))
+            self._move(shift, label=f"verify shift {item.id}", payload=tc.max_payload_kg)
             on_state("PICKUP_VERIFICATION", item.id)
             held, conf = self.per.holding(ctx)
             if held:
                 break
             ctx.claw.grip(False)
             ctx.wait(tc.grip_settle_s)
+            self._move(above, label=f"back over {item.id}")
             # re-locate the item before the next attempt (it may have been nudged)
             seen = [s for s in self.per.scan(ctx) if s.id == item.id]
             if not seen:
@@ -190,8 +200,9 @@ class TaskRunner:
         else:
             return False, f"not held after {tc.max_grip_attempts} attempts"
         on_state("TRANSPORT", item.id)
+        here = self._here()
         z_t = max(above[2], self.zf + tc.hamper_height_m + tc.release_clearance_m)
-        self._move(np.array([above[0], above[1], z_t]), label="raise", payload=tc.max_payload_kg)
+        self._move(np.array([here[0], here[1], z_t]), label="raise", payload=tc.max_payload_kg)
         self._move(np.array([hamper[0], hamper[1], z_t]), label="transport", payload=tc.max_payload_kg)
         on_state("RELEASE", item.id)
         if not self._wait_upright():

@@ -237,6 +237,7 @@ class TaskConfig:
     release_clearance_m: float = 0.35               # lowest point above the hamper rim height
     hamper_height_m: float = 0.6
     grip_settle_s: float = 0.8
+    verify_shift_m: float = 0.25                    # move toward the hamper before pickup verification
     max_grip_attempts: int = 3
     max_consecutive_failures: int = 3
 

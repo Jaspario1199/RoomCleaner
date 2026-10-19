@@ -113,10 +113,11 @@ def test_segment_validation():
     assert b.ack("seg")[-1]["ok"]
     b.send(dict(segs[1], p0=segs[1]["p0"] + 3))
     assert b.ack("seg")[-1]["why"] == "continuity"
-    b.send(dict(segs[2]))
-    assert b.ack("seg")[-1]["why"] == "sequence"
+    b.send(dict(segs[2]))                            # early arrival is parked, not rejected
+    assert b.ack("seg")[-1]["ok"] and 2 in b.core.pending
     for s in segs[1:]:
         b.send(s)
+    assert [q.i for q in b.core.queue] == [0, 1, 2, 3]
     b.send(dict(segs[3], i=4, t0=segs[3]["t0"] + segs[3]["d"]))
     assert b.ack("seg")[-1]["why"] == "after last"
 

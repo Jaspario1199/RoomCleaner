@@ -76,7 +76,10 @@ class StationCore:
         self.enc_valid = False
         self.enc_t = -10**18
         self.queue: list[Segment] = []
+        self.pending: dict = {}            # early-arriving segments, by index
+        self.pending_m = None              # motion the parked segments belong to
         self.motion = -1
+        self.last_appended = (-1, -1)      # (motion, index) of the newest accepted segment
         self.motion_t0 = 0                # local time of tau = 0
         self.tau = 0.0                    # path time (us)
         self.rate = 0.0                   # path-time rate s
@@ -153,6 +156,8 @@ class StationCore:
                 self._ack("disarm", False, "confirm")
             elif self.state in (State.RUN, State.HOLD):
                 self._ack("disarm", False, "moving")
+            elif self.state == State.OFF:
+                self._ack("disarm", True)
             else:
                 self.state = State.OFF
                 self.queue.clear()
@@ -173,13 +178,18 @@ class StationCore:
                 self.track_bad_since = None
                 self.capture = self.release = None
                 self._ack("clear", True)
+            elif self.state in (State.IDLE, State.OFF) and self.fault == Fault.NONE:
+                self._ack("clear", True)                  # idempotent
             else:
-                self._ack("clear", False, "not faulted")
+                self._ack("clear", False, "moving")
 
     def _on_cfg(self, msg):
         p = msg.get("p")
-        if self.state not in (State.OFF,):
-            self._ack("cfg", False, "armed")
+        if self.state != State.OFF:
+            if isinstance(p, dict) and self.params is not None and all(p.get(k) == self.params.get(k) for k in REQUIRED_PARAMS):
+                self._ack("cfg", True, hash=self.hash)   # same config re-sent: idempotent
+            else:
+                self._ack("cfg", False, "armed")
             return
         if not isinstance(p, dict) or any(k not in p or p[k] is None for k in REQUIRED_PARAMS):
             self._ack("cfg", False, "incomplete")
@@ -199,8 +209,11 @@ class StationCore:
         why = ""
         if self.params is None:
             why = "no config"
+        elif self.state == State.IDLE and self.fault == Fault.NONE:
+            self._ack("arm", True, hash=self.hash)      # idempotent (lost ack retried)
+            return
         elif self.state != State.OFF:
-            why = "already armed"
+            why = "busy"
         elif self.fault != Fault.NONE:
             why = "fault latched"
         elif not self._encoder_fresh(now):
@@ -219,6 +232,28 @@ class StationCore:
         m, i = msg.get("m"), msg.get("i")
         def nack(why):
             self._ack("seg", False, why, m=m, i=i)
+        if not isinstance(i, int) or not isinstance(m, int):
+            return nack("malformed")
+        expected = self.last_appended[1] + 1 if self.last_appended[0] == m else 0
+        if i < expected:                                  # retransmitted duplicate
+            self._ack("seg", True, m=m, i=i)
+            return
+        if i > expected:                                  # arrived early: park it
+            if self.pending_m != m:
+                self.pending, self.pending_m = {}, m
+            if len(self.pending) >= MAX_QUEUE:
+                return nack("full")
+            self.pending[i] = msg
+            self._ack("seg", True, m=m, i=i)
+            return
+        self._append_seg(msg, now, nack)
+        while self.pending_m == m and self.last_appended == (m, expected) and (expected + 1) in self.pending:
+            expected += 1
+            nxt = self.pending.pop(expected)
+            self._append_seg(nxt, now, lambda why, k=expected: self._ack("seg", False, why, m=m, i=k))
+
+    def _append_seg(self, msg, now, nack):
+        m, i = msg.get("m"), msg.get("i")
         try:
             t0, d = int(msg["t0"]), int(msg["d"])
             p0, p1, v0, v1 = (float(msg[k]) for k in ("p0", "p1", "v0", "v1"))
@@ -264,6 +299,7 @@ class StationCore:
                 return nack("late")
             tau0 = tail.tau0 + tail.d
         self.queue.append(Segment(m, i, t0, d, p0, p1, v0, v1, last, ref, tau0))
+        self.last_appended = (m, i)
         self._ack("seg", True, m=m, i=i)
 
     def _on_hold(self, msg, now):

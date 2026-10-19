@@ -1,5 +1,7 @@
 # RoomCleaner decisions and evidence update — 2026-10-18
 
+> **Historical selection notice, added October 19:** Later cost reviews and the user's subsequent Amazon cart reopened the battery/regulator/charger choices. The DROK/OVONIC/TB6B configuration below is not a frozen current BOM. See [current handoff and procurement correction](REVIEW_HANDOFF_20261019.md) before using these component dimensions or wiring assumptions. This record is preserved to explain the earlier reasoning.
+
 Recorded 2026-10-18, America/Chicago. Retrospective record of the current conversation and inspected local design artifacts; individual hardware event dates are not established unless explicitly stated. This is a documentation revision, not a new CAD, firmware, or hardware release.
 
 ## Current configuration and scope

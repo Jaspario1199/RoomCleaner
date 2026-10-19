@@ -95,11 +95,12 @@ class TaskRunner:
         self.log = []
 
     # -------------------------------------------------------------- motion
-    def _move(self, q, *, label, below_ok=False, payload=0.0):
+    def _move(self, q, *, label, below_ok=False, payload=0.0, slow=1.0):
         ctx = self.ctx
         if not self.vol.allows(q, below_ok=below_ok):
             raise StartupAbort("TASK", f"{label}: target {np.round(q, 3).tolist()} outside the trusted volume")
-        lim = replace(ctx.lim, mass_kg=self.cfg.claw.mass_kg + payload)
+        lim = replace(ctx.lim, mass_kg=self.cfg.claw.mass_kg + payload, cart_v=ctx.lim.cart_v * slow,
+                      cable_v=ctx.lim.cable_v * slow)
         try:
             plan = plan_line_from(ctx.model, ctx.co.positions(), q, lim, ws=ctx.ws, allow_low=below_ok,
                                   label=label)
@@ -166,7 +167,7 @@ class TaskRunner:
             if not self._wait_upright():
                 return False, "claw would not settle upright"
             self._move(np.array([item.xy[0], item.xy[1], self.zf + tc.grip_clearance_m]), below_ok=True,
-                       label=f"descend {item.id}")
+                       label=f"descend {item.id}", slow=0.3)        # slow near the object
             ctx.claw.grip(True)
             ctx.wait(tc.grip_settle_s)
             self._move(above, label=f"lift {item.id}", payload=tc.max_payload_kg, below_ok=True)

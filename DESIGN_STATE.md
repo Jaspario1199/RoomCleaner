@@ -263,3 +263,27 @@ verbatim in docs/history/codex_DECISIONS_20261019.md and
 docs/history/codex_DESIGN_STATE_20261019.md (README likewise). Three tests in
 tests/test_encoder_feedback.py reference central-relay files Codex itself
 removed; they are skipped with that reason, not deleted.
+
+## Control system V1 — logic complete in simulation (10/19)
+`roomcleaner/cdpr/` now holds the whole gen-2 control stack, specified in
+`docs/CONTROL_SYSTEM_V1.md`: station protocol + reference core, synchronized
+coordinator (feed-hold in path time, leases, lossy-network tolerant), trust
+ledger, marker vision with ambiguity handling + gravity fusion, self-calibration
+(MAP fit in the marker frame, slack-cable hypothesis selection, identifiability,
+D-optimal staged excitation, witness validation), bounded startup sequencer,
+bead verification with a safety-derived gate and joint refit, supervisor
+(no auto-resume, visual recovery, controlled lowering, confirmed disarm),
+pickup/delivery tasks, phone setup service, claw S3 firmware + host client,
+and the station core in C++ (conformance-tested against Python).
+- Evidence: `pytest tests/cdpr tests/firmware` (simulation only). Full lifecycle
+  passes; unattached cable, swapped wiring, covered marker, unsafe config, low
+  battery, station reboot and bead disagreement are all caught.
+- Finding: vision alone leaves absolute cable length at sigma ~20 mm, so with
+  12 mm bead overtravel every bead is BLOCKED and the robot runs LOCAL_ONLY.
+  Open decision D-B (more overtravel clearance / IMU+marker board / taped line
+  length / accept switch+stall backstop).
+- Open decisions: D-A tension sensing (series spring recommended), D-B,
+  D-C power-loss holding (measure back-drive), D-D garment perception on
+  hardware, D-E station addressing.
+- Nothing has run on the physical four-station rig. Next physical step:
+  commissioning steps 1-4 (doc §10) on one XIAO-C3 station.

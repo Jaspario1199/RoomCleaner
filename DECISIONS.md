@@ -126,3 +126,33 @@ dated decision logs at docs/history/decisions_20261014.md,
 decisions_20261018.md and startup_decision_20261016.md (SC01–SC10). Those
 startup-calibration decisions are adopted by the control system V1
 (docs/CONTROL_SYSTEM_V1.md).
+
+D20. **Control system V1 architecture** (docs/CONTROL_SYSTEM_V1.md): the host
+plans and coordinates; stations execute Hermite segments in their own clocks
+with path-time feed-hold, leases and peer-broadcast holds; the Python station
+core is the specification and the C++ firmware must match it trace-for-trace.
+
+D21. **Stop never disables.** Every fault and pause holds torque; only a
+`disarm` confirmed with `claw_supported` (and vision or recorded state showing
+support) removes it. The power strip is the only category-0 stop. No
+safety-rated function is claimed (ISO 13849 / IEC 61508 not claimed).
+
+D22. **Calibration estimates anchors in the marker frame**; the room frame
+enters only through the operator's anchor entries and marker heading as
+priors, and through floor slide bearings. Acceptance requires
+identifiability, residual adequacy, uniqueness, held-out witnesses and a
+predicted-sigma volume; partial acceptance is LOCAL_ONLY within the validated
+hull.
+
+D23. **Slack is modelled, not assumed away.** A common-point claw with stiff
+cables hangs on three cables whenever lengths are inconsistent; the estimator
+selects a per-sample slack hypothesis and excitation grows in stages.
+
+D24. **Bead searches are gated on absolute-length sigma** (k*sigma <= window,
+2*k*sigma <= overtravel); captures are fused by refitting the whole model,
+never by overwriting L0 alone. In simulation vision alone gives sigma ~20 mm,
+so beads are BLOCKED until open decision D-B is taken.
+
+D25. **No automatic resume** after any reboot (host, station, claw): host
+start goes to DISARMED if the claw is known supported, else
+RECOVERY_REQUIRED.

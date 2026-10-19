@@ -169,7 +169,19 @@ roomcleaner/
     gripper.py            # gripper backends: WiFiGripper (wireless claw) / Serial / Mock
     executor.py           # stream a plan to the motors + gripper
     hw_config.py          # steps/rev, microstepping, drum dia, serial port, effector IP
+roomcleaner/cdpr/         # GEN-2 CONTROL SYSTEM (see docs/CONTROL_SYSTEM_V1.md)
+  station_core.py         # executable spec of the winch-station firmware
+  coordinator.py          # synchronized segment streams, feed-hold, leases
+  calibration.py          # self-calibration estimator + identifiability + excitation
+  startup.py              # DISARMED -> ... -> READY sequencer (bounded, abortable)
+  homing.py               # sequential bead verification
+  supervisor.py           # PAUSED/FAULT/RECOVERY_REQUIRED/PARKED, no auto-resume
+  tasks.py                # SCAN -> ... -> DELIVERY_VERIFICATION
+  service.py, static/     # phone setup page + API (python -m roomcleaner.cdpr.service --sim)
+  sim/                    # physics world, simulated stations/network/camera/claw
 firmware/
+  winch_station/          # gen-2 station core (C++, conformance-tested vs Python)
+  claw_s3/                # gen-2 claw node: camera frames, IMU, servo, battery
   roomcleaner_firmware/   # Arduino sketch: 4 winch steppers + homing (wired)
   effector_esp32/         # ESP32 sketch: wireless gripper servo over WiFi
 scripts/

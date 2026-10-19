@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoomCleaner Setup</title>
+<style>
+  :root { --page:#f6f6f3; --surface:#fff; --ink:#1b1b1a; --muted:#6b6a65; --border:#deddd6;
+          --accent:#2f6fd0; --good:#13852f; --warn:#b97800; --bad:#c2352b; }
+  @media (prefers-color-scheme: dark) {
+    :root { --page:#0f0f0e; --surface:#1b1b1a; --ink:#f3f2ec; --muted:#9a998f; --border:#2e2e2b;
+            --accent:#5b9bf0; --good:#36b35a; --warn:#e3a63a; --bad:#ef6a5f; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.45 system-ui, sans-serif; background:var(--page); color:var(--ink); }
+  main { max-width:560px; margin:0 auto; padding:16px; }
+  h1 { font-size:20px; margin:4px 0 12px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; margin:12px 0; }
+  .state { font-size:26px; font-weight:700; }
+  .lvl { display:inline-block; padding:2px 8px; border-radius:999px; font-size:13px; border:1px solid var(--border); }
+  .lvl.VERIFIED { color:var(--good); } .lvl.LOCAL_ONLY { color:var(--warn); } .lvl.NONE { color:var(--muted); }
+  ol.steps { padding-left:20px; margin:8px 0 0; } ol.steps li { color:var(--muted); }
+  ol.steps li.done { color:var(--good); } ol.steps li.now { color:var(--ink); font-weight:700; }
+  button { font:inherit; padding:12px 14px; border-radius:10px; border:1px solid var(--border);
+           background:var(--surface); color:var(--ink); width:100%; margin:6px 0; }
+  button.primary { background:var(--accent); color:#fff; border-color:transparent; }
+  button.stop { background:var(--bad); color:#fff; border-color:transparent; font-weight:700; }
+  button:disabled { opacity:.45; }
+  label { display:flex; gap:10px; align-items:flex-start; margin:6px 0; }
+  input[type=number] { width:100%; font:inherit; padding:8px; border-radius:8px; border:1px solid var(--border);
+                       background:var(--page); color:var(--ink); }
+  .row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .reasons { color:var(--bad); font-size:14px; white-space:pre-wrap; }
+  .muted { color:var(--muted); font-size:14px; }
+  .stations { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; text-align:center; font-size:14px; }
+  .stations div { border:1px solid var(--border); border-radius:8px; padding:6px 2px; }
+  .ok { color:var(--good); } .bad { color:var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <h1>RoomCleaner setup</h1>
+
+  <div class="card">
+    <div class="state" id="state">…</div>
+    <div><span class="lvl" id="level">level</span> <span class="muted" id="detail"></span></div>
+    <ol class="steps" id="steps"></ol>
+    <div class="stations" id="stations" style="margin-top:10px"></div>
+    <div class="reasons" id="reasons"></div>
+  </div>
+
+  <button class="stop" id="pause">PAUSE (hold position)</button>
+  <p class="muted">Pause holds the claw where it is. The switched power strip is the emergency
+    stop: it drops the claw, so nobody may stand under the workspace.</p>
+
+  <div class="card" id="roomcard">
+    <b>Room (metres)</b>
+    <div class="row">
+      <div><span class="muted">width X</span><input type="number" step="0.01" id="w"></div>
+      <div><span class="muted">depth Y</span><input type="number" step="0.01" id="d"></div>
+      <div><span class="muted">height Z</span><input type="number" step="0.01" id="h"></div>
+    </div>
+    <button id="saveroom">Save room</button>
+    <div class="muted" id="missing"></div>
+  </div>
+
+  <div class="card">
+    <b>Before starting</b>
+    <div id="checklist"></div>
+    <button class="primary" id="start">Start calibration</button>
+    <button id="resume">Resume</button>
+    <button id="ack">Acknowledge fault</button>
+    <button id="recover">Recover (re-reference from camera)</button>
+    <button id="lower">Lower claw to the floor</button>
+    <button id="disarm">Disarm (claw must rest on the floor)</button>
+  </div>
+</main>
+<script>
+const STEPS = ["SELF_CHECK","SLACK_TAKEUP","INITIAL_LIFT","VISUAL_INITIALIZATION","CALIBRATION","REFERENCE_VERIFICATION","READY"];
+const $ = id => document.getElementById(id);
+let checks = [];
+
+async function api(path, body) {
+  const r = await fetch(path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) alert(j.error || ("HTTP " + r.status));
+  return j;
+}
+const cmd = (c, extra={}) => api("/api/command", {cmd:c, ...extra}).then(refresh);
+
+function render(s) {
+  $("state").textContent = s.state + (s.busy ? " …" : "");
+  $("level").textContent = s.level; $("level").className = "lvl " + s.level;
+  $("detail").textContent = s.detail || "";
+  const idx = STEPS.indexOf(s.detail);
+  $("steps").innerHTML = STEPS.map((x, i) =>
+    `<li class="${s.state === "READY" || i < idx ? "done" : (i === idx ? "now" : "")}">${x.replace(/_/g," ").toLowerCase()}</li>`).join("");
+  $("stations").innerHTML = Object.entries(s.stations).map(([k, v]) =>
+    `<div><b>${k}</b><br><span class="${v.valid ? "ok" : "bad"}">${v.valid ? (v.bead_verified ? "bead ✓" : "visual") : "invalid"}</span></div>`).join("");
+  $("reasons").textContent = [s.error, ...(s.reasons || [])].filter(Boolean).join("\n");
+  if (!checks.length) {
+    checks = s.checklist;
+    $("checklist").innerHTML = checks.map((c, i) => `<label><input type="checkbox" class="ck"> <span>${c}</span></label>`).join("");
+    document.querySelectorAll(".ck").forEach(e => e.onchange = gate);
+    [$("w").value, $("d").value, $("h").value] = s.room_m;
+  }
+  const st = s.state, idle = !s.busy;
+  $("start").dataset.allowed = idle && (st === "DISARMED" || st === "PARKED");
+  $("resume").disabled = !(idle && st === "PAUSED");
+  $("ack").disabled = !(idle && st === "FAULT");
+  $("recover").disabled = !(idle && st === "RECOVERY_REQUIRED");
+  $("lower").disabled = !(idle && ["READY","PAUSED","RECOVERY_REQUIRED","FAULT"].includes(st));
+  $("disarm").disabled = !(idle && ["PARKED","DISARMED","FAULT","RECOVERY_REQUIRED"].includes(st));
+  $("pause").disabled = !["STARTUP","TASK","READY"].includes(st);
+  $("roomcard").style.opacity = (st === "DISARMED" || st === "PARKED") ? 1 : .5;
+  gate();
+}
+function gate() {
+  const all = [...document.querySelectorAll(".ck")].every(e => e.checked);
+  $("start").disabled = !(all && $("start").dataset.allowed === "true");
+}
+async function refresh() {
+  render(await api("/api/status"));
+  const m = await api("/api/checks");
+  const miss = Object.entries(m).filter(([k, v]) => v.length).map(([k, v]) => `${k}: ${v.join(", ")}`);
+  $("missing").textContent = miss.length ? "Unmeasured: " + miss.join(" | ") : "All configuration entries measured.";
+}
+$("pause").onclick = () => cmd("pause");
+$("start").onclick = () => cmd("start", {checklist:true});
+$("resume").onclick = () => cmd("resume");
+$("ack").onclick = () => cmd("acknowledge");
+$("recover").onclick = () => cmd("recover");
+$("lower").onclick = () => confirm("Lower the claw to the floor now?") && cmd("lower");
+$("disarm").onclick = () => {
+  const t = prompt('Holding torque will be removed. Type claw_supported to confirm the claw rests on the floor:');
+  if (t) cmd("disarm", {confirm:t});
+};
+$("saveroom").onclick = () => api("/api/room", {width_m:+$("w").value, depth_m:+$("d").value, height_m:+$("h").value}).then(refresh);
+refresh(); setInterval(refresh, 1000);
+</script>
+</body>
+</html>

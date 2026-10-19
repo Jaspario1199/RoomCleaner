@@ -1,0 +1,124 @@
+"""Host side of the claw node (firmware/claw_s3): HTTP client, clock mapping,
+and the real frame source feeding the marker detector.
+
+Timing: frames carry the claw's capture time (esp_timer, us). The claw clock
+is mapped to the host clock with the minimum-RTT offset from /status polls,
+so frame ages are judged in host time like everything else.
+"""
+from __future__ import annotations
+
+import json
+import time
+import urllib.error
+import urllib.request
+
+import cv2
+import numpy as np
+
+
+class ClawError(RuntimeError):
+    pass
+
+
+class HttpClawClient:
+    def __init__(self, base_url: str, *, timeout_s=1.0, now_us=None, status_ttl_s=0.1):
+        self.base = base_url.rstrip("/")
+        self.timeout = timeout_s
+        self.now_us = now_us or (lambda: time.monotonic() * 1e6)
+        self.offset_us = None          # host = claw + offset
+        self.best_rtt = float("inf")
+        self.ttl = status_ttl_s
+        self._status = None
+        self._status_t = -1e18
+
+    def _get(self, path, method="GET"):
+        req = urllib.request.Request(self.base + path, method=method)
+        return urllib.request.urlopen(req, timeout=self.timeout)
+
+    # -- status / clock ---------------------------------------------------
+    def status(self) -> dict:
+        now = self.now_us()
+        if self._status is not None and now - self._status_t < self.ttl * 1e6:
+            return self._status
+        t0 = self.now_us()
+        try:
+            with self._get("/status") as r:
+                d = json.loads(r.read())
+        except Exception as e:                       # network errors -> offline
+            return {"online": False, "error": str(e)}
+        t1 = self.now_us()
+        rtt = t1 - t0
+        if rtt <= self.best_rtt * 1.5 or self.offset_us is None:
+            self.best_rtt = min(self.best_rtt, rtt)
+            self.offset_us = (t0 + t1) / 2 - d["t_us"]
+        self._status, self._status_t = d, t1
+        return d
+
+    def to_host_us(self, claw_us: float) -> float:
+        if self.offset_us is None:
+            self.status()
+        return claw_us + (self.offset_us or 0.0)
+
+    def roll_pitch(self):
+        s = self.status()
+        if not s.get("online") or not s.get("imu_ok"):
+            raise ClawError("claw IMU unavailable")
+        return float(s["roll"]), float(s["pitch"])
+
+    def tilt(self) -> float:
+        r, p = self.roll_pitch()
+        return float(np.hypot(r, p))
+
+    # -- actions ---------------------------------------------------------
+    def grip(self, close: bool, force=False) -> bool:
+        q = f"/grip?close={int(close)}" + ("&force=1" if force else "")
+        try:
+            with self._get(q, "POST") as r:
+                return bool(json.loads(r.read()).get("ok"))
+        except urllib.error.HTTPError as e:
+            if e.code == 409:
+                return False                          # refused: not upright
+            raise ClawError(f"grip failed: HTTP {e.code}")
+
+    def frame(self):
+        """(BGR image, capture time in HOST us, frame id, camera mode)."""
+        with self._get("/frame") as r:
+            data = r.read()
+            cap = float(r.headers["X-Capture-Us"])
+            fid = int(r.headers["X-Frame-Id"])
+            mode = r.headers.get("X-Camera-Mode", "")
+        img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            raise ClawError("undecodable JPEG")
+        return img, self.to_host_us(cap), fid, mode
+
+
+class DetectorFrameSource:
+    """frame_source for perception.VisionSource on real hardware."""
+
+    def __init__(self, client: HttpClawClient, detector, *, camera_mode: str, T_B_C):
+        self.client = client
+        self.det = detector
+        self.mode = camera_mode
+        self.R_C_B = np.asarray(T_B_C)[:3, :3].T
+        self.prev = None
+
+    def observe(self, now_us):
+        from .vision.marker import MarkerObservation
+        try:
+            img, cap, fid, mode = self.client.frame()
+        except Exception as e:
+            return MarkerObservation(False, f"no frame: {e}")
+        if self.mode and mode != self.mode:
+            return MarkerObservation(False, f"camera mode {mode!r} != calibrated {self.mode!r}")
+        try:
+            r, p = self.client.roll_pitch()
+            from .frames import rpy_to_matrix
+            up_body = rpy_to_matrix(r, p, 0.0).T @ np.array([0, 0, 1.0])   # world up in body
+            up_cam = self.R_C_B @ up_body
+        except Exception:
+            up_cam = (0, 0, -1)
+        obs = self.det.detect(img, prev_T_C_M=self.prev, up_in_cam=up_cam, frame_id=fid, capture_us=cap)
+        if obs.ok:
+            self.prev = obs.T_C_M
+        return obs

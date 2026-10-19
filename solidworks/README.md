@@ -89,7 +89,7 @@ Files over ~50 MB should go through Git LFS; nothing here is close.
 
 | File | What it is |
 |---|---|
-| `heat_plate/motor_heat_plate.step` | 100 × 100 × 3 mm aluminium spreader/fin plate, sandwiched between motor flange and the v3 PETG motor tab |
+| `heat_plate/motor_heat_plate.step` | 44 × 150 × 3 mm vertical aluminium fin (motor width, rises ~108 mm above the flange), sandwiched between motor flange and the v3 PETG motor tab |
 | `heat_plate/motor_heat_plate.dxf` | 2D outline + 5 holes for laser / waterjet cutting |
 | `heat_plate/motor_heat_plate_drawing.png` | dimensioned drawing with hole table |
 

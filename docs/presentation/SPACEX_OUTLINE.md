@@ -90,7 +90,7 @@ inspection and bring-up, not on software.
   T = W / Σ sin θᵢ.
 - **Numbers (calculated, `calculations/gen2_screening.py`):** W = 1 lb + 0.45
   kg claw = 8.9 N. At 0.15 m below the anchors T = 32 N per cable; at 0.3 m,
-  16 N; at 1.2 m, 4.6 N. The motor gives ~18 N of line force at the spool core
+  16 N; at 1.2 m, 4.6 N. The motor gives ~24 N of line force at the spool core (18 N at a full spool)
   → **software ceiling ≥ 0.4 m below the anchors**.
 - **Say:** four cables for three translational DOF (degrees of freedom) is
   over-constrained; position control means length errors become tension.
@@ -104,10 +104,11 @@ inspection and bring-up, not on software.
 - **Graphic:** spool section (core radius, width, flange, shaft flat, set
   screw) + table of layers vs drum width.
 - **Equations:** τ = T·r; F_available ≈ η·τ_motor(ω)/r; length/rev = 2πr.
-- **Numbers:** longest cable 4.66 m (15.3 ft, far floor corner) vs 20 ft
-  stored → 1.4 m margin. 0.5 mm line on a 10 mm core: 3–6 layers depending on
-  width; radius grows 1.5–3 mm → force drops 13–23 %, length per rev changes
-  9–19 mm. **Decision:** model radius vs wound length (or keep the working
+- **Numbers (Spoolv3 measured: Ø15 core, 16 mm drum, Ø36 flanges):** the
+  longest cable is 4.66 m (15.3 ft, far floor corner), and 20 ft is stored,
+  leaving 1.4 m of margin. 20 ft of 0.5 mm line winds 5 layers, from 7.5 to
+  10 mm radius, 8 mm inside the flanges. Line force drops from 24 N to 18 N,
+  and length per rev changes by 15.7 mm, or 33 %. **Decision:** model radius vs wound length (or keep the working
   range on the base layers).
 - **Measured to add:** pull force vs speed on one station (the outline's own
   ask). That plot is the strongest evidence you can bring.

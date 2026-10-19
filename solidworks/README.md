@@ -27,8 +27,8 @@ listed here but not yet copied (sync step below).
 | `Spool_V1_Short_22mm.SLDPRT` / `.step` | 101382 / 81781 | shortened spool, 22 mm | Drive |
 | `Spool_V2.SLDPRT` / `.step` | 112516 / 93733 | spool iteration 2 | Drive |
 | `Bead.SLDPRT` | 138260 | homing stopper bead | Drive |
-| `Motor_Reference.SLDASM` / `.step` | 128299 / 27129 | NEMA 17 reference body | see below |
-| `KW12_3_Approximate_Reference.step` | 38464 | limit-switch reference body | see below |
+| `Motor_Reference.SLDASM` / `.step` | 128299 / 27129 | NEMA 17 reference body | step **in repo** (`v1_2026-10-07/`) |
+| `KW12_3_Approximate_Reference.step` | 38464 | limit-switch reference body | **in repo** (`v1_2026-10-07/`) |
 
 ### v2 — 2026-10-11
 
@@ -36,7 +36,7 @@ listed here but not yet copied (sync step below).
 |---|---|---|---|
 | `Wall Mount.SLDPRT` / `Wall Mount_Step.STEP` | 191533 / 185647 | wall frame, v2 | Drive |
 | `Slipin_mount_piece.SLDPRT` / `_step.STEP` | 243517 / 237957 | slide-in housing, v2 | Drive |
-| `Spool1011.SLDPRT` / `Spool1011_Step.STEP` | 115728 / 52617 | spool, 11 Oct | see below |
+| `Spool1011.SLDPRT` / `Spool1011_Step.STEP` | 115728 / 52617 | spool, 11 Oct | STEP **in repo** (`v2_2026-10-11/`) |
 | `RoomCleaner_BOM_1_2_3.xlsm` | 34725 | bill of materials (macro workbook) | Drive |
 
 ### v3 — 2026-10-18 (current wall station)
@@ -46,7 +46,7 @@ listed here but not yet copied (sync step below).
 | `Wall_Mount_v3.STEP` | 251650 | wall frame, v3 | Drive |
 | `Slipin_mount_piece v3.STEP` | 314062 | slide-in housing, v3 | Drive |
 | `Shell_Casing.STEP` | 302679 | station cover, v3 export | Drive |
-| `Spoolv3.STEP` | 55157 | spool, v3 | see below |
+| `Spoolv3.STEP` | 55157 | spool, v3: Ø36 × 22, Ø15 core, 16 mm drum, Ø5.45 D-bore | **in repo** (`v3_2026-10-18/`) |
 
 ### Gripper — Claw_V1 (2026-10-12) and V5 (2026-10-18/19)
 
@@ -62,8 +62,9 @@ listed here but not yet copied (sync step below).
 | `V5/24T_Follower.SLDPRT` | 479845 | 24-tooth follower (second jaw, reversed) | Drive |
 | `V5/Griper Cylinder.SLDPRT` | 306886 | rigid extension between housing and clamp | Drive |
 
-The four small reference/spool STEP files are being copied by an automated
-transfer; whichever landed are listed by `git ls-files solidworks/`.
+Copied files were size-checked against Drive and parse as valid STEP.
+`Motor_Reference.step` was transcribed rather than streamed; it parses and
+matches size, but re-download it if byte-exactness matters.
 
 ## Why most files are not copied yet, and how to finish the sync
 

@@ -25,7 +25,7 @@ concept.
 | R1 | Electronics | Four independent nodes must change four cable lengths in sync; timing skew on a stiff line becomes tension spikes or slack | High | Open — design choice needed |
 | R2 | Safety | Boot-time glitches can step a motor; comms-loss must HOLD, never disable; kill switch drops the load | High (blocker) | Open |
 | R3 | Wall station | Slide-in housing needs positive retention and a load direction that seats it | Med-High | Needs geometry |
-| R4 | Spool | Wound radius grows 1.5–3 mm over 20 ft → 9–19 mm/rev length error if radius assumed constant; overhung spool loads motor bearing | Medium | Open |
+| R4 | Spool | Measured v3: 20 ft fits (5 layers, 8 mm flange margin). Radius grows 7.5 → 10 mm, a 33 % change in length per rev. Bore opened to Ø5.45 (loose) | Medium | Open |
 | R5 | Gripper | Module-1, 6 mm-face PETG pinion fails at servo stall (SF 0.35–0.41) | High (likely failure) | Needs module/face |
 | R6 | Workspace | Within ~0.3 m of the anchors, cable tension exceeds what the motor can pull | Medium | Open (software limit) |
 | R7 | Sensing | Camera moved onto a swinging claw: view and localization trade-off | Medium | Decision to state |
@@ -109,25 +109,41 @@ the wall**. Checks when the STEP files are synced:
 - Creep: PETG or better for the frame and housing; PLA under constant load
   near a warm ceiling creeps.
 
-## R4 — Spool winding and shaft loading (Medium)
+## R4 — Spool winding, bore fit and shaft loading (Medium)
 
-From `gen2_screening.py` (core radius 10 mm assumed, 0.5 mm line, 20 ft):
+**Measured from `solidworks/v3_2026-10-18/Spoolv3.STEP`** (and v2
+`Spool1011_Step.STEP`, identical outside the bore): Ø36 flanges, 3 mm thick;
+core (hub) Ø15; drum width 16 mm; overall 22 mm; bore Ø5.45 with a single
+D-flat 0.50 mm deep (4.95 mm across the flat); Ø2.8 radial set-screw hole on
+the flat's axis at 7 mm from the base, so the screw bears on the shaft flat;
+Ø1.4 tie-off hole through the hub, offset 6 mm from the axis so it misses the
+bore. v2 had a Ø5.2 bore (4.70 across the flat).
 
-| Drum width | Layers | Full radius | Line force core → full | Length/rev change |
-|---|---|---|---|---|
-| 10 mm | 6 | 13.0 mm | 18.0 → 13.8 N | 18.8 mm |
-| 15 mm | 4 | 12.0 mm | 18.0 → 15.0 N | 12.6 mm |
-| 20 mm | 3 | 11.5 mm | 18.0 → 15.7 N | 9.4 mm |
+Winding 20 ft of 0.5 mm line (`gen2_screening.py`, 85 % packing):
 
-- Shortening the spool increases layer count. The controller must use
-  radius-as-a-function-of-wound-length, or the claw position drifts by up to
-  ~19 mm per revolution at full spool. Alternatively keep the working range in
-  the first layers (store spare line under a base layer).
-- The spool is overhung on a 5 mm shaft. NEMA 17 front bearings are typically
-  rated ~25–30 N radial at 20 mm from the flange; the near-ceiling tension in
-  R6 (32 N) reaches that. Keep the line's working plane as close to the motor
-  face as the housing allows, or support the spool's outer end.
-- Set screw must bear on the shaft flat; confirm with a measured flat depth.
+| Drum width | Layers | Full radius | Line force core → full | Length/rev change | Flange margin |
+|---|---|---|---|---|---|
+| 10 mm | 7 | 11.0 mm | 24.0 → 16.4 N | 22.0 mm | 7.0 mm |
+| **16 mm (v3 as drawn)** | **5** | **10.0 mm** | **24.0 → 18.0 N** | **15.7 mm** | **8.0 mm** |
+| 20 mm | 4 | 9.5 mm | 24.0 → 18.9 N | 12.6 mm | 8.5 mm |
+
+- **Capacity: pass.** 20 ft fills to ~10 mm radius, 8 mm inside the
+  flanges. The flanges could be ~4 mm smaller in radius if mass or print time
+  matters.
+- **Calibration: action.** Radius changes 7.5 → 10 mm, so length per
+  revolution changes by 15.7 mm (33 %). The controller must use radius as a
+  function of wound length, or the claw drifts.
+- **Bore fit: question.** v3 opened the bore from Ø5.2 to Ø5.45: 0.45 mm
+  diametral clearance on a 5 mm shaft. That is loose for a printed hole unless
+  your printer prints holes ~0.3 mm undersize. If you measured a v2 print as
+  too tight and opened it, that is a good fit-coupon story for slide 7. Say
+  what the printed bore measured. Either way, the set screw on the flat is
+  what transmits torque. Use a thread-forming M3 or a heat-set insert, not a
+  printed thread.
+- **Shaft loading:** the line runs at the drum's mid-plane, 11 mm from the
+  spool base. NEMA 17 front bearings are typically rated ~25–30 N radial at
+  20 mm from the flange. The near-ceiling tension in R6 (32 N) reaches that,
+  so keep the spool base as close to the motor face as the housing allows.
 
 ## R5 — Gripper gear teeth (High, likely failure)
 
@@ -167,8 +183,8 @@ Equal-share static tension, 1 lb + 0.45 kg claw, claw under room center:
 | 0.60 m | 8.3 N |
 | 1.20 m | 4.6 N |
 
-The motor delivers ~18 N of line force at the core (36 N·cm × 50 % running
-margin / 10 mm). Above ~0.3 m below the anchors the claw cannot be lifted, and
+The motor delivers ~24 N of line force at the measured 7.5 mm core, falling to
+~18 N at a full spool (36 N·cm × 50 % running margin / radius). Above ~0.3 m below the anchors the claw cannot be lifted, and
 the bearing load in R4 peaks. Add a software ceiling (≥ 0.4 m below the
 anchors) and never home by winching the claw up to the pulleys. Re-run the
 gen-1 tension-feasibility solver (`roomcleaner/`) with the gen-2 anchor
@@ -203,7 +219,7 @@ VDD at the driver before enabling.
 
 | Input | Assumed | Where it comes from |
 |---|---|---|
-| Spool core radius, drum width | 10 mm, 10–26 mm | Spoolv3.STEP |
+| Spool core radius, drum width | **measured** 7.5 mm, 16 mm | Spoolv3.STEP |
 | Line effective diameter | 0.5 mm | calipers on wound line |
 | Anchor positions / drop below ceiling | room corners, 0.15 m | tape measure after install |
 | Motor running torque | 50 % of 36 N·cm | pull test vs speed (outline slide 5 calls for it) |

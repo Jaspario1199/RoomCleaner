@@ -23,7 +23,9 @@ ANCHOR_DROP = 0.15          # m, ASSUMED: pulley exit below ceiling plane
 # ---------------- line + spool --------------------------------------------
 LINE_D = 0.5e-3             # m, ASSUMED effective diameter of 50 lb Dyneema
 LINE_STORED = 20 * FT       # m, "target about 20 ft of line" (Outline v1)
-CORE_R = 10e-3              # m, ASSUMED core radius (gen-1 spool core Ø20)
+CORE_R = 7.5e-3             # m, MEASURED: Spoolv3.STEP hub Ø15 (core the line winds on)
+DRUM_W_MEASURED = 16e-3     # m, MEASURED: Spoolv3.STEP flanges at z=0-3 and 19-22 mm
+FLANGE_R = 18e-3            # m, MEASURED: Spoolv3.STEP flange Ø36
 PACKING = 0.85              # ASSUMED winding efficiency (gaps, cross-overs)
 
 # ---------------- motor (SIMAX 42-38, from the shopping list) ------------
@@ -83,7 +85,7 @@ def main():
           f"{LINE_STORED - lmax:+.2f} m over the longest cable")
 
     hr("2. Spool winding: layers, radius growth, force and calibration impact")
-    for width_mm in (10, 15, 20, 26):
+    for width_mm in (10, 16, 20):
         w = width_mm * 1e-3
         turns_per_layer = PACKING * w / LINE_D
         r, wound, layers = CORE_R, 0.0, 0
@@ -94,9 +96,11 @@ def main():
         f_core = MOTOR_TORQUE / CORE_R
         f_full = MOTOR_TORQUE / r
         dl = 2 * math.pi * (r - CORE_R)
+        tag = "  <- Spoolv3 as drawn" if width_mm == 16 else ""
         print(f"width {width_mm:>2} mm: {layers:>2} layers, full radius "
               f"{r*1e3:5.1f} mm, line force {f_core:5.1f} N (core) -> {f_full:5.1f} N "
-              f"(full), length/rev changes by {dl*1e3:5.1f} mm")
+              f"(full), length/rev changes by {dl*1e3:5.1f} mm, flange "
+              f"clearance {(FLANGE_R-r)*1e3:4.1f} mm{tag}")
 
     hr("3. Static cable tension, 4 cables, equal vertical share")
     print(f"supported weight: {TEST_WEIGHT:.2f} N test + {CLAW_MASS*G:.2f} N claw = {W:.2f} N")

@@ -236,3 +236,15 @@ calculations/gen2_screening.py). Presentation: SpaceX onsite Oct 27, draft
 due Oct 22 — docs/presentation/SPACEX_OUTLINE.md.
 Next: sync the remaining SolidWorks files + STEP exports into solidworks/,
 then measure the gear module/face width and the slide-in retention.
+
+## Gen-2 updates (10/19, later)
+- All gen-2 SolidWorks files synced into solidworks/ (BOM .xlsm still
+  Drive-only). Spool v3 measured: Ø36 × 22, Ø15 core, 16 mm drum, Ø5.45
+  D-bore. The bore was opened from v2's Ø5.2 because v2 printed too tight on
+  the shaft (Jasper, confirmed).
+- Capacity (review R10): worst-case total suspended weight anywhere at
+  1.0 A is 1.0–2.3 lb depending on the ceiling limit, ~25 % less with one
+  slack cable. The 1 lb gate (plus ~1 lb claw) needs a tension-aware
+  ceiling, a weighed and lightened claw, or 1.5 A drivers.
+- Structural design load per cable: 32 N at 1.0 A, 48 N at 1.5 A (stepper
+  slip limit, empty spool).

@@ -95,6 +95,12 @@ inspection and bring-up, not on software.
 - **Say:** four cables for three translational DOF (degrees of freedom) is
   over-constrained; position control means length errors become tension.
   This sets up the electronics decision on slide 8.
+- **Capacity anywhere in the room (calculated, `gen2_payload_limit.py`):**
+  the total claw + load at 1.0 A is 1.0–2.3 lb, depending on how close to the
+  anchors the claw may go. If one cable goes slack it is about 25 % less. The
+  worst spot is high against the middle of a long wall. This is why the
+  workspace ceiling is tension-aware, and why the claw's mass matters as much
+  as the payload.
 - **Likely question:** "What happens at a corner pick?" → far cables go
   near-horizontal and carry little; near cables take most of the load; the
   feasibility solver checks Tᵢ ≥ 0.5 N and ≤ 18 N.
@@ -132,6 +138,9 @@ inspection and bring-up, not on software.
 - **Graphic:** fit-coupon photo (rail clearance, motor pilot Ø22.2, M3
   clearance Ø3.8 vs nominal 3.4) with measured insertion results; print
   orientation of the frame and housing.
+- **Real example:** the v2 spool bore (Ø5.2) printed too tight on the 5 mm
+  shaft, so v3 opened it to Ø5.45 (4.95 across the flat), with the set screw
+  on the flat carrying the torque. Show the measured printed bore.
 - **Say:** clearances tuned by coupon, not guesswork; PETG for parts under
   constant load (PLA creeps); orientation so rail loads run along layers;
   heat-set inserts where threads are reused; inspection datum for the slide.

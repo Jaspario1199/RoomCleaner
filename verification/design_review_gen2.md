@@ -30,6 +30,7 @@ concept.
 | R6 | Workspace | Within ~0.3 m of the anchors, cable tension exceeds what the motor can pull | Medium | Open (software limit) |
 | R7 | Sensing | Camera moved onto a swinging claw: view and localization trade-off | Medium | Decision to state |
 | R8 | Electronics | Standalone A4988 needs a 47–100 µF bulk capacitor at VMOT on every station | High (blocker) | Open |
+| R10 | Capacity | Worst-case lift anywhere in the room is 1.0–1.5 lb **total** at 1.0 A (claw included); 1 lb test + ~1 lb claw is not guaranteed everywhere | **High** | Open: current, workspace shape, claw mass |
 | R9 | Electronics | Driver logic supply: the 1.14 V fault shows the 3.3 V feed is a single point of failure | Low-Med | Partly fixed |
 
 Positives worth presenting: the 24T/24T stage is a clean way to get two
@@ -227,3 +228,57 @@ VDD at the driver before enabling.
 | Gear module and face width | 1 mm, 6 mm | V5 pinion SLDPRT / STEP |
 | Jaw arm length | 60 mm | V5 assembly |
 | Slide direction, retention feature | unknown | Slipin_mount_piece v3 STEP |
+
+## R10 — How much the four NEMA 17 winches can lift anywhere (High)
+
+`calculations/gen2_payload_limit.py`. The weight is the **total suspended
+weight** (claw + load). Each row is the worst position in the workspace
+(0.2 m wall margin, claw from 0.15 m up to the ceiling limit).
+
+Assumptions (all conservative, all listed so they can be replaced by tests):
+- **Motor:** SIMAX 42-38, 36 N·cm holding at the rated 1.5 A, scaled
+  linearly to the set current. Running torque is 70 % of holding at winch
+  speeds.
+- **Spool radius:** full spool, 10 mm (the worst case; measured core is
+  7.5 mm).
+- **Dynamic:** +2 m/s² vertical acceleration.
+- **Margin:** 1.5× so a stepper never silently skips steps.
+- **"Best split":** the four tensions are the most favourable that satisfy
+  equilibrium (a linear program).
+- **"One cable slack":** a node lags and its cable carries nothing; the other
+  three must hold everything.
+
+| Current (Vref on R100) | Ceiling limit below anchors | Best split | One cable slack | No margin, best split |
+|---|---|---|---|---|
+| 1.0 A (0.80 V, as set on the bench) | 0.4 m | 1.04 lb (0.47 kg) | 0.76 lb | 1.56 lb |
+| | 0.6 m | 1.51 lb (0.69 kg) | 1.12 lb | 2.27 lb |
+| | 0.8 m | 1.93 lb (0.88 kg) | 1.45 lb | 2.90 lb |
+| | 1.0 m | 2.30 lb (1.04 kg) | 1.75 lb | 3.45 lb |
+| 1.5 A (1.20 V, motor rated) | 0.4 m | 1.56 lb | 1.14 lb | — |
+| | 0.6 m | 2.27 lb | 1.67 lb | — |
+| | 0.8 m | 2.90 lb | 2.17 lb | — |
+| | 1.0 m | 3.45 lb | 2.62 lb | — |
+
+- **Where it is worst:** best split, the claw high and against the middle of
+  a long wall (around x = 1.68 m, y = 0.2 or 2.54 m). There the two near
+  cables are steep and short and the far two are almost horizontal. With one
+  cable slack, the worst point is near the room centre.
+- **Meaning for the 1 lb gate:** total = 1 lb test + claw. At the assumed
+  0.45 kg (≈ 1 lb) claw that is ~2 lb. At 1.0 A that needs the claw kept
+  ≥ 1.0 m below the anchors everywhere (best split), and is not covered at
+  any limit if one cable goes slack.
+- **Options, cheapest first:**
+  1. Weigh the V5 claw; every 0.1 kg saved is ~0.22 lb of payload.
+  2. **Tension-aware ceiling:** let the claw go high only near the room
+     centre, and keep it lower near the walls. The gen-1 tension-feasibility
+     solver already computes this per position.
+  3. Raise the driver current to the motor's rated 1.5 A (Vref 1.20 V on R100
+     boards), which gives +50 %. Check driver and motor temperature, keep the
+     heatsinks and add airflow; the A4988 is near its limit there.
+  4. Fix R1 so cables never go slack. The one-slack column is the price of
+     losing sync.
+- **Structural worst case (for SolidWorks studies):** if the claw snags and a
+  motor keeps winding, the line tension rises until the stepper slips. That
+  is holding torque divided by the empty-spool radius: **32 N at 1.0 A and
+  48 N at 1.5 A**, per cable. Use 32 N and 64 N (×2 dynamic) at 1.0 A, or
+  48 N and 96 N if you raise the current.

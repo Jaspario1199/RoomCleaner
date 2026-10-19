@@ -86,3 +86,57 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ---------------------------------------------------------------------------
+# Worst cases beyond the best-split capacity
+# ---------------------------------------------------------------------------
+
+def worst_ratio_one_slack(depth_min):
+    """One cable goes slack (e.g. a node lags under Wi-Fi skew): the other
+    three tensions are then fixed by statics. Worst over positions and over
+    which cable is slack, counting only configurations the three can hold
+    (all tensions >= 0); otherwise the claw swings instead of holding."""
+    xs = np.linspace(WALL_MARGIN, ROOM_L - WALL_MARGIN, 23)
+    ys = np.linspace(WALL_MARGIN, ROOM_W - WALL_MARGIN, 19)
+    zs = np.linspace(CLAW_LOW, AZ - depth_min, 25)
+    P = np.array(list(itertools.product(xs, ys, zs)))
+    W = 1.0 * (1 + ACCEL / G)
+    worst, where = 0.0, None
+    for slack in range(4):
+        keep = [i for i in range(4) if i != slack]
+        U = np.stack([np.column_stack([anchors[i, 0] - P[:, 0],
+                                       anchors[i, 1] - P[:, 1],
+                                       AZ - P[:, 2]]) for i in keep], axis=2)
+        U /= np.linalg.norm(U, axis=1, keepdims=True)          # (n,3,3) columns = unit vectors
+        b = np.tile([0.0, 0.0, W], (len(P), 1))
+        T = np.linalg.solve(U, b[..., None])[..., 0]
+        ok = (T >= 0).all(axis=1)
+        if ok.any():
+            m = T[ok].max(axis=1)
+            j = m.argmax()
+            if m[j] > worst:
+                worst, where = m[j], (tuple(P[ok][j]), slack)
+    return worst, where
+
+
+def worst_cases():
+    print("\n=== WORST CASES ===")
+    for I in (I_SET, I_RATED):
+        hold = HOLD_RATED * I / I_RATED
+        run = hold * RUN_FRAC
+        f = run / R_FULL / SKIP_SF
+        print(f"\n-- driver current {I} A (Vref {0.8*I:.2f} V on R100 boards) --")
+        print("ceiling limit | best split: max total | one cable slack: max total")
+        for d in (0.4, 0.6, 0.8, 1.0):
+            k1, _ = worst_ratio(d)
+            k2, w2 = worst_ratio_one_slack(d)
+            print(f"  {d:.1f} m below anchors | {f/k1/G*2.2046:4.2f} lb "
+                  f"({f/k1/G:.2f} kg) | {f/k2/G*2.2046:4.2f} lb ({f/k2/G:.2f} kg)")
+        snag = hold / R_EMPTY
+        print(f"structural worst case (claw snagged, motor pulls until it slips, "
+              f"empty spool): {snag:.0f} N per cable; x2 dynamic = {2*snag:.0f} N")
+
+
+if __name__ == "__main__":
+    worst_cases()

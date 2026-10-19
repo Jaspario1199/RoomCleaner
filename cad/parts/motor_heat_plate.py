@@ -12,9 +12,9 @@ above the deck top (z 34.6 vs deck 13.47).
 """
 import cadquery as cq
 
-T = 3.0            # mm, 5052-H32 or 6061-T6 (1/8" = 3.175 also fine)
+T = 3.175          # mm, 1/8" 6061-T6 or 5052-H32 plate (enough now that only ~7 mm is covered)
 W = 44.0           # mm, width: motor flange 42.3 + ~0.85 each side (vertical fin only)
-H = 150.0          # mm, height: fin rises ~108 mm above the motor flange
+H = 250.0          # mm, height: ~200 mm in open air above the cover's fin-pocket floor
 AXIS_FROM_BOTTOM = 21.0   # mm, motor axis above the plate's bottom edge (deck clearance 0.1 mm)
 PILOT_D = 22.5     # mm, motor boss Ø22.0 + clearance
 BOLT_SQ = 31.0     # mm, NEMA 17 bolt square
@@ -43,7 +43,7 @@ def drawing(path, mass_g):
     from matplotlib.patches import FancyBboxPatch, Circle
     INK, MUTED, ACC = "#2b2b29", "#6b6a63", "#2a78d6"
     cx, cy, sq = W / 2, AXIS_FROM_BOTTOM, BOLT_SQ / 2
-    fig, ax = plt.subplots(figsize=(10, 9), dpi=150)
+    fig, ax = plt.subplots(figsize=(11, 14), dpi=150)
     ax.add_patch(FancyBboxPatch((0, 0), W, H, boxstyle=f"round,pad=0,rounding_size={CORNER_R}",
                                 fc="#eef3fa", ec=INK, lw=1.6))
     ax.add_patch(Circle((cx, cy), PILOT_D / 2, fc="white", ec=INK, lw=1.4))
@@ -86,21 +86,35 @@ def drawing(path, mass_g):
         for j, v in enumerate([a, b, f"{x:.1f}", f"{y:.1f}", e]):
             ax.text(x0 + cols[j], y0 - 7 * (i + 1), v, fontsize=8, color=INK)
     edge = cx - sq - BOLT_D / 2
-    notes = [f"Material: {T} mm 5052-H32 or 6061-T6", "  (1/8\" = 3.175 mm also fine) \u00b7 R3 corners \u00b7 deburr",
+    notes = [f"Material: {T} mm (1/8\") 6061-T6 or 5052-H32 plate",
+             f"Blank: {W:.1f} x {H:.0f} mm (shear), tol +/-0.5",
+             "Holes: positions +/-0.1 relative to each other;",
+             "  datum = BOTTOM edge + LEFT edge (drill all 5",
+             "  in one setup on the mill)",
+             f"Corners: break edges; R{CORNER_R:.0f} optional",
+             "Deburr both faces; motor face must stay flat",
+             "Finish: matte black paint EXCEPT the motor",
+             "  contact square (thermal paste there)",
              f"Mass: {mass_g:.0f} g",
-             "Bottom edge on the slide-in deck; motor axis", "  21.1 mm above deck (v3 STEP)",
-             f"Bolt-hole edge to plate side: {edge:.1f} mm", "Stack: motor | plate | 5 mm PETG tab",
-             "  \u2192 M3 \u00d7 12 bolts (was \u00d7 10)", "  \u2192 spool moves 3 mm along the shaft",
-             f"Shell: slot ~{W + 2:.0f} \u00d7 4 mm where the fin exits",
-             "Estimated motor case, open air, black fin:", "  ~39 \u00b0C at 1.0 A \u00b7 ~51 \u00b0C at 1.5 A"]
+             "BOTTOM edge sits on the slide-in deck;",
+             f"  motor axis {AXIS_FROM_BOTTOM:.0f} mm above it (v3 STEP)",
+             f"Bolt-hole edge to plate side: {edge:.1f} mm",
+             "Stack: motor | plate | 5 mm PETG tab",
+             "  -> M3 x 12 motor bolts (was x 10)",
+             f"  -> motor + spool move {T:.1f} mm along the shaft",
+             "Cover fin pocket: slot (T+0.8) x 44.8 open to",
+             "  the mating face; 10-12 mm air each face;",
+             "  floor >= 25.5 mm above shaft; open top + side"]
     for i, n in enumerate(notes):
-        ax.text(x0, y0 - 52 - 6.2 * i, n, fontsize=8, color=INK)
+        ax.text(x0, y0 - 52 - 7.0 * i, n, fontsize=8, color=INK)
     ax.set_xlim(-26, W + 121)
     ax.set_ylim(-20, H + 8)
     ax.set_aspect("equal")
     ax.axis("off")
     ax.set_title("Motor heat fin \u2014 view from the PETG tab side", color=INK, fontsize=11, loc="left")
     plt.savefig(path, bbox_inches="tight", facecolor="white")
+    if str(path).endswith(".png"):
+        plt.savefig(str(path)[:-4] + ".pdf", bbox_inches="tight", facecolor="white")
 
 
 if __name__ == "__main__":

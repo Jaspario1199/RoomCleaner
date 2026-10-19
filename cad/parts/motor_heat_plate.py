@@ -117,6 +117,154 @@ def drawing(path, mass_g):
         plt.savefig(str(path)[:-4] + ".pdf", bbox_inches="tight", facecolor="white")
 
 
+
+def shop_drawing(path_pdf, mass_g, qty=4):
+    """SolidWorks-style shop drawing, A3 portrait at TRUE 1:1 scale (print at
+    100 % / "actual size"): baseline dimensions from datum A (bottom edge) and
+    datum B (left edge) to every hole centre, hole callouts, centre marks,
+    edge view for thickness, notes and title block."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Circle, FancyBboxPatch, Rectangle
+
+    PW, PH = 297.0, 420.0                     # A3 portrait, mm
+    INK, MUTED, CL = "#111111", "#555555", "#1f5fbf"
+    fig = plt.figure(figsize=(PW / 25.4, PH / 25.4))
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_xlim(0, PW)
+    ax.set_ylim(0, PH)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.add_patch(Rectangle((10, 10), PW - 20, PH - 20, fill=False, ec=INK, lw=1.0))
+
+    ox, oy = 95.0, 62.0                       # plate bottom-left corner on the sheet (datum A/B)
+    cx, cy, sq = W / 2, AXIS_FROM_BOTTOM, BOLT_SQ / 2
+    bolts = [(cx + sx * sq, cy + sy * sq) for sy in (-1, 1) for sx in (-1, 1)]
+    fs, lw = 7.5, 0.6
+
+    # ---- front view
+    ax.add_patch(FancyBboxPatch((ox, oy), W, H, boxstyle=f"round,pad=0,rounding_size={CORNER_R}",
+                                fc="none", ec=INK, lw=1.2))
+    for (hx, hy), d in [((cx, cy), PILOT_D)] + [(b, BOLT_D) for b in bolts]:
+        ax.add_patch(Circle((ox + hx, oy + hy), d / 2, fc="none", ec=INK, lw=1.0))
+        ext = d / 2 + 2.5                       # centre mark + centre lines
+        ax.plot([ox + hx - ext, ox + hx + ext], [oy + hy] * 2, color=CL, lw=0.35, ls=(0, (6, 2, 1, 2)))
+        ax.plot([ox + hx] * 2, [oy + hy - ext, oy + hy + ext], color=CL, lw=0.35, ls=(0, (6, 2, 1, 2)))
+    ax.plot([ox + cx, ox + cx], [oy - 3, oy + H + 3], color=CL, lw=0.3, ls=(0, (8, 2, 1, 2)))
+
+    def arrow(p, q):
+        ax.annotate("", q, p, arrowprops=dict(arrowstyle="<|-|>", color=INK, lw=lw,
+                                              shrinkA=0, shrinkB=0, mutation_scale=6))
+
+    # baseline dims in X from datum B (left edge), stacked below the part
+    xs = sorted({0.0, bolts[0][0], cx, bolts[1][0], W})
+    for k, xv in enumerate(xs[1:]):
+        yv = oy - 8 - 6 * k
+        ax.plot([ox, ox], [oy - 1, yv - 1.5], color=MUTED, lw=0.35)
+        ax.plot([ox + xv, ox + xv], [oy - 1 if xv in (0.0, W) else oy + (cy if xv == cx else bolts[0][1]) - (PILOT_D / 2 if xv == cx else BOLT_D / 2) - 0.8,
+                yv - 1.5], color=MUTED, lw=0.35)
+        arrow((ox, yv), (ox + xv, yv))
+        ax.text(ox + xv / 2 if xv > 12 else ox + xv + 1.5, yv + 0.8, f"{xv:.2f}", ha="center" if xv > 12 else "left",
+                va="bottom", fontsize=fs, color=INK)
+    # baseline dims in Y from datum A (bottom edge), stacked left of the part
+    ys = sorted({0.0, bolts[0][1], cy, bolts[2][1], H})
+    for k, yv_ in enumerate(ys[1:]):
+        xv = ox - 8 - 7 * k
+        ax.plot([ox - 1, xv - 1.5], [oy, oy], color=MUTED, lw=0.35)
+        ax.plot([ox - 1 if yv_ == H else ox + bolts[0][0] - BOLT_D / 2 - 0.8 if yv_ != cy else ox + cx - PILOT_D / 2 - 0.8,
+                 xv - 1.5], [oy + yv_] * 2, color=MUTED, lw=0.35)
+        arrow((xv, oy), (xv, oy + yv_))
+        ax.text(xv - 0.8, oy + (yv_ / 2 if yv_ > 12 else yv_ + 1.5), f"{yv_:.2f}", rotation=90, ha="right",
+                va="center" if yv_ > 12 else "bottom", fontsize=fs, color=INK)
+    # bolt square (reference)
+    ax.plot([ox + bolts[2][0], ox + bolts[3][0]], [oy + bolts[2][1] + 9] * 2, color=MUTED, lw=0.35)
+    arrow((ox + bolts[2][0], oy + bolts[2][1] + 9), (ox + bolts[3][0], oy + bolts[2][1] + 9))
+    for b in (bolts[2], bolts[3]):
+        ax.plot([ox + b[0]] * 2, [oy + b[1] + BOLT_D / 2 + 0.8, oy + b[1] + 10], color=MUTED, lw=0.35)
+    ax.text(ox + cx, oy + bolts[2][1] + 9.8, f"({BOLT_SQ:.2f}) REF", ha="center", va="bottom", fontsize=fs - 0.5,
+            color=MUTED)
+
+    # hole callouts with leaders
+    def callout(px, py, tx, ty, txt):
+        ax.annotate(txt, (px, py), (tx, ty), fontsize=fs, color=INK, ha="left", va="center",
+                    arrowprops=dict(arrowstyle="-|>", color=INK, lw=lw, mutation_scale=6, shrinkA=1, shrinkB=0))
+    r45 = PILOT_D / 2 * 0.7071
+    callout(ox + cx + r45, oy + cy + r45, ox + W + 14, oy + cy + 26,
+            f"Ø{PILOT_D:.2f} THRU  (A)\nmotor boss Ø22.0 + clearance")
+    b = bolts[3]
+    callout(ox + b[0] + BOLT_D / 2 * 0.7071, oy + b[1] + BOLT_D / 2 * 0.7071, ox + W + 14, oy + b[1] + 40,
+            f"4X Ø{BOLT_D:.2f} THRU  (B-E)\nM3 clearance, NEMA 17 pattern")
+    ax.text(ox + cx, oy + 150, "FIN\n(cooling area)\npaint matte black", ha="center", va="center", fontsize=8,
+            color=MUTED)
+    ax.add_patch(Rectangle((ox + cx - 21.15, oy + cy - 21.15), 42.3, 42.3, fill=False, ec=CL, lw=0.6, ls="--"))
+    ax.annotate("motor contact face 42.3 □:\nleave BARE, thermal paste", (ox + cx + 21.15, oy + cy + 12),
+                (ox + W + 14, oy + cy + 88), fontsize=fs - 0.5, color=CL, va="center",
+                arrowprops=dict(arrowstyle="-", color=CL, lw=0.4))
+    # datum flags
+    for lab, (px, py) in (("A", (ox + W * 0.7, oy)), ("B", (ox, oy + H * 0.55))):
+        ax.add_patch(Rectangle((px - 2.5, py - 2.5), 5, 5, fc="white", ec=INK, lw=0.6, zorder=5))
+        ax.text(px, py, lab, ha="center", va="center", fontsize=7, color=INK, zorder=6, weight="bold")
+    ax.text(ox + W + 3, oy - 2, "DATUM A\n= bottom edge\n(sits on deck)", fontsize=6.5, color=MUTED, va="top")
+    ax.text(ox - 4, oy + H * 0.55 + 5, "DATUM B\n= left edge", fontsize=6.5, color=MUTED, ha="right", va="bottom")
+    # overall height label already in the Y stack; width in the X stack
+    ax.text(ox + cx, oy + H + 6, "FRONT VIEW (from the PETG tab side)  1:1", ha="center", fontsize=8, color=INK,
+            weight="bold")
+
+    # ---- edge view (right side), thickness
+    ex = 272.0
+    ax.add_patch(Rectangle((ex, oy), T, H, fc="none", ec=INK, lw=1.0))
+    yt = oy + H * 0.45
+    ax.annotate("", (ex, yt), (ex - 5, yt), arrowprops=dict(arrowstyle="-|>", color=INK, lw=lw, mutation_scale=6))
+    ax.annotate("", (ex + T, yt), (ex + T + 5, yt),
+                arrowprops=dict(arrowstyle="-|>", color=INK, lw=lw, mutation_scale=6))
+    ax.text(ex - 6, yt, f"{T:.3f}\n(1/8\") PLATE", va="center", ha="right", fontsize=fs, color=INK)
+    ax.text(ex + T / 2, oy + H + 6, "EDGE VIEW", ha="center", fontsize=8, color=INK, weight="bold")
+
+    # ---- notes
+    nx, ny = 160.0, 395.0
+    notes = [
+        "NOTES",
+        "1. MATERIAL: 6061-T6 OR 5052-H32 ALUMINIUM, 1/8\" (3.175) PLATE.",
+        f"2. QTY {qty} (ONE PER WINCH STATION).",
+        "3. ALL HOLES THRU. HOLE POSITIONS ±0.10 RELATIVE TO EACH",
+        "   OTHER; DRILL ALL 5 IN ONE SETUP FROM DATUMS A AND B.",
+        "4. BLANK 44.0 x 250.0 ±0.5 (SHEARED). BREAK ALL EDGES;",
+        f"   CORNER R{CORNER_R:.0f} OPTIONAL.",
+        "5. DEBURR BOTH FACES. MOTOR FACE FLAT, NO RAISED BURRS.",
+        "6. FINISH: MATTE BLACK PAINT EXCEPT THE 42.3 SQ. MOTOR",
+        "   CONTACT AREA (BOTH FACES MAY BE PAINTED ABOVE IT).",
+        "7. ASSEMBLY: MOTOR | FIN | 5 MM PETG TAB, M3 x 12 BOLTS,",
+        "   THERMAL PASTE ON MOTOR FACE. MOTOR + SPOOL SHIFT 3.2",
+        "   ALONG THE SHAFT.",
+        f"8. MASS ≈ {mass_g:.0f} g EACH.",
+    ]
+    for i, n in enumerate(notes):
+        ax.text(nx, ny - 5.2 * i, n, fontsize=6.6, color=INK, family="monospace",
+                weight="bold" if i == 0 else "normal")
+
+    # ---- title block
+    tb = [("PART", "MOTOR HEAT FIN  (motor_heat_plate)"), ("PROJECT", "RoomCleaner winch station, gen 2"),
+          ("MATERIAL", "AL 6061-T6 / 5052-H32, 3.175 PLATE"), ("UNITS", "mm"), ("SCALE", "1:1 on A3 (print 100 %)"),
+          ("GENERAL TOL.", "±0.5 unless noted"), ("REV", "B   2026-10-19"),
+          ("SOURCE", "cad/parts/motor_heat_plate.py")]
+    tx, ty, tw, rh = 160.0, 12.0, 125.0, 6.0
+    ax.add_patch(Rectangle((tx, ty), tw, rh * len(tb), fill=False, ec=INK, lw=0.8))
+    for i, (k, v) in enumerate(tb):
+        yy = ty + rh * (len(tb) - 1 - i)
+        ax.plot([tx, tx + tw], [yy, yy], color=INK, lw=0.3)
+        ax.text(tx + 2, yy + rh / 2, k, fontsize=6, color=MUTED, va="center")
+        ax.text(tx + 30, yy + rh / 2, v, fontsize=6.8, color=INK, va="center")
+    ax.plot([tx + 28, tx + 28], [ty, ty + rh * len(tb)], color=INK, lw=0.3)
+    # 100 mm scale check bar
+    ax.plot([20, 120], [15, 15], color=INK, lw=1.0)
+    for xv in (20, 70, 120):
+        ax.plot([xv, xv], [13.5, 16.5], color=INK, lw=0.8)
+    ax.text(70, 17.5, "SCALE CHECK: this bar must measure 100 mm", ha="center", fontsize=6.5, color=INK)
+    fig.savefig(path_pdf, facecolor="white")
+    fig.savefig(str(path_pdf)[:-4] + ".png", facecolor="white", dpi=150)
+    plt.close(fig)
+
 if __name__ == "__main__":
     p = make()
     out = "solidworks/heat_plate/motor_heat_plate"
@@ -125,4 +273,6 @@ if __name__ == "__main__":
     v = p.val().Volume()
     print(f"volume {v:.0f} mm^3, mass {v*2.7e-3:.0f} g (aluminium)")
     drawing(out + "_drawing.png", v * 2.7e-3)
-    print(out + ".step / .dxf / _drawing.png")
+    cq.exporters.export(p, out + ".stl", tolerance=0.02, angularTolerance=0.1)
+    shop_drawing(out + "_shop_drawing_A3.pdf", v * 2.7e-3)
+    print(out + ".step / .stl / .dxf / _drawing.png / _shop_drawing_A3.pdf")

@@ -93,6 +93,16 @@ class HttpClawClient:
         return img, self.to_host_us(cap), fid, mode
 
 
+def frame_bgr(client: "HttpClawClient"):
+    """Colour frame for the garment detector (the marker path uses grayscale)."""
+    with client._get("/frame") as r:
+        data = r.read()
+    img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+    if img is None:
+        raise ClawError("undecodable JPEG")
+    return img
+
+
 class DetectorFrameSource:
     """frame_source for perception.VisionSource on real hardware."""
 

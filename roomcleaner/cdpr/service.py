@@ -257,10 +257,28 @@ def main(argv=None):
         factory = lambda c: TaskRunner(c, SimItemPerception(robot.world))
     else:
         ctx = build_hardware_context(a.config, a.data)
+        factory = hardware_task_factory()
     svc = Service(ctx, data_dir=a.data, config_path=None if a.sim else a.config, task_factory=factory)
     svc.start_background(real_sleep_s=0.01 if a.sim else 0.0)
     print(f"RoomCleaner setup: http://<this-computer-ip>:{a.port}/?token={svc.token}")
     create_app(svc).run(host=a.host, port=a.port, threaded=True)
+
+
+def hardware_task_factory():
+    """Real pickup tasks: the gen-1 YOLO-World garment detector on the claw
+    camera (roomcleaner/cdpr/garments.py). None (tasks refused with a reason)
+    if the detector's dependencies are not installed."""
+    try:
+        import ultralytics  # noqa: F401
+    except ImportError:
+        print("tasks disabled: pip install -r requirements-vision.txt for the garment detector")
+        return None
+    from ..perception.vision_detector import YoloWorldDetector
+    from .claw_link import frame_bgr
+    from .garments import ClawGarmentPerception
+    from .tasks import TaskRunner
+    detector = YoloWorldDetector(mapper=None)            # ClawGarmentPerception sets the pose-aware mapper
+    return lambda c: TaskRunner(c, ClawGarmentPerception(detector, c.camera, lambda: frame_bgr(c.claw)))
 
 
 def build_hardware_context(config_path, data_dir):

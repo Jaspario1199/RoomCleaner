@@ -319,8 +319,22 @@ RELEASE → DELIVERY_VERIFICATION.
   perception.
 * Limits: `max_grip_attempts` per item, `max_consecutive_failures` before
   pausing for the operator.
-* **Garment detection on hardware is not implemented** (`ItemPerception`
-  raises): an open item. The simulator's perception exercises the workflow.
+* **Garment detection** reuses the gen-1 YOLO-World open-vocabulary detector
+  (`roomcleaner/perception/vision_detector.py`) on the claw camera
+  (`roomcleaner/cdpr/garments.py`):
+  * Each box centre is mapped to the floor with the claw's current pose (an
+    exact ray/plane intersection; cable-kinematics position plus the last
+    marker yaw when the marker is out of view).
+  * **Pickup verification** needs two independent cues: the jaw region of the
+    image differs from its surrounding floor (the item hangs in the jaws), and
+    after the short shift toward the hamper nothing is seen at the old spot.
+  * **Delivery verification**: the jaw region looks empty again and the item is
+    inside the hamper radius.
+  * Delivered items are excluded from later scans.
+  * Tested in simulation with rendered camera images and a colour-blob
+    stand-in detector: two items delivered, a failed grip detected and
+    retried, a failed release reported. The YOLO path, the 30-unit
+    jaw-region threshold and the 0.25 m shift must be tuned on real frames.
 
 ---
 
@@ -343,7 +357,7 @@ RELEASE → DELIVERY_VERIFICATION.
   back-drive under the claw's weight. Measure detent holding on the real
   spool before any suspended run. Until then, nobody under the workspace,
   and the 1 lb test weight first.
-* **D-D Garment perception** for hardware (see §8).
+* **D-D Garment perception thresholds** on real claw images (see §8).
 * **D-E Station address assignment / discovery.** Static IPs in the config.
 * **D-F Station-enforced travel floor for bead searches** (review M3). Today
   the over-travel bound comes from the host's model. A station-side absolute

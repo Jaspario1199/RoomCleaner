@@ -1,0 +1,426 @@
+{
+  "scope": "Illustrative equal-share screening. No actual running torque, material/joint capacity, COM or angle envelope measured; no achieved FoS.",
+  "working_payload_reference_kg": 0.9,
+  "reserve_payload_kg": 2.2679618500000003,
+  "payload_only_ratio": 2.5199576111111113,
+  "total_static_load_ratio": 2.0133050740740743,
+  "reserve_static_to_working_2m_s2_ratio": 1.6723558659328255,
+  "cases": [
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 0,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 6.6217500000000005,
+      "required_spool_torque_Nm": {
+        "10": 0.0662175,
+        "15": 0.09932625,
+        "20": 0.132435
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 0,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 7.971750000000001,
+      "required_spool_torque_Nm": {
+        "10": 0.07971750000000001,
+        "15": 0.11957625000000002,
+        "20": 0.15943500000000002
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 45,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 9.364568656644042,
+      "required_spool_torque_Nm": {
+        "10": 0.09364568656644041,
+        "15": 0.14046852984966063,
+        "20": 0.18729137313288083
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 45,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 11.27375696584772,
+      "required_spool_torque_Nm": {
+        "10": 0.11273756965847721,
+        "15": 0.1691063544877158,
+        "20": 0.22547513931695443
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 60,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 13.243499999999997,
+      "required_spool_torque_Nm": {
+        "10": 0.13243499999999997,
+        "15": 0.19865249999999998,
+        "20": 0.26486999999999994
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 60,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 15.943499999999998,
+      "required_spool_torque_Nm": {
+        "10": 0.15943499999999997,
+        "15": 0.23915249999999996,
+        "20": 0.31886999999999993
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 75,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 25.584477360918555,
+      "required_spool_torque_Nm": {
+        "10": 0.25584477360918556,
+        "15": 0.38376716041377834,
+        "20": 0.5116895472183711
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 75,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 30.800476822879528,
+      "required_spool_torque_Nm": {
+        "10": 0.3080047682287953,
+        "15": 0.4620071523431929,
+        "20": 0.6160095364575906
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 0,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 3.3108750000000002,
+      "required_spool_torque_Nm": {
+        "10": 0.03310875,
+        "15": 0.049663125,
+        "20": 0.0662175
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 0,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 3.9858750000000005,
+      "required_spool_torque_Nm": {
+        "10": 0.039858750000000005,
+        "15": 0.05978812500000001,
+        "20": 0.07971750000000001
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 45,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 4.682284328322021,
+      "required_spool_torque_Nm": {
+        "10": 0.04682284328322021,
+        "15": 0.07023426492483031,
+        "20": 0.09364568656644041
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 45,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 5.63687848292386,
+      "required_spool_torque_Nm": {
+        "10": 0.056368784829238607,
+        "15": 0.0845531772438579,
+        "20": 0.11273756965847721
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 60,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 6.621749999999999,
+      "required_spool_torque_Nm": {
+        "10": 0.06621749999999998,
+        "15": 0.09932624999999999,
+        "20": 0.13243499999999997
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 60,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 7.971749999999999,
+      "required_spool_torque_Nm": {
+        "10": 0.07971749999999998,
+        "15": 0.11957624999999998,
+        "20": 0.15943499999999997
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 75,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 12.792238680459278,
+      "required_spool_torque_Nm": {
+        "10": 0.12792238680459278,
+        "15": 0.19188358020688917,
+        "20": 0.25584477360918556
+      }
+    },
+    {
+      "payload_kg": 0.9,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 75,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 15.400238411439764,
+      "required_spool_torque_Nm": {
+        "10": 0.15400238411439765,
+        "15": 0.23100357617159645,
+        "20": 0.3080047682287953
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 0,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 13.331602874250002,
+      "required_spool_torque_Nm": {
+        "10": 0.1333160287425,
+        "15": 0.19997404311375006,
+        "20": 0.266632057485
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 0,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 16.049564724250004,
+      "required_spool_torque_Nm": {
+        "10": 0.16049564724250004,
+        "15": 0.2407434708637501,
+        "20": 0.3209912944850001
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 45,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 18.85373359293649,
+      "required_spool_torque_Nm": {
+        "10": 0.1885373359293649,
+        "15": 0.28280600389404736,
+        "20": 0.3770746718587298
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 45,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 22.697512103219157,
+      "required_spool_torque_Nm": {
+        "10": 0.22697512103219156,
+        "15": 0.3404626815482874,
+        "20": 0.4539502420643831
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 60,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 26.663205748499998,
+      "required_spool_torque_Nm": {
+        "10": 0.26663205748499996,
+        "15": 0.39994808622749994,
+        "20": 0.5332641149699999
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 60,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 32.0991294485,
+      "required_spool_torque_Nm": {
+        "10": 0.320991294485,
+        "15": 0.48148694172750006,
+        "20": 0.64198258897
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 75,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 51.50935808827061,
+      "required_spool_torque_Nm": {
+        "10": 0.5150935808827061,
+        "15": 0.7726403713240592,
+        "20": 1.0301871617654121
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 2,
+      "angle_from_vertical_deg": 75,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 62.010756271404276,
+      "required_spool_torque_Nm": {
+        "10": 0.6201075627140428,
+        "15": 0.9301613440710641,
+        "20": 1.2402151254280855
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 0,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 6.665801437125001,
+      "required_spool_torque_Nm": {
+        "10": 0.06665801437125,
+        "15": 0.09998702155687503,
+        "20": 0.1333160287425
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 0,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 8.024782362125002,
+      "required_spool_torque_Nm": {
+        "10": 0.08024782362125002,
+        "15": 0.12037173543187504,
+        "20": 0.16049564724250004
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 45,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 9.426866796468245,
+      "required_spool_torque_Nm": {
+        "10": 0.09426866796468245,
+        "15": 0.14140300194702368,
+        "20": 0.1885373359293649
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 45,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 11.348756051609579,
+      "required_spool_torque_Nm": {
+        "10": 0.11348756051609578,
+        "15": 0.1702313407741437,
+        "20": 0.22697512103219156
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 60,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 13.331602874249999,
+      "required_spool_torque_Nm": {
+        "10": 0.13331602874249998,
+        "15": 0.19997404311374997,
+        "20": 0.26663205748499996
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 60,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 16.04956472425,
+      "required_spool_torque_Nm": {
+        "10": 0.1604956472425,
+        "15": 0.24074347086375003,
+        "20": 0.320991294485
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 75,
+      "upward_acceleration_m_s2": 0,
+      "tension_N": 25.754679044135305,
+      "required_spool_torque_Nm": {
+        "10": 0.25754679044135304,
+        "15": 0.3863201856620296,
+        "20": 0.5150935808827061
+      }
+    },
+    {
+      "payload_kg": 2.2679618500000003,
+      "effector_reference_kg": 0.45,
+      "axes": 4,
+      "angle_from_vertical_deg": 75,
+      "upward_acceleration_m_s2": 2,
+      "tension_N": 31.005378135702138,
+      "required_spool_torque_Nm": {
+        "10": 0.3100537813570214,
+        "15": 0.46508067203553205,
+        "20": 0.6201075627140428
+      }
+    }
+  ]
+}

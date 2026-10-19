@@ -248,3 +248,18 @@ then measure the gear module/face width and the slide-in retention.
   ceiling, a weighed and lightened claw, or 1.5 A drivers.
 - Structural design load per cable: 32 N at 1.0 A, 48 N at 1.5 A (stepper
   slip limit, empty spool).
+
+## Codex branch work imported (10/19)
+Imported from `codex/design-history-2026-10-14` (which descends from
+`codex/verified-laundry-cycle`) every file it **added** (106 files: station Rev C
+electrical, local_station bench firmware + C++ tests, encoder_feedback,
+moving_camera, startup calibration V1 spec + observability study, room layout,
+history/decision records, design-resolution ledger, presentation history) and
+its updates to REQUIREMENTS.md, docs/BOM_ORDER.md, docs/SHOPPING_LIST.md.
+Its **deletions** of the gen-1 package, CAD, tests and reports were NOT applied
+(gen-1 preserved per Jasper). Where both branches edited DECISIONS.md and
+DESIGN_STATE.md, this branch's versions are kept and Codex's are archived
+verbatim in docs/history/codex_DECISIONS_20261019.md and
+docs/history/codex_DESIGN_STATE_20261019.md (README likewise). Three tests in
+tests/test_encoder_feedback.py reference central-relay files Codex itself
+removed; they are skipped with that reason, not deleted.

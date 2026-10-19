@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "status": "RESEARCH_TEMPLATE_ONLY_NOT_LOADED_BY_FIRMWARE",
+  "hardware_execution_authorized_by_this_file": false,
+  "routine": "upright_floor_pickup_then_marker_then_bead_verification",
+  "room_prior_m": {"width": 3.3528, "depth": 2.7432, "height": 2.7432, "surveyed": false},
+  "marker": {
+    "family": null, "id": null, "measured_detected_edge_m": null,
+    "first_print_candidate_edge_m": 0.1524,
+    "initial_room_position_required": false,
+    "fixed_during_calibration": true,
+    "relative_heading_prior_rad": null
+  },
+  "camera": {
+    "hardware": "XIAO_ESP32S3_Sense_candidate_actual_sensor_to_identify",
+    "intrinsic_calibration_id": null, "resolution_px": null,
+    "camera_to_body_transform": null, "max_accepted_frame_age_s": null,
+    "pose_error_budget_m": null, "orientation_error_budget_rad": null,
+    "ground_view_qualified": false, "bead_route_views_qualified": false
+  },
+  "claw": {
+    "attachment_layout": null, "attachment_points_body_m": null,
+    "mass_kg": null, "center_of_mass_body_m": null,
+    "lowest_surface_body_m": null, "imu_fitted": null
+  },
+  "pickup_limits_to_measure": {
+    "central_start_region_marker_frame": null,
+    "initial_slack_max_per_cable_m": [null,null,null,null],
+    "initial_tilt_max_rad": null,
+    "probe_payout_equivalent_m": null,
+    "max_cumulative_retraction_m": [null,null,null,null],
+    "max_cable_speed_m_s": null, "max_acceleration_m_s2": null,
+    "max_probe_time_s": null, "max_marker_wait_time_s": null,
+    "visual_confirmed_clearance_m": null,
+    "supervised_qualification_complete": false
+  },
+  "stations": [
+    {"id":"A","anchor_prior_m":null,"encoder_id":null,"encoder_sign":null,"payout_curve_id":null,"bead_trigger_length_m":null,"bead_uncertainty_m":null},
+    {"id":"B","anchor_prior_m":null,"encoder_id":null,"encoder_sign":null,"payout_curve_id":null,"bead_trigger_length_m":null,"bead_uncertainty_m":null},
+    {"id":"C","anchor_prior_m":null,"encoder_id":null,"encoder_sign":null,"payout_curve_id":null,"bead_trigger_length_m":null,"bead_uncertainty_m":null},
+    {"id":"D","anchor_prior_m":null,"encoder_id":null,"encoder_sign":null,"payout_curve_id":null,"bead_trigger_length_m":null,"bead_uncertainty_m":null}
+  ],
+  "fault_limits_to_measure": {
+    "encoder_angle_error_rad": null, "encoder_error_dwell_s": null,
+    "encoder_max_age_s": null, "command_lease_s": null,
+    "clock_uncertainty_s": null, "worst_other_axis_stop_delay_s": null,
+    "bead_search_travel_m": null, "bead_contact_speed_m_s": null,
+    "automatic_fault_payout_enabled": false
+  },
+  "readiness": {
+    "motor_bench_passed": false, "four_station_sync_passed": false,
+    "camera_metrology_passed": false, "pickup_envelope_passed": false,
+    "local_calibration_passed": false, "extended_paths_passed": false,
+    "required_bead_ids": ["A","B","C","D"], "verified_bead_ids": [],
+    "full_startup_passed": false
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "status": "screening_only",
+  "ideal_orthant_half_angle_deg": 54.735610317245346,
+  "margin_55_deg": 0.26438968275465413,
+  "margin_60_deg": 5.264389682754654,
+  "front_collar_screen": [
+    {
+      "half_angle_deg": 40,
+      "edge_started_oblique_tube_bore_mm_no_tolerance": 17.211089394492646,
+      "clearance_to_current_ID26_mm": 4.394455302753677
+    },
+    {
+      "half_angle_deg": 55,
+      "edge_started_oblique_tube_bore_mm_no_tolerance": 25.426066168391202,
+      "clearance_to_current_ID26_mm": 0.28696691580439904
+    },
+    {
+      "half_angle_deg": 60,
+      "edge_started_oblique_tube_bore_mm_no_tolerance": 29.682685902179838,
+      "clearance_to_current_ID26_mm": -1.8413429510899189
+    }
+  ],
+  "rear_opening_screen": [
+    {
+      "angle_deg": 55,
+      "opening_at_10mm_mm": 34.26296013484229
+    },
+    {
+      "angle_deg": 65,
+      "opening_at_10mm_mm": 48.59013841019117
+    },
+    {
+      "angle_deg": 70,
+      "opening_at_10mm_mm": 60.64954838909244
+    }
+  ],
+  "level_equilibrium_screen": [
+    {
+      "platform_xy_m": [
+        2.0,
+        1.5
+      ],
+      "required_COM_xy_m": [
+        0.0,
+        0.0
+      ],
+      "centered_COM_level_pose_possible": true
+    },
+    {
+      "platform_xy_m": [
+        1.0,
+        1.0
+      ],
+      "required_COM_xy_m": [
+        -0.035732780942516834,
+        -0.022284122562674095
+      ],
+      "centered_COM_level_pose_possible": false
+    },
+    {
+      "platform_xy_m": [
+        0.3,
+        0.3
+      ],
+      "required_COM_xy_m": [
+        -0.06074572760227861,
+        -0.053481894150417826
+      ],
+      "centered_COM_level_pose_possible": false
+    }
+  ],
+  "home_force_screen": [
+    {
+      "angle_deg": 0,
+      "spring_only_minimum_line_force_N": 6.045000000000001,
+      "line_travel_for_2mm_collar_mm": 2.0,
+      "note": "Ideal axial projection only; excludes switch force, guide friction and ring friction."
+    },
+    {
+      "angle_deg": 30,
+      "spring_only_minimum_line_force_N": 6.980164754502576,
+      "line_travel_for_2mm_collar_mm": 2.309401076758503,
+      "note": "Ideal axial projection only; excludes switch force, guide friction and ring friction."
+    },
+    {
+      "angle_deg": 55,
+      "spring_only_minimum_line_force_N": 10.539135879529537,
+      "line_travel_for_2mm_collar_mm": 3.4868935912421954,
+      "note": "Ideal axial projection only; excludes switch force, guide friction and ring friction."
+    },
+    {
+      "angle_deg": 60,
+      "spring_only_minimum_line_force_N": 12.089999999999998,
+      "line_travel_for_2mm_collar_mm": 3.999999999999999,
+      "note": "Ideal axial projection only; excludes switch force, guide friction and ring friction."
+    }
+  ],
+  "encoder_float_stack_mm": 0.44999999999999996,
+  "encoder_reference_centering_mm": 0.25,
+  "fuse_bare_headroom_mm": 4.27000000000001,
+  "stopped_travel_examples": [
+    {
+      "cable_speed_m_s": 0.02,
+      "age_s": 0.5,
+      "additional_travel_m": 0.01
+    },
+    {
+      "cable_speed_m_s": 0.02,
+      "age_s": 0.25,
+      "additional_travel_m": 0.005
+    },
+    {
+      "cable_speed_m_s": 0.008,
+      "age_s": 0.25,
+      "additional_travel_m": 0.002
+    }
+  ],
+  "limits": "Illustrative room and CAD defaults only; actual anchors, COM, diameter, field, force, wire bends and timing unmeasured. Stop examples exclude braking and buffering."
+}

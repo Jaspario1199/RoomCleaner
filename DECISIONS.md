@@ -119,3 +119,10 @@ parts kept on record). Open item: printed gear tooth strength at servo stall
 D19. **First integration target is a 1 lb test weight on four stations**, not
 the 0.9 kg laundry payload; no payload, accuracy or reliability rating is
 claimed until measured.
+
+Note (10/19): Codex's decision record from `codex/design-history-2026-10-14`
+is archived verbatim at docs/history/codex_DECISIONS_20261019.md, and its
+dated decision logs at docs/history/decisions_20261014.md,
+decisions_20261018.md and startup_decision_20261016.md (SC01–SC10). Those
+startup-calibration decisions are adopted by the control system V1
+(docs/CONTROL_SYSTEM_V1.md).

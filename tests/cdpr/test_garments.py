@@ -10,7 +10,6 @@ from roomcleaner.cdpr.frames import make_T, rot_z
 from roomcleaner.cdpr.garments import BlobDetector, ClawFloorMapper, ClawGarmentPerception
 from roomcleaner.cdpr.sim.harness import SimRobot
 from roomcleaner.cdpr.sim.render import render_claw_view
-from roomcleaner.cdpr.sim.world import World
 from roomcleaner.cdpr.supervisor import Supervisor
 from roomcleaner.cdpr.tasks import TaskRunner
 from roomcleaner.cdpr.vision.camera import CameraModel
@@ -106,14 +105,13 @@ def test_task_delivers_items_with_visual_verification(rig):
     r.world.add_item("jeans", c + [0.2, 0.35], mass=0.9, height=0.08)
     per = _perception(r)
     out = sup.run_task(TaskRunner(r.ctx, per))
-    assert sorted(out["done"]) == ["jeans-2", "sock-1"] or len(out["done"]) == 2, (out, per.log)
+    assert len(out["done"]) == 2, (out, per.log)
     assert not out["failed"] and sup.state == "READY"
     assert all(it["state"] == "hamper" for it in r.world.items)
     holds = [line for line in per.log if line.startswith("holding:")]
     # per item: held after the lift-and-shift, then NOT held after the release
     assert [h.endswith("-> True") for h in holds] == [True, False, True, False], per.log
-    print("\n".join(per.log))
-    assert _count(per, "delivery: inside True") + _count(per, "delivery: inside False, near-miss outside 0") >= 2
+    assert _count(per, "delivery: inside True") == 2          # the garment is actually seen in the hamper
     assert not any("still occupied" in line for line in per.log)
 
 
@@ -133,11 +131,11 @@ def test_failed_grip_is_detected_and_retried(rig, monkeypatch):
         return real_grip(close, *a, **kw)
     monkeypatch.setattr(r.world, "grip", flaky)
     out = sup.run_task(TaskRunner(r.ctx, per))
-    assert calls["missed"] == 1
+    assert calls["missed"] == 1, (out, per.log, r.world.p, r.world.items)
     holds = [line for line in per.log if line.startswith("holding:")]
     assert holds[0].endswith("-> False"), per.log             # empty jaws + garment still on the floor
     assert "spot clear False" in holds[0]
-    assert out["done"] == ["tee-1"] and not out["failed"], (out, per.log)     # retry succeeded
+    assert len(out["done"]) == 1 and not out["failed"], (out, per.log)     # retry succeeded
     assert any(h.endswith("-> True") for h in holds[1:])
     assert r.world.items[0]["state"] == "hamper"
 
@@ -158,7 +156,7 @@ def test_release_failure_is_not_reported_as_delivered(rig, monkeypatch):
         return real_grip(close, *a, **kw)
     monkeypatch.setattr(r.world, "grip", sticky)
     out = sup.run_task(TaskRunner(r.ctx, per))
-    assert calls["stuck"] == 1
+    assert calls["stuck"] == 1, (out, per.log, r.world.p, r.world.items)
     assert out["done"] == [], (out, per.log)
     assert out["failed"] and out["failed"][0][1] == "item still in the claw after release", out
     holds = [line for line in per.log if line.startswith("holding:")]

@@ -102,7 +102,7 @@ class _Track:
 
 class ClawGarmentPerception(ItemPerception):
     def __init__(self, detector: Detector, camera, frame_fn, *, jaw_roi_px=None, match_radius_m=0.15,
-                 min_confidence=0.3, roi_change_min=12.0, spot_radius_m=0.10, item_height_m=0.05,
+                 min_confidence=0.3, roi_change_min=30.0, spot_radius_m=0.10, item_height_m=0.05,
                  marker_wait_s=2.0):
         """``frame_fn()`` -> BGR image from the claw (captured while still);
         ``jaw_roi_px`` (x1,y1,x2,y2) overrides the ROI projected from CAD."""
@@ -163,6 +163,19 @@ class ClawGarmentPerception(ItemPerception):
         x2, y2 = np.clip(uv.max(0), 0, [w - 1, h - 1])
         return int(x1), int(y1), int(x2), int(y2)
 
+    def jaw_core(self, ctx, T_R_B, mapper, radius_m=0.04):
+        """(u, v, r_px): where a garment held in the jaws is CENTRED in the image
+        (projected CAD jaw point) and a tolerance radius, equal to ``radius_m``
+        at the jaw's own depth. A floor garment can overlap the generous jaw ROI
+        in the image, but its centre is far from this point."""
+        low = np.asarray(ctx.cfg.claw.lowest_point_body_m, float)
+        p_R = (T_R_B @ np.r_[low, 1.0])[:3]
+        uv = mapper.floor_to_pixel(p_R)
+        if uv is None:
+            return None
+        depth = float((np.linalg.inv(mapper.T_R_C) @ np.r_[p_R, 1.0])[2])
+        return float(uv[0]), float(uv[1]), radius_m * self.cam.fx / depth
+
     @staticmethod
     def _roi_stats(img, roi):
         """Jaw-region appearance RELATIVE to the ring of floor around it in the
@@ -181,21 +194,19 @@ class ClawGarmentPerception(ItemPerception):
         ring = st(~inner) if (~inner).any() else np.zeros(3)
         return st(inner) - ring
 
-    def _detections(self, img, mapper, roi=None):
-        """Floor detections (room xy) excluding boxes mostly inside the jaw ROI."""
+    def _detections(self, img, mapper, core=None):
+        """Floor detections (room xy). ``core`` = ``jaw_core`` output: boxes
+        centred on it are the garment in the jaws, not on the floor."""
         self.det.mapper = mapper
         out = []
         for d in self.det.detect(img):
             if d.confidence < self.min_conf or d.bbox is None:
                 continue
             x1, y1, x2, y2 = d.bbox
-            if roi is not None:
-                ix = max(0, min(x2, roi[2]) - max(x1, roi[0]))
-                iy = max(0, min(y2, roi[3]) - max(y1, roi[1]))
-                if ix * iy > 0.5 * (x2 - x1) * (y2 - y1):
-                    continue                          # that is the item in the claw, not the floor
-            xy = mapper.pixel_to_floor(0.5 * (x1 + x2), 0.5 * (y1 + y2))   # straight-down: box centre
-            out.append((xy, d.label, d.confidence))
+            cu, cv_ = 0.5 * (x1 + x2), 0.5 * (y1 + y2)
+            if core is not None and math.hypot(cu - core[0], cv_ - core[1]) <= core[2]:
+                continue
+            out.append((mapper.pixel_to_floor(cu, cv_), d.label, d.confidence))   # straight-down: box centre
         return out
 
     # -- ItemPerception --------------------------------------------------------
@@ -212,7 +223,11 @@ class ClawGarmentPerception(ItemPerception):
         if self.empty_ref is None:
             self.empty_ref = self._roi_stats(img, roi)     # scan starts with the claw open and empty
         found = []
-        for xy, label, conf in self._detections(img, mapper, roi):
+        tc = ctx.cfg.tasks
+        hamper = None if tc.hamper_room_m is None else np.asarray(tc.hamper_room_m, float)
+        for xy, label, conf in self._detections(img, mapper):      # scan starts with the claw empty
+            if hamper is not None and np.linalg.norm(xy - hamper) <= tc.hamper_radius_m + 0.05:
+                continue                                           # already delivered, not laundry to fetch
             tr = min(self.tracks, key=lambda t: np.linalg.norm(t.xy - xy), default=None)
             if tr is None or np.linalg.norm(tr.xy - xy) > self.match_r:
                 self.n += 1
@@ -235,7 +250,7 @@ class ClawGarmentPerception(ItemPerception):
         spot_clear = True
         if self.target is not None:
             spot_clear = not any(np.linalg.norm(xy - self.target.xy) <= self.spot_r
-                                 for xy, _, _ in self._detections(img, mapper, roi))
+                                 for xy, _, _ in self._detections(img, mapper, self.jaw_core(ctx, T, mapper)))
         held = in_claw and spot_clear
         self.log.append(f"holding: roi change {change:.1f}, spot clear {spot_clear} -> {held}")
         return held, (0.9 if held else 0.1)
@@ -247,7 +262,8 @@ class ClawGarmentPerception(ItemPerception):
         if change >= self.roi_change_min:
             self.log.append(f"delivery: claw region still occupied ({change:.1f})")
             return False
-        dets = self._detections(img, mapper, roi)
+        # the claw is empty here, so a garment under the jaws IS the delivered one (no ROI exclusion)
+        dets = self._detections(img, mapper)
         inside = any(np.linalg.norm(d - np.asarray(xy)) <= radius for d, _, _ in dets)
         outside = [d for d, _, _ in dets if np.linalg.norm(d - np.asarray(xy)) <= radius + 0.3
                    and np.linalg.norm(d - np.asarray(xy)) > radius]

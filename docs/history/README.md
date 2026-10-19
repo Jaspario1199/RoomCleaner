@@ -2,7 +2,16 @@
 
 # RoomCleaner design history and roadmap
 
-## Latest update — 2026-10-18
+## Latest update — 2026-10-19
+
+- **Start review here:** [current engineering handoff, decision rationale, procurement corrections and open questions](REVIEW_HANDOFF_20261019.md).
+- [SpaceX presentation: all 20 slides, complete speaker notes, sources and reasoning](spacex_outline_snapshot_20261019.md).
+- Presentation has 15 main slides, 3 technical backups and 2 preparation pages. It is an editable outline with evidence placeholders.
+- **Power/BOM correction:** the October 18 DROK/OVONIC/TB6B record is historical. Later discussions and a pasted ZTW/Tenergy/USB-C-charger cart reopen the selection. Exact checkout, received identities and final schematic are unresolved; see the handoff before buying or wiring.
+- Station motion and switch success remain user-reported. Latest user activity is soldering the working bench circuit; post-solder verification is not yet documented.
+- This update archives notes and reasoning. The Google Slides deck and missing CAD binaries are not fully backed up by these Markdown files.
+
+## Historical update — 2026-10-18
 
 - **Later cost review:** [screenless alternatives and optional diagnostics](claw_cost_review_20261018.md). User reopened purchasing to reduce cost; proposed substitutions are not confirmed purchases or a new qualified circuit.
 

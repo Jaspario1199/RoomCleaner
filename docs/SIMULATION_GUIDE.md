@@ -2,7 +2,7 @@
 
 Linear static studies for each gen-2 assembly, with every load traced to
 `calculations/gen2_screening.py` or `verification/design_review_gen2.md`.
-Results feed presentation slides 6, 7, 9 and backup B2.
+Results feed presentation slides 7, 8, 10 and backup B2.
 
 ## What these studies can and cannot tell you
 

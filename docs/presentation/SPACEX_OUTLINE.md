@@ -34,10 +34,10 @@ inspection and bring-up, not on software.
 | Block | Slides | Minutes |
 |---|---|---|
 | Who / what / why | 1–3 | 4 |
-| First principles | 4–5 | 6 |
-| Design decisions (mechanical + electrical) | 6–9 | 9 |
-| Failure, debugging, verification | 10–12 | 7 |
-| Results, lessons, close | 13–15 | 4 |
+| First principles: statics, sizing, heat | 4–6 | 7.5 |
+| Design decisions (mechanical + electrical) | 7–10 | 8.5 |
+| Failure, debugging, verification, test plan | 11–13 | 6.5 |
+| Results, lessons, close | 14–15 | 3.5 |
 | **Total content** | | **30** |
 
 ---
@@ -82,7 +82,7 @@ inspection and bring-up, not on software.
   caught for me") is strong. A vague answer is not.
 - **Confirm:** project start date.
 
-### 4 · First principles: cable statics (3 min)
+### 4 · First principles: cable statics (2.5 min)
 - **Headline:** Cable tension, not payload, limits the top of the workspace.
 - **Graphic:** free-body diagram of the claw with four cable unit vectors;
   plot of tension vs depth below the anchors.
@@ -94,7 +94,7 @@ inspection and bring-up, not on software.
   → **software ceiling ≥ 0.4 m below the anchors**.
 - **Say:** four cables for three translational DOF (degrees of freedom) is
   over-constrained; position control means length errors become tension.
-  This sets up the electronics decision on slide 8.
+  This sets up the electronics decision on slide 9.
 - **Capacity anywhere in the room (calculated, `gen2_payload_limit.py`):**
   the total claw + load at 1.0 A is 1.0–2.3 lb, depending on how close to the
   anchors the claw may go. If one cable goes slack it is about 25 % less. The
@@ -105,7 +105,7 @@ inspection and bring-up, not on software.
   near-horizontal and carry little; near cables take most of the load; the
   feasibility solver checks Tᵢ ≥ 0.5 N and ≤ 18 N.
 
-### 5 · Motor and spool sizing (3 min)
+### 5 · Motor and spool sizing (2.5 min)
 - **Headline:** A shorter spool fits the shaft but changes the math every layer.
 - **Graphic:** spool section (core radius, width, flange, shaft flat, set
   screw) + table of layers vs drum width.
@@ -119,7 +119,57 @@ inspection and bring-up, not on software.
 - **Measured to add:** pull force vs speed on one station (the outline's own
   ask). That plot is the strongest evidence you can bring.
 
-### 6 · Corner hardware, generation 1 → 2 (2.5 min)
+### 6 · Heat, not torque, limits the winch (2.5 min)
+
+- **Headline:** More current buys payload, but the heat ends up in printed
+  plastic. A 50 g aluminium fin fixes it.
+- **Graphic:** left, `docs/presentation/figures/motor_thermal.png` (motor case
+  temperature vs current for open air, vented shell and sealed shell). Right,
+  a section of the station showing two heat paths: motor → PETG tab (blocked,
+  k ≈ 0.2 W/m·K) vs motor → aluminium fin → room air. Add the fin drawing
+  (`solidworks/heat_plate/motor_heat_plate_drawing.png`) or a photo of it.
+- **Equations:** F_line ∝ τ ∝ I · P = I²·R_phase · T_case ≈ T_room + P·R_th.
+  Force goes up with I, heat with I². So +50 % current (1.0 → 1.5 A) gives
+  +50 % payload and 2.25× the heat.
+- **Numbers (calculated, `calculations/gen2_motor_thermal.py` + review R11):**
+
+  | | 1.0 A | 1.5 A |
+  |---|---|---|
+  | Payload anywhere, 0.6 m ceiling limit | 1.51 lb | 2.27 lb |
+  | Motor in sealed printed shell | ~67 °C | ~106 °C |
+  | With 44 × 150 × 3 mm black aluminium fin | ~39 °C | ~51 °C |
+
+  Limits: 60 °C for loaded printed parts; PETG softens at ~80 °C.
+- **Say:**
+  - **The insight.** In stagnant air, the motor can only conduct heat into
+    the PETG it is bolted to. PETG barely conducts, so the plastic around the
+    motor bolts climbs to almost motor temperature. That is exactly the joint
+    carrying the cable load, so it creeps, the motor loosens, and the anchor
+    drifts. It is slow and invisible in a short test. (Say plainly that this
+    was your catch.)
+  - **The decision.** Put an aluminium fin between the motor flange and the
+    tab. It is a metal heat path out to room air, it runs vertical so warm
+    air rises along it, it is painted black because emissivity roughly
+    doubles heat loss, and it has thermal paste at the flange. It also
+    carries the bolt load, so it fixes creep and heat in one part.
+  - **Why vertical and motor-width.** It fits the station's footprint. A
+    44 × 150 fin gives up only ~3 °C against a 100 × 100 plate, and past
+    ~150 mm the tip is near room temperature (fin efficiency), so taller
+    buys little.
+  - **Alternatives considered.** A fan adds noise, power and a failure point.
+    Lowering current costs payload. TMC2209 drivers cut current to ~60 %
+    while holding (~65 % less heat at the same margin): the next step, not
+    a replacement.
+- **Evidence to add:** a 90-minute hold test at 1.0 A with and without the
+  fin, logging motor case and PETG temperature every 10 min. Plot it over the
+  model. Mark the fin as **planned** until it is built and tested.
+- **Likely questions:** fin efficiency (why not taller); contact resistance
+  (why paste, why not liquid metal: gallium attacks aluminium); why not
+  copper (aluminium is cheaper and lighter, and its conductivity is enough at
+  ~4 W); does holding current really need to stay on (yes, the motor
+  back-drives without it; the detent torque is ~1–2 N·cm).
+
+### 7 · Corner hardware, generation 1 → 2 (2 min)
 - **Headline:** I moved from a screwed-down bracket to a removable station so
   calibration survives service.
 - **Graphic:** side by side: gen-1 one-piece corner mount (motor + pulley +
@@ -132,7 +182,7 @@ inspection and bring-up, not on software.
   retention feature. (Review R3: if the housing slides out in a direction the
   line pulls, the retention carries the full load.)
 
-### 7 · Designed to be printed: fits, orientation, process (2 min)
+### 8 · Designed to be printed: fits, orientation, process (2 min)
 - **Headline:** Every printed interface was chosen for how it prints and
   inspects, not just how it looks in CAD. *(This is the slide for this role.)*
 - **Graphic:** fit-coupon photo (rail clearance, motor pilot Ø22.2, M3
@@ -147,7 +197,7 @@ inspection and bring-up, not on software.
 - **Evidence to add:** a coupon print and caliper numbers, assembly time for
   one station.
 
-### 8 · Electronics: central → distributed (2 min)
+### 9 · Electronics: central → distributed (2 min)
 - **Headline:** Moving a controller to each winch removed four long harnesses
   and created my hardest open problem: synchronization.
 - **Graphic:** before/after block diagram. Before: one Arduino + CNC shield,
@@ -160,7 +210,7 @@ inspection and bring-up, not on software.
   Safety rules: driver disabled until firmware is ready (EN pull-up), hold
   position on lost link, one kill switch for all stations.
 
-### 9 · End effector: from five fingers to a geared clamp (2.5 min)
+### 10 · End effector: from five fingers to a geared clamp (2.5 min)
 - **Headline:** I traded a compliant five-finger gripper for a two-jaw clamp I
   could build and test this month.
 - **Graphic:** V5 section: MG996R → 18T pinion → 54T/24T compound → 24T
@@ -176,7 +226,7 @@ inspection and bring-up, not on software.
   face ≥ 10 mm, or metal pinion, or torque-limited closing). **Only present it
   as fixed if it is.**
 
-### 10 · Challenge: a motor that would not move (3 min)
+### 11 · Challenge: a motor that would not move (2.5 min)
 - **Headline:** The log said it was stepping; the meter said otherwise.
 - **Graphic:** annotated meter photos + the observation table.
 - **Story:** command log showed pulses → EN toggled 3.3 → 0 → 3.3 V, so
@@ -187,7 +237,7 @@ inspection and bring-up, not on software.
   the bring-up procedure.
 - **Evidence to add:** before/after numbers, short video.
 
-### 11 · Verification caught a defect before I printed it (2 min)
+### 12 · Verification caught a defect before I printed it (2 min)
 - **Headline:** An independent check found the homing switch would never trip.
 - **Graphic:** corner-mount rev C vs rev D: switch on a vertical face (roller
   5 mm off the line in X, 10.5 mm in Y) → switch on a horizontal pad (roller
@@ -198,7 +248,7 @@ inspection and bring-up, not on software.
   Thorough example. Pair it with one scrappy example: beep-testing jumper
   caps instead of pulling them, or the duct-tape power splice on the bench.
 
-### 12 · Test plan with pass/fail limits set in advance (2 min)
+### 13 · Test plan with pass/fail limits set in advance (2 min)
 - **Graphic:** gate table.
   1. One station: jog repeatability, pull force vs speed, driver temperature,
      switch response.
@@ -209,7 +259,8 @@ inspection and bring-up, not on software.
   4. Laundry: attempts, successes, failure modes by garment type.
 - **Say:** limits were written before testing.
 
-### 13 · Results so far, and what is not proven (1.5 min)
+### 14 · Results so far and the next gate (1.5 min)
+
 - **Headline:** Hardware works one station at a time. Four-station motion is
   next.
 - **Graphic:** evidence table: measured (gen-1: all 4 driver channels, 1 rev
@@ -217,21 +268,23 @@ inspection and bring-up, not on software.
   homing), calculated (statics, spool, gears), not yet demonstrated (four
   stations, pickup).
 - **Say:** no payload, accuracy or reliability rating is claimed yet.
+- **Next gate:** four stations moving 1 lb repeatably, with the fault tests
+  passing and the thermal test under 60 °C.
+- **Photo:** latest hardware beside the evidence table.
 
-### 14 · Decisions: good, poor, and half the time (1.5 min)
+### 15 · Decisions, lessons, and what I'd do in half the time (2 min)
+
 - **Good:** proving the electronics on the bench before any printing; the
-  removable station; setting a 1 lb gate instead of jumping to laundry.
+  removable station; setting a 1 lb gate instead of jumping to laundry;
+  catching heat in the printed motor joint by analysis before building four
+  stations, and fixing it with one part (the fin) that also carries the bolt
+  load.
 - **Poor:** designing the whole system (five-finger claw, every bracket)
   before one station worked; the spool was sized before I measured how far
   the shaft engages; I trusted a power brick's nominal 12 V until the meter
   read 18 V.
 - **Half the time:** measure every purchased part first; freeze one station's
   interfaces; test that station to its limits; then copy it three times.
-
-### 15 · Close (0.5 min)
-- **Headline:** Next gate: four stations moving 1 lb repeatably, with fault
-  tests passing.
-- **Graphic:** latest hardware photo.
 - **Takeaway sentence (write your own):** e.g. "Hardware tells you which
   assumptions were wrong; my job is to find out early and cheaply."
 
@@ -241,6 +294,9 @@ inspection and bring-up, not on software.
 - B2 Gears: Lewis numbers table from the review (module/face vs SF).
 - B3 Calibration: anchor measurement, camera mapping, bead homing, slack
   limits at startup.
+- B5 Thermal network: motor case → (R_ma) → shell interior + PETG → (R_sa)
+  → room, with 1.5 W of electronics inside; fin as a parallel path; all
+  assumptions listed (`calculations/gen2_motor_thermal.py`).
 - B4 Gen-1 corner mount stress check: ear root 5.5 MPa at 40 N (SF ≈ 5 vs
   PETG layer adhesion).
 
@@ -250,11 +306,12 @@ inspection and bring-up, not on software.
 
 | # | Item | Used on |
 |---|---|---|
-| 1 | Photos: bench station, gen-2 printed parts, gripper V5 render/section | 3, 6, 9, 13, 15 |
-| 2 | Meter photos / numbers from the 3.3 V fault | 10 |
-| 3 | Pull-force-vs-speed test on one station (spring scale or luggage scale) | 5, 13 |
-| 4 | Fit coupon + caliper readings | 7 |
-| 5 | Decision on R1 (sync approach) and R5 (gear fix) | 8, 9 |
+| 1 | Photos: bench station, gen-2 printed parts, gripper V5 render/section | 3, 7, 10, 14 |
+| 2 | Meter photos / numbers from the 3.3 V fault | 11 |
+| 3 | Pull-force-vs-speed test on one station (spring scale or luggage scale) | 5, 14 |
+| 3b | 90-min thermal hold test at 1.0 A, with and without the fin (motor case + PETG temperature) | 6, 14 |
+| 4 | Fit coupon + caliper readings | 8 |
+| 5 | Decision on R1 (sync approach) and R5 (gear fix) | 9, 10 |
 | 6 | Start date, graduation date, personal photo | 1, 3 |
 
 ## Questions to rehearse (answers in `verification/design_review_gen2.md`)
@@ -268,3 +325,5 @@ inspection and bring-up, not on software.
 - How did you set the clearances? What did the coupons measure?
 - How did you use the AI assistant, and how did you check its work?
 - If you had half the time, what would you cut?
+- Why not just add a fan? Why not raise the current? How hot does the PETG
+  around the motor bolts get?

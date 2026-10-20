@@ -119,6 +119,12 @@ def drawing(path, mass_g):
 
 
 INK, MUTED, CL = "#111111", "#555555", "#1f5fbf"
+MM_PER_IN = 25.4
+
+
+def _fmt(mm, inch, nd_mm=2, nd_in=4):
+    """Drawing text for a length given in mm (inch drawings show inches)."""
+    return f"{mm / MM_PER_IN:.{nd_in}f}" if inch else f"{mm:.{nd_mm}f}"
 
 
 def _sheet(PW, PH, border=10.0):
@@ -158,7 +164,7 @@ def _holes(ax, ox, oy, s):
         ax.plot([px] * 2, [py - ext, py + ext], color=CL, lw=0.35, ls=(0, (6, 2, 1, 2)))
 
 
-def _front_view(ax, ox, oy, s, *, fs=7.5, plate_h=H, label_x=None, title=""):
+def _front_view(ax, ox, oy, s, *, fs=7.5, plate_h=H, label_x=None, title="", inch=False):
     """Front view of the fin at sheet scale ``s`` with baseline dimensions from
     datum A (bottom edge) and datum B (left edge), hole callouts and datum flags.
     ``plate_h`` < H draws a broken-off bottom portion (1:1 template)."""
@@ -178,7 +184,7 @@ def _front_view(ax, ox, oy, s, *, fs=7.5, plate_h=H, label_x=None, title=""):
         zx = np.linspace(ox, ox + s * W, 9)
         zy = top + np.array([0, 1.5, -1.5, 1.5, -1.5, 1.5, -1.5, 1.5, 0])
         ax.plot(zx, zy, color=INK, lw=0.8)
-        ax.text(ox + s * W / 2, top + 4, f"PLATE CONTINUES TO {H:.0f} (break shown)", ha="center",
+        ax.text(ox + s * W / 2, top + 4, f"PLATE CONTINUES TO {_fmt(H, inch, 0, 3)} (break shown)", ha="center",
                 fontsize=fs - 0.5, color=MUTED)
     _holes(ax, ox, oy, s)
     ax.plot([ox + s * cx] * 2, [oy - 3, oy + s * plate_h + (3 if full else -3)], color=CL, lw=0.3,
@@ -194,7 +200,7 @@ def _front_view(ax, ox, oy, s, *, fs=7.5, plate_h=H, label_x=None, title=""):
         ax.plot([ox + s * xv] * 2, [start, yv - 1.5], color=MUTED, lw=0.35)
         _arrow(ax, (ox, yv), (ox + s * xv, yv), lw)
         wide = s * xv > 12
-        ax.text(ox + s * xv / 2 if wide else ox + s * xv + 1.5, yv + 0.8, f"{xv:.2f}",
+        ax.text(ox + s * xv / 2 if wide else ox + s * xv + 1.5, yv + 0.8, _fmt(xv, inch),
                 ha="center" if wide else "left", va="bottom", fontsize=fs, color=INK)
     # baseline dims in Y from datum A (bottom edge), stacked left of the part
     ys = sorted({0.0, bolts[0][1], cy, bolts[2][1]} | ({H} if full else set()))
@@ -206,7 +212,7 @@ def _front_view(ax, ox, oy, s, *, fs=7.5, plate_h=H, label_x=None, title=""):
         ax.plot([start, xv - 1.5], [oy + s * yv_] * 2, color=MUTED, lw=0.35)
         _arrow(ax, (xv, oy), (xv, oy + s * yv_), lw)
         tall = s * yv_ > 12
-        ax.text(xv - 0.8, oy + (s * yv_ / 2 if tall else s * yv_ + 1.5), f"{yv_:.2f}", rotation=90, ha="right",
+        ax.text(xv - 0.8, oy + (s * yv_ / 2 if tall else s * yv_ + 1.5), _fmt(yv_, inch), rotation=90, ha="right",
                 va="center" if tall else "bottom", fontsize=fs, color=INK)
     # bolt square (reference)
     yb = P(0, bolts[2][1])[1] + 9
@@ -214,7 +220,7 @@ def _front_view(ax, ox, oy, s, *, fs=7.5, plate_h=H, label_x=None, title=""):
     _arrow(ax, (P(*bolts[2])[0], yb), (P(*bolts[3])[0], yb), lw)
     for b in (bolts[2], bolts[3]):
         ax.plot([P(*b)[0]] * 2, [P(*b)[1] + s * BOLT_D / 2 + 0.8, yb + 1], color=MUTED, lw=0.35)
-    ax.text(P(cx, 0)[0], yb + 0.8, f"({BOLT_SQ:.2f}) REF", ha="center", va="bottom", fontsize=fs - 0.5, color=MUTED)
+    ax.text(P(cx, 0)[0], yb + 0.8, f"({_fmt(BOLT_SQ, inch)}) REF", ha="center", va="bottom", fontsize=fs - 0.5, color=MUTED)
 
     # hole callouts with leaders
     def callout(px, py, tx, ty, txt):
@@ -223,16 +229,18 @@ def _front_view(ax, ox, oy, s, *, fs=7.5, plate_h=H, label_x=None, title=""):
     lx = label_x if label_x is not None else ox + s * W + 14
     r45 = s * PILOT_D / 2 * 0.7071
     pc = P(cx, cy)
-    callout(pc[0] + r45, pc[1] + r45, lx, pc[1] + 26, f"Ø{PILOT_D:.2f} THRU  (A)\nmotor boss Ø22.0 + clearance")
+    callout(pc[0] + r45, pc[1] + r45, lx, pc[1] + 26, (f"Ø{_fmt(PILOT_D, inch, 2, 3)} THRU  (A)\nmotor boss Ø{_fmt(22.0, inch, 1, 3)} + clearance"
+             + ("\nbore, or 57/64 drill on pilots" if inch else "")))
     pb = P(*bolts[3])
     rb = s * BOLT_D / 2 * 0.7071
-    callout(pb[0] + rb, pb[1] + rb, lx, pb[1] + 40, f"4X Ø{BOLT_D:.2f} THRU  (B-E)\nM3 clearance, NEMA 17 pattern")
+    callout(pb[0] + rb, pb[1] + rb, lx, pb[1] + 40, (f"4X Ø{_fmt(BOLT_D, inch, 2, 3)} THRU  (B-E)\nM3 clearance, NEMA 17 pattern"
+             + ("\n#29 drill (.136)" if inch else "")))
     if full:
         ax.text(P(cx, 150)[0], P(cx, 150)[1], "FIN\n(cooling area)\npaint matte black", ha="center",
                 va="center", fontsize=8, color=MUTED)
     c0 = P(cx - 21.15, cy - 21.15)
     ax.add_patch(Rectangle(c0, s * 42.3, s * 42.3, fill=False, ec=CL, lw=0.6, ls="--"))
-    ax.annotate("motor contact face 42.3 □:\nleave BARE, thermal paste", (c0[0] + s * 42.3, pc[1] - s * 10),
+    ax.annotate(f"motor contact face {_fmt(42.3, inch, 1, 3)} □:\nleave BARE, thermal paste", (c0[0] + s * 42.3, pc[1] - s * 10),
                 (lx, oy + 6), fontsize=fs - 0.5, color=CL, va="center",
                 arrowprops=dict(arrowstyle="-", color=CL, lw=0.4))
     # datum flags
@@ -245,44 +253,46 @@ def _front_view(ax, ox, oy, s, *, fs=7.5, plate_h=H, label_x=None, title=""):
             weight="bold")
 
 
-def _edge_view(ax, ex, oy, s, fs=7.5):
+def _edge_view(ax, ex, oy, s, fs=7.5, inch=False):
     from matplotlib.patches import Rectangle
     ax.add_patch(Rectangle((ex, oy), max(s * T, 1.0), s * H, fc="none", ec=INK, lw=1.0))
     yt = oy + s * H * 0.45
     w = max(s * T, 1.0)
     for x0, x1 in ((ex - 5, ex), (ex + w + 5, ex + w)):
         ax.annotate("", (x1, yt), (x0, yt), arrowprops=dict(arrowstyle="-|>", color=INK, lw=0.6, mutation_scale=6))
-    ax.text(ex - 6, yt, f"{T:.3f}\n(1/8\") PLATE", va="center", ha="right", fontsize=fs, color=INK)
+    ax.text(ex - 6, yt, f"{_fmt(T, inch, 3, 3)}\n(1/8\") PLATE", va="center", ha="right", fontsize=fs, color=INK)
     ax.text(ex + w / 2, oy + s * H + 6, "EDGE VIEW", ha="center", fontsize=8, color=INK, weight="bold")
 
 
-def _notes(ax, nx, ny, mass_g, qty, fs=6.6, dy=5.2):
+def _notes(ax, nx, ny, mass_g, qty, fs=6.6, dy=5.2, inch=False):
+    u = lambda mm, nd_mm=1, nd_in=3: _fmt(mm, inch, nd_mm, nd_in)
     notes = [
         "NOTES",
-        "1. MATERIAL: 6061-T6 OR 5052-H32 ALUMINIUM, 1/8\" (3.175) PLATE.",
+        f"1. MATERIAL: 6061-T6 OR 5052-H32 ALUMINIUM, 1/8\" ({u(T, 3)}) PLATE.",
         f"2. QTY {qty} (ONE PER WINCH STATION).",
-        "3. ALL HOLES THRU. HOLE POSITIONS ±0.10 RELATIVE TO EACH",
+        f"3. ALL HOLES THRU. HOLE POSITIONS ±{u(0.1, 2)} RELATIVE TO EACH",
         "   OTHER; DRILL ALL 5 IN ONE SETUP FROM DATUMS A AND B.",
         "   DATUM A = BOTTOM EDGE (SITS ON DECK), B = LEFT EDGE.",
-        "4. BLANK 44.0 x 250.0 ±0.5 (SHEARED). BREAK ALL EDGES;",
-        f"   CORNER R{CORNER_R:.0f} OPTIONAL.",
+        f"4. BLANK {u(W)} x {u(H)} ±{u(0.5)} (SHEARED). BREAK ALL EDGES;",
+        f"   CORNER R{u(CORNER_R, 0, 2)} OPTIONAL.",
         "5. DEBURR BOTH FACES. MOTOR FACE FLAT, NO RAISED BURRS.",
-        "6. FINISH: MATTE BLACK PAINT EXCEPT THE 42.3 SQ. MOTOR",
+        f"6. FINISH: MATTE BLACK PAINT EXCEPT THE {u(42.3)} SQ. MOTOR",
         "   CONTACT AREA (BOTH FACES MAY BE PAINTED ABOVE IT).",
-        "7. ASSEMBLY: MOTOR | FIN | 5 MM PETG TAB, M3 x 12 BOLTS,",
-        "   THERMAL PASTE ON MOTOR FACE. MOTOR + SPOOL SHIFT 3.2",
+        f"7. ASSEMBLY: MOTOR | FIN | {u(5.0, 0, 2)} PETG TAB, M3 x 12 BOLTS,",
+        f"   THERMAL PASTE ON MOTOR FACE. MOTOR + SPOOL SHIFT {u(T)}",
         "   ALONG THE SHAFT.",
-        f"8. MASS ≈ {mass_g:.0f} g EACH.",
+        f"8. MASS ≈ {mass_g:.0f} g" + (f" ({mass_g / 453.6:.2f} lb)" if inch else "") + " EACH.",
     ]
     for i, n in enumerate(notes):
         ax.text(nx, ny - dy * i, n, fontsize=fs, color=INK, family="monospace", weight="bold" if i == 0 else "normal")
 
 
-def _title_block(ax, tx, ty, tw, rh, scale_txt, sheet_txt=None):
+def _title_block(ax, tx, ty, tw, rh, scale_txt, sheet_txt=None, inch=False):
     from matplotlib.patches import Rectangle
     tb = [("PART", "MOTOR HEAT FIN  (motor_heat_plate)"), ("PROJECT", "RoomCleaner winch station, gen 2"),
-          ("MATERIAL", "AL 6061-T6 / 5052-H32, 3.175 PLATE"), ("UNITS", "mm"), ("SCALE", scale_txt),
-          ("GENERAL TOL.", "±0.5 unless noted"), ("REV", "B   2026-10-19"),
+          ("MATERIAL", f"AL 6061-T6 / 5052-H32, {_fmt(T, inch, 3, 3)} PLATE"),
+          ("UNITS", "inch" if inch else "mm"), ("SCALE", scale_txt),
+          ("GENERAL TOL.", f"±{_fmt(0.5, inch, 1, 3)} unless noted"), ("REV", "B   2026-10-19"),
           ("SOURCE", "cad/parts/motor_heat_plate.py")]
     if sheet_txt:
         tb.append(("SHEET", sheet_txt))
@@ -295,11 +305,11 @@ def _title_block(ax, tx, ty, tw, rh, scale_txt, sheet_txt=None):
     ax.plot([tx + 24, tx + 24], [ty, ty + rh * len(tb)], color=INK, lw=0.3)
 
 
-def _scale_bar(ax, x0, y0, length=100.0):
+def _scale_bar(ax, x0, y0, length=100.0, label=None):
     ax.plot([x0, x0 + length], [y0, y0], color=INK, lw=1.0)
     for xv in (x0, x0 + length / 2, x0 + length):
         ax.plot([xv, xv], [y0 - 1.5, y0 + 1.5], color=INK, lw=0.8)
-    ax.text(x0 + length / 2, y0 + 2.5, f"SCALE CHECK: this bar must measure {length:.0f} mm", ha="center",
+    ax.text(x0 + length / 2, y0 + 2.5, f"SCALE CHECK: this bar must measure {label or f'{length:.0f} mm'}", ha="center",
             fontsize=6.5, color=INK)
 
 
@@ -320,13 +330,14 @@ def shop_drawing(path_pdf, mass_g, qty=4):
     plt.close(fig)
 
 
-def shop_drawing_letter(path_pdf, mass_g, qty=4):
+def shop_drawing_letter(path_pdf, mass_g, qty=4, inch=False):
     """Two-page drawing for an ordinary US Letter / A4 printer. Content stays
     inside the Letter-A4 overlap with >= 12 mm margins.
 
     Sheet 1: whole fin, scaled to fit (NOT to scale; dimensions govern).
     Sheet 2: TRUE 1:1 template of the hole end (print at 100 % / "actual
     size"), for checking the layout or taping to the blank and centre-punching.
+    ``inch=True`` dimensions everything in inches (same geometry).
     """
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_pdf import PdfPages
@@ -338,10 +349,10 @@ def shop_drawing_letter(path_pdf, mass_g, qty=4):
     fig, ax = _sheet(PW, PH)
     ox, oy = 60.0, 52.0
     _front_view(ax, ox, oy, s1, fs=6.8, label_x=ox + s1 * W + 10,
-                title="FRONT VIEW (PETG tab side)")
-    _edge_view(ax, 192.0, oy, s1, fs=6.8)
-    _notes(ax, 104.0, 252.0, mass_g, qty, fs=5.6, dy=4.4)
-    _title_block(ax, 116.0, 13.0, 87.0, 4.2, "NOT TO SCALE (0.8x) - use dimensions", "1 OF 2")
+                title="FRONT VIEW (PETG tab side)", inch=inch)
+    _edge_view(ax, 192.0, oy, s1, fs=6.8, inch=inch)
+    _notes(ax, 104.0, 252.0, mass_g, qty, fs=5.6, dy=4.4, inch=inch)
+    _title_block(ax, 116.0, 13.0, 87.0, 4.2, "NOT TO SCALE (0.8x) - use dimensions", "1 OF 2", inch)
     ax.text(14.0, 20.0, "DIMENSIONS GOVERN - DO NOT SCALE THIS SHEET.\n1:1 hole template on sheet 2.",
             fontsize=7, color="#b00020", weight="bold", va="top")
     pages.append(fig)
@@ -349,12 +360,12 @@ def shop_drawing_letter(path_pdf, mass_g, qty=4):
     # ---- sheet 2: 1:1 template of the hole end
     fig, ax = _sheet(PW, PH)
     ox, oy, hcut = 78.0, 100.0, 75.0
-    _front_view(ax, ox, oy, 1.0, plate_h=hcut, label_x=ox + W + 12, title="HOLE-END TEMPLATE  1:1")
+    _front_view(ax, ox, oy, 1.0, plate_h=hcut, label_x=ox + W + 12, title="HOLE-END TEMPLATE  1:1", inch=inch)
     tx = 16.0
     lines = [
         "SHEET 2 - TRUE 1:1 HOLE TEMPLATE",
         "PRINT AT 100 % / \"ACTUAL SIZE\". DO NOT \"FIT TO PAGE\".",
-        "Check the 100 mm bar below with a ruler before using.",
+        f"Check the {'4 in' if inch else '100 mm'} bar below with a ruler before using.",
         "",
         "Use: cut along the plate outline, align the bottom edge with",
         "datum A and the left edge with datum B, tape down, then",
@@ -364,8 +375,11 @@ def shop_drawing_letter(path_pdf, mass_g, qty=4):
     for i, t in enumerate(lines):
         ax.text(tx, 262.0 - 4.6 * i, t, fontsize=7.2 if i == 0 else 6.6, color="#b00020" if i < 2 else INK,
                 weight="bold" if i < 2 else "normal", family="monospace", va="top")
-    _title_block(ax, 116.0, 13.0, 87.0, 4.6, "1:1 (print 100 %)", "2 OF 2")
-    _scale_bar(ax, 14.0, 22.0)
+    _title_block(ax, 116.0, 13.0, 87.0, 4.6, "1:1 (print 100 %)", "2 OF 2", inch)
+    if inch:
+        _scale_bar(ax, 12.0, 22.0, 4 * MM_PER_IN, "4.000 in")
+    else:
+        _scale_bar(ax, 14.0, 22.0)
     pages.append(fig)
 
     with PdfPages(path_pdf) as pdf:
@@ -386,4 +400,5 @@ if __name__ == "__main__":
     cq.exporters.export(p, out + ".stl", tolerance=0.02, angularTolerance=0.1)
     shop_drawing(out + "_shop_drawing_A3.pdf", v * 2.7e-3)
     shop_drawing_letter(out + "_shop_drawing_letter.pdf", v * 2.7e-3)
-    print(out + ".step / .stl / .dxf / _drawing.png / _shop_drawing_A3.pdf / _shop_drawing_letter.pdf")
+    shop_drawing_letter(out + "_shop_drawing_letter_inch.pdf", v * 2.7e-3, inch=True)
+    print(out + ".step / .stl / .dxf / _drawing.png / _shop_drawing_A3.pdf / _shop_drawing_letter[_inch].pdf")

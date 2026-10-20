@@ -183,3 +183,13 @@ proposal). Away from the reference the claw waits for the pendulum to settle
 and uses the cable model's static-equilibrium tilt; the host approves grips
 (the firmware's own IMU tilt gate is removed). Camera bay: IMU pocket removed.
 Supersedes the IMU parts of D20/D22 (gravity fusion becomes optional, unused).
+
+D28. **Cut the claw tube by 50 mm, to 254.8 mm** (Jasper, 2026-10-20). The
+extra length isn't needed; start at 50 and cut more later if wanted. Evidence
+(verification/claw_tube_length_view_study.md, v7 head): the grasp spot is
+fully visible from a hover of 140 mm (172 mm uncut); about 9–13 % of the view
+is blocked; the box (cable tie-offs) is 474 mm above the jaw tips when
+gripping; 33 g saved. Recommended cut was 100 mm; the remaining cut up to the
+~206 mm limit stays available. Everything above the tube (box, camera bay,
+cover, cylinder) moves down 50 mm relative to the head. The claw body frame
+and the approach hover follow from this.

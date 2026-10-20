@@ -9426,7 +9426,7 @@
  ],
  "meta": {
   "script": "scripts/study_claw_tube_length_view.py",
-  "runtime_s": 178.9,
+  "runtime_s": 405.9,
   "closed_pose_rebuild_vs_preview_max_bbox_dev_mm": 8.753886504564434e-12,
   "tess_tol_mm": 0.25,
   "cuts_mm": [

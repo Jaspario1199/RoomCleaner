@@ -309,3 +309,22 @@ z=-21; motor back face moves to y=-38-T (only 0.33 mm to the old shell's
 inner -y wall with T=4.76 — relieve that wall); motor top z=21.15, slip-in
 pin top z≈24.9 (alcove floor ≥ 25.5); 12 mm air gap per fin face; the fin
 slot must run out to the mating rim at x=-21.15 so the cover slides on.
+
+## Floor-reference study for D-B (10/20, simulation only)
+User proposal: a printed multi-tag reference of known size on the floor,
+scanned at startup. Study: `scripts/sim_floor_reference_study.py`, report
+`verification/floor_reference_study.md` (3-5 seeds per case; sim-only hooks
+`SimCamera(board=...)` and `StartupSequencer.study_board`, both off by default).
+- A 1.0-1.5 m board cuts predicted absolute length sigma from ~25 mm to
+  ~10-12 mm (extent matters, tag count does not), then plateaus: the
+  excitation box, the 5 cm anchor priors and length noise dominate. No board
+  size reaches the 2 mm bead gate (12 mm overtravel).
+- Finding (lead-flagged, unresolved): with the precise board the fit becomes
+  overconfident — actual |L0 error| 7-17 sigma — and accepts its own
+  calibration less often (2/5 vs 5/5). Cause per study: a few mm of
+  undetected slack on one cable below the 3 mm slack classifier, amplified
+  into L0. Fail-closed today (beads BLOCKED, LOCAL_ONLY), but the predicted
+  sigma must NOT be used to size a larger overtravel until this is fixed.
+- D-B still open; the board alone is not an absolute reference. Candidates:
+  board + anchors surveyed to ~0.5 cm (plumb/laser), tape-measured line
+  length, or switch + stall backstop. Awaiting user decision.

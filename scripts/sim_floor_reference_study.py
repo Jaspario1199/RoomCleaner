@@ -117,11 +117,41 @@ def vision_components(r, smp, board, spec_pix, n_frames):
     return Rmc, z, h, fx, pix, edge, float(np.linalg.norm(smp.p[:2]))
 
 
+def oracle_residuals(r):
+    """Length residual of every calibration sample evaluated at the TRUE anchors and TRUE L0 (only the
+    sample noise and any unmodelled physics remain). Large, height-dependent, one-signed residuals on a
+    cable mean the estimator's length model disagrees with the plant (e.g. a cable going slack)."""
+    from roomcleaner.cdpr.calibration import IDS
+    from roomcleaner.cdpr.frames import inv_T
+    ctx, w = r.ctx, r.world
+    Tm = inv_T(w.T_R_M)
+    aM = (Tm[:3, :3] @ w.anchors.T).T + Tm[:3, 3]
+    L0t = np.array([w.true_L0(s) for s in IDS])
+    smp = list(ctx.samples)
+    res = np.zeros((len(smp), 4))
+    for k, s in enumerate(smp):
+        for i in range(4):
+            d = np.linalg.norm(aM[i] - (s.p + s.R @ ctx.cal.attach[i]))
+            res[k, i] = d - ctx.cal.lm.length(i, np.array([s.P[i]]), L0t[i], 1.0)[0]
+    z = np.array([s.p[2] for s in smp])
+    out = {"n": len(smp), "mean_mm": (res.mean(0) * 1e3).tolist(), "rms_mm": (np.sqrt((res ** 2).mean(0)) * 1e3).tolist(),
+           "min_mm": (res.min(0) * 1e3).tolist(),
+           "n_slack_over_3mm": [int((res[:, i] < -3e-3).sum()) for i in range(4)],
+           "n_slack_0_to_3mm": [int(((res[:, i] < -0.5e-3) & (res[:, i] >= -3e-3)).sum()) for i in range(4)]}
+    for lo, hi in ((0, 0.45), (0.45, 0.8), (0.8, 3)):
+        m = (z >= lo) & (z < hi)
+        if m.any():
+            out[f"rms_mm_z{lo}-{hi}"] = (np.sqrt((res[m] ** 2).mean(0)) * 1e3).tolist()
+            out[f"mean_mm_z{lo}-{hi}"] = (res[m].mean(0) * 1e3).tolist()
+    return out
+
+
 def whatif(r, board, spec_pix, tilt_sigma, n_frames):
     """Refit the SAME fit samples with the vision covariance rescaled by component (no new motion, no new
     noise) and return the predicted absolute sigma (max over stations, mm). Isolates what limits the
     absolute length: pixel/depth noise, IMU tilt, or the geometry/prior/encoder floor."""
     import copy
+    from roomcleaner.cdpr.calibration import IDS
     ctx = r.ctx
     fit = [s for s in ctx.samples if s.kind == "fit"]
     rot_sigma = r.vision.rot_sigma
@@ -136,19 +166,25 @@ def whatif(r, board, spec_pix, tilt_sigma, n_frames):
         parts.append((Cp, Ct, Cr))
     recon = np.median([np.linalg.norm(Cp + Ct + Cr - s.cov) / np.linalg.norm(s.cov) for (Cp, Ct, Cr), s in zip(parts, fit)])
     out = {"recon_rel_err": float(recon)}
-    # (pixel, tilt, rotation) sigma scales, encoder/spool length-noise scale, anchor-prior scale
+    err = {}
+    # (pixel, tilt, rotation) sigma scales, encoder/spool length-noise scale, anchor-prior scale[, slack_k]
     variants = {"as_run": (1, 1, 1, 1, 1), "pixel x0.5": (0.5, 1, 1, 1, 1), "tilt x1/3": (1, 1 / 3, 1, 1, 1),
                 "pixel x0.5 & tilt x1/3": (0.5, 1 / 3, 1, 1, 1),
                 "all vision noise ->0": (1e-3, 1e-3, 1e-3, 1, 1),
                 "length noise x0.5": (1, 1, 1, 0.5, 1), "length noise x0.1": (1, 1, 1, 0.1, 1),
                 "vision ->0 & length x0.1": (1e-3, 1e-3, 1e-3, 0.1, 1),
+                "slack_k 1.0 (diagnostic)": (1, 1, 1, 1, 1, 1.0),
+                "slack_k 1.0 & length noise x3": (1, 1, 1, 3, 1, 1.0),
+                "length noise x3": (1, 1, 1, 3, 1),
                 "anchor prior 2 cm": (1, 1, 1, 1, "abs0.02"),
                 "anchor prior 1 cm": (1, 1, 1, 1, "abs0.01"),
                 "anchor prior 0.5 cm": (1, 1, 1, 1, "abs0.005"),
                 "vision ->0 & length x0.1 & anchor 1 cm": (1e-3, 1e-3, 1e-3, 0.1, "abs0.01")}
     cal = ctx.cal
     cc0, pr0 = cal.cc, cal.priors
-    for name, (a, b, c, ls, asc) in variants.items():
+    for name, vv in variants.items():
+        a, b, c, ls, asc = vv[:5]
+        slk = vv[5] if len(vv) > 5 else cc0.slack_k
         smp = []
         for (Cp, Ct, Cr), s in zip(parts, fit):
             q = copy.copy(s)
@@ -156,16 +192,19 @@ def whatif(r, board, spec_pix, tilt_sigma, n_frames):
             smp.append(q)
         cc1, pr1 = copy.copy(cc0), copy.copy(pr0)
         object.__setattr__(cc1, "length_sigma_m", cc0.length_sigma_m * ls)
+        object.__setattr__(cc1, "slack_k", slk)
         a_new = (np.full(4, float(asc[3:])) if isinstance(asc, str) else np.asarray(pr0.anchor_sigma) * asc)
         object.__setattr__(pr1, "anchor_sigma", a_new)
         cal.cc, cal.priors = cc1, pr1
         try:
             res = cal.fit(smp, ctx.onsets, L0_init=ctx.result.L0, psi_inits=[ctx.result.psi])
             out[name] = float(np.max(cal.absolute_sigma(res)) * 1e3)
+            err[name] = float(max(abs(res.L0[i] - r.world.true_L0(sid)) for i, sid in enumerate(IDS)) * 1e3)
         except Exception as ex:
             out[name] = f"fail {type(ex).__name__}"
         finally:
             cal.cc, cal.priors = cc0, pr0
+    out["actual_err_max_mm"] = err
     return out
 
 
@@ -241,6 +280,11 @@ def run_one(args):
         if "beads" in m:
             out["beads"] = {s: dict(status=b["status"], reason=b["reason"][:120], sigma_mm=(b["sigma_m"] or 0) * 1e3)
                             for s, b in m["beads"].items()}
+        # oracle check of the cable-length MODEL: residual d(vision pose, TRUE anchors) - L_model(P; TRUE L0)
+        try:
+            out["oracle_resid"] = oracle_residuals(r)
+        except Exception as ex:
+            out["oracle_resid"] = {"error": f"{type(ex).__name__}: {ex}"[:120]}
         # excitation diagnostics: spread of the fit poses and of the cable directions seen from each true anchor
         fit = [s for s in r.ctx.samples if s.kind == "fit"]
         if fit:
@@ -309,13 +353,16 @@ def summarize(results):
 
 
 def _median_whatif(rs):
-    keys = {}
+    keys, errs = {}, {}
     for r in rs:
         w = r.get("whatif_sigma_max_mm") or {}
         for k, v in w.items():
             if isinstance(v, float) and k != "recon_rel_err":
                 keys.setdefault(k, []).append(v)
-    return {k: float(np.median(v)) for k, v in keys.items()}
+        for k, v in (w.get("actual_err_max_mm") or {}).items():
+            errs.setdefault(k, []).append(v)
+    return {"sigma": {k: float(np.median(v)) for k, v in keys.items()},
+            "err": {k: float(np.median(v)) for k, v in errs.items()}}
 
 
 def print_table(rows):
@@ -342,7 +389,7 @@ def main():
     ap.add_argument("--seed0", type=int, default=0)
     ap.add_argument("--procs", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     ap.add_argument("--out", default=None)
-    ap.add_argument("--only", default=None, help="substring filter on case names")
+    ap.add_argument("--only", default=None, help="comma-separated substring filters on case names")
     ap.add_argument("--best", default="3a dense 3x3 p0.22 (0.60 m, 9 sheets)", help="board case for groups 4/5")
     ap.add_argument("--best-box", default=None, help="bx,bz half extents for groups 4/5 (default: config)")
     ap.add_argument("--best-ea", type=float, default=None)
@@ -362,7 +409,8 @@ def main():
             box = (bxy, bxy, bz)
         cases.update(sens_cases(table[a.best]["board"], box, a.best_ea))
     if a.only:
-        cases = {k: v for k, v in cases.items() if a.only in k}
+        keys = [x.strip() for x in a.only.split(",")]
+        cases = {k: v for k, v in cases.items() if any(x in k for x in keys)}
     jobs = [(k, v, s) for k, v in cases.items() for s in range(a.seed0, a.seed0 + a.seeds)]
     print(f"{len(jobs)} runs on {a.procs} processes", flush=True)
     results = []

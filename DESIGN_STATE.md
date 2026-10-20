@@ -364,3 +364,12 @@ IMU: Jasper solders wires to the BACK of the IMU board -> relief channel under
 the header row + wire exit; board dimensions still to come.
 Software (in progress): four line attachment points at the inner mouths of
 the corner-fillet holes of the electrical box; passive yaw; yaw guard.
+Second Seeed reference (cad/reference/purchased/xiao_esp32s3_top_seeed_ruler.png,
+top view with ruler): base board 21.0 x 17.8; USB-C receptacle overhangs the
+board edge by ~1-1.5 mm; U.FL antenna connector at the corner opposite the
+USB-C. Jasper: "lean on the side of bigger so we aren't having to reprint" ->
+cradle 23.0 (incl. USB overhang) x 18.6 with soft locating ribs, stack height
+allowance 16+, lens window sized for +-4 mm of lens position, IMU pocket for
+the Adafruit 3886 (25.6 x 17.8) with a back-side solder relief.
+IMU: not yet purchased per the records (docs/SELF_CAD_DIMENSIONS_AND_WIRING_20261006.md lists the
+Adafruit 3886 MPU-6050 as selected, "not recorded ordered").

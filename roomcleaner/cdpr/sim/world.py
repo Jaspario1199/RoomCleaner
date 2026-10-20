@@ -304,16 +304,24 @@ class World:
             return np.array(p0, float), np.array(R0, float), False
         return p, R, True
 
+    def _rest_on_floor(self, p, R, ell):
+        """The unconstrained equilibrium (p, R) has its lowest point at or below the floor: the claw rests on it. The
+        floor pushes the claw up by the penetration and the equilibrium attitude is kept (a loaded claw hangs
+        slightly tilted on its jaws); an unloaded one (all lines slack) lies flat."""
+        pen = -self.lowest_z(p, R)
+        self.on_floor = True
+        self.p, self.R = np.array(p, float) + [0.0, 0.0, max(pen, 0.0)], np.array(R, float)
+        if float(self._forces(self.p, ell)[0].max()) <= 0.0:
+            self.R = rot_z(math.atan2(R[1, 0], R[0, 0]))
+            self.p = np.array([p[0], p[1], self.z_floor])
+
     def settle(self):
         ell = self.ell()
         if not self.on_floor:
             p, R, ok = self._hang_checked(self.p, self.R, ell)
             if ok:
                 if self.lowest_z(p, R) <= 1e-12:
-                    self.on_floor = True
-                    yaw = math.atan2(R[1, 0], R[0, 0])
-                    self.R = rot_z(yaw)                  # rests flat on the floor (tilt released)
-                    self.p = np.array([p[0], p[1], self.z_floor])
+                    self._rest_on_floor(p, R, ell)
                     self.events.append(("landed", self.p.copy()))
                 else:
                     self.p, self.R = p, R
@@ -327,7 +335,7 @@ class World:
                     self.p, self.R = p, R
                     self.events.append(("lifted", self.p.copy()))
                 elif ok:
-                    self.p = np.array([p[0], p[1], self.z_floor])
+                    self._rest_on_floor(p, R, ell)
             else:
                 self._slide(ell)
         self.tension = self._forces(self.p, ell)[0]

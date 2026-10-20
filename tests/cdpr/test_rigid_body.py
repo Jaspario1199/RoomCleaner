@@ -354,6 +354,33 @@ def test_motor_commands_move_the_claw_without_losing_the_equilibrium():
     assert w.eq_failures == 0 and max(yaws) - min(yaws) > 0.2          # yaw drifts: passive degree of freedom
 
 
+def test_claw_whose_equilibrium_is_just_below_the_floor_rests_there_without_artificial_tension():
+    """Landing on the floor keeps the equilibrium attitude and lifts the claw by the penetration (the floor pushes), instead
+    of snapping it upright, which would stretch the stiff lines by mm and show tens of newtons that are not physical."""
+    w = make_world(fast_cfg(), yaw=0.1)
+    w.strict = True
+    R = rot_z(0.1) @ rpy_to_matrix(0.05, -0.03, 0.0)
+    p = np.array([1.6, 1.3, w.z_floor - 0.001])                      # equilibrium 1 mm below the floor
+    ell = taut_ell(w, p, R, [0.0008, 0.0010, 0.0006, 0.0009])
+    w.on_floor, w.p, w.R = False, p + [0, 0, 0.002], R.copy()
+    w.ell = lambda: ell
+    pe, Re, ok, _ = w._equilibrium(w.p, R, ell)                       # the unconstrained equilibrium it is held above
+    assert ok and w.lowest_z(pe, Re) < 0
+    w.settle()
+    assert w.on_floor and abs(w.lowest_z()) < 5e-4
+    assert np.allclose(w.R, Re, atol=1e-9)                            # equilibrium tilt kept, not reset upright
+    assert w.tension.max() < 10.0 and w.events[-1][0] == "landed"
+    w.R = rot_z(0.1)                                                  # forced upright it would be far more tense
+    assert np.max(w._forces(w.p, ell)[0]) > 2 * w.tension.max()
+    # an unloaded claw (all lines slack) lies flat on the floor
+    w2 = make_world(fast_cfg(), yaw=0.3)
+    w2.on_floor, w2.p, w2.R = False, np.array([1.6, 1.3, 0.9]), rot_z(0.3)
+    w2.ell = lambda: np.linalg.norm(w2.anchors - w2.p, axis=1) + 0.2
+    for _ in range(3):
+        w2.settle()
+    assert w2.on_floor and np.allclose(w2.R[2], [0, 0, 1], atol=1e-12) and abs(w2.lowest_z()) < 1e-9   # flat (yaw is arbitrary)
+
+
 # ============================================================== simulator limit-cycle regression
 # Recorded state of verification/slack_probe_review.md (seed 6, t = 1806.70 s, z = 1.446 m): the old undamped
 # Newton returned an iterate of a 2-cycle (14 / 24 N); the convex energy minimum has at most 5.5 N.

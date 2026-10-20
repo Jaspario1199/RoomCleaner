@@ -349,3 +349,18 @@ From Jasper (10/20) and the v6 inspection (verification/gripper_v6_inspection.md
 - Electrical box is structural: the four lines attach through radial holes in
   its corner fillets. Camera bay (XIAO S3 Sense + MPU6050) is being added to the
   box on the claw's narrow side, wiring into the box below the light top cap.
+
+## Camera bay — pending revision from Jasper's board reference (10/20)
+Seeed reference image (cad/reference/purchased/xiao_esp32s3_sense_seeed_dims.webp):
+XIAO ESP32-S3 Sense = 21.0 x 17.8 x 15 mm overall INCLUDING the camera module;
+the camera (OV3660 on this unit) sits on top of the stack at the USB-C end,
+lens facing away from the boards, roughly centred across the 17.8 width; the
+Sense board's FPC connector is at the other end. So the stack mounts
+lens-down onto the bay window with the lens at the USB-C end (not centred
+along the length), and the USB-C is on the base board at the cover side.
+The current bay (5b7764d) assumes a 24.363 envelope and a centred lens:
+revise the cradle (21.0 + 0.6), lens-window position and USB notch height.
+IMU: Jasper solders wires to the BACK of the IMU board -> relief channel under
+the header row + wire exit; board dimensions still to come.
+Software (in progress): four line attachment points at the inner mouths of
+the corner-fillet holes of the electrical box; passive yaw; yaw guard.

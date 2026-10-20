@@ -325,6 +325,8 @@ scanned at startup. Study: `scripts/sim_floor_reference_study.py`, report
   undetected slack on one cable below the 3 mm slack classifier, amplified
   into L0. Fail-closed today (beads BLOCKED, LOCAL_ONLY), but the predicted
   sigma must NOT be used to size a larger overtravel until this is fixed.
-- D-B still open; the board alone is not an absolute reference. Candidates:
-  board + anchors surveyed to ~0.5 cm (plumb/laser), tape-measured line
-  length, or switch + stall backstop. Awaiting user decision.
+- D-B RESOLVED (D26): margins, not bead precision. Full-workspace operation
+  when k*sigma_abs <= ceiling/wall margin with an honest sigma; beads become
+  end-of-travel switches. Work in order: (1) per-pose slack probe (in
+  progress), (2) margin-based trust rule, (3) printable ~1 m floor board +
+  multi-tag detection.

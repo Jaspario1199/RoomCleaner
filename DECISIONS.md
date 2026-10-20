@@ -156,3 +156,21 @@ so beads are BLOCKED until open decision D-B is taken.
 D25. **No automatic resume** after any reboot (host, station, claw): host
 start goes to DISARMED if the claw is known supported, else
 RECOVERY_REQUIRED.
+
+D26. **D-B resolved: the ceiling and wall margins, not bead precision,
+protect against absolute-length error** (user decision, 2026-10-20). The robot
+starts near the room centre on the printed floor reference, gross slack is
+caught on the floor by the bounded one-cable-at-a-time take-up, and the claw
+is kept `ceiling_margin_m` (0.4 m) below the anchors and `workspace_margin_m`
+inside the walls. Rule: the calibration may grant full-workspace operation
+only if the predicted absolute claw-position / cable-length sigma over the
+whole workspace satisfies k*sigma <= the relevant margin (k = bead_k_sigma),
+checked at every startup, and only when that sigma is honest: per-pose slack
+probing on and the witness chi-squared consistent. Otherwise the robot stays
+LOCAL_ONLY. Beads become end-of-travel switches (NC, station stops if hit);
+a bead search is optional, never required. Supersedes the "beads required for
+VERIFIED" reading of D24 (D24's gating of any bead search still applies).
+Also adopted: per-pose slack probing by motion onset during suspended
+calibration (user's method: reel each cable in turn; no claw motion = slack),
+and a printed multi-sheet floor reference (~1 m, spaced Letter sheets, scale
+check) replacing the single 6" tag once the slack probe makes its sigma honest.

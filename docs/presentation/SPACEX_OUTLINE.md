@@ -74,12 +74,9 @@ inspection and bring-up, not on software.
   jog + homing switch on the bench.
 - **Who did what (say it plainly):** you: requirements, SolidWorks redesign,
   wiring, soldering, bench bring-up and debugging, test plan, design decisions.
-  Tools: an AI coding assistant for the control software, simulator,
-  first-generation parametric CAD and verification scripts; purchased modules
-  (NEMA 17 steppers, A4988 drivers, ESP32 boards, MG996R servo, camera). The
-  panel will ask how you used AI tools; a direct answer ("I used it like a
-  junior engineer whose work I checked; here is a defect I caught and one it
-  caught for me") is strong. A vague answer is not.
+  Purchased modules: NEMA 17 steppers, A4988 drivers, ESP32 boards, MG996R
+  servo, camera. (Jasper's direction 2026-10-20: the deck does not mention AI
+  tools.)
 - **Confirm:** project start date.
 
 ### 4 · First principles: cable statics (2.5 min)
@@ -323,7 +320,7 @@ inspection and bring-up, not on software.
 - Why PETG? What about creep near the ceiling?
 - Which load does the slide-in retention carry, and what is its margin?
 - How did you set the clearances? What did the coupons measure?
-- How did you use the AI assistant, and how did you check its work?
+- How did you check your own designs before printing them?
 - If you had half the time, what would you cut?
 - Why not just add a fan? Why not raise the current? How hot does the PETG
   around the motor bolts get?

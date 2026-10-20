@@ -20,6 +20,8 @@ Model
   * Claw reference (mouth-plane centre on the tube axis) is sampled over the workspace:
     x,y in [margin, size - margin] (margin 0.2 m), z in [lowest-point height, room height -
     ceiling margin 0.4 m]; lowest point = 523.8 mm below the mouth plane (jaw tips, v6).
+  * Lines that pass through the box body (cable through the claw) are physically impossible
+    for that (position, yaw) and are excluded ("feasible" lines only are scored).
   * Clearance = min distance from the line (mouth -> anchor) to the exposed bay surface
     (bay body outside the box + cover) sampled at <= 0.5 mm spacing.
 """
@@ -54,6 +56,7 @@ def bay_surface():
     box = find(parts, BOX_NAME)
     ox, oy, oz = B.BAY_ORIGIN_WORLD
     box_bay = cq.Workplane().add(box).translate((-ox, -oy, -oz))
+    Vbox, Fbox = tessellate(box_bay, 0.3, 0.3)
     comb = B.combine(box_bay)
     added = comb.cut(box_bay)
     cover = B.make_cover()
@@ -70,7 +73,7 @@ def bay_surface():
         sel = np.where(n >= k)[0]
         w = rng.dirichlet([1, 1, 1], size=len(sel))
         pts.append(np.einsum("ij,ijk->ik", w, tri[sel]))
-    return V, F, np.concatenate(pts)
+    return V, F, np.concatenate(pts), Vbox, Fbox
 
 
 def main():
@@ -79,7 +82,7 @@ def main():
     W, D, H = room["width_m"], room["depth_m"], room["height_m"]
     mg, cm = cfg["motion"]["workspace_margin_m"], cfg["motion"]["ceiling_margin_m"]
     anchors = {s["id"]: np.array(s["anchor_room_m"]) for s in cfg["stations"]}
-    V, F, samples = bay_surface()
+    V, F, samples, Vbox, Fbox = bay_surface()
     print("bay surface samples:", len(samples))
 
     xs = np.linspace(mg, W - mg, 8)
@@ -90,6 +93,7 @@ def main():
     mouth_bay = {c: np.array([c[0] * MOUTH, MOUTH_Y, c[1] * MOUTH]) for c in corners}
 
     results = {}                                   # yaw_deg -> dict(min clearance, hits, worst config)
+    hit_el, hit_z, hit_corner = [], [], {}
     for psi in yaws:
         ex = np.array([math.cos(psi), math.sin(psi)])
         ez = np.array([math.sin(psi), -math.cos(psi)])
@@ -99,20 +103,25 @@ def main():
             for px in xs:
                 for py in ys:
                     for pz in zs:
-                        mouth_room_h = np.array([px, py]) + (sx * MOUTH) * ex + (sz * MOUTH) * ez
+                        mouth_room_h = np.array([px, py]) + (sx * MOUTH / 1000.0) * ex + (sz * MOUTH / 1000.0) * ez
                         d = np.array([anc[0] - mouth_room_h[0], anc[1] - mouth_room_h[1], anc[2] - pz])
-                        L = np.linalg.norm(d)
+                        L = np.linalg.norm(d)                                # metres
                         db = np.array([d[:2] @ ex, d[2], d[:2] @ ez])     # bay frame (x, up, z)
                         dirs.append(db / L)
-                        meta.append((sx, sz, px, py, pz, L, math.degrees(math.asin(d[2] / L))))
+                        meta.append((sx, sz, px, py, pz, L * 1000.0, math.degrees(math.asin(d[2] / L))))   # L in mm
         dirs = np.array(dirs)
         meta = np.array(meta)
         # ray hits (first hit inside the line length)
         hits = np.zeros(len(dirs), bool)
         mind = np.full(len(dirs), 1e9)
+        feasible = np.ones(len(dirs), bool)        # line does not pass through the box body
         for (sx, sz) in corners:
             sel = np.where((meta[:, 0] == sx) & (meta[:, 1] == sz))[0]
             o = mouth_bay[(sx, sz)]
+            tb = ray_mesh_first_hit(o + dirs[sel][0] * 0.0 + np.array([0.0, 0.0, 0.0]), dirs[sel], Vbox, Fbox)
+            # offset the start 0.6 mm along each line so the mouth surface itself is not counted
+            tb = np.array([ray_mesh_first_hit(o + d * 0.6, d[None, :], Vbox, Fbox)[0] for d in dirs[sel]])
+            feasible[sel] = ~(tb < meta[sel, 5])
             t = ray_mesh_first_hit(o, dirs[sel], V, F)
             hits[sel] = t < meta[sel, 5]
             # clearance: distance from each line (0..L) to the sample cloud
@@ -126,19 +135,29 @@ def main():
                 r2 = (rel ** 2).sum(1)[:, None]
                 dist2 = r2 - 2 * tt * (rel @ dd.T) + tt ** 2
                 mind[ss] = np.sqrt(np.maximum(dist2.min(axis=0), 0))
-        i = int(mind.argmin())
+        mind_f = np.where(feasible, mind, 1e9)
+        hits_f = hits & feasible
+        for ii in np.where(hits_f)[0]:
+            hit_el.append(float(meta[ii, 6]))
+            hit_z.append(float(meta[ii, 4]))
+            key = MAPPING[(int(meta[ii, 0]), int(meta[ii, 1]))]
+            hit_corner[key] = hit_corner.get(key, 0) + 1
+        i = int(mind_f.argmin())
         results[round(math.degrees(psi))] = {
-            "min_clearance_mm": round(float(mind.min()), 2),
-            "lines_hitting_bay": int(hits.sum()),
+            "min_clearance_mm": round(float(mind_f.min()), 2),
+            "lines_hitting_bay": int(hits_f.sum()),
+            "lines_hitting_bay_incl_infeasible": int(hits.sum()),
+            "lines_feasible": int(feasible.sum()),
             "lines": len(dirs),
             "worst": {"corner(sx,sz)": [int(meta[i, 0]), int(meta[i, 1])],
                       "station": MAPPING[(int(meta[i, 0]), int(meta[i, 1]))],
                       "claw_xyz_m": [round(float(v), 3) for v in meta[i, 2:5]],
-                      "line_length_m": round(float(meta[i, 5]), 2),
+                      "line_length_m": round(float(meta[i, 5]) / 1000.0, 2),
                       "elevation_deg": round(float(meta[i, 6]), 1),
                       "bay_frame_dir": [round(float(v), 3) for v in dirs[i]]},
         }
-        print(f"yaw {math.degrees(psi):5.0f}: min clearance {mind.min():7.2f} mm, hits {int(hits.sum())}/{len(dirs)}")
+        print(f"yaw {math.degrees(psi):5.0f}: min clearance {mind_f.min():7.2f} mm, hits {int(hits_f.sum())}/{int(feasible.sum())} feasible "
+              f"({int(hits.sum())} incl. lines through the box)")
 
     allc = {k: v["min_clearance_mm"] for k, v in results.items()}
     worst_yaw = min(allc, key=allc.get)
@@ -152,6 +171,12 @@ def main():
         "all_yaw_min_clearance_mm": allc[worst_yaw],
         "worst_yaw_deg": worst_yaw,
         "total_lines_hitting_bay_all_yaws": int(sum(v["lines_hitting_bay"] for v in results.values())),
+        "hits_within_pm30deg_yaw": int(sum(results[k]["lines_hitting_bay"] for k in results if k <= 30 or k >= 330)),
+        "hits_within_pm15deg_yaw": int(sum(results[k]["lines_hitting_bay"] for k in results if k <= 15 or k >= 345)),
+        "hit_lines_max_elevation_deg": round(max(hit_el), 1) if hit_el else None,
+        "hit_lines_min_claw_height_m": round(min(hit_z), 2) if hit_z else None,
+        "hit_lines_by_station": hit_corner,
+        "worst_fraction_of_feasible_lines_hitting": round(max(v["lines_hitting_bay"] / max(v["lines_feasible"], 1) for v in results.values()), 4),
         "per_yaw": results,
     }
     with open(OUT, "w") as fh:

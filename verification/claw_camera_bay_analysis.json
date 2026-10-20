@@ -14,7 +14,7 @@
     ],
     "rays": 323,
     "rays_hitting_bay": 0,
-    "min_clearance_mm": 19.17
+    "min_clearance_mm": 19.25
    },
    "corner_+1x_-1z": {
     "mouth_world": [
@@ -29,7 +29,7 @@
     ],
     "rays": 323,
     "rays_hitting_bay": 0,
-    "min_clearance_mm": 19.17
+    "min_clearance_mm": 19.25
    },
    "corner_+1x_+1z": {
     "mouth_world": [
@@ -44,7 +44,7 @@
     ],
     "rays": 323,
     "rays_hitting_bay": 0,
-    "min_clearance_mm": 111.33
+    "min_clearance_mm": 111.23
    },
    "corner_-1x_+1z": {
     "mouth_world": [
@@ -59,12 +59,12 @@
     ],
     "rays": 323,
     "rays_hitting_bay": 0,
-    "min_clearance_mm": 111.33
+    "min_clearance_mm": 111.23
    }
   },
   "rays_total": 1292,
   "rays_hitting_bay": 0,
-  "min_clearance_mm": 19.17
+  "min_clearance_mm": 19.25
  },
  "lens_center_world": [
   951.85,
@@ -149,10 +149,10 @@
  },
  "stiffness_estimate": {
   "assumptions": "rigid box wall, U-section (floor + 2 side walls, cover ignored, ribs ignored), E=2.1 GPa, tip mass 30 g",
-  "I_mm4": 12277,
-  "cantilever_length_mm": 40.1,
-  "k_N_per_mm": 1201.5,
-  "deflection_under_30g_x_2g_dynamic_mm": 0.00073,
-  "first_mode_hz_upper_bound": 1007
+  "I_mm4": 13199,
+  "cantilever_length_mm": 68.7,
+  "k_N_per_mm": 256.7,
+  "deflection_under_30g_x_2g_dynamic_mm": 0.00344,
+  "first_mode_hz_upper_bound": 466
  }
 }

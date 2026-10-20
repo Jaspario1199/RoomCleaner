@@ -105,9 +105,9 @@ def test_single_valid_solids(combined, body, cover, box_bay):
 
 def test_bbox_sanity(combined, body, cover):
     bb = body.val().BoundingBox()
-    # outer end wall (r = 101.2) plus the 2 mm tie-pit bulge on the radial end
-    assert bb.zmin == pytest.approx(-(B.OUT_R1 + B.WALL), abs=0.05)
-    assert bb.xmin == pytest.approx(B.OUT_X_IMU, abs=0.05)
+    assert bb.zmin == pytest.approx(-B.OUT_R1, abs=0.05)       # IMU pocket end wall, r = 129.8
+    assert bb.xmin == pytest.approx(-bb.xmax, abs=0.05)         # symmetric: ribs reach +-34.85
+    assert bb.xmax < P.CAMBAY_CORNER_HOLE_EXIT_XZ - P.CAMBAY_CORNER_HOLE_KEEPOUT
     assert bb.ymin == pytest.approx(0.0, abs=0.02)          # on the print bed plane with the box
     assert bb.ymax == pytest.approx(B.H_CAV, abs=0.05)
     cb = combined.val().BoundingBox()
@@ -204,37 +204,34 @@ def test_xiao_cradle_and_clearance(combined, cover):
 
 def test_imu_pocket_pads_pegs_ties(combined, cover):
     L, W, T = P.CAMBAY_IMU_L, P.CAMBAY_IMU_W, P.CAMBAY_IMU_T
-    # repo-selected Adafruit 3886 (26 x 17.8 x 4.6) fits: board + full reservation are void
-    res = _env(B.IMU_XC - L / 2, B.IMU_XC + L / 2, B.IMU_SEAT_Y, B.IMU_SEAT_Y + P.CAMBAY_IMU_RESERVE_H,
-               B.IMU_RC - W / 2, B.IMU_RC + W / 2)
+    # repo-selected Adafruit 3886 (26 x 17.8 x 4.6): board + full reservation are void.
+    # Long axis radial, plane parallel to the camera board (both are y = const planes).
+    res = _env(B.IMU_XC - W / 2, B.IMU_XC + W / 2, B.IMU_SEAT_Y, B.IMU_SEAT_Y + P.CAMBAY_IMU_RESERVE_H,
+               B.IMU_RC - L / 2, B.IMU_RC + L / 2)
     assert combined.intersect(res).val().Volume() < 0.05
     # the cover touches the reservation only with the 4 clamp pegs at the board corners
     peg_vol = 4 * P.CAMBAY_IMU_PAD ** 2 * (B.IMU_SEAT_Y + P.CAMBAY_IMU_RESERVE_H - (B.IMU_TOP_Y + 0.2))
     assert cover.intersect(res).val().Volume() == pytest.approx(peg_vol, abs=1.0)
-    # the pocket is 26.6 x 18.4 (0.3 mm per side) and >= 5 mm deep (walls up to the cover seat)
+    # the pocket is 18.4 x 26.6 (0.3 mm per side), >= 5 mm deep (walls up to the cover seat)
     p = Probe(combined)
     ys = B.IMU_SEAT_Y + 1.0
-    runs = p.run((B.IMU_XC - 14.0, ys, B.IMU_RC), (1, 0, 0), 28.0)
-    assert len(runs) == 2 and runs[1][0] - runs[0][1] == pytest.approx(L + 0.6, abs=2 * TOL)
-    runs = p.run((B.IMU_XC - 3.0, ys, B.IMU_RC - 10.5), (0, 0, 1), 21.0)
+    runs = p.run((-12.4, ys, B.IMU_RC), (1, 0, 0), 24.8)
     assert len(runs) == 2 and runs[1][0] - runs[0][1] == pytest.approx(W + 0.6, abs=2 * TOL)
+    runs = p.run((3.0, ys, B.IMU_RC - 14.0), (0, 0, 1), 28.0)
+    assert len(runs) == 2 and runs[1][0] - runs[0][1] == pytest.approx(L + 0.6, abs=2 * TOL)
     assert B.IMU_RESERVE_TOP - B.FLOOR_T >= 5.0 and B.H_CAV - B.FLOOR_T >= 5.0
-    # board plane parallel to the camera board: both seats are y = const planes
     cx, cr = B._imu_pad_positions()[0]
     assert p.inside(cx, B.IMU_SEAT_Y - 0.1, cr) and not p.inside(cx, B.IMU_SEAT_Y + 0.1, cr)
-    assert B.Y_BOARD0 != B.IMU_SEAT_Y                          # (different heights, same orientation)
-    # 4 corner pads exist
     assert len(B._imu_pad_positions()) == 4
-    # cover pegs press the board corners: solid 0.3 mm above the PCB top, void 0.1 mm above it
     pc = Probe(cover)
     assert pc.inside(cx, B.IMU_TOP_Y + 0.3, cr) and not pc.inside(cx, B.IMU_TOP_Y + 0.1, cr)
-    # two zip-tie loops: a floor slot pair straddling the board at each tie x
-    for xt in B.IMU_TIE_X:
-        for r_edge, sgn in ((B.HEAD_R1, +1), (B.HEAD_R0, -1)):
-            rs = r_edge + sgn * P.CAMBAY_WALL / 2
-            assert not p.inside(xt, 1.0, rs)                    # slot through the floor
-            assert p.inside(xt + 2.5, 1.0, rs)                  # floor continues beside it
-            assert not p.inside(xt, B.FLOOR_T + 3.0, rs)        # pit open above the slot
+    # two zip-tie loops: a floor slot in each side-block pit straddling the board at each tie r
+    for rt in B.IMU_TIE_R:
+        for sx in (1, -1):
+            xc = sx * (B.IMU_HALF_X + B.CAV_HALF_X) / 2
+            assert not p.inside(xc, 1.0, rt)                      # slot through the floor
+            assert p.inside(xc, 1.0, rt + 2.6)                    # floor continues beside it
+            assert not p.inside(xc, B.FLOOR_T + 3.0, rt)          # pit open above the slot
     # no screw posts (hole positions unknown): nothing rises between the pads
     assert not p.inside(B.IMU_XC, B.IMU_SEAT_Y + 0.5, B.IMU_RC)
 
@@ -346,20 +343,17 @@ def test_cable_lines_clear_of_bay(body, cover):
 def test_min_wall_thickness(combined, cover):
     p = Probe(combined)
     r0 = B.BOARD_CR
-    # IMU -X end wall, partition (x -14.48..-12.48 below its top), XIAO +X wall beside the notch
-    runs = p.run((B.OUT_X_IMU - 1.0, 12.0, r0), (1, 0, 0), 4.0)
+    # IMU pocket end wall (between the vent slots), XIAO -X wall (between vents), partition
+    runs = p.run((3.0, 12.0, B.IMU_R1 - 1.0), (0, 0, 1), 4.0)
     assert abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
-    runs = p.run((B.IMU_X1 - 1.0, 12.0, r0), (1, 0, 0), 4.5)
+    runs = p.run((-B.OUT_HALF_X - 1.0, 12.0, B.BOARD_CR + 2.75), (1, 0, 0), 4.0)
+    assert abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
+    runs = p.run((3.0, 12.0, B.HEAD_R1 - 1.0), (0, 0, 1), 4.0)
     assert abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
     runs = p.run((B.CAV_HALF_X - 1.0, 12.0, B.BOARD_CR + 8.0), (1, 0, 0), 4.0)
     assert runs and abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
-    # outer end wall between the vent slots
-    runs = p.run((3.0, 12.0, B.HEAD_R1 - 1.0), (0, 0, 1), 4.0)
-    assert runs and abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
-    # fence on the neck side of the XIAO bay and the IMU pocket's neck-side wall
+    # fence on the neck side of the XIAO bay
     runs = p.run((8.0, 10.0, B.HEAD_R0 - 3.0), (0, 0, 1), 4.0)
-    assert runs and abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
-    runs = p.run((B.IMU_XC, 10.0, B.HEAD_R0 - 3.0), (0, 0, 1), 4.0)
     assert runs and abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
     # ledge between the window and the cavity on the neck side (block reaches 2 mm past the window)
     runs = p.run((0.0, 4.0, B.BOARD_CR - P.CAMBAY_LENS_WINDOW_R / 2 - 3.0), (0, 0, 1), 3.0)

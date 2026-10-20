@@ -6,8 +6,17 @@ Quasi-static model (the claw is slow and light):
   physical motor position through the TRUE spool geometry. It carries tension
   ``k_i * max(0, d_i - ell_i)`` with ``k_i = EA / ell_i`` (no compression,
   no sag), ``d_i`` the straight distance from exit point to attachment.
-* Suspended: the claw sits at the minimum of gravity + cable strain energy
-  (Newton, warm-started).
+* Suspended: the claw is a RIGID BODY (6 DOF) hung from the four attachment
+  points b_i (inner mouths of the corner holes of the electrical box): it sits at
+  the minimum of gravity (at the CoM) + cable strain energy, found by a damped
+  (Levenberg-Marquardt) Newton with an Armijo line search and an exact analytic
+  Hessian, warm-started from the previous state. Non-convergence is REPORTED
+  (``World.eq_failures``, event ``no_equilibrium``, ``strict`` raises) and the
+  previous state is kept: a non-equilibrium state is never returned. Roll/pitch
+  follow from the statics; yaw is whatever the (weak) line geometry leaves it, so
+  length errors make it drift realistically (see tests/cdpr/test_rigid_body.py).
+  With a single common attachment point at the CoM the orientation is irrelevant
+  and the claw is the original 3-DOF point (R fixed).
 * On the floor: static friction ``mu * N`` holds it until the horizontal
   cable pull exceeds it, then it slides to the limit. A net upward pull larger
   than its weight lifts it.
@@ -24,7 +33,7 @@ import math
 
 import numpy as np
 
-from ..frames import inv_T, make_T, planar_T, rot_z
+from ..frames import inv_T, make_T, planar_T, rot_z, rotvec_to_matrix
 from ..spool import LayeredSpool
 from ..vision.marker import MarkerObservation
 
@@ -48,6 +57,15 @@ class World:
         self.update_s = update_s
         self._acc = 0.0
         self.z_floor = -float(cfg.claw.lowest_point_body_m[2])     # body origin height when resting
+        self.low_body = np.asarray(cfg.claw.lowest_point_body_m, float)
+        self.com_claw = np.zeros(3) if cfg.claw.com_body_m is None else np.asarray(cfg.claw.com_body_m, float)
+        # orientation matters only if the attachment is spaced or the CoM is off the (common) attachment point
+        self.rigid = bool(np.max(np.abs(self.attach - self.attach[0])) > 1e-9
+                          or np.max(np.abs(self.com_claw - self.attach[0])) > 1e-9)
+        self.strict = False                 # True: non-convergence raises instead of being reported
+        self.eq_failures = 0
+        self.eq_worst_residual = 0.0
+        self.eq_iters = 0
         self.p = np.array([claw_xy[0], claw_xy[1], self.z_floor])
         self.R = rot_z(claw_yaw)
         self.on_floor = True
@@ -56,8 +74,8 @@ class World:
             from ..kinematics import Geometry, tension_distribution
             self.p = np.asarray(suspended_at, float)
             self.on_floor = False
-            T = tension_distribution(Geometry(self.anchors, self.attach), self.p, self.mass, t_min=1.0,
-                                     t_max=1e3, R=self.R).tensions
+            T = tension_distribution(Geometry(self.anchors, self.attach, com=self.com_claw), self.p, self.mass,
+                                     t_min=1.0, t_max=1e3, R=self.R).tensions
             stretch = -self.dist() * T / (self.EA + T)          # ell = d * EA / (EA + T)
             slack_m = stretch
         self.bead = np.array([s.bead.trigger_length_m for s in cfg.stations]) if bead_trigger_m is None \
@@ -90,7 +108,7 @@ class World:
                            "state": "floor", "last_drop": None})
 
     def grip(self, close: bool, reach_xy=0.06, reach_z=0.03):
-        low = self.p[2] - self.z_floor           # lowest claw point above the floor
+        low = self.lowest_z()                    # lowest claw point above the floor
         if close and self.held is None:
             for it in self.items:
                 if it["state"] == "floor" and np.linalg.norm(it["xy"] - self.p[:2]) <= reach_xy \
@@ -145,8 +163,22 @@ class World:
         return inv_T(self.T_R_M) @ self.T_R_B()
 
     # ---------------------------------------------------------------- physics
-    def _forces(self, p, ell):
-        q = self.attach_world(p)
+    def lowest_z(self, p=None, R=None) -> float:
+        """Height of the lowest claw point (the CAD jaw point) above the floor."""
+        p = self.p if p is None else p
+        R = self.R if R is None else R
+        return float((p + R @ self.low_body)[2])
+
+    def _com(self):
+        """Centre of mass in the body frame: the claw plus a held item at the jaws."""
+        extra = self.mass - self.base_mass
+        if extra <= 1e-12:
+            return self.com_claw
+        return (self.base_mass * self.com_claw + extra * self.low_body) / self.mass
+
+    def _forces(self, p, ell, R=None):
+        R = self.R if R is None else R
+        q = p + self.attach @ R.T
         d_vec = self.anchors - q
         d = np.linalg.norm(d_vec, axis=1)
         n = d_vec / d[:, None]
@@ -155,44 +187,145 @@ class World:
         T = k * stretch
         return T, n, d, k
 
-    def _hang(self, p0, ell):
-        p = p0.copy()
-        for _ in range(30):
-            T, n, d, k = self._forces(p, ell)
-            g = np.array([0, 0, self.mass * G]) - (T[:, None] * n).sum(0)      # dU/dp
-            H = np.zeros((3, 3))
-            for i in range(4):
-                if T[i] > 0:
-                    H += k[i] * ((1 - ell[i] / d[i]) * np.eye(3) + ell[i] / d[i] * np.outer(n[i], n[i]))
-            H += 1e-6 * np.eye(3)
-            step = -np.linalg.solve(H, g)
-            if np.linalg.norm(step) > 0.05:
-                step *= 0.05 / np.linalg.norm(step)
-            p = p + step
-            if np.linalg.norm(step) < 1e-9:
-                break
+    @staticmethod
+    def _skew(r):
+        z = np.zeros(r.shape[:-1])
+        return np.stack([np.stack([z, -r[..., 2], r[..., 1]], -1),
+                         np.stack([r[..., 2], z, -r[..., 0]], -1),
+                         np.stack([-r[..., 1], r[..., 0], z], -1)], -2)
+
+    def _energy(self, p, R, ell, m, c):
+        q = p + self.attach @ R.T
+        d = np.linalg.norm(self.anchors - q, axis=1)
+        st = np.maximum(d - ell, 0.0)
+        return m * G * (p[2] + (R @ c)[2]) + 0.5 * float(np.sum(self.EA / ell * st * st))
+
+    def _grad_hess(self, p, R, ell, m, c, rot):
+        """Gradient and Hessian of the potential energy wrt the twist (dp, w): p <- p + dp, R <- exp([w]x) R."""
+        r = self.attach @ R.T                                           # (4,3) attachment offsets, world frame
+        d_vec = self.anchors - (p + r)
+        d = np.linalg.norm(d_vec, axis=1)
+        n = d_vec / d[:, None]
+        k = self.EA / ell
+        T = k * np.maximum(d - ell, 0.0)
+        taut = T > 0
+        g = -T[:, None] * n                                             # dU/dq_i
+        gc = np.array([0.0, 0.0, m * G])                                # dU/dq_c (gravity at the CoM)
+        rc = R @ c
+        n_tw = 6 if rot else 3
+        grad = np.zeros(n_tw)
+        grad[:3] = g.sum(0) + gc
+        H = np.zeros((n_tw, n_tw))
+        Hq = np.zeros((4, 3, 3))
+        w_ = np.where(taut, k * ell / d, 0.0)
+        Hq[:] = (np.where(taut, k * (1 - ell / d), 0.0))[:, None, None] * np.eye(3) \
+            + w_[:, None, None] * n[:, :, None] * n[:, None, :]
+        H[:3, :3] = Hq.sum(0)
+        if rot:
+            grad[3:] = np.cross(r, g).sum(0) + np.cross(rc, gc)
+            S = self._skew(r)                                           # [r]x
+            H[:3, 3:] = -np.einsum("iab,ibc->ac", Hq, S)
+            H[3:, :3] = H[:3, 3:].T
+            Hww = np.einsum("iba,ibc,icd->ad", S, Hq, S)                # [r]x^T Hq [r]x
+            for gi, ri in list(zip(g, r)) + [(gc, rc)]:                 # second-order rotation terms
+                Hww += 0.5 * (np.outer(gi, ri) + np.outer(ri, gi)) - float(gi @ ri) * np.eye(3)
+            H[3:, 3:] = Hww
+        return grad, H
+
+    def _equilibrium(self, p0, R0, ell, *, max_iter=120, tol_f=1e-6, tol_m=1e-7):
+        """Minimum of the potential energy near (p0, R0): returns (p, R, ok, residual)."""
+        m, c = self.mass, self._com()
+        rot = self.rigid
+        p, R = np.array(p0, float), np.array(R0, float)
+        U = self._energy(p, R, ell, m, c)
+        lam = 1e-9
+        scale = m * G
+        for it in range(max_iter):
+            grad, H = self._grad_hess(p, R, ell, m, c, rot)
+            if np.max(np.abs(grad[:3])) < tol_f and (not rot or np.max(np.abs(grad[3:])) < tol_m):
+                self.eq_iters = it
+                return p, R, True, float(np.max(np.abs(grad)))
+            hdiag = float(np.max(np.diag(H))) if np.max(np.diag(H)) > 0 else 1.0
+            for _ in range(40):                                         # raise damping until the step descends
+                try:
+                    step = -np.linalg.solve(H + lam * hdiag * np.eye(len(grad)), grad)
+                except np.linalg.LinAlgError:
+                    lam = max(lam * 10, 1e-6)
+                    continue
+                dp = step[:3]
+                nd = np.linalg.norm(dp)
+                if nd > 0.05:
+                    step = step * (0.05 / nd)
+                if rot:
+                    nw = np.linalg.norm(step[3:])
+                    if nw > 0.1:
+                        step = step * (0.1 / nw)
+                slope = float(grad @ step)
+                if slope >= 0:                                          # not a descent direction: damp harder
+                    lam = max(lam * 10, 1e-6)
+                    continue
+                a = 1.0
+                ok = False
+                for _ in range(30):                                     # Armijo backtracking
+                    pn = p + a * step[:3]
+                    Rn = rotvec_to_matrix(a * step[3:]) @ R if rot else R
+                    Un = self._energy(pn, Rn, ell, m, c)
+                    if Un <= U + 1e-4 * a * slope:
+                        ok = True
+                        break
+                    a *= 0.5
+                if ok:
+                    p, R, U = pn, Rn, Un
+                    lam = max(lam * 0.3, 1e-12)
+                    break
+                lam = max(lam * 10, 1e-6)
+            else:
+                break                                                   # no descent found: report
+        grad, _ = self._grad_hess(p, R, ell, m, c, rot)
+        return p, R, False, float(np.max(np.abs(grad)))
+
+    def _hang(self, p0, ell, R0=None):
+        """Equilibrium position (compat wrapper): the claw hangs as a rigid body from the current orientation."""
+        p, R, ok, resid = self._equilibrium(p0, self.R if R0 is None else R0, ell)
+        self._last_hang = (R, ok, resid)
         return p
+
+    def _hang_checked(self, p0, R0, ell):
+        """(p, R, ok): equilibrium or, if the minimiser fails, the state is NOT updated (reported instead)."""
+        p, R, ok, resid = self._equilibrium(p0, R0, ell)
+        self.eq_worst_residual = max(self.eq_worst_residual, resid) if ok else self.eq_worst_residual
+        if not ok:
+            self.eq_failures += 1
+            self.events.append(("no_equilibrium", np.array(p0, float), resid))
+            if self.strict:
+                raise RuntimeError(f"World: no static equilibrium found (residual {resid:.3g}); state kept")
+            return np.array(p0, float), np.array(R0, float), False
+        return p, R, True
 
     def settle(self):
         ell = self.ell()
         if not self.on_floor:
-            p = self._hang(self.p, ell)
-            if p[2] <= self.z_floor:
-                self.on_floor = True
-                self.p = np.array([p[0], p[1], self.z_floor])
-                self.events.append(("landed", self.p.copy()))
-            else:
-                self.p = p
+            p, R, ok = self._hang_checked(self.p, self.R, ell)
+            if ok:
+                if self.lowest_z(p, R) <= 1e-12:
+                    self.on_floor = True
+                    yaw = math.atan2(R[1, 0], R[0, 0])
+                    self.R = rot_z(yaw)                  # rests flat on the floor (tilt released)
+                    self.p = np.array([p[0], p[1], self.z_floor])
+                    self.events.append(("landed", self.p.copy()))
+                else:
+                    self.p, self.R = p, R
         if self.on_floor:
             T, n, d, k = self._forces(self.p, ell)
             F = (T[:, None] * n).sum(0)
             if F[2] > self.mass * G:
-                self.on_floor = False
-                p = self._hang(self.p + [0, 0, 1e-4], ell)
-                self.p = p if p[2] > self.z_floor else np.array([p[0], p[1], self.z_floor])
-                self.on_floor = p[2] <= self.z_floor
-                if not self.on_floor:
+                p, R, ok = self._hang_checked(self.p + [0, 0, 1e-4], self.R, ell)
+                if ok and self.lowest_z(p, R) > 1e-12:
+                    self.on_floor = False
+                    self.p, self.R = p, R
                     self.events.append(("lifted", self.p.copy()))
+                elif ok:
+                    self.p = np.array([p[0], p[1], self.z_floor])
             else:
                 self._slide(ell)
         self.tension = self._forces(self.p, ell)[0]

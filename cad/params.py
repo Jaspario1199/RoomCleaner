@@ -157,3 +157,149 @@ CAMBAY_INSERT_DEPTH = 7.0         # blind hole depth (insert + 1.3 melt-in reser
 CAMBAY_RIB_T = 2.4                # root gusset rib thickness
 CAMBAY_RIB_H = 18.0               # root gusset rib height
 CAMBAY_RIB_SPAN_X = 34.0          # gusset reach on the box wall (< 54.4 - 5 keep-out)
+
+
+# =============================================================================
+# GRIPPER v7 -- gearbox redesign (10/20/2026).  Master values for cad/parts/gripper_v7_*.py
+# =============================================================================
+# v7 LOCAL frame (mm): x lateral (gear-axes plane), +y along the claw/tube axis (toward the tube),
+# z along the gear axes, +z toward the servo.
+#   origin x : the tube axis (mid-point between the compound and follower axes, as in v6)
+#   origin y : the line through the compound/follower axes
+#   origin z : the INNER face of the LOWER plate
+# World placement for the preview assembly (v6 world frame = local + origin):
+GRIPV7_WORLD_ORIGIN = (951.8475, 707.9864, 1079.49)   # gear stack bottom stays at v6 z 1080.49
+
+# --- gear train (MG996R -> 18T pinion -> 36T | 24T -> 24T follower) ---------------------------
+GRIPV7_MODULE = 1.5               # mm, unchanged from v6
+GRIPV7_Z_PINION = 18              # teeth
+GRIPV7_Z_MAIN = 36                # teeth, was 54 (ratio 2:1)
+GRIPV7_Z_SYNC = 24                # teeth, compound upper gear and follower (1:1, unchanged)
+GRIPV7_TOOTH_THIN = 0.10          # mm thinning per gear at the pitch circle (as v6)
+GRIPV7_ROOT_FILLET_R = 0.40       # mm, root blend radius of the v3/v6 generator
+GRIPV7_CD_ALLOW = 0.30            # mm added to the nominal centre distance (print allowance; v6 had 0)
+GRIPV7_CD_MAIN = GRIPV7_MODULE * (GRIPV7_Z_PINION + GRIPV7_Z_MAIN) / 2 + GRIPV7_CD_ALLOW   # 40.80
+GRIPV7_CD_SYNC = GRIPV7_MODULE * GRIPV7_Z_SYNC + GRIPV7_CD_ALLOW                           # 36.30
+GRIPV7_FACE_MAIN = 16.0           # pinion and 36T face width (as v6)
+GRIPV7_FACE_SYNC = 20.0           # 24T pair face width (as v6)
+GRIPV7_RATIO = GRIPV7_Z_MAIN / GRIPV7_Z_PINION   # 2.0
+GRIPV7_RIM_MIN_FACTOR = 2.5       # rim radial thickness below root >= 2.5 x module
+GRIPV7_SPOKES = 6                 # spokes of the 36T web (>= 5)
+GRIPV7_SPOKE_W = 5.0              # mm
+GRIPV7_HUB_R = 11.0               # mm, gear hub radius around the bearing pockets
+
+# --- purchased bearings (7x14x5, 607 type) and steel axle pins --------------------------------
+GRIPV7_BRG_ID = 7.0
+GRIPV7_BRG_OD = 14.0
+GRIPV7_BRG_W = 5.0
+GRIPV7_BRG_POCKET_D = 14.05       # printed pocket (vertical hole) ...
+GRIPV7_BRG_LIP_RELIEF = 0.30      # ... with a 0.3 mm radial relief counterbore at the mouth (NO crush ribs)
+GRIPV7_BRG_LIP_RELIEF_DEPTH = 0.6 # mm deep
+GRIPV7_BRG_DEPTH_EXTRA = 0.05     # pocket depth = n x 5.0 + 0.05
+GRIPV7_BRG_SEAT_BORE = 10.0       # bore past the pocket floor: clears the inner race (VERIFY race OD ~9)
+GRIPV7_PIN_D = 7.0                # Ø7 h-tolerance steel dowel pin
+GRIPV7_PIN_HOLE_D = 7.05          # blind seat in each plate (vertical print: expect 6.9-7.0 as printed)
+GRIPV7_PIN_LEN = 50.0             # buy-able standard length (ISO 2338 series); engagement = (50 - gap)/2
+GRIPV7_RACE_BOSS_D = 9.0          # plate boss/ring touching only the stationary inner race (VERIFY race land >= 9.2)
+GRIPV7_RACE_AXIAL_GAP = 0.15      # mm gap between race and boss at each end
+
+# --- vertical stack (local z, lower plate inner face = 0) --------------------------------------
+GRIPV7_PLATE_T = 6.0              # both plates (flat both faces: print outer face down)
+GRIPV7_PLATE_GAP = 42.0           # lower-plate inner face -> upper-plate inner face
+GRIPV7_GEAR_Z0 = 1.0              # compound / follower bottom face above the lower plate
+GRIPV7_L1_Z0 = GRIPV7_GEAR_Z0                         # main layer (pinion + 36T) 1 .. 17
+GRIPV7_L1_Z1 = GRIPV7_L1_Z0 + GRIPV7_FACE_MAIN
+GRIPV7_L2_Z0 = GRIPV7_L1_Z1                           # sync layer (24T pair + lugs) 17 .. 37
+GRIPV7_L2_Z1 = GRIPV7_L2_Z0 + GRIPV7_FACE_SYNC
+GRIPV7_TUBE_Z = 24.5              # tube axis height (v6: 23.5 above the gear stack bottom)
+GRIPV7_PIN_ENGAGE = (GRIPV7_PIN_LEN - GRIPV7_PLATE_GAP) / 2     # 4.0 mm into each plate
+
+# --- tube / socket (v6 interface kept: axis, insertion depth) ---------------------------------
+GRIPV7_TUBE_OD = 28.54
+GRIPV7_TUBE_ID = 22.54
+GRIPV7_TUBE_END_Y = 78.4039       # tube lower end (v6: world y 786.39 - 707.99)
+GRIPV7_TUBE_INSERT = 42.5         # tube insertion depth into the socket (v6: 828.89 - 786.39)
+GRIPV7_TUBE_LEN = 304.8
+GRIPV7_TUBE_FIT = 0.15            # radial clearance of the socket bore
+GRIPV7_XBOLT_Y_FROM_END = 14.0    # M3 cross-bolt axis (parallel to z) from the tube lower end
+GRIPV7_XBOLT_HOLE_D = 3.4         # drilled through the tube along z, and through both plates/saddles
+
+# --- servo MG996R (v6 ESTIMATED reference body -- VERIFY with calipers) ------------------------
+GRIPV7_SERVO_X_OFF = 10.0         # shaft axis offset from the servo-body centre / tube axis (v6)
+GRIPV7_SERVO_BODY_L = 40.0        # along x
+GRIPV7_SERVO_BODY_W = 19.0        # along y
+GRIPV7_SERVO_BODY_H = 38.0        # body above the boss
+GRIPV7_SERVO_BOSS_D = 17.0
+GRIPV7_SERVO_BOSS_H = 2.0
+GRIPV7_SERVO_SHAFT_D = 6.0
+GRIPV7_SERVO_SHAFT_L = 4.0
+GRIPV7_SERVO_EAR_L = 55.0
+GRIPV7_SERVO_EAR_T = 3.0
+GRIPV7_SERVO_EAR_DROP = 10.0      # boss bottom face -> ear bottom face
+GRIPV7_SERVO_EAR_HOLE_DX = 47.0   # ear-hole pitch along x (v6 pattern; interfaces.py says 48.3 -- VERIFY)
+GRIPV7_SERVO_EAR_HOLE_DY = 10.0
+GRIPV7_SERVO_EAR_HOLE_D = 4.0
+GRIPV7_SERVO_CUTOUT_CLEAR = 0.3   # per side, rectangular body cutout in the upper plate
+GRIPV7_SERVO_SCREW = 2.5          # M2.5 ear screws into heat-set inserts (wall at the cutout)
+GRIPV7_SERVO_INSERT_D = 3.6       # M2.5 heat-set insert melt-in hole
+GRIPV7_SERVO_INSERT_DEPTH = 5.0
+# servo boss bottom face = upper-plate TOP face minus the ear drop (ears rest on the plate)
+GRIPV7_SERVO_BOSS_Z = GRIPV7_PLATE_GAP + GRIPV7_PLATE_T - GRIPV7_SERVO_EAR_DROP            # 38.0
+
+# --- servo horn (round metal horn, 25T -- envelope, VERIFY every value) -------------------------
+GRIPV7_HORN_D = 25.0
+GRIPV7_HORN_T = 2.5               # disc
+GRIPV7_HORN_HUB_D = 10.0
+GRIPV7_HORN_HUB_H = 4.0           # spline hub on the servo side of the disc
+GRIPV7_HORN_BOSS_GAP = 0.5        # servo boss bottom -> hub top
+GRIPV7_HORN_SCREWS = 4            # M2 screws, from the servo side, into the pinion hub
+GRIPV7_HORN_SCREW_R = 8.0         # screw circle radius (VERIFY against the real horn holes)
+GRIPV7_HORN_SCREW_D = 2.0
+GRIPV7_HORN_SCREW_PILOT_D = 1.7   # self-tapping pilot in PETG
+GRIPV7_HORN_SCREW_PILOT_DEPTH = 9.0
+GRIPV7_PINION_HUB_D = 20.0        # pinion hub extension above the teeth (carries the horn)
+GRIPV7_PINION_PILOT_D = 8.0       # plate pilot post entering the pinion bottom (journal support)
+GRIPV7_PINION_PILOT_CLEAR = 0.2   # radial
+GRIPV7_PINION_PILOT_H = 8.0       # pilot height above the lower plate inner face
+
+# --- jaw four-bar (re-derived for the 2:1 train; see cad/parts/gripper_v7_kin.py) ----------------
+# Not a scaled copy of v6: the v6 four-bar (R75, ground 43, coupler 41.3, link 70) is non-Grashof
+# and jams at 51 deg of crank travel (arm-link contact), but the 2:1 train needs 76.5 deg at R53.
+# The values below come from a constrained search (scratch optimiser, reproducible from the
+# constraints listed in calculations/gripper_v7_screening.py / tests): tips meet on x = 0 at the
+# closed stop, open gap within 10 % of v6 (97.0 mm), jaw-face tilt <= 3 deg, transmission angles
+# >= 30 deg, link clear of both 24T discs, grip force within 10 % of v6 at 20-60 mm gaps.
+GRIPV7_CRANK_R = 53.0             # compound / follower lug radius (v6: 75)
+GRIPV7_THETA_CLOSED = -78.589     # deg, right crank angle at the closed stop (tips meet on x = 0)
+GRIPV7_SWEEP_DEG = 76.5           # deg of compound rotation closed -> open (servo stroke 153 deg / 2)
+GRIPV7_LINK_GROUND = (8.0, -30.0)      # right link ground pivot P (x, y); the left one mirrors it
+GRIPV7_JAW_AB = 31.81             # crank-pin to link-pin distance on the jaw (v6: 41.3)
+GRIPV7_JAW_PSI_CLOSED = -113.589  # deg, direction A -> B at the closed pose (link length follows: 51.7)
+GRIPV7_JAW_TIP_DROP = 75.0        # tip of the inner face below the crank pin at the closed pose
+
+# --- frame layout (plates, ties, socket, guards) -----------------------------------------------------
+GRIPV7_RIM_W = 4.0                # plate rim width around the lightening windows
+GRIPV7_RIB_W = 6.0                # rib width between pin bosses / ties
+# plate outline = union of rounded rectangles (x0, x1, y0, y1, corner radius), local frame
+GRIPV7_OUTLINE_RECTS = (
+    (-46.5, 52.0, -34.0, 34.0, 8.0),     # gear zone: 36T tip R28.5 around C + 5 mm, 24T around F
+    (-31.0, 31.0, 26.0, 56.0, 6.0),      # servo / pinion zone (ear holes at x = +-23.5)
+    (-25.5, 25.5, 48.0, 122.0, 4.0),     # neck + tube socket (socket y 78.4 .. 120.9)
+)
+GRIPV7_TIE_XY = ((-34.0, 26.0), (44.5, 26.0), (-19.5, 88.0), (19.5, 88.0), (-19.5, 112.0), (19.5, 112.0))
+GRIPV7_TIE_COL_OD = 9.0
+GRIPV7_TIE_HOLE_D = 3.4
+GRIPV7_TIE_BOLT = "M3x50 socket cap + nyloc (nut in a hex pocket in the lower-plate outer face)"
+GRIPV7_NUT_POCKET_AF = 5.7        # M3 nut AF 5.5 + 0.2
+GRIPV7_NUT_POCKET_DEPTH = 4.2
+GRIPV7_CBORE_D = 6.4              # M3 cap head Ø5.5
+GRIPV7_CBORE_DEPTH = 3.2
+GRIPV7_SADDLE_RIB_T = 4.0
+GRIPV7_SADDLE_SHELL_WALL = 4.0
+GRIPV7_SADDLE_HALF_W = 24.0       # saddle half width (x)
+GRIPV7_SADDLE_SPLIT_GAP = 0.3     # total gap between the two half saddles at the tube equator
+GRIPV7_GUARD_T = 1.4              # mesh guard band thickness (1.2 - 1.6)
+GRIPV7_GUARD_CLEAR = 1.5          # guard inner face to gear tip circle
+GRIPV7_GUARD_Z_MARGIN = 0.5       # guard end to the nearest gear face
+GRIPV7_P_STUB_R = 6.0             # link ground-pivot stub (hangs from the upper plate)
+GRIPV7_P_TAB_HALF_W = 8.0

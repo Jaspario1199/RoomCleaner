@@ -15,9 +15,19 @@ from roomcleaner.cdpr.spool import CableMap
 SIM = "config/robot.sim.json"
 
 
+def point_claw_config():
+    """These synthetic-data tests generate lengths for a POINT claw (L = |a - p|), so they run with the common-point
+    profile; the four-point claw (spaced attachments, rotated claw) is covered in tests/cdpr/test_rigid_body.py."""
+    import json
+    raw = json.load(open(SIM))
+    raw["claw"]["attachment"] = "common"
+    raw["claw"]["attachment_points_body_m"] = [[0, 0, 0]]
+    return load_config(raw)
+
+
 @pytest.fixture(scope="module")
 def setup():
-    cfg = load_config(SIM)
+    cfg = point_claw_config()
     maps = {s.id: CableMap(s.spool, s.drive.usteps_per_rev) for s in cfg.stations}
     rng = np.random.default_rng(1)
     aR = cfg.anchor_priors() + rng.normal(0, 0.05, (4, 3))

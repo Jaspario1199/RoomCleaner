@@ -270,7 +270,7 @@ class World:
                     pn = p + a * step[:3]
                     Rn = rotvec_to_matrix(a * step[3:]) @ R if rot else R
                     Un = self._energy(pn, Rn, ell, m, c)
-                    if Un <= U + 1e-4 * a * slope:
+                    if Un <= U + 1e-4 * a * slope + 1e-14 * abs(U):      # last term: float round-off floor
                         ok = True
                         break
                     a *= 0.5
@@ -282,7 +282,9 @@ class World:
             else:
                 break                                                   # no descent found: report
         grad, _ = self._grad_hess(p, R, ell, m, c, rot)
-        return p, R, False, float(np.max(np.abs(grad)))
+        resid = float(np.max(np.abs(grad)))
+        # at the round-off floor of the energy no further descent is measurable: accept a residual of <= 1e-4 N / N m
+        return p, R, bool(resid < 1e-4), resid
 
     def _hang(self, p0, ell, R0=None):
         """Equilibrium position (compat wrapper): the claw hangs as a rigid body from the current orientation."""

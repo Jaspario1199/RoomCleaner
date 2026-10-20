@@ -323,8 +323,10 @@ def run_one(args):
             T = r.world.T_R_M                                        # marker->room (truth)
             Pr = (T[:3, :3] @ P.T).T + T[:3, 3]
             spread = []
-            for a in r.world.anchors:
-                u = a - (Pr + np.asarray(r.world.cfg.attachment_points()[0]))
+            Rr = [T[:3, :3] @ s.R for s in fit]                        # claw orientation, room frame
+            for i, a in enumerate(r.world.anchors):
+                b_i = np.asarray(r.world.cfg.attachment_points()[i])   # per-cable attachment point (body frame)
+                u = a - (Pr + np.array([R_ @ b_i for R_ in Rr]))
                 u /= np.linalg.norm(u, axis=1)[:, None]
                 spread.append(float(np.sqrt(np.mean(np.sum((u - u.mean(0)) ** 2, axis=1)))))
             out["dir_spread_rad"] = spread

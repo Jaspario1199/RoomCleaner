@@ -66,13 +66,45 @@ trace-by-trace (`tests/firmware/`).
 ## 3. Models
 
 **Frames.** R = room (anchor coordinates), M = marker (on the floor), B = claw
-body (origin at the common cable attachment), C = camera. `T_A_B` maps B→A.
+body (origin on the tube axis at the height of the four line attachments, +z up
+the tube, +x = v6 world X, +y = −v6 Z so the camera bay is at +y; at claw yaw 0
+the body axes equal the room axes), C = camera. `T_A_B` maps B→A.
 Vision gives `T_C_M`; the claw pose is `T_M_B = inv(T_C_M)·inv(T_B_C)`.
 
-**Cables.** `L_i = |a_i − (p + R b_i)|`, straight and taut, sag neglected
-(Dyneema, < 1 kg). The claw uses one **common attachment point** (b_i = 0), so
-its orientation does not enter the lengths. It hangs plumb; yaw is free.
-Deliberate tilting is out of scope.
+**Cables (3.1, multi-attachment).** `L_i = |a_i − (p + R b_i)|`, straight and
+taut, sag neglected (Dyneema, < 1 kg). The real claw ties its four lines off at
+**four separate points** `b_i`: the *inner mouth* of the radial cable hole through
+each corner fillet of the electrical box (user direction 10/20), taken from the CAD
+by `scripts/extract_claw_body_frame.py` → `verification/claw_body_frame.json` →
+`claw.attachment_points_body_m` (station order A, B, C, D = body corners (−,−),
+(+,−), (+,+), (−,+); (±42.07, ±42.07, 0) mm; hole 18.2 mm long, rising 21° outward).
+Lengths therefore depend on the orientation `R`, so every length, direction,
+Jacobian, tension and workspace check takes `R`:
+* **measured** `R` where a vision pose exists: IMU roll/pitch + vision yaw
+  (`perception.VisionSource`, i.e. the marker pose `T_M_B`); the estimator uses each
+  sample's own `R` and `b_i` in the measurement model, the slack hypotheses
+  (re-solved at the sample's `R`), the slack probe (response computed with the
+  rigid-body 6×6 stiffness), bead verification, witnesses and identifiability;
+  the attitude error is added to the length sigma (`calibration.attitude_sigma_rad`·|b_i|);
+* **predicted** `R` for a target not yet visited (`Geometry.R_at`, `kinematics.Attitude`):
+  rigid-body statics of gravity at the CoM (`claw.com_body_m`, payload at the jaws)
+  plus the four tensions, the least-total-tension (no pretension) distribution, roll/pitch
+  from the horizontal moment balance, **yaw held at the last measured value**
+  (`RobotContext.room_pose` updates it). Assumption (VERIFY): the CoM is a CAD estimate
+  without electronics.
+* **Yaw is passive.** The four lines leave nearly radially from the corners, so
+  yaw is only weakly held: 3.6–6° per mm of line-length inconsistency (linear tilt-free
+  model, `verification/claw_camera_bay_verification.md` F6; the elastic simulator gives
+  2.4–3.7°/mm). It is measured, never predicted; the same mm-level inconsistencies also
+  move the tilt by a few degrees, so the predicted attitude is *nominal* and vision/IMU
+  close the loop. Backward compatibility: one common point (`attachment: "common"`, b = 0)
+  is orientation independent, `R_at` is the identity and the original point-claw
+  model is reproduced exactly (`tests/cdpr/test_rigid_body.py`).
+* **Known simplification.** The line is a straight chord from the inner mouth to the
+  anchor. A line steeper than the 21° hole axis actually bears on the outer-mouth rim, so
+  the true path is up to 18.2·(1 − cos θ) ≈ 6 mm longer for θ ≈ 50° and varies a few mm over
+  the workspace; the constant part is absorbed by `L0`, the pose-dependent part is a
+  model error of mm level. Open item D-G.
 
 **Spool.** Layered winding (Spoolv3: 7.5 → 10 mm radius over the line). With
 `line_total = W + L`, one constant per station per boot epoch, `L0` (external
@@ -81,7 +113,18 @@ measured payout table can replace the layered model.
 
 **Statics.** Four cables, three force equations: tension is indeterminate.
 Planning requires a feasible min-max distribution within
-`[min_tension_n, max_tension_n]` at every knot (`kinematics.tension_distribution`).
+`[min_tension_n, max_tension_n]` at every knot (`kinematics.tension_distribution`);
+the residual moment about the CoM at the attitude used is reported.
+
+**Simulated plant (`sim/world.py`).** With spaced attachments the claw hangs as a
+**rigid body (6 DOF)**: minimum of gravity (at the CoM) + elastic line energy
+(`k_i = EA/ℓ_i`, no compression), found by a Levenberg–Marquardt Newton with the exact
+analytic Hessian and an Armijo line search, warm-started. Non-convergence is reported
+(`World.eq_failures`, event `no_equilibrium`, `strict` raises) and the previous state is
+kept: a non-equilibrium state is never returned. This replaced an undamped 3-DOF
+Newton that limit-cycled at some poses and produced spurious 14–25 N tensions
+(`verification/slack_probe_review.md` M1). Passive yaw drift under length errors
+emerges from the model. On the floor the claw rests upright and yaw is held by friction.
 
 **Overconstraint — measured in simulation, important.** With stiff cables and
 any length error, the claw hangs on **three** cables and the fourth goes
@@ -267,6 +310,9 @@ hardware caveats (tension rise when probing a taut cable on real Dyneema; recomm
 
 ### 6.2 Estimator
 
+* **Attachment points:** every row uses the sample's measured `R` and the
+  per-cable `b_i` (`q_i = p + R b_i`); `p` is the body origin (tube axis at the
+  attachment height), so the camera offset `T_B_C` is the CAD lens position.
 * **Unknowns:**
   * anchors in the **marker** frame (12);
   * `L0` per station (4);
@@ -446,6 +492,13 @@ RELEASE → DELIVERY_VERIFICATION.
   wall and ceiling margins) if VERIFIED (basis `margin` or `beads`, §6.5),
   the validated hull if LOCAL_ONLY, plus vertical descents below it to the
   floor.
+* **Height limit.** `motion.task_max_height_m` (default 1.6 m, claw origin above the
+  floor) is the highest the task layer ever plans (`TaskRunner._move` refuses a
+  target above it with a clear reason). Near the ceiling the lines are shallow
+  and the weakly held yaw can swing the camera bay into a line (camera-bay
+  verification F6: hits only above ~1.6 m at |yaw| ≥ 30°). Calibration excitation and
+  recovery keep their own bounds. (A yaw-measurement guard was considered and
+  dropped in favour of this single limit.)
 * The claw must settle upright (IMU) before closing. The claw firmware also
   refuses a tilted close.
 * The final descent is at 30 % speed. Transport is planned with claw mass
@@ -500,6 +553,12 @@ RELEASE → DELIVERY_VERIFICATION.
   the over-travel bound comes from the host's model. A station-side absolute
   floor per `ref=1` segment (protocol and both cores) is required before any
   bead search on hardware.
+* **D-G Passive claw yaw / outer-rim path.** Yaw is only weakly held by the four
+  lines (§3); there is no yaw actuator or guard in V1 (see the height limit in §8).
+  The straight inner-mouth model ignores that a steep line bears on the outer rim of
+  the 18 mm hole (mm-level, pose-dependent). Measure on the real claw: attachment
+  points, CoM, tilt vs. length error, and a line-rim contact test, before relying on
+  mm-level lengths.
 * **Operator page access.** A session token printed at start, plus JSON-only
   requests. Use it on a trusted home network only; it is not hardened for
   hostile networks.
@@ -556,9 +615,10 @@ measurements and failures (`data/cdpr/` holds calibration and trust JSON).
 2. **Encoders installed? Magnets?** Designed in (AS5600 per station, magnet
    on the spool axis per the Rev C electrical package). No physical encoder
    reading has been recorded yet. Commissioning step 2.
-3. **Common or spaced attachment?** Common point (one ring). The code supports
-   spaced points (`claw.attachment: spaced`), but V1 statics and tests assume
-   common.
+3. **Common or spaced attachment?** Spaced (updated 10/20): four lines tied off at the
+   inner mouths of the corner cable holes of the electrical box (§3). The model,
+   estimator, planner and simulator use the four points; a single common point is
+   still supported and reproduces the old model exactly.
 4. **Spool dimensions / winding?** Spoolv3: Ø36 × 22 mm, Ø15 core, 16 mm drum,
    Ø5.45 D-bore, layered 7.5 → 10 mm radius. Modelled exactly (`spool.py`).
    Payout scale and line total still to be measured (step 3).

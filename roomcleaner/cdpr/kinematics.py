@@ -11,11 +11,11 @@ approximately upright (``R ~ I``); deliberate tilting is out of scope.
 
 Orientation. For spaced attachments (the real claw: four lines tied off at the
 inner mouths of the corner holes of the electrical box) the lengths depend on R.
-``Geometry.R_at(p)`` supplies it when the caller has no measurement: roll/pitch
-from the static equilibrium of the rigid claw (gravity at the claw CoM plus the
-four cable tensions, :class:`Attitude`) at a *held yaw* (the last measured one;
-yaw is only weakly constrained by the lines and is therefore treated as passive,
-measured by vision, never predicted). Callers that hold a measurement (IMU
+``Geometry.R_at(p)`` supplies it when the caller has no measurement: the nominal
+roll/pitch from the static equilibrium of the rigid claw (gravity at the claw CoM
+plus the four cable tensions, :class:`Attitude`) at a *held yaw* (the last
+measured one; yaw is only weakly constrained by the lines and is therefore
+treated as passive, measured by vision, never predicted). Callers that hold a measurement (IMU
 roll/pitch + vision yaw = the marker pose) pass ``R`` explicitly. A common
 attachment point (all b_i equal) is orientation independent and ``R_at`` returns
 the identity, reproducing the original point-claw model exactly.
@@ -23,10 +23,10 @@ the identity, reproducing the original point-claw model exactly.
 Statics: four cables give 4 tension unknowns for 3 force equations, so the
 distribution is indeterminate. Planning uses the *best* feasible distribution
 (min-max linear program); a path is accepted only if it exists with margin.
-For spaced attachments the 3 moment equations about the CoM fix the two tilt
-angles (and, with the held yaw, the tensions) in :class:`Attitude`; the
-residual moment about the CoM at the used R is reported by
-``tension_distribution`` so a stability check can reject large expected tilt.
+For spaced attachments the moment balance about the CoM fixes the two tilt
+angles in :class:`Attitude`; the residual moment about the CoM at the R used is
+reported by ``tension_distribution`` so a stability check can reject large
+expected tilt.
 See docs/CONTROL_SYSTEM_V1.md 3.1.
 """
 from __future__ import annotations
@@ -55,30 +55,45 @@ def _rpy(roll, pitch, yaw):
 @dataclass
 class AttitudeSolution:
     R: np.ndarray
-    roll: float
+    roll: float              # tilt about world x / y (rad) relative to the held-yaw upright pose
     pitch: float
-    tensions: np.ndarray
-    residual: float          # max |wrench residual| (N, N*m) at the solution
-    ok: bool                 # Newton converged (residual below tolerance)
+    tensions: np.ndarray     # min-norm distribution that balances the weight at this attitude
+    residual: float          # max |force residual| (N) and |horizontal moment about the CoM| (N m)
+    yaw_moment: float        # unbalanced moment about the vertical axis (N m): what the passive yaw would answer to
+    ok: bool                 # iteration converged and the tilt is small
     taut: bool               # all tensions >= 0
 
 
 class Attitude:
-    """Static attitude of the rigid claw hung on four lines.
+    """Nominal static attitude (roll/pitch) of the rigid claw hung on four lines, at a HELD yaw.
 
-    Unknowns: roll, pitch (yaw is held) and the four tensions; equations: force
-    balance ``sum T_i u_i = m (a + g)`` and moment balance about the CoM
-    ``sum (R b_i - R c) x T_i u_i = 0`` (6 equations, 6 unknowns, Newton with a
-    finite-difference Jacobian, warm started). ``u_i`` points from attachment
-    ``i`` toward its anchor. A payload (mass above the claw mass) is taken to
-    act at ``payload_body`` (the jaws).
+    The claw is a rigid body loaded by gravity at its CoM (``Geometry.com``; a payload acts at the jaws) and four
+    line tensions ``T_i u_i`` acting at the attachment points ``R b_i`` (``u_i`` from attachment toward its anchor).
+    Force balance ``sum T_i u_i = m (a + g)`` leaves a one-parameter family of tension sets (4 unknowns, 3 equations,
+    the self-stress mode is the internal pretension); the set with the least total tension (minimum norm: no
+    pretension) is used. The two horizontal moment equations about the CoM then fix roll and pitch (Newton on the
+    2x2 system, a handful of iterations).
+
+    Yaw is NOT predicted: it is only weakly held by the lines (3.6 to 6 deg per mm of line-length inconsistency,
+    verification/claw_camera_bay_verification.md F6) and the same mm-level inconsistencies also move the tilt, so
+    this is a nominal value; the measured attitude (IMU roll/pitch + vision yaw) replaces it wherever a measurement
+    exists. The unbalanced vertical-axis moment is reported (``yaw_moment``).
     """
 
     def __init__(self, geo: "Geometry"):
         self.geo = geo
         self._cache: dict = {}
-        self._warm = np.zeros(2)
         self.failures = 0
+
+    def _state(self, w, yaw, p, c, wrench):
+        g = self.geo
+        R = _tilt(w) @ _rot_z(yaw)
+        r = g.attach @ R.T
+        d = g.anchors - (p + r)
+        u = d / np.linalg.norm(d, axis=1, keepdims=True)
+        T = np.linalg.lstsq(u.T, wrench, rcond=None)[0]                 # minimum-norm solution of sum T_i u_i = w
+        M = np.cross(r - R @ c, T[:, None] * u).sum(0)
+        return R, u, T, M
 
     def solve(self, p, accel=(0.0, 0.0, 0.0), mass_kg=None, yaw=None) -> AttitudeSolution:
         g = self.geo
@@ -94,64 +109,48 @@ class Attitude:
         c = g.com
         extra = max(m - m_claw, 0.0) if m_claw else 0.0
         if extra > 0 and g.payload_body is not None and m > 0:
-            c = (m_claw * g.com + extra * g.payload_body) / m
-        w = m * (acc + np.array([0.0, 0.0, G]))
-        b, a = g.attach, g.anchors
-
-        def residual(x):
-            R = _rpy(x[0], x[1], yaw)
-            r = b @ R.T
-            d = a - (p + r)
-            u = d / np.linalg.norm(d, axis=1, keepdims=True)
-            f = x[2:, None] * u
-            M = np.cross(r - R @ c, f).sum(0)
-            return np.r_[f.sum(0) - w, M]
-
-        x = np.r_[self._warm, np.zeros(4)]
-        # initial tensions: least squares of the wrench balance at the starting attitude
-        R0 = _rpy(x[0], x[1], yaw)
-        r0 = b @ R0.T
-        u0 = a - (p + r0)
-        u0 /= np.linalg.norm(u0, axis=1, keepdims=True)
-        A = np.vstack([u0.T, np.cross(r0 - R0 @ c, u0).T])
-        x[2:] = np.linalg.lstsq(A, np.r_[w, np.zeros(3)], rcond=None)[0]
-        scale = max(float(np.linalg.norm(w)), 1e-3)
-        res = residual(x)
-        for _ in range(30):
-            if np.max(np.abs(res)) < 1e-10 * scale:
+            c = (m_claw * g.com + extra * g.payload_body) / m           # payload at the jaws
+        wrench = m * (acc + np.array([0.0, 0.0, G]))
+        w = np.zeros(2)                                                # tilt about world x, y
+        ok = False
+        for _ in range(15):
+            R, u, T, M = self._state(w, yaw, p, c, wrench)
+            if np.max(np.abs(M[:2])) < 1e-10:
+                ok = True
                 break
-            J = np.empty((6, 6))
-            h = 1e-7
-            for k in range(6):
-                xp = x.copy()
-                step = h if k < 2 else h * scale
-                xp[k] += step
-                J[:, k] = (residual(xp) - res) / step
+            J = np.empty((2, 2))
+            for k in range(2):
+                wk = w.copy()
+                wk[k] += 1e-6
+                J[:, k] = (self._state(wk, yaw, p, c, wrench)[3][:2] - M[:2]) / 1e-6
             try:
-                dx = -np.linalg.solve(J, res)
+                dw = -np.linalg.solve(J, M[:2])
             except np.linalg.LinAlgError:
                 break
-            dx[:2] = np.clip(dx[:2], -0.2, 0.2)
-            t = 1.0
-            for _ls in range(10):                      # backtracking on the residual norm
-                xn = x + t * dx
-                rn = residual(xn)
-                if np.linalg.norm(rn) < np.linalg.norm(res):
-                    break
-                t *= 0.5
-            x, res = xn, rn
-        err = float(np.max(np.abs(res)))
-        ok = err < 1e-7 * scale and abs(x[0]) < 1.0 and abs(x[1]) < 1.0
-        if ok:
-            self._warm = x[:2].copy()
+            w = w + np.clip(dw, -0.2, 0.2)
         else:
+            R, u, T, M = self._state(w, yaw, p, c, wrench)
+            ok = bool(np.max(np.abs(M[:2])) < 1e-7)
+        ok = bool(ok and np.max(np.abs(w)) < 0.5)
+        if not ok:
             self.failures += 1
-        out = AttitudeSolution(_rpy(x[0], x[1], yaw), float(x[0]), float(x[1]), x[2:].copy(), err, bool(ok),
-                               bool(np.all(x[2:] >= 0)))
+        F = float(np.max(np.abs((T[:, None] * u).sum(0) - wrench)))
+        out = AttitudeSolution(R, float(w[0]), float(w[1]), T, max(F, float(np.max(np.abs(M[:2])))), float(M[2]),
+                               ok, bool(np.all(T >= 0)))
         if len(self._cache) > 20000:
             self._cache.clear()
         self._cache[key] = out
         return out
+
+
+def _tilt(w):
+    """Rotation by the small world-frame rotation vector (wx, wy, 0)."""
+    th = float(np.hypot(w[0], w[1]))
+    if th < 1e-12:
+        return np.eye(3)
+    k = np.array([w[0], w[1], 0.0]) / th
+    K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
+    return np.eye(3) + np.sin(th) * K + (1 - np.cos(th)) * (K @ K)
 
 
 @dataclass

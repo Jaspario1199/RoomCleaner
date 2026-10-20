@@ -173,10 +173,13 @@ def test_hinge_taut_cable_detected_within_a_few_mm_and_bias_small():
     assert np.percentile(over, 90) < 0.009
 
 
-# ---------------------------------------------------------------- 5. the >15 N "peaks" are a simulator solver artefact
+# ---------------------------------------------------------------- 5. the >15 N "peaks" were a simulator solver artefact
 def test_world_hang_newton_limit_cycle_is_not_a_physical_tension():
-    """Recorded state (probe, board case, seed 6, t = 1806.70 s, claw at z = 1.446 m): World._hang (undamped Newton, 30
-    iterations) returns an iterate of a 2-cycle with 14 / 24 N; the convex energy minimum has at most 5.5 N."""
+    """Recorded state (probe, board case, seed 6, t = 1806.70 s, claw at z = 1.446 m): the OLD World._hang (undamped
+    Newton, 30 iterations) returned an iterate of a 2-cycle with 14 / 24 N; the convex energy minimum has at most
+    5.5 N. FIXED (rigid-body damped Newton with line search): successive settles of the unchanged state are a fixed
+    point at the true minimum. The full regression (old algorithm reproduced, common and spaced claw) is
+    tests/cdpr/test_rigid_body.py::test_world_hang_converges_at_the_recorded_limit_cycle_state."""
     from scipy.optimize import minimize
     r = SimRobot(fast_cfg(), seed=6)
     w = r.world
@@ -186,16 +189,11 @@ def test_world_hang_newton_limit_cycle_is_not_a_physical_tension():
                           [0.10697483709598357, 2.7489196468982477, 2.5799438462946576]])
     ell = np.array([3.4021554010805435, 2.8125584623644526, 1.5682327696229539, 2.446110875293816])
     p0 = np.array([2.2359623584770616, 2.3368087288241846, 1.4463272851120872])
-    G = 9.81
-
-    def U(p):
-        d = np.linalg.norm(w.anchors - w.attach_world(p), axis=1)
-        return w.mass * G * p[2] + 0.5 * np.sum(w.EA / ell * np.maximum(0, d - ell) ** 2)
-    pe = minimize(U, p0, method="Nelder-Mead", options=dict(xatol=1e-9, fatol=1e-12, maxiter=4000)).x
-    T_eq = w._forces(pe, ell)[0]
+    p, R = p0.copy(), w.R.copy()
     seen = []
     for _ in range(6):                                       # successive settles of an unchanged state
-        p0 = w._hang(p0, ell)
-        seen.append(float(np.max(w._forces(p0, ell)[0])))
-    assert T_eq.max() < 7.0, T_eq
-    assert max(seen) > 3.0 * T_eq.max(), (seen, T_eq)        # the simulator reports a non-equilibrium state
+        p, R, ok = w._hang_checked(p, R, ell)
+        assert ok
+        seen.append(float(np.max(w._forces(p, ell, R)[0])))
+    assert max(seen) < 7.0 and max(seen) - min(seen) < 1e-4, seen
+    assert w.eq_failures == 0

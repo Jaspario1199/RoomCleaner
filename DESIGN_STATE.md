@@ -373,3 +373,20 @@ allowance 16+, lens window sized for +-4 mm of lens position, IMU pocket for
 the Adafruit 3886 (25.6 x 17.8) with a back-side solder relief.
 IMU: not yet purchased per the records (docs/SELF_CAD_DIMENSIONS_AND_WIRING_20261006.md lists the
 Adafruit 3886 MPU-6050 as selected, "not recorded ordered").
+
+## Gripper v7 gearbox — verified (10/20)
+- Open-frame gearbox, 18T→36T (2:1) + 24T/24T sync, module 1.5, six 687
+  (7×14×5) bearings on 2× Ø7×50 steel dowels, re-derived jaw four-bar
+  (76.5° stroke, tips meet, 91.6 mm open, ≥13.3 N/jaw at 4.8 V).
+- Independent verification rev 2: PASS WITH CONDITIONS (72/72 verifier tests,
+  34 implementer tests). Repair round 1 added a 0.3 mm 36T/follower axial
+  relief and brought all walls ≥1.2 mm.
+- Accepted: sync 24T one-jaw SF 1.997 at 6 V stall; 0.20 mm flank clearance;
+  36T SF 2.502 (0.1 % over 2.5).
+- Open, measure on hardware: servo ear pitch (47.0 in CAD vs 48.3 in
+  interfaces.py), 687 inner-race land vs Ø9.7 ring, M2.5 insert vs Ø3.3 hole,
+  horn geometry. Tube needs a Ø3.4 cross-hole 14 mm from its lower end.
+- Mass: head 481 g CAD / ~376 g as printed (v6: 1044 g). Whole claw still
+  ~1.05–1.25 kg as printed vs 450 g budget — budget decision pending
+  (proposed: 1.25 A on the existing A4988s → ~40 N → ~650 g claw).
+- Tube-length / camera visibility study running.

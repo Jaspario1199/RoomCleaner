@@ -1,5 +1,32 @@
 # Gripper v7 gearbox -- independent geometry verification
 
+## REVISION 2 -- re-verification of repair round 1 (commit 3bd8256) -- verdict: PASS WITH CONDITIONS
+
+Run: `/usr/bin/python3 -m pytest -q tests/test_gripper_v7_verify.py` -> **72 passed** (revision 1 xfails for fixed items removed only after my own measurement confirmed each fix).
+
+| Item | Expected | Measured (from the new STEP files) | Result |
+|---|---|---|---|
+| Follower / 36T axial gap | 0.300 | 0.3000 at delta 0 / 38.25 / 76.5 (distance follower to the z 16..17 slab of the compound); only the R11..16.5 hub reaches z 17, 36T full below the relief (R28.5 at z 16.6) | PASS |
+| Flank clearance (accepted) | >= 0.2 | 0.1994 main, 0.1997 sync, unchanged over +-30 deg and 0..76.5 deg | ACCEPTED condition |
+| Pinion horn-pilot wall | 1.65 (hub Ø21) | 1.650 | PASS |
+| Insert holes (Ø3.3 x 4.7) | wall 1.25, floor 1.3 | wall 1.250 to cut-out, hole floor z 43.3 (1.3) | PASS |
+| Race rings | 1.325 (Ø9.7 full ring) | OD 9.700 on both plates, seat 7.050, wall 1.325 | PASS |
+| Jaw slot-band crescent | 1.3, blunt | raster opening (Ø1.25 disc) finds no thin region at any band; boss R9.8 - (8 + 0.5) = 1.3 | PASS |
+| Upper saddle ligaments | >= 1.2 | no thin region at 14 band levels plus 19 extra z levels 24.6..42; lower plate clean at 20 levels; link, pinion, follower, compound clean (tooth ring excluded) | PASS |
+| 607 -> 687 | renamed | params comment now says 687 (607 is 7x19x6); pocket geometry unchanged (Ø14.05, 5.05 / 10.05) | PASS |
+| Lewis 6 V (face 15.7) | pinion 2.048, 36T 2.502 | 2.048, 2.502 (pinion teeth still 16 mm, 36T face 15.7) | PASS (36T 2.502 vs 2.5: 0.1 % margin) |
+| Sync SF one-jaw | accepted | 1.997 | ACCEPTED condition |
+| Interference, full sweep | <= 0.5 mm3 | 17 angles 0..76.5, 36 pairs: max 0.000 mm3. Crank vs reduced slot: jaw-compound min distance 0.482 mm, jaw-link 0.500, link-compound 0.914 (9 angles) | PASS |
+| Frame mass | <= 150 g | 78.67 + 64.83 = 143.50 g; printed total 332.83 g; head with the same purchased figures 481.2 g | PASS |
+| Tube interface | unchanged | x 951.8475, z 1103.9900, lower end y 786.3903, insertion 42.50, tube vol 73313 | PASS |
+| Servo ear pitch | open item | 47.0 mm (plate) vs 48.3 (interfaces.py): unchanged; measure on hardware | OPEN |
+
+Remaining conditions: (1) servo ear pitch on hardware; (2) accepted: sync SF 1.997, flank 0.1994/0.1997; (3) Ø9.7 race ring vs real 687
+inner-race land and Ø3.3 insert hole vs the real insert are not checkable from CAD (VERIFY on hardware); (4) purchased fastener masses are
+still assumed (envelope volumes give a head about 489 g); (5) 36T SF has only 0.1 % margin over 2.5.
+
+---- Revision 1 (before repair round 1; items D1, D2, W1-W5, I2 below are now resolved or accepted as listed above) ----
+
 Verifier: geometry-verifier (read-only except tests/ and verification/). Date 2026-10-20.
 Reproduce: `/usr/bin/python3 -m pytest -q tests/test_gripper_v7_verify.py` (about 3-4 min: 59 pass, 8 strict-xfail
 = known defects below). Implementer's suite: `/usr/bin/python3 -m pytest -q tests/test_gripper_v7.py` -> **28 passed** (230 s).

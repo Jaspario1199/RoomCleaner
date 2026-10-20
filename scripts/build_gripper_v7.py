@@ -9,8 +9,10 @@ Run:  /usr/bin/python3 scripts/build_gripper_v7.py            (all)
 Writes
   exports/step/gripper_v7_<part>.step      each printed part, v7 LOCAL frame, CLOSED pose
   exports/stl/gripper_v7_<part>.stl        print orientation (z min = 0)
-  exports/step/gripper_v7_preview.step     v7 gearbox + jaws + hardware + tube + (v6 cylinder reference)
-                                           + camera-bay electrical box, in the v6 WORLD frame
+  exports/step/gripper_v7_preview.step     v7 gearbox + jaws + hardware + tube (254.8 mm, D28) + (v6 cylinder reference)
+                                           + camera-bay electrical box + cover, in the v6 WORLD frame; the cylinder,
+                                           box, bay and cover are moved down 50 mm with the tube cut (head and tube
+                                           lower end fixed)
   verification/gripper_v7_numbers.json     mass roll-up, kinematics, force table, round-trip results
   renders/gripper_v7/*.png                 iso, top along gear axes, jaws open/closed, section, guards
 Reads (read-only): solidworks/gripper_v6_2026-10-20/LaundryGripperAssem1.STEP,
@@ -44,6 +46,15 @@ REN_DIR = os.path.join(REPO, "renders", "gripper_v7")
 PETG = 1.27           # g/cm3 (cad/materials.py)
 BOX_STEP = os.path.join(STEP_DIR, "gripper_electric_housing_with_camera_bay.step")
 COVER_STEP = os.path.join(STEP_DIR, "claw_camera_bay_cover.step")
+
+TUBE_CUT_MM = P.GRIPV7_TUBE_LEN_V6 - P.GRIPV7_TUBE_LEN     # D28: 50 mm; the head and the tube lower end stay put
+
+
+def drop_above_tube(shape: cq.Shape) -> cq.Shape:
+    """Move a v6-world solid that sits above the tube (Griper Cylinder, electric box + camera bay, cover)
+    down by the tube cut so it stays attached to the (now shorter) tube's upper end."""
+    return shape.moved(cq.Location(cq.Vector(0.0, -TUBE_CUT_MM, 0.0)))
+
 
 PRINTED = ("lower_plate", "upper_plate", "pinion", "compound", "follower", "jaw", "link")
 
@@ -224,14 +235,14 @@ def export_preview(full) -> dict:
         solids.append(w.val())
         assy.add(w, name="v7_" + name, color=colors[kind])
     v6 = load_v6()
-    cyl = find(v6, CYLINDER_NAME)                      # v6 extension, reference only (read-only STEP)
+    cyl = drop_above_tube(find(v6, CYLINDER_NAME))     # v6 extension, reference only (read-only STEP)
     assy.add(cq.Workplane().add(cyl), name="v6_Griper_Cylinder_reference", color=cq.Color(0.3, 0.55, 0.85))
     solids.append(cyl)
-    box = cq.importers.importStep(BOX_STEP).val()
+    box = drop_above_tube(cq.importers.importStep(BOX_STEP).val())
     assy.add(cq.Workplane().add(box), name="electric_housing_with_camera_bay", color=cq.Color(0.25, 0.55, 0.85))
     solids.append(box)
     if os.path.exists(COVER_STEP):
-        cover = cq.importers.importStep(COVER_STEP).val()
+        cover = drop_above_tube(cq.importers.importStep(COVER_STEP).val())
         assy.add(cq.Workplane().add(cover), name="camera_bay_cover", color=cq.Color(0.9, 0.45, 0.15))
         solids.append(cover)
     path = os.path.join(STEP_DIR, "gripper_v7_preview.step")
@@ -347,9 +358,9 @@ def render_all(full_closed):
             continue
         V, F = tessellate(AS.to_world(wp), 0.8 if kind == AS.TUBE else 0.3, 0.5)
         ov.append((V, F, COL.get(n, (0.6, 0.6, 0.64)), 1.0))
-    cyl = find(load_v6(), CYLINDER_NAME)
+    cyl = drop_above_tube(find(load_v6(), CYLINDER_NAME))
     ov.append(tessellate(cyl, 1.0, 0.5) + ((0.3, 0.55, 0.85), 1.0))
-    box = cq.importers.importStep(BOX_STEP).val()
+    box = drop_above_tube(cq.importers.importStep(BOX_STEP).val())
     ov.append(tessellate(box, 0.8, 0.5) + ((0.25, 0.55, 0.88), 1.0))
     render(ov, os.path.join(REN_DIR, "preview_overview.png"), 20, -40, "preview assembly (v6 world frame, +y up the page)",
            bounds=((ox - 190, 560, oz - 190), (ox + 190, 1200, oz + 190)), up="y", size=(7.5, 9))

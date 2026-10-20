@@ -1,13 +1,14 @@
 """
-Claw CAMERA BAY -- XIAO ESP32-S3 Sense camera + Adafruit 3886 MPU6050 IMU
-enclosure that is UNIONED onto the gripper electrical box
-("Gripper_Electric_Housing_Base (2)" in
+Claw CAMERA BAY -- Seeed XIAO ESP32-S3 Sense camera enclosure (no IMU, D27) that is
+UNIONED onto the gripper electrical box ("Gripper_Electric_Housing_Base (2)" in
 solidworks/gripper_v6_2026-10-20/LaundryGripperAssem1.STEP, read-only).
 
 The bay hangs off ONE side wall of the box (the narrow -Z side, CAMBAY_SIDE),
 standing on the same print bed plane as the box's bottom flange, so box + bay
 print without supports.  The camera looks straight DOWN (-Y, parallel to the
-tube); its optical axis is CAMBAY_CAM_R = 90 mm from the tube axis.
+tube); its optical axis is CAMBAY_CAM_R = 90 mm from the tube axis (the lens is
+CAMBAY_LENS_FROM_BOARD_END = 5 mm from the USB-C end of the board, so it sits
+at bay x = +4.75 mm when the cradle is centred on the bay).
 
 --------------------------------------------------------------------------
 Bay frame (this file's local frame; v6 world = local + BAY_ORIGIN_WORLD)
@@ -20,32 +21,21 @@ Bay frame (this file's local frame; v6 world = local + BAY_ORIGIN_WORLD)
 --------------------------------------------------------------------------
 Plan (x, r) -- everything is a vertical extrusion from the bed plane
 --------------------------------------------------------------------------
-  r 129.8 +--------------------------+   IMU pocket 18.4 x 26.6 (side blocks, 4 pads,
-          |  IMU pocket (Adafruit    |   cover pegs, 2 zip-tie loops); long axis radial
-  r 101.2 +--partition (top y 20.86)-+
-          |  XIAO cradle 24.96x18.4  |   USB-C notch in the +X wall, open top, closed by
-  r  80.8 +----fence (gap |x|<4)-----+   the cover
+  r 101.3 +--------------------------+   end wall
+  r  99.3 |  XIAO cradle 23.0 x 18.6 |   USB-C notch (15 wide, open top, closed by the cover)
+  r  80.7 +----fence (gap |x|<4)-----+   in the +X wall; lens window at the +X end
           |  neck: wires, ribs, columns to the box wall |
-  r ~ 62  +----- box wall (R75 blend) ------------------+     x = -14.5 .. +14.5
+  r ~ 62  +----- box wall (R75 blend) ------------------+     x = -13.5 .. +13.5
   The wire window (10 x 7) goes through the box wall at x = 0 into the box pocket.
-  The bay is narrow (|x| <= 14.5, ribs to 34.9) so cable lines that leave the corner
-  holes toward the anchors can only touch it near the box wall.
 
 --------------------------------------------------------------------------
 Stack (heights above the box bottom plane)
 --------------------------------------------------------------------------
-  0 .. 2.4      floor (on the bed); lens window 17 x 16 through floor + block
-  2.4 .. 6.4    cradle block under the XIAO = hood tunnel (window runs 6.4 mm)
-  6.4 .. 20.36  XIAO ESP32-S3 Sense envelope 24.363 x 17.78 x 13.96 (camera down)
-  20.36 .. 24.36 wire / antenna headroom (4 mm); cover seat at 24.36
-  IMU: board seat y = 3.4 (1.0 mm pads), reservation 4.6 -> pocket >= 5 mm deep;
-  board plane parallel to the camera board (both are y = const planes).
-
-IMU axis convention for firmware: board plane = bay X-r plane, long axis (26 mm)
-along the radial direction r (outward = bay -Z), component side up (+Y).  Map the silk arrows in firmware (VERIFY).
-No IMU screw posts: the Adafruit 3886 hole positions are unknown.  The board
-sits on 4 corner pads in a 26.6 x 18.4 pocket, is held down by 4 cover pegs,
-and has 2 zip-tie loops (a floor slot pair each, straddling the board) as backup.
+  0 .. 2.4      floor (on the bed); lens window through floor + block
+  2.4 .. 9.9    cradle block under the board; its seat plane is y = 9.9
+  lens glass    y = 1.9 (camera module protrudes 8 mm below the seat, ASSUMED)
+  9.9 .. 26.9   cavity, 17.0 mm above the seat (>= 16 for the 15 mm stack); cover seat at 26.9
+  board stack   nominal 7 mm above the seat (15 - 8); the whole 15 mm would still fit.
 
 --------------------------------------------------------------------------
 Print orientation (no supports for critical surfaces)
@@ -59,11 +49,9 @@ Print orientation (no supports for critical surfaces)
 --------------------------------------------------------------------------
 VERIFY BEFORE PRINTING (assumed dimensions)
 --------------------------------------------------------------------------
-  XIAO envelope 24.363 x 17.78 x 13.96 (is 24.363 along the USB axis? where is
-  the lens inside it?), lens barrel protrusion 4.5 mm, USB-C height above the
-  board, antenna 30 x 10 mm, Adafruit 3886 outline 26 x 17.8 x 4.6 and which
-  corner/edge regions are component-free (pads + pegs sit at the 4 corners),
-  PCB thickness 1.6 mm.
+  Lens centre 5 mm from the USB-C end and centred across the width (window tolerates +-4 mm),
+  camera protrusion 8 mm below the board seat, USB-C height 1.6 mm below the stack top,
+  antenna 30 x 10 mm.
 """
 
 from __future__ import annotations
@@ -85,44 +73,43 @@ OVERTRAVEL = 0.5                        # mm, cutter overshoot for clean cuts
 WALL = P.CAMBAY_WALL
 FLOOR_T = P.CAMBAY_FLOOR_T
 COVER_T = P.CAMBAY_COVER_T
-CLR = P.CAMBAY_FIT_CLEAR
 
 # XIAO cradle (head) --------------------------------------------------------------
-BOARD_CX = -P.CAMBAY_LENS_DX            # envelope centre, bay X
-BOARD_CR = P.CAMBAY_CAM_R - P.CAMBAY_LENS_DR   # envelope centre, radial
-CAV_HALF_X = P.CAMBAY_XIAO_L / 2 + CLR  # 12.48
-CAV_HALF_R = max(P.CAMBAY_XIAO_W, P.CAMBAY_IMU_W) / 2 + CLR   # 9.2 (shared by XIAO + IMU pockets)
-HEAD_R0 = BOARD_CR - CAV_HALF_R         # 80.8
-HEAD_R1 = BOARD_CR + CAV_HALF_R         # 99.2
-OUT_HALF_X = CAV_HALF_X + WALL          # 14.48
+BOARD_CR = P.CAMBAY_CAM_R - P.CAMBAY_LENS_DR    # cradle centre, radial (lens r = CAM_R)
+CAV_HALF_X = P.CAMBAY_CRADLE_L / 2              # 11.5
+CAV_HALF_R = P.CAMBAY_CRADLE_W / 2              # 9.3
+HEAD_R0 = BOARD_CR - CAV_HALF_R                 # 80.7
+HEAD_R1 = BOARD_CR + CAV_HALF_R                 # 99.3
+OUT_HALF_X = CAV_HALF_X + WALL                  # 13.5
+OUT_R1 = HEAD_R1 + WALL                         # 101.3 bay outer end
+assert P.CAMBAY_CRADLE_L >= P.CAMBAY_XIAO_L + 0.5 - 1e-9     # envelope incl. USB overhang + 0.5
+assert P.CAMBAY_CRADLE_W >= P.CAMBAY_XIAO_W + 0.8 - 1e-9
+BOARD_X0 = -P.CAMBAY_XIAO_USB_OVERHANG / 2      # base-board centre along x (envelope centred in the pocket)
+BOARD_X_END = BOARD_X0 + P.CAMBAY_XIAO_BOARD_L / 2      # USB-C end of the base board (+9.75)
+LENS_X = BOARD_X_END - P.CAMBAY_LENS_FROM_BOARD_END     # lens centre along bay X (+4.75)
 
-BLOCK_H = P.CAMBAY_LENS_BLOCK_H
-Y_BOARD0 = FLOOR_T + BLOCK_H                       # 6.4 board seat
-Y_BOARD1 = Y_BOARD0 + P.CAMBAY_XIAO_H              # 20.36 envelope top
-H_CAV = Y_BOARD1 + P.CAMBAY_WIRE_HEADROOM          # 24.36 wall top / cover seat
-Y_TOP = H_CAV + COVER_T                            # 26.76 cover top
+LENS_FRONT_Y = P.CAMBAY_LENS_FRONT_Y                    # 1.9 lens glass height
+Y_BOARD0 = LENS_FRONT_Y + P.CAMBAY_CAM_PROTRUDE         # 9.9 board seat plane
+BLOCK_H = Y_BOARD0 - FLOOR_T                            # 7.5 cradle block above the floor
+Y_BOARD1 = Y_BOARD0 + P.CAMBAY_XIAO_H                   # 24.9 top of the stack IF all 15 mm sat above the seat
+Y_STACK_TOP = Y_BOARD0 + P.CAMBAY_XIAO_H - P.CAMBAY_CAM_PROTRUDE   # 16.9 nominal stack top
+H_CAV = Y_BOARD0 + P.CAMBAY_INTERNAL_H                  # 26.9 wall top / cover seat
+Y_TOP = H_CAV + COVER_T                                 # 29.3 cover top
+assert P.CAMBAY_INTERNAL_H >= 16.0 and H_CAV > Y_BOARD1
 
-WIN_X, WIN_R = P.CAMBAY_LENS_WINDOW_X, P.CAMBAY_LENS_WINDOW_R
-assert WIN_X >= 14.0 and WIN_R >= 14.0, "lens window must be >= 14 x 14 mm"
-LENS_FRONT_Y = Y_BOARD0 - P.CAMBAY_LENS_BARREL_H   # 1.9 lens glass height
-BLOCK_R0 = BOARD_CR - WIN_R / 2 - WALL             # block reaches 2 mm past the window edge (neck side)
+# lens window: +-4 mm of lens position for the 8 mm barrel, in X capped by the USB-end pocket wall
+WIN_R = P.CAMBAY_LENS_WINDOW_R
+WIN_X0 = LENS_X - P.CAMBAY_LENS_POS_TOL - P.CAMBAY_LENS_BARREL_D / 2
+WIN_X1 = min(LENS_X + P.CAMBAY_LENS_POS_TOL + P.CAMBAY_LENS_BARREL_D / 2,
+             CAV_HALF_X - P.CAMBAY_LENS_WINDOW_END_WALL)
+WIN_X = WIN_X1 - WIN_X0                                 # 14.25
+WIN_XC = 0.5 * (WIN_X0 + WIN_X1)
+assert WIN_R >= 2 * (P.CAMBAY_LENS_POS_TOL + P.CAMBAY_LENS_BARREL_D / 2)
+assert WIN_X0 <= LENS_X - P.CAMBAY_LENS_POS_TOL - P.CAMBAY_LENS_BARREL_D / 2 + 1e-9
+BLOCK_R0 = BOARD_CR - WIN_R / 2 - P.CAMBAY_LENS_CHAMFER - WALL   # keeps >= WALL under the chamfer foot
 assert BLOCK_R0 < HEAD_R0 + 1e-9
-
-# IMU pocket (in line, outboard of the XIAO bay; long axis radial) --------------
-PART_T = WALL                                       # partition (XIAO outer end wall)
-IMU_R0 = HEAD_R1 + PART_T                           # 101.2 pocket inner edge
-IMU_R1 = IMU_R0 + P.CAMBAY_IMU_L + 2 * CLR          # 127.8 pocket outer edge (26.6)
-OUT_R1 = IMU_R1 + WALL                              # 129.8 bay outer end
-IMU_RC = 0.5 * (IMU_R0 + IMU_R1)                    # 114.5
-IMU_XC = 0.0
-IMU_HALF_X = P.CAMBAY_IMU_W / 2 + CLR               # 9.2 (pocket 18.4 wide, side blocks beyond)
-IMU_SEAT_Y = FLOOR_T + P.CAMBAY_IMU_PAD_H           # 3.4 board underside
-IMU_TOP_Y = IMU_SEAT_Y + P.CAMBAY_IMU_T             # 5.0 PCB top
-IMU_RESERVE_TOP = IMU_SEAT_Y + P.CAMBAY_IMU_RESERVE_H
-PARTITION_TOP = Y_BOARD1 + 0.5                      # wires step over the partition above this
-IMU_TIE_R = (IMU_RC - 7.0, IMU_RC + 7.0)            # two zip-tie positions (radial)
 BODY_R_IN = 50.0                        # bay solid starts inside the box wall (< 55)
-NECK_RC = 70.4                          # centre of the neck (vents / ties)
+NECK_RC = 70.4                          # centre of the neck (ties)
 
 # Wire window -------------------------------------------------------------------
 WIN_W, WIN_H, WIN_Y = P.CAMBAY_WIN_W, P.CAMBAY_WIN_H, P.CAMBAY_WIN_Y
@@ -156,10 +143,11 @@ def box_wall_r(y: float) -> float:
 COVER_R0 = box_wall_r(Y_TOP) + 0.8      # cover inner edge: 0.8 mm off the box wall
 
 # USB-C notch ----------------------------------------------------------------------
-USB_NOTCH_W = P.CAMBAY_USB_PLUG_W + P.CAMBAY_USB_PLAY            # 13.5
-USB_YC = Y_BOARD1 - P.CAMBAY_XIAO_USB_Z_FROM_TOP                 # connector centre height
-USB_SILL_Y = USB_YC - P.CAMBAY_USB_PLUG_H / 2 - P.CAMBAY_USB_PLAY  # 14.3 (plug 8 tall + 0.5)
-assert USB_SILL_Y > Y_BOARD0 and USB_YC + P.CAMBAY_USB_PLUG_H / 2 < H_CAV
+USB_NOTCH_W = P.CAMBAY_USB_PLUG_W + 2 * P.CAMBAY_USB_PLAY            # 15.0
+USB_YC = Y_STACK_TOP - P.CAMBAY_XIAO_USB_Z_FROM_TOP                  # connector centre height (nominal)
+USB_SILL_Y = Y_BOARD0 + P.CAMBAY_USB_SILL_ABOVE_SEAT                 # 10.9
+assert USB_YC - P.CAMBAY_USB_PLUG_H / 2 - P.CAMBAY_USB_PLAY >= USB_SILL_Y - 1e-9   # plug clears the sill
+assert USB_YC + P.CAMBAY_USB_PLUG_H / 2 < H_CAV - 1.0                # and the cover lip
 
 
 # --- geometry helpers --------------------------------------------------------------
@@ -228,21 +216,20 @@ def _ribs() -> cq.Workplane:
 
 
 def _usb_notch_cutter() -> cq.Workplane:
-    """Open-top USB-C notch through the +X wall (closed by the cover).  Width
-    13.5 / sill 14.3: passes a 13 x 8 plug overmould with 0.5 mm play, no roof."""
+    """Open-top USB-C notch through the +X wall (closed by the cover): 15 wide, sill 1 mm above
+    the board seat, open up to the wall top.  Passes a 13 x 8 plug overmould with +-1 mm play."""
     return _rbox(CAV_HALF_X - 1.0, OUT_HALF_X + 1.0, USB_SILL_Y, H_CAV + 1.0,
                  BOARD_CR - USB_NOTCH_W / 2, BOARD_CR + USB_NOTCH_W / 2)
 
 
 def _vent_cutters() -> list:
-    """Passive-airflow slots (never over the lens): XIAO -X side wall (3) and the IMU
-    pocket outer end wall (3), 2.0 mm ligaments.  +X wall carries the USB notch."""
+    """Passive-airflow slots (never over the lens): 3 through the XIAO -X wall, 2.0 mm ligaments.
+    The +X wall carries the USB notch."""
     cut = []
     sw = 2.0                                           # slot width
     for rr in (BOARD_CR - 5.5, BOARD_CR, BOARD_CR + 5.5):
-        cut.append(_rbox(-OUT_HALF_X - 1.0, -CAV_HALF_X + 1.0, 9.0, 17.0, rr - sw / 2, rr + sw / 2))
-    for xx in (-6.0, 0.0, 6.0):
-        cut.append(_rbox(xx - sw / 2, xx + sw / 2, 9.0, 17.0, IMU_R1 - 1.0, OUT_R1 + 1.0))
+        cut.append(_rbox(-OUT_HALF_X - 1.0, -CAV_HALF_X + 1.0, Y_BOARD0 + 1.0, Y_BOARD0 + 9.0,
+                         rr - sw / 2, rr + sw / 2))
     return cut
 
 
@@ -258,57 +245,25 @@ def _tie_cutters() -> list:
 
 
 def _lens_cutters() -> list:
-    """17 x 16 window through floor + cradle block (the tunnel is the hood) with a
-    45 deg chamfer on the outer (bottom) mouth."""
-    x, r = 0.0, P.CAMBAY_CAM_R
+    """Window through floor + cradle block (the tunnel is the hood) with a 45 deg chamfer on the
+    outer (bottom) mouth.  14.25 (X) x 16.4 (R): the 8 mm barrel clears for +-4 mm of lens position."""
+    r = BOARD_CR + P.CAMBAY_LENS_DR
     c = P.CAMBAY_LENS_CHAMFER
-    tunnel = _box(x - WIN_X / 2, x + WIN_X / 2, -OVERTRAVEL, Y_BOARD0 + OVERTRAVEL,
-                  S * r - WIN_R / 2, S * r + WIN_R / 2)
-    flare = _frustum_rect_y(x, r, WIN_X, WIN_R, c, WIN_X + 2 * c, WIN_R + 2 * c, 0.0)
-    flare_ext = _box(x - WIN_X / 2 - c, x + WIN_X / 2 + c, -OVERTRAVEL, 0.0,
-                     S * r - WIN_R / 2 - c, S * r + WIN_R / 2 + c)
+    tunnel = _box(WIN_X0, WIN_X1, -OVERTRAVEL, Y_BOARD0 + OVERTRAVEL, S * r - WIN_R / 2, S * r + WIN_R / 2)
+    flare = _frustum_rect_y(WIN_XC, r, WIN_X, WIN_R, c, WIN_X + 2 * c, WIN_R + 2 * c, 0.0)
+    flare_ext = _box(WIN_X0 - c, WIN_X1 + c, -OVERTRAVEL, 0.0, S * r - WIN_R / 2 - c, S * r + WIN_R / 2 + c)
     return [tunnel, flare, flare_ext]
 
 
-def _imu_pad_positions():
-    """Four pad/peg centres at the IMU board corners (x, r)."""
-    pad = P.CAMBAY_IMU_PAD
+def _locator_ribs() -> cq.Workplane:
+    """Soft locating ribs on the two long cradle walls (0.4 proud, from the seat up 8 mm): the
+    17.8 mm board is held without play, a slightly bigger board squeezes them instead of jamming."""
+    t, w = P.CAMBAY_LOCATOR_RIB_T, P.CAMBAY_LOCATOR_RIB_W
     out = []
-    for sx in (-1, 1):
-        for sr in (-1, 1):
-            cx = IMU_XC + sx * (P.CAMBAY_IMU_W / 2 - pad / 2)
-            cr = IMU_RC + sr * (P.CAMBAY_IMU_L / 2 - pad / 2)
-            out.append((cx, cr))
-    return out
-
-
-def _imu_pads() -> cq.Workplane:
-    pad = P.CAMBAY_IMU_PAD
-    return _union([_rbox(cx - pad / 2, cx + pad / 2, FLOOR_T - 0.2, IMU_SEAT_Y,
-                         cr - pad / 2, cr + pad / 2) for cx, cr in _imu_pad_positions()])
-
-
-def _imu_side_blocks() -> cq.Workplane:
-    """Blocks beside the IMU board (x 9.2 .. 12.48) up to the reservation top: they locate
-    the board to 0.3 mm per side and carry the zip-tie pits."""
-    return _union([_rbox(a, b, FLOOR_T - 0.2, IMU_RESERVE_TOP, IMU_R0 - 0.2, IMU_R1 + 0.2)
-                   for a, b in ((IMU_HALF_X, CAV_HALF_X + 0.2), (-CAV_HALF_X - 0.2, -IMU_HALF_X))])
-
-
-def _imu_tie_cutters() -> list:
-    """Two zip-tie loops over the board: at each tie r a pit through both side blocks
-    (4.4 mm along r) with a 1.8 x 3.8 mm floor slot in each pit; the tie goes up one
-    slot, over the board, down the other and under the floor."""
-    cuts = []
-    for rt in IMU_TIE_R:
-        for sx in (1, -1):
-            xa, xb = sorted((sx * IMU_HALF_X, sx * CAV_HALF_X))
-            cuts.append(_rbox(xa - 0.01, xb + 0.01, FLOOR_T, IMU_RESERVE_TOP + OVERTRAVEL,
-                              rt - 2.2, rt + 2.2))
-            xc = sx * (IMU_HALF_X + CAV_HALF_X) / 2
-            cuts.append(_rbox(xc - 0.9, xc + 0.9, -OVERTRAVEL, FLOOR_T + OVERTRAVEL,
-                              rt - 1.9, rt + 1.9))
-    return cuts
+    for xc in (-8.0, 7.0):          # both clear of the |x| < 4 wire gap in the neck-side fence
+        out.append(_rbox(xc - w / 2, xc + w / 2, Y_BOARD0 - 0.2, Y_BOARD0 + 8.0, HEAD_R0 - 0.1, HEAD_R0 + t))
+        out.append(_rbox(xc - w / 2, xc + w / 2, Y_BOARD0 - 0.2, Y_BOARD0 + 8.0, HEAD_R1 - t, HEAD_R1 + 0.1))
+    return _union(out)
 
 
 def _columns() -> cq.Workplane:
@@ -324,22 +279,18 @@ def make_bay_body() -> cq.Workplane:
     outer = (_rbox(-OUT_HALF_X, OUT_HALF_X, 0.0, H_CAV, BODY_R_IN, OUT_R1)
              .union(_columns()).union(_ribs()))
     xiao_cav = _rbox(-CAV_HALF_X, CAV_HALF_X, FLOOR_T, H_CAV + OVERTRAVEL, BODY_R_IN - 1.0, HEAD_R1)
-    imu_cav = _rbox(-CAV_HALF_X, CAV_HALF_X, FLOOR_T, H_CAV + OVERTRAVEL, IMU_R0, IMU_R1)
-    body = outer.cut(xiao_cav).cut(imu_cav)
-    # the partition (XIAO outer end wall) stops at PARTITION_TOP: IMU wires step over it
-    body = body.cut(_rbox(-CAV_HALF_X, CAV_HALF_X, PARTITION_TOP, H_CAV + OVERTRAVEL,
-                          HEAD_R1 - 0.01, IMU_R0 + 0.01))
+    body = outer.cut(xiao_cav)
 
-    # lens cradle block (under the XIAO, reaches 2 mm past the window), fence on the
-    # neck side of the XIAO bay (gap |x| < 4 for the wires), IMU pads and side blocks
+    # cradle block under the board (reaches past the window on the neck side), fence on the neck
+    # side of the cradle (gap |x| < 4 for the wires), soft locating ribs
     block = _rbox(-CAV_HALF_X, CAV_HALF_X, FLOOR_T - 0.2, Y_BOARD0, BLOCK_R0, HEAD_R1)
-    fence_y1 = Y_BOARD1 - 2.0
+    fence_y1 = Y_BOARD0 + P.CAMBAY_FENCE_H
     fences = [_rbox(a, b, FLOOR_T - 0.2, fence_y1, HEAD_R0 - WALL, HEAD_R0)
               for a, b in ((-CAV_HALF_X, -4.0), (4.0, CAV_HALF_X))]
-    body = body.union(block).union(_union(fences)).union(_imu_pads()).union(_imu_side_blocks())
+    body = body.union(block).union(_union(fences)).union(_locator_ribs())
 
     cutters = (_lens_cutters() + [_usb_notch_cutter()] + _vent_cutters()
-               + _tie_cutters() + _column_holes() + _imu_tie_cutters())
+               + _tie_cutters() + _column_holes())
     return _cut_all(body, cutters)
 
 
@@ -353,26 +304,21 @@ def make_cover() -> cq.Workplane:
 
     lip_t, lip_h, gap = WALL, 1.0, 0.2
     lx = CAV_HALF_X - gap
-    lr1 = IMU_R1 - gap
+    lr1 = HEAD_R1 - gap
     lip_r0 = COVER_R0 + 3.0
     lips = [_rbox(lx - lip_t, lx, y0 - lip_h, y0 + 0.1, lip_r0, lr1),
             _rbox(-lx, -lx + lip_t, y0 - lip_h, y0 + 0.1, lip_r0, lr1),
             _rbox(-lx, lx, y0 - lip_h, y0 + 0.1, lr1 - lip_t, lr1)]
 
-    # XIAO hold-down pegs over the envelope corners (CLR above the top)
+    # XIAO hold-down pegs over the four cradle corners (stop CAMBAY_PEG_STOP_ABOVE_SEAT above the seat)
     peg = 2.4
     pegs = []
     for sx in (1, -1):
         for sr in (1, -1):
-            cx = sx * (P.CAMBAY_XIAO_L / 2 - peg / 2 - 0.2)
-            cr = BOARD_CR + sr * (P.CAMBAY_XIAO_W / 2 - peg / 2 - 0.2)
-            pegs.append(_rbox(cx - peg / 2, cx + peg / 2, Y_BOARD1 + CLR, y0 + 0.1,
+            cx = sx * (CAV_HALF_X - peg / 2 - 0.2)
+            cr = BOARD_CR + sr * (CAV_HALF_R - peg / 2 - 0.2)
+            pegs.append(_rbox(cx - peg / 2, cx + peg / 2, Y_BOARD0 + P.CAMBAY_PEG_STOP_ABOVE_SEAT, y0 + 0.1,
                               cr - peg / 2, cr + peg / 2))
-    # IMU clamp pegs over the 4 board corners (0.2 mm above the PCB)
-    pad = P.CAMBAY_IMU_PAD
-    for cx, cr in _imu_pad_positions():
-        pegs.append(_rbox(cx - pad / 2, cx + pad / 2, IMU_TOP_Y + 0.2, y0 + 0.1,
-                          cr - pad / 2, cr + pad / 2))
     # antenna corral on the UNDERSIDE (flat outer face stays free for printing)
     rail_t, rail_h = WALL, 1.5
     ant_r0 = 65.0
@@ -426,7 +372,7 @@ def make():
 
 
 # --- optical pose (bay frame) --------------------------------------------------------
-LENS_CENTER_BAY = (0.0, LENS_FRONT_Y, S * P.CAMBAY_CAM_R)   # lens glass centre
+LENS_CENTER_BAY = (LENS_X, LENS_FRONT_Y, S * (BOARD_CR + P.CAMBAY_LENS_DR))   # lens glass centre
 OPTICAL_AXIS_BAY = (0.0, -1.0, 0.0)
 
 

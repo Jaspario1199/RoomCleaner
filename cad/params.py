@@ -74,7 +74,7 @@ NOTCH_GAP = 4.5           # mm, ventral V-notch opening per segment
 
 
 # =============================================================================
-# CLAW CAMERA BAY (CAMBAY_*) -- camera + IMU enclosure unioned onto the
+# CLAW CAMERA BAY (CAMBAY_*) -- camera enclosure (no IMU, D27) unioned onto the
 # gripper electrical box ("Gripper_Electric_Housing_Base (2)" in the v6 STEP).
 # Master values for cad/parts/claw_camera_bay.py.  Units mm.
 # Entries marked MEASURED come from solidworks/gripper_v6_2026-10-20 (read-only
@@ -111,37 +111,38 @@ CAMBAY_COVER_T = 2.4              # access cover thickness
 CAMBAY_BOSS_WALL = 2.5            # min material around a screw/insert hole
 CAMBAY_FIT_CLEAR = 0.3            # per-side clearance around boards
 
-# --- Seeed XIAO ESP32-S3 Sense (VERIFY every value with calipers) --------------
-# Repo records the OEM-model overall envelope incl. protrusions as 24.363 x 17.78 x 13.96
-# (docs/CLAW_SELF_CAD_DESIGN_20261012.md, docs/SELF_CAD_DIMENSIONS_AND_WIRING_20261006.md);
-# the cradle is sized for that envelope + CLEAR per side.  USB-C end faces bay +X.
-CAMBAY_XIAO_L = 24.363            # envelope along bay X (USB-C end at +X)
-CAMBAY_XIAO_W = 17.78             # envelope along the radial direction
-CAMBAY_XIAO_H = 13.96             # envelope height, camera face down
-CAMBAY_XIAO_USB_Z_FROM_TOP = 1.6  # USB-C centre below the envelope top (VERIFY)
-CAMBAY_LENS_DX = 0.0              # lens offset from envelope centre along bay X (VERIFY)
-CAMBAY_LENS_DR = 0.0              # lens offset from envelope centre, radial outward + (VERIFY)
-CAMBAY_LENS_BARREL_D = 8.0        # lens barrel diameter
-CAMBAY_LENS_BARREL_H = 4.5        # barrel protrusion below the board face (VERIFY)
-CAMBAY_LENS_WINDOW_X = 17.0       # lens window along bay X (>= 14)
-CAMBAY_LENS_WINDOW_R = 16.0       # lens window radial (>= 14); +-3.2 mm lens-position tolerance
+# --- Seeed XIAO ESP32-S3 Sense (Seeed top view + dimension drawing, cad/reference/purchased/;
+# VERIFY with calipers).  D27: no IMU on the claw -> no IMU pocket.  The cradle is deliberately
+# generous ("lean bigger so we aren't having to reprint").  USB-C end faces bay +X; the board
+# mounts LENS-DOWN, USB-C / back of the base board face the cover (Jasper solders to the back).
+CAMBAY_XIAO_BOARD_L = 21.0        # base board length (USB-C end to U.FL end)
+CAMBAY_XIAO_W = 17.8              # base board width (along the radial direction)
+CAMBAY_XIAO_USB_OVERHANG = 1.5    # USB-C receptacle overhangs the board edge by ~1-1.5 mm (take 1.5)
+CAMBAY_XIAO_L = CAMBAY_XIAO_BOARD_L + CAMBAY_XIAO_USB_OVERHANG   # 22.5 envelope along bay X
+CAMBAY_XIAO_H = 15.0              # whole stack incl. camera module (Seeed drawing)
+CAMBAY_XIAO_USB_Z_FROM_TOP = 1.6  # USB-C centre below the stack top (VERIFY)
+CAMBAY_CRADLE_L = 23.0            # cradle pocket along bay X (envelope 22.5 + 0.5)
+CAMBAY_CRADLE_W = 18.6            # cradle pocket radial (board 17.8 + 0.8)
+CAMBAY_INTERNAL_H = 17.0          # board seat -> cover seat (>= 16; whole 15 mm stack would still fit above the seat)
+CAMBAY_LENS_FROM_BOARD_END = 5.0  # lens centre from the USB-C end of the base board (VERIFY, read off the photo)
+CAMBAY_LENS_DR = 0.0              # lens offset from the board centre, radial outward + (VERIFY)
+CAMBAY_LENS_POS_TOL = 4.0         # lens position tolerance the window must absorb (+-4 mm, any direction)
+CAMBAY_LENS_BARREL_D = 8.0        # lens barrel diameter (module body ~8.5 square is inside the same window)
+CAMBAY_CAM_PROTRUDE = 8.0         # camera module + lens protrusion BELOW the board seat plane (VERIFY; the through-window is deeper than needed)
+CAMBAY_LENS_FRONT_Y = 1.9         # lens glass height above the bed plane (box bottom plane)
+CAMBAY_LENS_WINDOW_R = 16.4       # lens window radial = 2 x (barrel R 4 + tolerance 4) + 0.4
+CAMBAY_LENS_WINDOW_END_WALL = 0.5 # window stops this far short of the USB-end pocket wall (keeps the wall >= 1.2 after the chamfer)
 CAMBAY_LENS_CHAMFER = 1.0         # 45 deg chamfer on the window's outer edge
-CAMBAY_LENS_BLOCK_H = 4.0         # cradle block under the board = hood tunnel depth
-CAMBAY_WIRE_HEADROOM = 4.0        # free height above the XIAO for wires / antenna
 CAMBAY_USB_PLUG_W = 13.0          # USB-C plug overmould the notch must pass (>= 13)
 CAMBAY_USB_PLUG_H = 8.0           # (>= 8); the notch is open at the top and closed by the cover
-CAMBAY_USB_PLAY = 0.5             # extra notch width / sill depth around the plug
+CAMBAY_USB_PLAY = 1.0             # extra notch width per side around the plug (+-1.0 mm lateral play)
+CAMBAY_USB_SILL_ABOVE_SEAT = 0.4  # notch sill just above the board seat (plug centre is ~5.4 above the seat nominal; 1 mm vertical play kept)
+CAMBAY_FENCE_H = 9.0              # neck-side fence height above the seat (gap |x| < 4 for the wires)
+CAMBAY_PEG_STOP_ABOVE_SEAT = 11.0 # cover hold-down pegs end this far above the seat (stack top is ~7 above it)
+CAMBAY_LOCATOR_RIB_T = 0.4        # soft locating ribs on the long cradle walls (board 17.8 + 2 x 0.4 = 18.6 -> snug)
+CAMBAY_LOCATOR_RIB_W = 1.6        # rib width along bay X
 CAMBAY_ANT_L = 30.0               # flexible U.FL antenna length (VERIFY)
 CAMBAY_ANT_W = 10.0               # flexible U.FL antenna width (VERIFY)
-
-# --- Adafruit 3886 MPU6050 breakout (repo-selected IMU; hole positions UNKNOWN ->
-# no screw posts: rigid pocket, corner pads, cover pegs, 2 zip-tie slot pairs) ----
-CAMBAY_IMU_L = 26.0               # board length (reservation 26 x 17.8 x 4.6)
-CAMBAY_IMU_W = 17.8
-CAMBAY_IMU_RESERVE_H = 4.6        # height reserved above the pads (board + components)
-CAMBAY_IMU_PAD_H = 1.0            # seat pads under the board corners (underside leads/foam)
-CAMBAY_IMU_PAD = 3.0              # pad / peg footprint (VERIFY: clear of components)
-CAMBAY_IMU_T = 1.6                # PCB thickness (assumed)
 
 # --- wire window into the box (below the lid seat, rim stays continuous) -------
 CAMBAY_WIN_W = 10.0               # >= 8
@@ -222,7 +223,8 @@ GRIPV7_TUBE_OD = 28.54
 GRIPV7_TUBE_ID = 22.54
 GRIPV7_TUBE_END_Y = 78.4039       # tube lower end (v6: world y 786.39 - 707.99)
 GRIPV7_TUBE_INSERT = 42.5         # tube insertion depth into the socket (v6: 828.89 - 786.39)
-GRIPV7_TUBE_LEN = 304.8
+GRIPV7_TUBE_LEN = 254.8           # D28: cut 50 mm (v6/v7 original 304.8); lower end y stays at 786.39 in the world frame
+GRIPV7_TUBE_LEN_V6 = 304.8        # original (v6) tube length; everything above the tube moved down by LEN_V6 - LEN (D28)
 GRIPV7_TUBE_FIT = 0.15            # radial clearance of the socket bore
 GRIPV7_XBOLT_Y_FROM_END = 14.0    # M3 cross-bolt axis (parallel to z) from the tube lower end
 GRIPV7_XBOLT_HOLE_D = 3.4         # drilled through the tube along z, and through both plates/saddles

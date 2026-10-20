@@ -8,7 +8,7 @@ Views (matplotlib painter's-algorithm renders, +Y up):
   assembly_narrow_side.png  view from the bay (narrow, -Z) side, looking +Z
   assembly_top.png          top view looking down the tube
   bay_iso.png / bay_iso_no_cover.png / bay_underside_lens.png / bay_section_front.png
-                            close-ups of the bay on the box
+                            close-ups of the bay on the box (D27: no IMU; XIAO cradle 23.0 x 18.6)
 (camera_view_floor_footprint.png comes from scripts/analyze_claw_camera_bay.py)
 """
 
@@ -75,19 +75,19 @@ def main():
     render([nm + (BLUE, 1.0), cm + (ORANGE, 1.0)], f"{OUT}/bay_iso.png", 28, 62,
            "Camera bay on the box (cover fitted)", bounds=cb, up="y", dpi=150)
     render([nm + (BLUE, 1.0)], f"{OUT}/bay_iso_no_cover.png", 42, 70,
-           "Camera bay, cover removed (XIAO bay, fence, IMU posts, wire window side)",
+           "Camera bay, cover removed (XIAO cradle, locating ribs, USB-C notch, fence, wire window side)",
            bounds=cb, up="y", dpi=150)
     render([nm + (BLUE, 1.0)], f"{OUT}/bay_underside_lens.png", -70, 80,
-           "Underside: 15x15 lens window with 1 mm chamfer", bounds=cb, up="y", dpi=150)
+           "Underside: 14.25 x 16.4 lens window (USB-C end) with 1 mm chamfer", bounds=cb, up="y", dpi=150)
     # vertical section through the bay (x = 0 plane), looking along +X
-    half = (cq.Workplane("XY").box(60, 70, 90, centered=False).translate((0, -1, -115)))
+    half = (cq.Workplane("XY").box(60, 70, 90, centered=False).translate((B.LENS_X, -1, -115)))
     sec = comb.intersect(half).val().moved(to_world)
     sm = tessellate(sec, 0.12, 0.25)
     cs = cover.intersect(cq.Workplane("XY").box(60, 70, 90, centered=False)
-                         .translate((0, -1, -115))).val().moved(to_world)
+                         .translate((B.LENS_X, -1, -115))).val().moved(to_world)
     render([sm + (BLUE, 1.0), tessellate(cs, 0.12, 0.25) + (ORANGE, 1.0)],
-           f"{OUT}/bay_section_front.png", 12, 180, "Section through the bay centre (x = 0), seen from -X",
-           bounds=((ox - 5, oy - 2, oz - 118), (ox + 55, oy + 62, oz - 22)), up="y", dpi=150)
+           f"{OUT}/bay_section_front.png", 12, 180, "Section through the lens centre (x = +4.75), seen from -X",
+           bounds=((ox + B.LENS_X - 5, oy - 2, oz - 118), (ox + B.LENS_X + 55, oy + 62, oz - 22)), up="y", dpi=150)
     for f in sorted(os.listdir(OUT)):
         print(os.path.join(OUT, f))
 

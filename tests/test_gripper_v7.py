@@ -570,7 +570,7 @@ def test_exported_files_present_if_built():
     # preview contains the v7 parts, the tube, the v6 cylinder reference and the camera-bay box
     assert len(solids) >= len(AS.build(None, True)) + 2
     bb = cq.Compound.makeCompound(solids).BoundingBox()
-    assert bb.ymax > 1150.0 and bb.ymin < 600.0           # jaws at the bottom, box at the top
+    assert bb.ymax > 1100.0 and bb.ymin < 600.0           # jaws at the bottom, box at the top (50 mm lower after the D28 cut)
 
 
 # ---- 12. extra evidence --------------------------------------------------------------------------------------
@@ -589,7 +589,9 @@ def test_tube_axis_matches_the_v6_step_read_only(closed):
     assert (bb.xmin + bb.xmax) / 2 == pytest.approx(x6, abs=2e-2)
     assert (bb.zmin + bb.zmax) / 2 == pytest.approx(z6, abs=2e-2)
     assert bb.ymin == pytest.approx(y0, abs=2e-2)
-    assert bb.ymax - bb.ymin == pytest.approx(y1 - y0, abs=2e-2)
+    # D28: tube cut by 50 mm (v6 tube 304.8 -> 254.8); the lower end stays at the v6 position
+    assert bb.ymax - bb.ymin == pytest.approx(y1 - y0 - (P.GRIPV7_TUBE_LEN_V6 - P.GRIPV7_TUBE_LEN), abs=2e-2)
+    assert bb.ymax - bb.ymin == pytest.approx(254.8, abs=2e-2)
 
 
 def test_jaw_swept_against_gears_and_frame_fine_sweep():

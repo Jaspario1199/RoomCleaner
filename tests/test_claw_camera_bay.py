@@ -1,6 +1,6 @@
 """
-Geometry checks for cad/parts/claw_camera_bay.py (camera + IMU bay unioned onto
-the v6 electrical box).  Everything is measured on the built BRep solids with
+Geometry checks for cad/parts/claw_camera_bay.py (XIAO ESP32-S3 Sense camera bay, no IMU
+(D27), unioned onto the v6 electrical box).  Everything is measured on the built BRep solids with
 exact point-in-solid probes, not read back from the module's constants (except
 as the expected values).
 
@@ -105,7 +105,7 @@ def test_single_valid_solids(combined, body, cover, box_bay):
 
 def test_bbox_sanity(combined, body, cover):
     bb = body.val().BoundingBox()
-    assert bb.zmin == pytest.approx(-B.OUT_R1, abs=0.05)       # IMU pocket end wall, r = 129.8
+    assert bb.zmin == pytest.approx(-B.OUT_R1, abs=0.05)       # cradle end wall, r = 101.3
     assert bb.xmin == pytest.approx(-bb.xmax, abs=0.05)         # symmetric: ribs reach +-34.85
     assert bb.xmax < P.CAMBAY_CORNER_HOLE_EXIT_XZ - P.CAMBAY_CORNER_HOLE_KEEPOUT
     assert bb.ymin == pytest.approx(0.0, abs=0.02)          # on the print bed plane with the box
@@ -117,39 +117,50 @@ def test_bbox_sanity(combined, body, cover):
     kb = cover.val().BoundingBox()
     assert kb.zmin == pytest.approx(-B.OUT_R1, abs=0.05)
     assert kb.ymax == pytest.approx(B.Y_TOP, abs=0.05)       # flat outer face, nothing above it
-    # lowest cover feature = the IMU clamp pegs (0.2 mm above the PCB top)
-    assert kb.ymin == pytest.approx(B.IMU_TOP_Y + 0.2, abs=0.05)
+    # lowest cover feature = the XIAO hold-down pegs
+    assert kb.ymin == pytest.approx(B.Y_BOARD0 + P.CAMBAY_PEG_STOP_ABOVE_SEAT, abs=0.05)
 
 
 # ---------------------------------------------------------- optical geometry ----
 def test_lens_window_size_and_chamfer(combined):
     p = Probe(combined)
-    r0 = P.CAMBAY_CAM_R
-    runs = p.run((-12.4, 1.0, r0), (1, 0, 0), 24.8)
+    r0 = B.BOARD_CR + P.CAMBAY_LENS_DR
+    # window along X at the USB-C end (y = 1: above the 1 mm chamfer), measured at the lens radius
+    runs = p.run((-14.5, 1.0, r0), (1, 0, 0), 29.0)
     assert len(runs) == 2
+    assert runs[0][1] - 14.5 == pytest.approx(B.WIN_X0, abs=2 * TOL)
     win_x = runs[1][0] - runs[0][1]
-    assert win_x == pytest.approx(P.CAMBAY_LENS_WINDOW_X, abs=2 * TOL)
-    runs = p.run((0.0, 1.0, r0 - 9.9), (0, 0, 1), 19.8)
+    assert win_x == pytest.approx(B.WIN_X, abs=2 * TOL)
+    # radial size 16.4: lens position +-4 mm plus the 8 mm barrel
+    runs = p.run((B.WIN_XC, 1.0, r0 - 10.2), (0, 0, 1), 20.4)
     assert len(runs) == 2
     win_r = runs[1][0] - runs[0][1]
     assert win_r == pytest.approx(P.CAMBAY_LENS_WINDOW_R, abs=2 * TOL)
-    assert win_x >= 14.0 and win_r >= 14.0
-    # ledge between the window and the cavity edge on the neck side is >= 2.0 mm
-    wide = Probe(combined).run((-12.4, 0.15, r0), (1, 0, 0), 24.8)
-    win_bottom = wide[1][0] - wide[0][1]
-    assert win_bottom > win_x + 1.2          # 1 mm chamfer each side at y~0
-    for y in (0.1, 1.0, 3.0, 6.0):
-        assert not p.inside(0.0, y, r0)
-    # lens-position tolerance: the 8 mm barrel (4.5 mm long) fits with the lens off-centre by +-3 mm
-    for dx, dr in ((3, 0), (-3, 0), (0, 3), (0, -3), (3, 3), (-3, -3)):
-        barrel = (cq.Workplane("XZ").workplane(offset=-B.Y_BOARD0).center(dx, z_of(r0 + dr))
+    assert win_r >= 2 * (P.CAMBAY_LENS_POS_TOL + P.CAMBAY_LENS_BARREL_D / 2)
+    # the window sits at the USB-C end: lens centre +4.75, USB end of the pocket is +11.5
+    assert B.LENS_X == pytest.approx(4.75, abs=1e-9) and B.WIN_X1 < B.CAV_HALF_X
+    # chamfer: bottom mouth is wider by the 1 mm chamfer each side
+    wide = Probe(combined).run((-14.5, 0.15, r0), (1, 0, 0), 29.0)
+    assert (wide[1][0] - wide[0][1]) > win_x + 1.2
+    for y in (0.1, 1.0, 3.0, 6.0, 9.0):
+        assert not p.inside(B.LENS_X, y, r0)
+    # lens-position tolerance: the 8 mm barrel (module protrudes 8 mm below the seat) fits with the
+    # lens 3.9 mm off in -X / +-r and up to the USB-end envelope limit (+2.25) in +X
+    for dx, dr in ((2.25, 0), (-3.9, 0), (0, 3.9), (0, -3.9), (2.25, 3.9), (-3.9, -3.9)):
+        barrel = (cq.Workplane("XZ").workplane(offset=-B.Y_BOARD0).center(B.LENS_X + dx, z_of(r0 + dr))
                   .circle(P.CAMBAY_LENS_BARREL_D / 2).extrude(B.Y_BOARD0 - B.LENS_FRONT_Y))
         assert combined.intersect(barrel).val().Volume() < 0.01, (dx, dr)
+    # 8.5 mm square camera module body at the nominal lens position
+    mod = B._rbox(B.LENS_X - 4.25, B.LENS_X + 4.25, B.LENS_FRONT_Y, B.Y_BOARD0, r0 - 4.25, r0 + 4.25)
+    assert combined.intersect(mod).val().Volume() < 0.01
+    # lens glass height
+    assert B.LENS_FRONT_Y == pytest.approx(P.CAMBAY_LENS_FRONT_Y)
+    assert B.Y_BOARD0 - B.LENS_FRONT_Y == pytest.approx(P.CAMBAY_CAM_PROTRUDE)
 
 
 def test_lens_barrel_and_field_of_view_unclipped(combined):
     """The 70 deg diagonal FOV (35 deg half angle) must leave the tunnel unclipped
-    even with the lens +-3 mm off-centre (lens position is an assumption)."""
+    even with the lens off its nominal position (lens position is an assumption)."""
     lens_y = B.LENS_FRONT_Y
     half = math.radians(P.CAMBAY_FOV_DIAG_DEG / 2)
     V, F = tessellate(combined, 0.2, 0.3)
@@ -169,15 +180,13 @@ def test_lens_barrel_and_field_of_view_unclipped(combined):
             pyr.append([u, -1.0, v])
     pyr = np.array(pyr)
     pyr /= np.linalg.norm(pyr, axis=1, keepdims=True)
-    for dx, dr in ((0, 0), (3, 0), (-3, 0), (0, 3), (0, -3)):
-        origin = np.array([dx, lens_y, z_of(P.CAMBAY_CAM_R + dr)])
+    r0 = B.BOARD_CR + P.CAMBAY_LENS_DR
+    for dx, dr in ((0, 0), (2.25, 0), (-3.9, 0), (0, 3.9), (0, -3.9)):
+        origin = np.array([B.LENS_X + dx, lens_y, z_of(r0 + dr)])
         t = ray_mesh_first_hit(origin, pyr, V, F)
         assert not np.any(t < 15.0), f"sensor pyramid clipped for lens offset ({dx},{dr})"
-    t = ray_mesh_first_hit(np.array([0.0, lens_y, z_of(P.CAMBAY_CAM_R)]), dirs, V, F)
+    t = ray_mesh_first_hit(np.array([B.LENS_X, lens_y, z_of(r0)]), dirs, V, F)
     assert not np.any(t < 15.0), f"circular cone clipped: {np.sort(t)[:5]}"
-    barrel = (cq.Workplane("XZ").workplane(offset=-B.Y_BOARD0).center(0, z_of(P.CAMBAY_CAM_R))
-              .circle(P.CAMBAY_LENS_BARREL_D / 2).extrude(B.Y_BOARD0 - lens_y))
-    assert combined.intersect(barrel).val().Volume() < 0.01
 
 
 # ----------------------------------------------------------- boards fit ----
@@ -186,54 +195,52 @@ def _env(x0, x1, y0, y1, r0, r1):
 
 
 def test_xiao_cradle_and_clearance(combined, cover):
-    L, W, H = P.CAMBAY_XIAO_L, P.CAMBAY_XIAO_W, P.CAMBAY_XIAO_H
-    # nominal board envelope fits, and with 0.29 mm per side (clearance is 0.30)
-    env = _env(-L / 2 - 0.29, L / 2 + 0.29, B.Y_BOARD0, B.Y_BOARD1, B.BOARD_CR - W / 2 - 0.29,
-               B.BOARD_CR + W / 2 + 0.29)
-    assert combined.intersect(env).val().Volume() < 0.05
-    assert cover.intersect(env).val().Volume() < 0.05
-    # and the cradle really is snug: an envelope 0.6 mm per side bigger must collide
-    big = _env(-L / 2 - 0.6, L / 2 + 0.6, B.Y_BOARD0, B.Y_BOARD1, B.BOARD_CR - W / 2 - 0.6,
-               B.BOARD_CR + W / 2 + 0.6)
-    assert combined.intersect(big).val().Volume() > 1.0
-    # board seat: floor of the cradle block at y = 6.4
+    """Generous cradle: pocket 23.0 x 18.6, >= 16 mm above the seat, board 21 x 17.8 + USB-C overhang."""
+    r0 = B.BOARD_CR
+    bl, bw = P.CAMBAY_XIAO_BOARD_L, P.CAMBAY_XIAO_W
+    top = B.Y_STACK_TOP                                          # nominal stack top (7 mm above the seat)
+    # base board + expansion/camera stack above the seat, USB-C 8.94 x 3.3 overhanging +X by 1.5 mm
+    board = _env(B.BOARD_X0 - bl / 2, B.BOARD_X0 + bl / 2, B.Y_BOARD0, top, r0 - bw / 2, r0 + bw / 2)
+    usb = _env(B.BOARD_X0 + bl / 2, B.BOARD_X0 + bl / 2 + P.CAMBAY_XIAO_USB_OVERHANG, top - 3.3, top,
+               r0 - 4.5, r0 + 4.5)
+    for env in (board, usb):
+        assert combined.intersect(env).val().Volume() < 0.05
+        assert cover.intersect(env).val().Volume() < 0.05
+    # even the whole 15 mm stack (as if nothing protruded below the seat) fits under the cover seat
+    full = _env(-P.CAMBAY_XIAO_L / 2, P.CAMBAY_XIAO_L / 2, B.Y_BOARD0, B.Y_BOARD1, r0 - bw / 2, r0 + bw / 2)
+    assert combined.intersect(full).val().Volume() < 0.5       # soft locating ribs only (0.4 proud)
+    # (the cover's four hold-down pegs do reach into that envelope from 11 mm above the seat: by design)
+    # pocket measured away from ribs / notch / vents / fence gap
     p = Probe(combined)
+    ys = B.Y_BOARD0 + 3.0
+    runs = p.run((-14.5, ys, r0 + 8.5), (1, 0, 0), 29.0)
+    assert len(runs) == 2 and runs[1][0] - runs[0][1] == pytest.approx(P.CAMBAY_CRADLE_L, abs=2 * TOL)
+    runs = p.run((3.0, ys, B.HEAD_R1 - 25.0), (0, 0, 1), 28.0)
+    assert runs[-1][0] == pytest.approx(25.0, abs=2 * TOL)   # end wall inner face at HEAD_R1
+    runs = p.run((9.0, ys, B.HEAD_R0 - 4.0), (0, 0, 1), 28.0)
+    assert len(runs) == 2 and runs[1][0] - runs[0][1] == pytest.approx(P.CAMBAY_CRADLE_W, abs=2 * TOL)
+    assert P.CAMBAY_CRADLE_L >= 23.0 and P.CAMBAY_CRADLE_W >= 18.6
+    # internal height above the seat (cover seat - seat plane) >= 16
+    runs = p.run((-8.0, 0.0, r0 + 2.75), (0, 1, 0), B.H_CAV + 1.0)
+    assert len(runs) == 1 and runs[0][1] == pytest.approx(B.Y_BOARD0, abs=2 * TOL)
+    assert B.H_CAV - B.Y_BOARD0 >= 16.0
+    # soft locating ribs: 0.4 proud on both long walls, absent in the wire gap |x| < 4
+    for xc in (-8.0, 7.0):
+        assert p.inside(xc, B.Y_BOARD0 + 3.0, B.HEAD_R1 - P.CAMBAY_LOCATOR_RIB_T / 2)
+        assert not p.inside(xc, B.Y_BOARD0 + 3.0, B.HEAD_R1 - P.CAMBAY_LOCATOR_RIB_T - 0.1)
+        assert p.inside(xc, B.Y_BOARD0 + 3.0, B.HEAD_R0 + P.CAMBAY_LOCATOR_RIB_T / 2)
+    # board seat: floor of the cradle block at y = Y_BOARD0
     assert p.inside(-9.0, B.Y_BOARD0 - 0.1, B.BOARD_CR + 7.0)
     assert not p.inside(-9.0, B.Y_BOARD0 + 0.1, B.BOARD_CR + 7.0)
 
 
-def test_imu_pocket_pads_pegs_ties(combined, cover):
-    L, W, T = P.CAMBAY_IMU_L, P.CAMBAY_IMU_W, P.CAMBAY_IMU_T
-    # repo-selected Adafruit 3886 (26 x 17.8 x 4.6): board + full reservation are void.
-    # Long axis radial, plane parallel to the camera board (both are y = const planes).
-    res = _env(B.IMU_XC - W / 2, B.IMU_XC + W / 2, B.IMU_SEAT_Y, B.IMU_SEAT_Y + P.CAMBAY_IMU_RESERVE_H,
-               B.IMU_RC - L / 2, B.IMU_RC + L / 2)
-    assert combined.intersect(res).val().Volume() < 0.05
-    # the cover touches the reservation only with the 4 clamp pegs at the board corners
-    peg_vol = 4 * P.CAMBAY_IMU_PAD ** 2 * (B.IMU_SEAT_Y + P.CAMBAY_IMU_RESERVE_H - (B.IMU_TOP_Y + 0.2))
-    assert cover.intersect(res).val().Volume() == pytest.approx(peg_vol, abs=1.0)
-    # the pocket is 18.4 x 26.6 (0.3 mm per side), >= 5 mm deep (walls up to the cover seat)
-    p = Probe(combined)
-    ys = B.IMU_SEAT_Y + 1.0
-    runs = p.run((-12.4, ys, B.IMU_RC), (1, 0, 0), 24.8)
-    assert len(runs) == 2 and runs[1][0] - runs[0][1] == pytest.approx(W + 0.6, abs=2 * TOL)
-    runs = p.run((3.0, ys, B.IMU_RC - 14.0), (0, 0, 1), 28.0)
-    assert len(runs) == 2 and runs[1][0] - runs[0][1] == pytest.approx(L + 0.6, abs=2 * TOL)
-    assert B.IMU_RESERVE_TOP - B.FLOOR_T >= 5.0 and B.H_CAV - B.FLOOR_T >= 5.0
-    cx, cr = B._imu_pad_positions()[0]
-    assert p.inside(cx, B.IMU_SEAT_Y - 0.1, cr) and not p.inside(cx, B.IMU_SEAT_Y + 0.1, cr)
-    assert len(B._imu_pad_positions()) == 4
-    pc = Probe(cover)
-    assert pc.inside(cx, B.IMU_TOP_Y + 0.3, cr) and not pc.inside(cx, B.IMU_TOP_Y + 0.1, cr)
-    # two zip-tie loops: a floor slot in each side-block pit straddling the board at each tie r
-    for rt in B.IMU_TIE_R:
-        for sx in (1, -1):
-            xc = sx * (B.IMU_HALF_X + B.CAV_HALF_X) / 2
-            assert not p.inside(xc, 1.0, rt)                      # slot through the floor
-            assert p.inside(xc, 1.0, rt + 2.6)                    # floor continues beside it
-            assert not p.inside(xc, B.FLOOR_T + 3.0, rt)          # pit open above the slot
-    # no screw posts (hole positions unknown): nothing rises between the pads
-    assert not p.inside(B.IMU_XC, B.IMU_SEAT_Y + 0.5, B.IMU_RC)
+def test_no_imu_features(body, cover):
+    """D27: no IMU on the claw -> no IMU pocket, pads, pegs, ties or parameters anywhere."""
+    assert not [n for n in dir(P) if "IMU" in n.upper()]
+    assert not [n for n in dir(B) if "IMU" in n.upper()]
+    bb = body.val().BoundingBox()
+    assert bb.zmin == pytest.approx(-(B.HEAD_R1 + B.WALL), abs=0.05)     # nothing beyond the cradle end wall
+    assert body.val().Volume() < 16000.0
 
 
 def test_antenna_pocket_and_hold_down(cover):
@@ -244,11 +251,13 @@ def test_antenna_pocket_and_hold_down(cover):
     assert cover.intersect(env).val().Volume() < 0.05
     rail = _env(P.CAMBAY_ANT_W / 2 + 0.5, P.CAMBAY_ANT_W / 2 + 1.0, y0 - 1.2, y0 - 0.2, ant_r0 + 5, ant_r0 + 10)
     assert cover.intersect(rail).val().Volume() > 1.0
-    # board hold-down pegs reach to within 0.3 mm of the XIAO envelope top
+    # board hold-down pegs stop 11 mm above the seat (nominal stack top is 7 mm above it)
     p = Probe(cover)
-    px = P.CAMBAY_XIAO_L / 2 - 1.4
-    pr = B.BOARD_CR + P.CAMBAY_XIAO_W / 2 - 1.4
-    assert p.inside(px, B.Y_BOARD1 + 0.35, pr) and not p.inside(px, B.Y_BOARD1 + 0.25, pr)
+    px = B.CAV_HALF_X - 1.4
+    pr = B.BOARD_CR + B.CAV_HALF_R - 1.4
+    y_stop = B.Y_BOARD0 + P.CAMBAY_PEG_STOP_ABOVE_SEAT
+    assert p.inside(px, y_stop + 0.1, pr) and not p.inside(px, y_stop - 0.1, pr)
+    assert y_stop > B.Y_STACK_TOP + 2.0
 
 
 # --------------------------------------------------------------- openings ----
@@ -261,7 +270,13 @@ def test_usb_c_notch_open_top_closed_by_cover(combined, cover):
     assert combined.intersect(plug).val().Volume() < 1e-3
     assert cover.intersect(plug).val().Volume() < 1e-3
     assert P.CAMBAY_USB_PLUG_W >= 13.0 and P.CAMBAY_USB_PLUG_H >= 8.0
-    # open-top notch: void from the sill to the wall top (no roof / lintel), width 13.5
+    # +-1 mm lateral and vertical play for the plug (cable plug can be fitted for flashing in place)
+    for dr, dy in ((0.9, 0.0), (-0.9, 0.0), (0.0, 0.9), (0.0, -0.4)):
+        sh = _env(B.CAV_HALF_X - 0.2, B.OUT_HALF_X + 30.0, B.USB_YC - P.CAMBAY_USB_PLUG_H / 2 + dy,
+                  B.USB_YC + P.CAMBAY_USB_PLUG_H / 2 + dy, r0 - P.CAMBAY_USB_PLUG_W / 2 + dr, r0 + P.CAMBAY_USB_PLUG_W / 2 + dr)
+        assert combined.intersect(sh).val().Volume() < 1e-3, (dr, dy)
+        assert cover.intersect(sh).val().Volume() < 1e-3, (dr, dy)
+    # open-top notch: void from the sill to the wall top (no roof / lintel), width 15.0
     xm = B.CAV_HALF_X + 1.0
     ys = p.run((xm, B.USB_SILL_Y - 3.0, r0), (0, 1, 0), 3.0 + B.H_CAV - B.USB_SILL_Y + 0.5)
     assert len(ys) == 1 and ys[0][1] == pytest.approx(3.0, abs=2 * TOL)        # solid only below the sill
@@ -343,23 +358,23 @@ def test_cable_lines_clear_of_bay(body, cover):
 def test_min_wall_thickness(combined, cover):
     p = Probe(combined)
     r0 = B.BOARD_CR
-    # IMU pocket end wall (between the vent slots), XIAO -X wall (between vents), partition
-    runs = p.run((3.0, 12.0, B.IMU_R1 - 1.0), (0, 0, 1), 4.0)
-    assert abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
-    runs = p.run((-B.OUT_HALF_X - 1.0, 12.0, B.BOARD_CR + 2.75), (1, 0, 0), 4.0)
-    assert abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
+    ys = B.Y_BOARD0 + 5.0
+    # end wall, XIAO -X wall (between vents), +X wall beside the notch, neck-side fence
     runs = p.run((3.0, 12.0, B.HEAD_R1 - 1.0), (0, 0, 1), 4.0)
     assert abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
-    runs = p.run((B.CAV_HALF_X - 1.0, 12.0, B.BOARD_CR + 8.0), (1, 0, 0), 4.0)
+    runs = p.run((-B.OUT_HALF_X - 1.0, ys, r0 + 2.75), (1, 0, 0), 4.0)
+    assert abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
+    runs = p.run((B.CAV_HALF_X - 1.0, ys, r0 + 8.5), (1, 0, 0), 4.0)
     assert runs and abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
-    # fence on the neck side of the XIAO bay
-    runs = p.run((8.0, 10.0, B.HEAD_R0 - 3.0), (0, 0, 1), 4.0)
+    runs = p.run((8.0, B.Y_BOARD0 + 4.0, B.HEAD_R0 - 3.0), (0, 0, 1), 4.0)
     assert runs and abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
-    # ledge between the window and the cavity on the neck side (block reaches 2 mm past the window)
-    runs = p.run((0.0, 4.0, B.BOARD_CR - P.CAMBAY_LENS_WINDOW_R / 2 - 3.0), (0, 0, 1), 3.0)
+    # ledge between the window and the cavity on the neck side (block reaches past the chamfer foot)
+    runs = p.run((B.WIN_XC, 4.0, r0 - P.CAMBAY_LENS_WINDOW_R / 2 - 3.5), (0, 0, 1), 3.5)
     assert runs and runs[0][1] - runs[0][0] >= P.CAMBAY_WALL - 0.1
+    # wall left at the USB-end of the lens window after the chamfer (>= 1.2)
+    assert B.OUT_HALF_X - (B.WIN_X1 + P.CAMBAY_LENS_CHAMFER) >= 1.2
     # vent ligaments between slots
-    assert (0.0 - 1.0) - (-6.0 + 1.0) >= P.CAMBAY_WALL - 1e-9
+    assert 5.5 - 2.0 >= P.CAMBAY_WALL - 1e-9
     # cover plate
     pc = Probe(cover)
     runs = pc.run((0.0, B.H_CAV - 0.5, B.COVER_R0 + 14.0), (0, 1, 0), 4.0)
@@ -367,6 +382,23 @@ def test_min_wall_thickness(combined, cover):
     # floor thickness under the neck
     runs = p.run((0.0, -0.3, 70.4), (0, 1, 0), 4.0)
     assert runs and abs((runs[0][1] - runs[0][0]) - P.CAMBAY_FLOOR_T) < 0.1
+
+
+def test_min_wall_inward_normal_scan(body, cover):
+    """Every wall of bay and cover >= 1.2 mm (inward-normal rays from the facets outside the box wall)."""
+    for name, shp in (("body", body), ("cover", cover)):
+        V, F = tessellate(shp, 0.1, 0.2)
+        tri = V[F]
+        n = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+        area = np.linalg.norm(n, axis=1)
+        keep = area > 0.05
+        n[keep] /= area[keep, None]
+        cen = tri.mean(axis=1)
+        tmin = np.inf
+        for i in np.where(keep & (-cen[:, 2] > 62.0))[0]:
+            t = ray_mesh_first_hit(cen[i] - n[i] * 1e-3, (-n[i])[None, :], V, F)[0]
+            tmin = min(tmin, t)
+        assert tmin >= 1.2, (name, tmin)
 
 
 def test_cover_fasteners_and_boss_walls(combined, cover):
@@ -404,7 +436,7 @@ def test_added_mass_under_30g(combined, box_bay, cover):
     added = combined.val().Volume() - box_bay.val().Volume() + cover.val().Volume()
     mass_g = added / 1000.0 * PETG
     assert 5.0 < mass_g <= 30.0, mass_g
-    assert mass_g < 29.0, "little margin left"
+    assert mass_g < 22.0, mass_g          # IMU removed: was 28.7 g
 
 
 # --------------------------------------------------- STEP round trip ----
@@ -425,8 +457,9 @@ def test_step_round_trip(combined, cover, tmp_path):
 
 def test_pose_helper_consistency():
     assert B.LENS_CENTER_BAY[2] == pytest.approx(S * P.CAMBAY_CAM_R)
+    assert B.LENS_CENTER_BAY[0] == pytest.approx(4.75)
     assert B.OPTICAL_AXIS_BAY == (0.0, -1.0, 0.0)
-    assert math.hypot(B.LENS_CENTER_BAY[0], B.LENS_CENTER_BAY[2]) == pytest.approx(P.CAMBAY_CAM_R)
+    assert abs(B.LENS_CENTER_BAY[2]) == pytest.approx(P.CAMBAY_CAM_R)
 
 
 def test_no_interference_with_other_v6_parts(parts, body):

@@ -548,11 +548,11 @@ def test_masses():
 # =====================================================================================================
 # 8. v6 interfaces kept
 # =====================================================================================================
-def _tube(solids):
+def _tube(solids, length=254.8):
     for s in solids:
         bb = s.BoundingBox()
         d = sorted([bb.xlen, bb.ylen, bb.zlen])
-        if abs(d[2] - 304.8) < 0.5 and abs(d[0] - 28.54) < 0.3:
+        if abs(d[2] - length) < 0.5 and abs(d[0] - 28.54) < 0.3:     # D28: v7 preview tube is 254.8 (cut 50 mm); the v6 STEP tube is 304.8
             return s
     raise AssertionError("tube not found")
 
@@ -563,7 +563,7 @@ def test_tube_interface_vs_v6_and_socket_insertion():
     assert (t7.zmin + t7.zmax) / 2 == pytest.approx(1103.99, abs=1e-2)
     assert t7.ymin == pytest.approx(786.39, abs=2e-2)
     if os.path.exists(V6_STEP):
-        t6 = _tube(cq.importers.importStep(V6_STEP).solids().vals()).BoundingBox()
+        t6 = _tube(cq.importers.importStep(V6_STEP).solids().vals(), 304.8).BoundingBox()
         assert (t7.xmin + t7.xmax) / 2 == pytest.approx((t6.xmin + t6.xmax) / 2, abs=1e-3)
         assert (t7.zmin + t7.zmax) / 2 == pytest.approx((t6.zmin + t6.zmax) / 2, abs=1e-3)
         assert t7.ymin == pytest.approx(t6.ymin, abs=2e-2)

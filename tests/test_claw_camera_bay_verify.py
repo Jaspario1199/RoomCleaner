@@ -1248,7 +1248,8 @@ def test_d28_no_new_interference_between_moved_parts_and_head_or_tube(previews):
         return out
 
     tn, to = table(new), table(old)
-    assert tn == to, (tn, to)                                    # identical (coincident-face noise only: tube/cylinder 0.037, cylinder/box 0.004 mm3)
+    assert set(tn) == set(to), (tn, to)                          # same touching pairs as before the cut
+    assert all(abs(tn[k] - to[k]) < 0.002 for k in tn), (tn, to)  # coincident-face noise only: tube/cylinder 0.037, cylinder/box 0.004-0.005 mm3
     assert max(tn.values()) < 0.05
 
 

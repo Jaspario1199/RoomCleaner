@@ -123,8 +123,16 @@ class ClawConfig:
     T_body_cam: np.ndarray | None = None             # camera pose in body frame
     lowest_point_body_m: np.ndarray | None = None    # e.g. jaw tips
     com_body_m: np.ndarray | None = None             # claw centre of mass in the body frame (None = origin)
-    imu: bool = False
-    grip_tilt_max_rad: float = math.radians(5)
+    imu: bool = False                                # D27: the claw carries NO IMU. True only enables the optional gravity
+                                                     # fusion in perception.VisionSource, which then needs a roll/pitch
+                                                     # provider that is not the claw node (none exists on the hardware)
+    grip_tilt_max_rad: float = math.radians(5)       # host-side grip approval limit (predicted R_at and, when the floor
+                                                     # reference is in view, measured tilt)
+    vision_attitude_sigma_rad: float = 0.010         # honest 1-sigma of roll OR pitch from a vision pose (D27); no IMU
+    statics_attitude_sigma_rad: float = 0.07         # 1-sigma of the cable-model (R_at) tilt: CoM height / payload
+                                                     # sensitivity of a few degrees (verification/multi_attachment_review.md)
+    mount_offset_max_rad: float = math.radians(5)    # startup aborts if the measured camera-to-body tilt offset exceeds
+                                                     # this (mount wrong, or the claw is not resting upright)
     address: str | None = None
 
 
@@ -238,8 +246,9 @@ class CalibrationConfig:
     expanded_box_m: list = field(default_factory=lambda: [0.80, 0.80, 0.50])
     fit_payout_scale: bool = False
     length_sigma_m: float = 0.001                   # spool-model / stretch noise per length reading
-    attitude_sigma_rad: float = 0.004               # fused attitude error (IMU roll/pitch + vision yaw); with
-                                                    # spaced attachments it moves b_i by |b_i| * sigma
+    attitude_sigma_rad: float = 0.010               # roll/pitch error of the attitude used for each sample (D27: vision
+                                                    # only, no IMU; was 0.004 with the IMU); with spaced attachments it
+                                                    # moves b_i by |b_i| * sigma
     onset_sigma_m: float = 0.010                    # taut-onset length observation (low weight)
     data_sv_min: float = 1.0                        # data info >= prior info in every direction
     length_sigma_max_m: float = 0.005               # predicted L sigma allowed in the work volume
@@ -265,6 +274,12 @@ class TaskConfig:
     verify_shift_m: float = 0.25                    # move toward the hamper before pickup verification
     max_grip_attempts: int = 3
     max_consecutive_failures: int = 3
+    # grip approval on the host (D27): wait until the claw is still, then check the tilt
+    grip_still_speed_m_s: float = 0.02              # camera-observed speed below which the claw counts as still
+    grip_still_frames: int = 5                      # ... for this many consecutive frame pairs
+    grip_settle_periods: float = 5.0                # no camera motion signal: dwell this many pendulum periods
+    grip_settle_min_s: float = 2.0                  # floor on that dwell (a short pendulum length gives tiny periods)
+    grip_settle_timeout_s: float = 15.0             # give up waiting for stillness after this long
 
 
 @dataclass
@@ -473,6 +488,9 @@ def load_config(path_or_dict) -> SystemConfig:
         com_body_m=_vec(cd.pop("com_body_m", None), "claw.com_body_m"),
         imu=bool(cd.pop("imu", False)),
         grip_tilt_max_rad=_f(cd.pop("grip_tilt_max_rad", math.radians(5)), "claw.grip_tilt_max_rad"),
+        vision_attitude_sigma_rad=_f(cd.pop("vision_attitude_sigma_rad", 0.010), "claw.vision_attitude_sigma_rad"),
+        statics_attitude_sigma_rad=_f(cd.pop("statics_attitude_sigma_rad", 0.07), "claw.statics_attitude_sigma_rad"),
+        mount_offset_max_rad=_f(cd.pop("mount_offset_max_rad", math.radians(5)), "claw.mount_offset_max_rad"),
         address=cd.pop("address", None),
     )
     if cd:
@@ -531,6 +549,27 @@ def load_config(path_or_dict) -> SystemConfig:
                  ("motion.task_max_height_m", cfg.motion.task_max_height_m)):
         if not isinstance(v, (int, float)) or isinstance(v, bool) or not v >= 0:
             raise ConfigError(f"{k} must be a number >= 0")
+    cl, ca = cfg.claw, cfg.calibration
+    for k, v in (("claw.grip_tilt_max_rad", cl.grip_tilt_max_rad), ("claw.vision_attitude_sigma_rad", cl.vision_attitude_sigma_rad),
+                 ("claw.statics_attitude_sigma_rad", cl.statics_attitude_sigma_rad),
+                 ("claw.mount_offset_max_rad", cl.mount_offset_max_rad),
+                 ("calibration.attitude_sigma_rad", ca.attitude_sigma_rad)):
+        _f(v, k, positive=True, allow_none=False)
+    if not isinstance(cl.imu, bool):
+        raise ConfigError("claw.imu must be true/false")
+    if cl.grip_tilt_max_rad > math.radians(20) or cl.mount_offset_max_rad > math.radians(20):
+        raise ConfigError("claw.grip_tilt_max_rad / mount_offset_max_rad above 20 deg is not a sane limit")
+    if not cl.imu and ca.attitude_sigma_rad < cl.vision_attitude_sigma_rad:
+        raise ConfigError("calibration.attitude_sigma_rad is below claw.vision_attitude_sigma_rad although the claw has "
+                          "no IMU (D27): the calibration would trust the attitude more than vision can deliver")
+    tk = cfg.tasks
+    for k in ("grip_still_speed_m_s", "grip_settle_periods", "grip_settle_timeout_s"):
+        _f(getattr(tk, k), f"tasks.{k}", positive=True, allow_none=False)
+    _f(tk.grip_settle_min_s, "tasks.grip_settle_min_s", allow_none=False)
+    if tk.grip_settle_min_s < 0 or tk.grip_settle_timeout_s < tk.grip_settle_min_s:
+        raise ConfigError("tasks: need 0 <= grip_settle_min_s <= grip_settle_timeout_s")
+    if not isinstance(tk.grip_still_frames, int) or isinstance(tk.grip_still_frames, bool) or tk.grip_still_frames < 2:
+        raise ConfigError("tasks.grip_still_frames must be an integer >= 2")
     k_ = cfg.calibration.bead_k_sigma
     if not isinstance(k_, (int, float)) or isinstance(k_, bool) or not k_ > 0:
         raise ConfigError("calibration.bead_k_sigma must be a positive number")

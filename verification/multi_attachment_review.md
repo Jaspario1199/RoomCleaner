@@ -59,7 +59,7 @@ Code, configs and other tests were not modified.
 
 ## 6. Test counts
 * `OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -q tests/cdpr/test_rigid_body.py tests/cdpr/test_core_models.py tests/cdpr/test_multi_attachment_review.py`: 43 passed (28 + 15). `tests/cdpr/test_kinematics*.py` does not exist.
-* Full `tests/cdpr tests/firmware`: see the chat report (run in the background at the time of writing).
+* Full `tests/cdpr tests/firmware` (incl. my 15): 195 tests, all passed, no failure or skip marker (-q -q run, 195 dots to 100 %). That is the implementer's 180 plus my 15.
 
 ## 7. Verdict
 CONDITIONALLY ACCEPTED as a model and simulator (kinematics, Jacobians, equilibrium, Hessian, point-claw reduction and CAD mouth numbers all verified independently). NOT ACCEPTED as evidence for calibration accuracy or trust: those numbers rest on an IMU that D27 removed, on pre-v7 CAD inputs, and on a sigma increase nobody has explained. Before hardware: findings 1-4.

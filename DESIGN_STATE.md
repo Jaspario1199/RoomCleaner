@@ -403,3 +403,26 @@ Adafruit 3886 MPU-6050 as selected, "not recorded ordered").
   must carry the clamp, not the tube. Alloy unknown (VERIFY).
 - To do: update GRIPV7_TUBE_ID (and OD if not 28.54) once OD is confirmed,
   then rerun the mass roll-up and the claw CoM for the body-frame refresh.
+
+### Correction (10/20, same day): the 0.019 in is the HEAT FIN, not the tube
+- The entry above is wrong: Jasper's 0.019 in (0.48 mm) is the heat fin's
+  sheet thickness. The claw tube wall is unknown (CAD 3 mm), so the tube
+  mass saving above does NOT apply. Keep the tube numbers as before until the
+  tube is measured.
+- Heat fin as built: 0.019 in sheet, not the 1/8 in in
+  cad/parts/motor_heat_plate.py (T = 3.175) and its drawings. The source and
+  exports still describe the 1/8 in design; they are not regenerated, so the
+  printed shop drawings stay as used.
+- Thermal (hand calc, 6061 k 167, still air h 5–9, 200 mm exposed, both
+  faces): fin efficiency 33–44 % (vs 71–81 % at 1/8 in), fin resistance
+  ~19–26 K/W (+~1 K/W contact) vs ~9–14 K/W. gen2_motor_thermal two-node
+  model, motor case steady state:
+  - sealed shell, 1.0 A ≈ 50–53 °C; 1.25 A ≈ 59–64 °C; 1.5 A ≈ 71–78 °C
+  - vented shell, 1.25 A ≈ 53–57 °C; 1.5 A ≈ 63–68 °C
+  - (no fin, sealed: 67 / 84 / 106 °C)
+  The thin fin still roughly halves the temperature rise; 1.25 A is OK
+  sealed or vented, 1.5 A only vented. All assumptions until the hold test.
+- Stack-up: the fin sits between the motor flange and the PETG tab, and is
+  2.7 mm thinner than designed. The motor M3 screws reach 2.7 mm deeper, so
+  check that they don't bottom out in the motor's threaded holes (use screws
+  ~3 mm shorter or add a washer).

@@ -429,3 +429,24 @@ Short answers are enough: a number, a date or "not done". If something was not d
 9. **D1 versus RESEARCH.md** on which gripper was the primary pick (T03).
 10. **Coupon claim.** Outline slide 8 describes a fit-coupon photo with measured insertion results; the record contains none.
 11. **Outline wording to remove.** SPACEX_OUTLINE.md slide 3 ("Who did what") and the "Questions to rehearse" list still refer to an AI assistant and how it was used. The deck must not mention AI tools, so those lines need rewriting in terms of what Jasper did and decided (that file was not edited here).
+
+---
+
+## 5. Answers from Jasper
+
+**Q14 (part), why an aluminium tube (2026-10-20).** "I wanted to use an
+aluminum tube to reduce creep because we want a long length ... so that the
+camera can see everything, then we don't want to use some type of filament
+here." Story notes:
+- The arm must be long so the camera on the upper housing sees the jaws and
+  the floor around them. A long printed arm under constant load creeps (time-
+  dependent strain at constant stress) and would slowly shift the camera
+  relative to the jaws, i.e. the camera-to-gripper calibration.
+- Creep is the right term for the arm (constant load). Stress relaxation
+  (stress decaying at constant strain) is what happens in the printed collars
+  and press fits that grip the tube, so the tube joints need a positive lock
+  (the v6 collar cross-hole has no matching hole in the tube yet).
+- Trade-off to show: v6 tube 28.54 OD x 3 mm wall x 304.8 mm = ~198 g of the
+  450 g claw budget. A 1 mm wall at the same OD is ~71 g (36 % of the mass)
+  with ~41 % of the bending stiffness, still ~14x stiffer than a PETG tube of
+  the 3 mm-wall size (E 69 vs ~2 GPa).

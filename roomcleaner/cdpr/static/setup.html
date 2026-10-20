@@ -46,6 +46,7 @@
     <div><span class="lvl" id="level">level</span> <span class="muted" id="detail"></span></div>
     <ol class="steps" id="steps"></ol>
     <div class="stations" id="stations" style="margin-top:10px"></div>
+    <div class="muted" id="trust" style="margin-top:8px"></div>
     <div class="reasons" id="reasons"></div>
   </div>
 
@@ -92,6 +93,17 @@ async function api(path, body) {
 }
 const cmd = (c, extra={}) => api("/api/command", {cmd:c, ...extra}).then(refresh);
 
+function trustText(t) {
+  if (!t || t.level === "NONE") return "";
+  const mm = x => (x * 1e3).toFixed(0) + " mm", m = t.margin || {};
+  if (t.level === "VERIFIED") {
+    const nums = (m.k_sigma_ceiling_m !== undefined)
+      ? ` (k=${m.k}: ceiling ${mm(m.k_sigma_ceiling_m)} of ${mm(m.ceiling_margin_m)}, walls ${mm(m.k_sigma_wall_m)} of ${mm(m.workspace_margin_m)})` : "";
+    return "Full workspace, checked by " + (t.basis === "beads" ? "bead references" : "the ceiling and wall margins" + nums);
+  }
+  return "Restricted to the calibrated volume" + (t.reasons.length ? " (why: see the reasons below)" : "");
+}
+
 function render(s) {
   $("state").textContent = s.state + (s.busy ? " …" : "");
   $("level").textContent = s.level; $("level").className = "lvl " + s.level;
@@ -101,6 +113,7 @@ function render(s) {
     `<li class="${s.state === "READY" || i < idx ? "done" : (i === idx ? "now" : "")}">${x.replace(/_/g," ").toLowerCase()}</li>`).join("");
   $("stations").innerHTML = Object.entries(s.stations).map(([k, v]) =>
     `<div><b>${k}</b><br><span class="${v.valid ? "ok" : "bad"}">${v.valid ? (v.bead_verified ? "bead ✓" : "visual") : "invalid"}</span></div>`).join("");
+  $("trust").textContent = trustText(s.trust);
   $("reasons").textContent = [s.error, ...(s.reasons || [])].filter(Boolean).join("\n");
   if (!checks.length) {
     checks = s.checklist;

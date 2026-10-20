@@ -30,8 +30,21 @@ changed                                         invalid
 =======================  =====================  ==================  ===============
 
 Levels: NONE (no usable model) < LOCAL_ONLY (visual fit near the start
-region; not allowed to approach beads/corners) < VERIFIED (every required
-bead reference checked and the final validation passed).
+region; tasks stay inside the validated calibration hull) < VERIFIED
+(full-workspace operation).
+
+VERIFIED has a recorded *basis* (decision D26, docs/CONTROL_SYSTEM_V1.md 5/6):
+
+* ``"margin"``: the calibration was accepted, the slack probe was on for the
+  suspended samples with a consistent witness chi-squared, and k*sigma of the
+  claw position relative to each protected boundary is within the ceiling /
+  wall margin everywhere in the commanded workspace (``margin_check`` holds
+  the numbers);
+* ``"beads"``: every bead reference was found and verified (D24 gating).
+
+It is re-decided at every startup; any event below that drops the level also
+clears the basis. ``trust_reasons`` holds plain-language reasons for a level
+below VERIFIED.
 """
 from __future__ import annotations
 
@@ -76,6 +89,9 @@ class TrustLedger:
     marker_valid: bool = False
     camera_calibration_id: str | None = None
     level: str = "NONE"
+    verified_basis: str | None = None  # "margin" | "beads" while level == VERIFIED, else None
+    margin_check: dict | None = None   # numbers behind the last margin decision (k, sigma, margins, worst pose)
+    trust_reasons: list = field(default_factory=list)   # plain reasons the level is below VERIFIED
     recovery_required: bool = False
     claw_supported: bool = False       # FAIL CLOSED: unknown means "may be hanging"; set True only by
                                        # a vision floor check, False before the first lift command
@@ -118,7 +134,7 @@ class TrustLedger:
         for sid in self.stations:
             self.invalidate(sid, "power loss")
         self.claw_supported = True
-        self.level = "NONE"
+        self._lv("NONE")
 
     def on_marker_lost(self):
         self.marker_valid = False
@@ -128,7 +144,7 @@ class TrustLedger:
     def on_camera_calibration(self, cal_id):
         if self.camera_calibration_id is not None and cal_id != self.camera_calibration_id:
             self.marker_valid = False
-            self.level = "NONE"
+            self._lv("NONE")
             self._note("camera calibration changed: visual registration invalid")
         self.camera_calibration_id = cal_id
 
@@ -146,19 +162,40 @@ class TrustLedger:
                 st.source = (st.source or "") + "+restored"
         self._update_level()
 
-    def set_level(self, level):
-        assert level in LEVELS
+    def _lv(self, level):
+        """Assign the level; the basis exists only while VERIFIED."""
         self.level = level
-        self._note(f"level -> {level}")
+        if level != "VERIFIED":
+            self.verified_basis = None
+
+    def set_level(self, level, *, basis=None, margin_check=None, reasons=None):
+        assert level in LEVELS
+        assert basis in (None, "margin", "beads")
+        self._lv(level)
+        if level == "VERIFIED":
+            self.verified_basis = basis
+            self.trust_reasons = []
+        elif reasons is not None:
+            self.trust_reasons = list(reasons)
+        elif level == "LOCAL_ONLY":
+            self.trust_reasons = ["full-workspace trust is decided by a full startup (margin check, D26)"]
+        else:
+            self.trust_reasons = []
+        if margin_check is not None:
+            self.margin_check = margin_check
+        self._note(f"level -> {level}" + (f" (basis: {basis})" if level == "VERIFIED" and basis else ""))
 
     def _update_level(self):
         if not any(st.valid for st in self.stations.values()):
-            self.level = "NONE"
+            self._lv("NONE")
         elif not all(st.valid for st in self.stations.values()):
             if self.level == "VERIFIED":
-                self.level = "LOCAL_ONLY"
+                self._lv("LOCAL_ONLY")
+                self.trust_reasons = [f"station {sid}: reference lost after verification ({st.note or 'invalid'})"
+                                      for sid, st in self.stations.items() if not st.valid]
         if not self.marker_valid and self.level == "VERIFIED":
-            self.level = "LOCAL_ONLY"
+            self._lv("LOCAL_ONLY")
+            self.trust_reasons = ["the marker registration is no longer valid"]
 
     # ------------------------------------------------------------ queries
     def references(self) -> dict:

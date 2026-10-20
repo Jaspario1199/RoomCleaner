@@ -24,7 +24,7 @@ from .simkit import bring_up, build, fast_cfg
 
 
 def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
-    cfg = fast_cfg()
+    cfg = fast_cfg(**{"startup.bead_search": True})      # D26: the bead search is optional (default off); keep exercising its gating here
     r = SimRobot(cfg, seed=0, data_dir=tmp_path)
     sup = Supervisor(r.ctx, state_path=tmp_path / "state.json", ledger_path=tmp_path / "ledger.json")
     assert sup.state == "DISARMED"
@@ -39,9 +39,10 @@ def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
     assert m["calibration"]["witness_rms_m"] < cfg.calibration.witness_rms_max_m
     assert (tmp_path / "calibration.json").exists()
     # beads: vision alone cannot pin absolute lengths tightly enough for a safe,
-    # complete search with these settings, so they are honestly BLOCKED, not tried
-    assert r.ctx.ledger.level == "LOCAL_ONLY"
-    assert all(b["status"] == "BLOCKED" for b in m["beads"].values())
+    # complete search with these settings, so they are honestly BLOCKED, not tried;
+    # the slack probe is off here, so the margin rule (D26) does not grant VERIFIED either
+    assert r.ctx.ledger.level == "LOCAL_ONLY" and r.ctx.ledger.verified_basis is None
+    assert m["beads"] and all(b["status"] == "BLOCKED" for b in m["beads"].values())
     for i, s in enumerate(IDS):                    # the reported absolute sigma covers the true error
         err = abs(r.ctx.model.maps[s].L0 - r.world.true_L0(s))
         assert err < 3.5 * m["absolute_sigma_m"][i] + 0.002

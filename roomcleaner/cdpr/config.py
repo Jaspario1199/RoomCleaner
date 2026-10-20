@@ -207,6 +207,11 @@ class StartupConfig:
                                                      # same pose: half of the floor take-up's absolute 2 mm)
     probe_overshoot_max_m: float = 0.006             # skip a cable whose detection needs more over-retraction
     probe_response_sigma: float = 0.5                # relative 1-sigma of the predicted claw response
+    # D26: beads are end-of-travel switches. The bead SEARCH (REFERENCE_VERIFICATION, homing.py) is optional
+    # and off by default; full-workspace trust (VERIFIED) is granted by the ceiling / wall margins instead
+    # (startup.py ``assess_margin_trust``). If on, D24's gating (k*sigma <= window, 2*k*sigma <= overtravel)
+    # still applies and a verified bead is extra evidence.
+    bead_search: bool = False
 
 
 @dataclass
@@ -513,6 +518,15 @@ def load_config(path_or_dict) -> SystemConfig:
         raise ConfigError("startup.probe_frames_max must be an integer >= probe_frames")
     if not isinstance(su.slack_probe, bool):
         raise ConfigError("startup.slack_probe must be true/false")
+    if not isinstance(su.bead_search, bool):
+        raise ConfigError("startup.bead_search must be true/false")
+    for k, v in (("motion.workspace_margin_m", cfg.motion.workspace_margin_m),
+                 ("motion.ceiling_margin_m", cfg.motion.ceiling_margin_m)):
+        if not isinstance(v, (int, float)) or isinstance(v, bool) or not v >= 0:
+            raise ConfigError(f"{k} must be a number >= 0")
+    k_ = cfg.calibration.bead_k_sigma
+    if not isinstance(k_, (int, float)) or isinstance(k_, bool) or not k_ > 0:
+        raise ConfigError("calibration.bead_k_sigma must be a positive number")
     return cfg
 
 

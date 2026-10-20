@@ -687,6 +687,77 @@ class Calibrator:
         A = np.linalg.pinv(Hq) @ G
         return float(math.sqrt(np.trace(A @ C @ A.T) / 3))
 
+    def boundary_sigma(self, res: CalibrationResult, q_M, R=None, extra_len_sigma=None) -> dict:
+        """1-sigma (m) of the claw's position relative to the boundary each margin protects, for the
+        pose ``q_M`` (marker frame) the planner would command from this result (D26).
+
+        The model error is ``eps = true - estimated`` over (anchors in the marker frame, L0, marker pose
+        psi = (x, y, yaw) in the room), with covariance ``res.cov_theta``. Motor positions are computed from the
+        estimate, so the physical claw does not sit at ``q_M`` but at ``q_M + dq`` where the cable equations
+        ``u_i . dq = u_i . da_i - dL0_i - e_i`` hold (``u_i`` = unit claw-to-anchor vector, ``e_i`` = optional extra
+        independent per-cable length error, e.g. the payout scale). Four cables over-constrain a point claw: with
+        any length error it hangs on three cables (the fourth slack; which one depends on the pose and on the
+        realised error), so ``dq = Pm (G eps - e)`` is evaluated for the four-cable least-squares solution
+        (``Pm = pinv(U)``) AND for each of the four three-cable solutions, and every sigma below is the largest
+        of the five (it bounds whichever cable ends up slack). ``G`` holds the rows of :meth:`length_sigma`.
+        Two boundaries, two quantities:
+
+        * ceiling (``motion.ceiling_margin_m`` below the *fitted anchors*): the workspace top is built from the
+          fitted anchors, so only the claw position RELATIVE TO THE TRUE ANCHORS matters, which does not involve
+          the room registration: ``r_i = da_i - dq``. Returned: ``ceiling_z`` = max over i of the sd of the
+          vertical component of ``r_i`` (clearance under the anchor plane) and ``ceiling_dist`` = max over i of the
+          sd of the claw-to-anchor distance error (``dL0_i + e_i`` for a taut cable, ``u_i . r_i`` for a slack
+          one, whichever is larger; the quantity a bead would have checked); ``ceiling`` is the larger of the two.
+        * walls (``motion.workspace_margin_m`` inside ``room_m``, a ROOM-frame boundary): the room position
+          of the claw is ``Rz(yaw) q_M + t``, so the error of the marker registration (x, y, yaw x lever arm)
+          adds to ``dq``: ``e_room = Rz(yaw_est) dq + dyaw * z_hat x (Rz q_M) + (dx, dy, 0)``. Returned:
+          ``wall_x``, ``wall_y`` (sd of the room x / y error) and ``wall`` = the larger.
+        """
+        R = np.eye(3) if R is None else R
+        lay = Layout(0, res.fit_scale)
+        nt = lay.n_theta
+        C = np.asarray(res.cov_theta, float)                      # (nt + 3)^2 : theta then psi
+        n = C.shape[0]
+        U = np.zeros((4, 3))
+        G = np.zeros((4, n))
+        for i in range(4):
+            d = res.anchors_M[i] - (np.asarray(q_M, float) + R @ self.attach[i])
+            u = d / np.linalg.norm(d)
+            U[i] = u
+            G[i, lay.a(i)] = u
+            G[i, lay.L0(i)] = -1.0
+        Ce = np.zeros((4, 4)) if extra_len_sigma is None else np.diag(np.asarray(extra_len_sigma, float) ** 2)
+        Rz = rot_z(float(res.psi[2]))
+        w = Rz @ np.asarray(q_M, float)                           # marker origin -> claw, in the room frame
+        solutions = [np.linalg.pinv(U)]                           # (3, 4) maps length mismatch -> dq
+        for omit in range(4):
+            Pm = np.zeros((3, 4))
+            keep = [i for i in range(4) if i != omit]
+            Pm[:, keep] = np.linalg.pinv(U[keep])
+            solutions.append(Pm)
+        out = dict.fromkeys(("ceiling_z", "ceiling_dist", "wall_x", "wall_y"), 0.0)
+        for Pm in solutions:
+            Aq = Pm @ G                                           # dq = Aq eps  (marker frame)
+            Cq_extra = Pm @ Ce @ Pm.T
+            for i in range(4):                                    # ceiling: relative to each true anchor
+                S = np.zeros((3, n))
+                S[:, lay.a(i)] = np.eye(3)
+                M = S - Aq
+                Cr = M @ C @ M.T + Cq_extra
+                out["ceiling_z"] = max(out["ceiling_z"], math.sqrt(max(Cr[2, 2], 0.0)))
+                out["ceiling_dist"] = max(out["ceiling_dist"], math.sqrt(max(U[i] @ Cr @ U[i], 0.0)),
+                                          math.sqrt(C[lay.L0(i), lay.L0(i)] + Ce[i, i]))
+            E = Rz @ Aq                                           # walls: room frame
+            E[:, nt] += (1.0, 0.0, 0.0)
+            E[:, nt + 1] += (0.0, 1.0, 0.0)
+            E[:, nt + 2] += (-w[1], w[0], 0.0)
+            Cw = E @ C @ E.T + Rz @ Cq_extra @ Rz.T
+            out["wall_x"] = max(out["wall_x"], math.sqrt(max(Cw[0, 0], 0.0)))
+            out["wall_y"] = max(out["wall_y"], math.sqrt(max(Cw[1, 1], 0.0)))
+        out["ceiling"] = max(out["ceiling_z"], out["ceiling_dist"])
+        out["wall"] = max(out["wall_x"], out["wall_y"])
+        return out
+
     def validate(self, res: CalibrationResult, witnesses: list, volume_pts_M=None) -> dict:
         """Witness check (held-out poses) plus the acceptance criteria listed in
         the module docstring. Returns a report with 'accepted' and reasons."""

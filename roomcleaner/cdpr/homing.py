@@ -1,5 +1,11 @@
 """Bead reference verification (sequential, one station at a time).
 
+OPTIONAL since decision D26 (``startup.bead_search``, off by default): absolute-length safety comes
+from the ceiling / wall margins (``StartupSequencer.assess_margin_trust``); the beads are
+end-of-travel switches (a switch opening during normal motion faults the station and drops the
+trust level). When the search is enabled, the gating below is unchanged and an all-verified
+search grants VERIFIED on the basis "beads".
+
 Each cable carries a bead near the claw end. When the cable is shortened to
 ``trigger_length_m`` the bead actuates the station's NC switch. Because the
 beads sit near the claw, a bead can only be reached by flying the claw close

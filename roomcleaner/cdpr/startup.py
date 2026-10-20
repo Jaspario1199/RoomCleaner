@@ -42,9 +42,19 @@ CALIBRATION
     taut, and the motor positions are restored afterwards (so the planner's
     model-consistent positions are unchanged).
 REFERENCE_VERIFICATION
-    bead verification, one station at a time (homing.py).
+    trust decision (decision D26). Full-workspace operation (VERIFIED) is granted
+    by the MARGINS, not by bead precision, if at this startup (a) the calibration
+    was accepted, (b) the slack probe was on for the suspended samples and the
+    witness chi-squared is consistent, and (c) k*sigma <= the ceiling / wall
+    margin everywhere in the commanded workspace, sigma being the predicted
+    1-sigma of the claw position relative to the boundary the margin protects
+    (``assess_margin_trust``, ``Calibrator.boundary_sigma``). The bead search
+    (one station at a time, homing.py) is optional (``startup.bead_search``,
+    off by default); D24's gating still applies when it runs and an all-verified
+    search is VERIFIED on the basis "beads". Beads are otherwise end-of-travel
+    switches: one opening during normal motion faults the station.
 READY
-    level VERIFIED (all beads verified) or LOCAL_ONLY (stated reasons).
+    level VERIFIED (basis "margin" or "beads") or LOCAL_ONLY (stated reasons).
 
 Tension is NOT measured in V1 (open decision, see docs): the lift and the
 calibration rely on geometric consistency checks instead, which bound but do
@@ -186,10 +196,10 @@ class RobotContext:
         self._bead_margin()
 
     def _bead_margin(self):
-        """Until the beads are verified the absolute length can be off by
-        k*sigma_abs: widen the normal-motion keep-out from each bead so an
-        ordinary move cannot pull a bead onto its switch (review M2)."""
-        if self.result is None or self.ws is None or self.ledger.level == "VERIFIED":
+        """Until a station's bead is verified (D26: also when VERIFIED by margin, where the bead is only an
+        end-of-travel switch) the absolute length can be off by k*sigma_abs: widen the normal-motion
+        keep-out from each bead so an ordinary move cannot pull a bead onto its switch (review M2)."""
+        if self.result is None or self.ws is None:
             return
         k = self.cfg.calibration.bead_k_sigma
         sig = self.cal.absolute_sigma(self.result)
@@ -273,6 +283,7 @@ class StartupSequencer:
         self.noise_m = 0.001
         self.p_floor = None
         self.probe_log: list = []               # one record per probed pose (slack_probe)
+        self.cal_report: dict | None = None     # last acceptance report of the final calibration
 
     # -------------------------------------------------------------- helpers
     def _enter(self, state, msg=""):
@@ -808,6 +819,7 @@ class StartupSequencer:
         res = ctx.cal.fit(fit, ctx.onsets, L0_init=ctx.result.L0, psi_inits=[ctx.result.psi])
         vol = self._work_volume(res)
         report = ctx.cal.validate(res, wit, [to_marker(res.T_R_M, q) for q in vol])
+        self.cal_report = report
         self.rep.measurements["calibration"] = {k: v for k, v in report.items()}
         ctx.save("calibration.json", {"result": res.to_jsonable(), "validation": report, "slack_probe": self.probe_log})
         if self.probe_log:
@@ -821,9 +833,9 @@ class StartupSequencer:
         ctx.validated_volume = np.array(ok_pts)
         ctx.save_model()
         if report["accepted"]:
-            ctx.ledger.set_level("LOCAL_ONLY")      # VERIFIED only after the beads
+            ctx.ledger.set_level("LOCAL_ONLY")      # VERIFIED is decided in REFERENCE_VERIFICATION (D26)
         else:
-            ctx.ledger.set_level("LOCAL_ONLY")
+            ctx.ledger.set_level("LOCAL_ONLY", reasons=report["reasons"])
             self.rep.reasons.extend(report["reasons"])
         self.rep.measurements["validated_points"] = f"{len(ok_pts)}/{len(vol)}"
 
@@ -848,14 +860,118 @@ class StartupSequencer:
                                                        t_max=cfg.motion.max_tension_n).feasible]
 
     # ------------------------------------------------- REFERENCE_VERIFICATION
+    def _margin_volume(self, res, n=(9, 9, 5)):
+        """Commanded-workspace poses (room frame, tension-feasible, top plane and all four walls included)."""
+        ctx, cfg = self.ctx, self.cfg
+        lo, hi = ctx.ws.lo.copy(), ctx.ws.hi.copy()
+        lo[2] = min(lo[2] + cfg.startup.target_clearance_m, hi[2])
+        pts = box_candidates((lo + hi) / 2, (hi - lo) / 2, n)
+        geo = Geometry(res.anchors_room, cfg.attachment_points())
+        return [q for q in pts if tension_distribution(geo, q, cfg.claw.mass_kg, t_min=cfg.motion.min_tension_n,
+                                                       t_max=cfg.motion.max_tension_n).feasible]
+
+    def assess_margin_trust(self, res=None) -> dict:
+        """Decision D26: may the robot use the whole workspace without beads? Evaluated at every startup.
+
+        (a) the final calibration was accepted (the five criteria of ``Calibrator.validate``);
+        (b) ``startup.slack_probe`` was on for every suspended sample and the witness chi-squared is consistent
+            (otherwise the predicted sigma is not honest: slack reads as length error);
+        (c) ``k * sigma <= margin`` for both margins, ``k = calibration.bead_k_sigma``, over the whole commanded
+            workspace, with sigma from ``Calibrator.boundary_sigma``, the 1-sigma of the claw's position relative
+            to the boundary the margin protects:
+              ceiling margin (below the fitted anchors): claw-to-anchor vertical and distance error, which does
+                not involve the room registration;
+              workspace margin (inside the walls, a room-frame boundary): the room x / y error, which adds the
+                marker registration (x, y, yaw x lever arm) to the claw position error.
+            The payout-scale uncertainty (``calibration.payout_scale_sigma`` x the cable-length change from the
+            nearest fitted sample) is added to every pose as an independent per-cable length error.
+
+        Returns a JSON-able dict (also stored in the ledger); ``ok`` only if (a), (b), (c) hold and every station
+        reference and the marker registration are valid.
+        """
+        ctx, cfg = self.ctx, self.cfg
+        cc, mo, su = cfg.calibration, cfg.motion, cfg.startup
+        res = ctx.result if res is None else res
+        k = float(cc.bead_k_sigma)
+        out = {"k": k, "ceiling_margin_m": float(mo.ceiling_margin_m), "workspace_margin_m": float(mo.workspace_margin_m),
+               "ok": False, "reasons": []}
+        why = out["reasons"]
+        rep = self.cal_report
+        # (a)
+        out["calibration_accepted"] = bool(rep and rep["accepted"])
+        if rep is None:
+            why.append("no calibration acceptance report (calibration did not complete)")
+        elif not rep["accepted"]:
+            why.append("calibration not accepted: " + "; ".join(rep["reasons"]))
+        # (b)
+        smp = list(ctx.samples)
+        n_probed = sum(1 for x in smp if x.probe is not None)
+        out["slack_probe"] = bool(su.slack_probe)
+        out["probed_samples"] = f"{n_probed}/{len(smp)}"
+        out["readings_probed"] = (self._probe_summary()["readings_probed"] if self.probe_log else 0)
+        chi2 = None if rep is None else rep.get("witness_chi2_dof")
+        out["witness_chi2_dof"] = None if chi2 is None or not math.isfinite(chi2) else float(chi2)
+        out["witness_chi2_max"] = float(cc.norm_rms_max) ** 2
+        if not su.slack_probe:
+            why.append("slack probe was off: the predicted sigma is not honest (slack reads as length error); "
+                       "enable startup.slack_probe")
+        elif not smp or n_probed != len(smp):
+            why.append(f"the slack probe did not cover every suspended sample ({n_probed}/{len(smp)})")
+        if out["witness_chi2_dof"] is None:
+            why.append("no witness chi-squared (no held-out witness poses)")
+        elif out["witness_chi2_dof"] > out["witness_chi2_max"]:
+            why.append(f"witness chi-squared {out['witness_chi2_dof']:.2f} > {out['witness_chi2_max']:.1f}: "
+                       "errors at held-out poses exceed their predicted sigma")
+        # (c)
+        if res is not None and ctx.ws is not None:
+            fit = [x for x in smp if x.kind == "fit"]
+            geo = Geometry(res.anchors_M, cfg.attachment_points())
+            Ls = np.array([geo.lengths(x.p, x.R) for x in fit]) if fit else None
+            pts = self._margin_volume(res)
+            worst = {"ceiling": (-1.0, None, ""), "wall": (-1.0, None, "")}
+            for q in pts:
+                qM = to_marker(res.T_R_M, q)
+                extra = None
+                if Ls is not None:
+                    extra = cc.payout_scale_sigma * np.min(np.abs(Ls - geo.lengths(qM)[None, :]), axis=0)
+                b = ctx.cal.boundary_sigma(res, qM, extra_len_sigma=extra)
+                comps = {"ceiling": (("vertical", b["ceiling_z"]), ("distance", b["ceiling_dist"])),
+                         "wall": (("x", b["wall_x"]), ("y", b["wall_y"]))}
+                for key in worst:
+                    if b[key] > worst[key][0]:
+                        worst[key] = (b[key], np.asarray(q, float), max(comps[key], key=lambda c: c[1])[0])
+            out["n_poses"] = len(pts)
+            for key, margin in (("ceiling", mo.ceiling_margin_m), ("wall", mo.workspace_margin_m)):
+                sg, q, comp = worst[key]
+                out[f"sigma_{key}_m"] = float(sg)
+                out[f"k_sigma_{key}_m"] = float(k * sg)
+                out[f"worst_pose_{key}_room_m"] = None if q is None else [round(float(v), 4) for v in q]
+                out[f"worst_component_{key}"] = comp
+                if q is None:
+                    why.append(f"{key}: no feasible pose in the workspace to evaluate")
+                elif k * sg > margin:
+                    name = "ceiling margin" if key == "ceiling" else "workspace (wall) margin"
+                    what = ("claw-to-anchor " + comp) if key == "ceiling" else ("room-" + comp)
+                    why.append(f"{k:g} x sigma = {k * sg * 1e3:.0f} mm ({what} error, sigma {sg * 1e3:.1f} mm) exceeds the "
+                               f"{margin * 1e3:.0f} mm {name} at pose {np.round(q, 2).tolist()}")
+        else:
+            why.append("no calibrated model to evaluate the margins")
+        if not ctx.ledger.all_valid() or not ctx.ledger.marker_valid:
+            why.append("a station reference or the marker registration is not valid")
+        out["ok"] = not why
+        return out
+
     def verify_references(self):
         from .homing import BeadVerifier
         ctx, S = self.ctx, "REFERENCE_VERIFICATION"
-        missing = self.cfg.missing("bead_verification")
+        cal_reasons = list(self.rep.reasons)                 # why the calibration itself was not accepted
+        outcomes, bead_notes = {}, []
         home = ctx.model.pose_from_positions(ctx.co.positions())[0]
-        outcomes = {}
-        if missing:
-            self.rep.reasons.append(f"bead verification blocked: unmeasured {missing}")
+        missing = self.cfg.missing("bead_verification") if self.cfg.startup.bead_search else []
+        if not self.cfg.startup.bead_search:
+            bead_notes.append("bead search off (startup.bead_search): beads are end-of-travel switches only")
+        elif missing:
+            bead_notes.append(f"bead verification blocked: unmeasured {missing}")
         else:
             # absolute sigma + spool-model (payout scale) error over the distance
             # between the calibrated region and the bead (review M3)
@@ -871,7 +987,7 @@ class StartupSequencer:
                     ctx.ledger.invalidate(sid, f"bead verification fault: {out.reason}")
                     raise StartupAbort(S, f"station {sid}: {out.reason}", suspended=True)
                 if out.status != "VERIFIED":
-                    self.rep.reasons.append(f"bead {sid}: {out.reason}")
+                    bead_notes.append(f"bead {sid}: {out.reason}")
                     continue
                 bead = self.cfg.stations[i].bead
                 for P in out.captures:
@@ -895,8 +1011,25 @@ class StartupSequencer:
                                               "spread_m": o.spread_m,
                                               "residuals_m": [c.residual for c in o.checks]}
                                           for s, o in outcomes.items()}
-        if outcomes and all(o.status == "VERIFIED" for o in outcomes.values()) and not self.rep.reasons:
-            ctx.ledger.set_level("VERIFIED")
+        # ---- the trust decision (D26)
+        margin = self.assess_margin_trust()
+        margin["bead_notes"] = bead_notes
+        self.rep.measurements["margin_trust"] = margin
+        beads_all = bool(outcomes) and all(o.status == "VERIFIED" for o in outcomes.values())
+        if beads_all and not cal_reasons:
+            basis, reasons = "beads", []
+        elif margin["ok"]:
+            basis, reasons = "margin", []                    # a BLOCKED bead does not prevent this (D26)
         else:
-            ctx.ledger.set_level("LOCAL_ONLY")
-        ctx.save("trust.json", {"level": ctx.ledger.level, "history": ctx.ledger.history})
+            basis = None
+            reasons = margin["reasons"] + [n for n in bead_notes if not n.startswith("bead search off")]
+            # (the calibration's own rejection reasons were already reported by calibrate())
+            self.rep.reasons.extend(r for r in reasons if r not in self.rep.reasons
+                                    and not (cal_reasons and r.startswith("calibration not accepted")))
+        if basis:
+            ctx.ledger.set_level("VERIFIED", basis=basis, margin_check=margin)
+        else:
+            ctx.ledger.set_level("LOCAL_ONLY", reasons=reasons, margin_check=margin)
+        ctx.save("trust.json", {"level": ctx.ledger.level, "basis": ctx.ledger.verified_basis,
+                                "margin_check": margin, "reasons": ctx.ledger.trust_reasons,
+                                "history": ctx.ledger.history})

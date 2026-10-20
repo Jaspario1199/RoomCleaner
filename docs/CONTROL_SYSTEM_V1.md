@@ -29,7 +29,8 @@ run a stage whose numbers are missing.
    calibration**.
 4. The page walks through SELF_CHECK → SLACK_TAKEUP → INITIAL_LIFT →
    VISUAL_INITIALIZATION → CALIBRATION → REFERENCE_VERIFICATION → READY and
-   shows the trust level (VERIFIED or LOCAL_ONLY) with plain reasons.
+   shows the trust level (VERIFIED or LOCAL_ONLY), what VERIFIED rests on
+   (the margin numbers, or beads) and, if restricted, the plain reasons.
 5. **PAUSE** holds position at any time. The switched power strip is the
    emergency stop and drops the claw.
 
@@ -172,6 +173,18 @@ the spool, or absolute multi-turn length: a reboot starts a new epoch and
 | marker moved / missing | kept | marker registration invalid | LOCAL_ONLY until re-registered |
 | camera calibration changed | kept | visual products invalid | NONE for vision |
 
+**Basis of VERIFIED (D26).** VERIFIED means "the whole commanded workspace may
+be used" and is never granted silently. The ledger records
+`verified_basis` (`"margin"` or `"beads"`), `margin_check` (k, sigma, margin,
+k·sigma and worst pose for the ceiling and for the walls, the probe coverage,
+the witness chi-squared, the bead notes) and, below VERIFIED, `trust_reasons`
+in plain words. It is re-decided at every startup (§6.5); any event in the
+table above that lowers the level also clears the basis and states which
+station or registration was lost. `/api/status` carries it as
+`trust: {level, basis, full_workspace, reasons, margin}` and the setup page
+prints it under the level. Ledgers written before D26 load with the new
+fields empty.
+
 A reboot of anything never resumes a task or a startup. `claw_supported`
 fails closed:
 * unknown means "may be hanging";
@@ -200,8 +213,8 @@ abort conditions. Aborts **hold**; they never disable.
 | INITIAL_LIFT | all cables to just-taut, then vertical packets computed from the model's cable directions; vision after each | lateral drift > max, tilt > max, commanded − observed lift > budget, no clearance by `max_lift_m` |
 | VISUAL_INITIALIZATION | still pose while suspended → refit (with `startup.slack_probe`: probed first, §6.1a) | marker lost |
 | CALIBRATION | staged excitation: local box → intermediate → expanded, D-optimal poses + held-out witnesses, refit between stages (with `startup.slack_probe`: every pose probed first, §6.1a) | witness, residual, ambiguity or outlier failure; probe: no taut onset within `probe_max_m`, claw moved > 10 mm without onset |
-| REFERENCE_VERIFICATION | bead per station, sequentially (§6.4); verified captures refit jointly | bead fault; refit rejected |
-| READY | trust level VERIFIED (all beads verified) or LOCAL_ONLY with stated reasons | — |
+| REFERENCE_VERIFICATION | the trust decision (§6.5): margin check `assess_margin_trust`; the bead search per station (§6.4) only if `startup.bead_search` (default off), verified captures refit jointly | bead fault; refit rejected |
+| READY | trust level VERIFIED (basis `margin`, or `beads` if every bead was verified) or LOCAL_ONLY with stated reasons | — |
 
 ### 6.1a Per-pose slack probe (`startup.slack_probe`, opt-in, simulation-validated only)
 
@@ -303,7 +316,18 @@ sample positions marginalised and the predicted vision covariance at each pose.
 Witnesses are the farthest-apart remaining poses. Poses are toured
 nearest-neighbour.
 
-### 6.4 Bead verification — why it is gated on *absolute* length
+### 6.4 Bead verification — optional since D26; why it is gated on *absolute* length
+
+Since D26 the bead search is **optional** (`startup.bead_search`, default
+false) and the beads are end-of-travel switches: a switch that opens during
+normal motion faults the station (SWITCH, §4, `station_core._check_switch`)
+and the ledger drops to LOCAL_ONLY/RECOVERY. Absolute-length safety comes from
+the margins (§6.5). If the search is enabled the gating below is unchanged, a
+verified bead is extra evidence, an all-verified search is VERIFIED on the
+basis `beads`, and a BLOCKED bead no longer prevents VERIFIED by itself when
+the margin rule holds. The normal-motion keep-out from each unverified bead
+still carries `k·σ_abs` (`RobotContext._bead_margin`), now also while
+VERIFIED by margin.
 
 A bead checks the **absolute** length of one cable. Vision determines
 absolute length poorly: anchor range and `L0` trade off along each cable.
@@ -332,7 +356,65 @@ established.
 at 20–25 mm, with actual errors of −38 to +21 mm, so the 3σ claims held. With
 `overtravel = 12 mm` the gate requires σ ≤ 2 mm, so all four beads were
 **BLOCKED** and the robot finished at **LOCAL_ONLY**. This is the honest
-outcome, not a bug. Options are in §9 (open decision D-B).
+outcome, not a bug. Decision D-B is resolved by D26 (§6.5, §9).
+
+### 6.5 Margin trust (D26): full-workspace operation without beads
+
+**Rule.** The workspace is the room inset by `workspace_margin_m` (0.2 m) from
+the walls, and `ceiling_margin_m` (0.4 m) below the fitted anchors
+(`kinematics.workspace_from_config`). The robot starts near the room centre
+on the floor reference, so gross slack is caught on the floor by the bounded
+take-up. VERIFIED (basis `margin`) is granted by `StartupSequencer.assess_margin_trust`,
+at every startup, only if all hold:
+
+* (a) the final calibration was **accepted** (`Calibrator.validate`: witnesses,
+  identifiability, residual adequacy, uniqueness, outliers, and predicted
+  length sigma ≤ `length_sigma_max_m` over the work volume);
+* (b) `startup.slack_probe` was on for **every** suspended sample (otherwise
+  sub-3 mm slack reads as length error and the predicted sigma is not
+  honest, §6.1a) and the witness chi-squared is ≤ `norm_rms_max`²;
+* (c) `k·σ ≤ margin` for **both** margins at every pose of the commanded
+  workspace (9×9×5 grid of the workspace box, tension-feasible poses, all four
+  walls and the top plane included), `k = calibration.bead_k_sigma`, with σ
+  below. The same station references and marker registration must still be
+  valid.
+
+Otherwise the level is LOCAL_ONLY (tasks stay in the validated hull) and the
+failed items are listed in plain words.
+
+**Which sigma.** The margin protects a *physical clearance*, so σ is the
+1-sigma of the claw's true position relative to the boundary, not the
+cable-length consistency of §6.2 and not simply the bead's `σ_abs` (the
+posterior of `L0`). `Calibrator.boundary_sigma` derives it from the full
+posterior covariance of (anchors in the marker frame, `L0`, marker pose
+x, y, yaw). Motor positions are computed from the estimate, so with model
+error `ε` (true − estimated) the true claw sits at the commanded pose plus
+`dq`, from the cable equations `u_i·dq = u_i·da_i − dL0_i − e_i`
+(`u_i` unit claw-to-anchor vectors, `e_i` the payout-scale error). Four
+cables over-constrain a point claw, so with any mismatch it hangs on
+three; which one is slack depends on pose and realisation. `dq` is therefore
+evaluated for the four-cable least-squares solution and for each of the four
+three-cable solutions, and every σ is the largest of the five. Then:
+
+| Margin | Boundary | Defined in | σ used (maximum over the workspace) |
+|---|---|---|---|
+| `ceiling_margin_m` | claw vs the **anchors / pulleys** | the fitted anchors (the workspace top is `min(anchor z) − margin`) | claw position **relative to the true anchors**, `r_i = da_i − dq`: the larger of the vertical component of `r_i` (clearance under the anchor plane) and the claw-to-anchor distance error (= the cable-length error of a taut cable), over the four anchors. The marker registration does not enter: the ceiling moves with the anchors. |
+| `workspace_margin_m` | claw vs the **walls** | the **room frame** (`room_m`), which is related to the fitted geometry only through the marker pose | room x and y error of the claw: `Rz(yaw) dq + dyaw·(ẑ × Rz q_M) + (dx, dy)`. This adds the marker registration (x, y and yaw × the lever arm from the marker), whose posterior comes from the anchor entries (`anchor_sigma_m`) and the marker prior, to the claw position error. Each wall sees only its own axis; the larger of x and y is used. |
+
+`payout_scale_sigma` × (cable-length change from the nearest fitted sample)
+is added per cable as an independent length error, because the spool scale is
+not fitted by default and an extrapolated pose accumulates it. Not covered:
+the cylinder obstacles (`cfg.obstacles`, room frame, their own clearances) and
+the floor; the bead keep-out is handled by `_bead_margin`.
+
+**What it does and does not claim.** σ is the model's own posterior: it is only
+as honest as the estimator, which is why (b) requires the probe and a
+consistent witness chi-squared. In simulation the worst true error stayed
+within about 1·σ of the bound (see `verification/`), but simulation is the
+only evidence: hardware (pulley friction, cable stretch, sag, a floor reference
+that is not perfectly flat) can add errors the posterior does not see. The
+margins are 0.2 and 0.4 m against k·σ of 0.1 to 0.2 m (sim), so the rule rests
+on the margin being large compared with the model error, not on precision.
 
 ---
 
@@ -360,8 +442,10 @@ Nothing auto-resumes.
 
 `tasks.py`: SCAN → APPROACH → GRIP → PICKUP_VERIFICATION → TRANSPORT →
 RELEASE → DELIVERY_VERIFICATION.
-* Moves stay in the trusted volume: the workspace if VERIFIED, the validated
-  hull if LOCAL_ONLY, plus vertical descents below it to the floor.
+* Moves stay in the trusted volume: the configured workspace (with its
+  wall and ceiling margins) if VERIFIED (basis `margin` or `beads`, §6.5),
+  the validated hull if LOCAL_ONLY, plus vertical descents below it to the
+  floor.
 * The claw must settle upright (IMU) before closing. The claw firmware also
   refuses a tilted close.
 * The final descent is at 30 % speed. Transport is planned with claw mass
@@ -398,12 +482,14 @@ RELEASE → DELIVERY_VERIFICATION.
   a measured, benign quantity.
   *Recommendation:* add a calibrated series spring (≈ 200–500 N/m) at each
   claw attachment before suspended operation above the 1 lb test weight.
-* **D-B Absolute length reference.** Beads need σ ≤ overtravel/(2k). Vision
-  alone gave ~20 mm. Options (combinable):
-  1. design more bead-to-pulley clearance (a larger `max_overtravel_m`);
-  2. a calibrated IMU and a multi-tag marker board;
-  3. a tape-measured line length at setup as one absolute observation;
-  4. accept switch + stall-tracking as the over-travel backstop (a risk decision).
+* **D-B Absolute length reference. RESOLVED by D26 (2026-10-20).** Beads
+  need σ ≤ overtravel/(2k), which vision alone does not give (~20 mm). Instead
+  of pinning the absolute length, the ceiling and wall margins absorb it: full
+  workspace if a, b and c of §6.5 hold at the startup, else LOCAL_ONLY. Beads
+  are end-of-travel switches; the search is optional. Remaining risks: the
+  rule is simulation-validated only, the slack probe is opt-in (and without it
+  the robot is always LOCAL_ONLY), and calibration criterion "predicted length
+  sigma ≤ 5 mm over the whole workspace" is what most simulated runs miss.
 * **D-C Power-loss holding.** An unpowered NEMA 17 with A4988 disabled may
   back-drive under the claw's weight. Measure detent holding on the real
   spool before any suspended run. Until then, nobody under the workspace,
@@ -433,7 +519,7 @@ RELEASE → DELIVERY_VERIFICATION.
 | 7 | Camera calibration + marker pose alone | `tools/calibrate_camera.py`, `vision/marker.py` | RMS ≤ 1 px, pose vs tape measure |
 | 8 | Bounded slack take-up and lift | `startup.py` SELF_CHECK → INITIAL_LIFT | onset lengths, bearing RMS, lift lag |
 | 9 | Parameter fitting + independent validation | CALIBRATION | witness RMS, identifiability report |
-| 10 | Sequential bead verification | `homing.py` | capture residuals, spread, or BLOCKED reasons |
+| 10 | Margin trust decision (§6.5); optional sequential bead verification | `startup.py` `assess_margin_trust`, `homing.py` | k·σ vs both margins and the worst pose; if enabled, capture residuals, spread, or BLOCKED reasons |
 | 11 | Grip, pickup and delivery verification | `tasks.py` | attempt logs |
 | 12 | Larger envelopes only after measured validation | validated volume | coverage map |
 
@@ -492,7 +578,9 @@ measurements and failures (`data/cdpr/` holds calibration and trust JSON).
    the internal consistency.
 8. **Acceptable uncertainty before a bead approach?** Derived, not chosen:
    k·σ_abs ≤ search window and 2·k·σ_abs ≤ overtravel (§6.4), plus
-   σ_abs ≤ `bead_length_sigma_max_m`.
+   σ_abs ≤ `bead_length_sigma_max_m`. Since D26 the bead search is optional;
+   full-workspace trust needs k·σ of the claw position relative to each
+   boundary ≤ its margin (§6.5).
 9. **How are trajectories synchronized?** Hermite segments in each station's
    own clock (offset-estimated), first-window acknowledgements before T0,
    path-time feed-hold, leases, peer-broadcast holds, telemetry completion (§4).
@@ -521,6 +609,12 @@ measurements and failures (`data/cdpr/` holds calibration and trust JSON).
   link outage stop spread ≈ 18 ms.
 * Vision: marker detection and pose ambiguity handling (12 cases), marker
   sheet scale, ChArUco calibration recovery.
+* Margin trust (D26, `tests/cdpr/test_margin_trust.py`): boundary sigma
+  against analytic cases and a Monte-Carlo of the nonlinear physics; one full
+  board + probe startup VERIFIED by margin, re-decided with the probe off,
+  shrunken margins, a failed witness chi-squared and the bead search on;
+  tasks confined to the hull unless VERIFIED; basis and numbers in the API;
+  no probe → LOCAL_ONLY.
 * Calibration: small box flagged prior-dominated; large box accepted with
   honest σ; slack identification; swapped-wiring detection; bead
   observations shrink absolute σ by > 3×.

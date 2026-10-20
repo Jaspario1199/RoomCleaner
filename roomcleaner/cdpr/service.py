@@ -4,7 +4,8 @@
     python -m roomcleaner.cdpr.service --config config/robot.json   # hardware
 
 Endpoints (JSON):
-    GET  /api/status                 supervisor state, trust level, startup step, reasons
+    GET  /api/status                 supervisor state, trust level, startup step, reasons,
+                                     trust {basis, reasons, margin numbers} (D26)
     GET  /api/checks                 unmeasured configuration per stage
     POST /api/room                   {width_m, depth_m, height_m, anchors?: {A:[x,y,z],...}}
     POST /api/command                {cmd, checklist?, confirm?}
@@ -182,7 +183,22 @@ class Service:
         s = self.sup.status()
         s.update(busy=self.busy, error=self.last_error, checklist=CHECKLIST,
                  room_m=self.ctx.cfg.room_m.tolist(), profile=self.ctx.cfg.profile)
+        s["trust"] = self.trust_summary()
         return s
+
+    def trust_summary(self):
+        """Why the level is what it is (D26): the basis of VERIFIED, or plain reasons it is not, plus the
+        margin numbers (k, sigma, margins, worst pose) of the last startup decision."""
+        lg = self.ctx.ledger
+        mc = lg.margin_check or {}
+        keys = ("k", "ok", "ceiling_margin_m", "workspace_margin_m", "sigma_ceiling_m", "sigma_wall_m",
+                "k_sigma_ceiling_m", "k_sigma_wall_m", "worst_pose_ceiling_room_m", "worst_pose_wall_room_m",
+                "worst_component_ceiling", "worst_component_wall", "slack_probe", "probed_samples",
+                "witness_chi2_dof", "witness_chi2_max", "calibration_accepted", "bead_notes")
+        return {"level": lg.level, "basis": lg.verified_basis,
+                "full_workspace": lg.level == "VERIFIED",
+                "reasons": [] if lg.level == "VERIFIED" else list(lg.trust_reasons),
+                "margin": {k: mc[k] for k in keys if k in mc}}
 
 
 def create_app(service: Service) -> Flask:

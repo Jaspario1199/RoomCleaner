@@ -89,18 +89,25 @@ def test_no_onset_retraction_never_exceeds_probe_max(rig):
     r, S = rig
     st = r.cfg.startup
     saved = st.probe_max_m
-    pay_out(r, 0, 0.012)                                     # 12 mm slack against a 5 mm bound
+    # ~9 mm of slack against a 5 mm bound, on the cable that actually goes slack: a rigid claw on four spaced lines
+    # absorbs the first millimetres in yaw, and it is not always the cable that was paid out
+    total, j = 0.0, 0
+    while total < 0.05 and slack_mm(r.world).max() < 9.0:
+        pay_out(r, 0, 0.003)
+        total += 0.003
+    j = int(np.argmax(slack_mm(r.world)))
+    assert slack_mm(r.world)[j] >= 9.0, slack_mm(r.world)
     P0 = r.co.positions().copy()
     st.probe_max_m = 0.005
     try:
         ref = S._still(n=10, state=STATE, suspended=True)
         with pytest.raises(StartupAbort) as e:
-            S._probe_cable(0, ref, 10, STATE)
+            S._probe_cable(j, ref, 10, STATE)
     finally:
         st.probe_max_m = saved
-    retracted = (P0[0] - r.co.positions()[0]) * r.ctx.ppu(0)
+    retracted = (P0[j] - r.co.positions()[j]) * r.ctx.ppu(j)
     assert "no taut onset" in e.value.reason
-    assert retracted <= 0.005 + r.ctx.ppu(0), retracted      # never more than one microstep over the bound
+    assert retracted <= 0.005 + r.ctx.ppu(j), retracted      # never more than one microstep over the bound
 
 
 # ---------------------------------------------------------------- 2. restore leaves slack and tension as before

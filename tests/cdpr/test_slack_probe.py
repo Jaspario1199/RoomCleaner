@@ -131,6 +131,20 @@ def pay_out(r, S, i, m):
     r.ctx.wait(1.0)
 
 
+def pay_out_until_slack(r, S, i, target_mm, step_m=0.003, cap_m=0.05):
+    """Lengthen cable ``i`` in steps until some cable has ``target_mm`` of true slack; return (cable index, total payout).
+    A rigid claw on four spaced lines absorbs the first millimetres by swinging in yaw (about 2 deg/mm) before any
+    cable goes slack, so the amount needed (and which cable slackens) depends on the pose."""
+    total = 0.0
+    while total < cap_m:
+        pay_out(r, S, i, step_m)
+        total += step_m
+        sl = truth_slack_mm(r.world)
+        if sl.max() >= target_mm:
+            return int(np.argmax(sl)), total
+    raise AssertionError(f"no slack after {total * 1e3:.0f} mm of payout: {truth_slack_mm(r.world)}")
+
+
 def test_visual_init_sample_was_probed_and_positions_restored(rig):
     r, S = rig
     smp = r.ctx.samples[0]
@@ -142,24 +156,25 @@ def test_visual_init_sample_was_probed_and_positions_restored(rig):
 
 def test_injected_slack_is_measured_and_the_cable_left_taut(rig):
     r, S = rig
-    pay_out(r, S, 2, 0.003)
+    j, total = pay_out_until_slack(r, S, 2, 2.6)               # a rigid claw on four spaced lines absorbs the first mm in yaw
     t0 = truth_slack_mm(r.world)
-    assert t0[2] > 2.5
+    assert t0[j] > 2.5
     P_before = r.co.positions().copy()
     n0 = len(S.probe_log)
     smp = S._sample_probed("fit", STATE)
     rec = smp.probe
     assert smp.taut.all() and len(S.probe_log) == n0 + 1
     slack = np.array(rec["slack_m"]) * 1e3
-    assert abs(slack[2] - t0[2]) < 1.0, (slack, t0)            # within 1 mm of the truth
-    for j in (0, 1, 3):                                        # the cables that were taut read ~0
-        assert slack[j] < 1.0
+    assert abs(slack[j] - t0[j]) < 1.0, (slack, t0)            # within 1 mm of the truth
+    for k in range(4):                                         # the cables that were taut read ~0
+        if k != j:
+            assert slack[k] < 1.0
     # the sample was taken with every cable taut (positions of the probed state) ...
-    assert smp.P[2] < P_before[2] - 0.8 * (t0[2] * 1e-3) / r.ctx.ppu(2)
+    assert smp.P[j] < P_before[j] - 0.8 * (t0[j] * 1e-3) / r.ctx.ppu(j)
     # ... and the motor positions were restored afterwards (the planner's model-consistent state)
     assert np.all(np.abs(r.co.positions() - P_before) <= 1.0)
-    assert rec["cables"]["C"]["peak_m"] < 0.012                # bounded over-retraction
-    pay_out(r, S, 2, -0.003)                                   # undo the injection
+    assert rec["cables"][IDS[j]]["peak_m"] < 0.012             # bounded over-retraction
+    pay_out(r, S, 2, -total)                                   # undo the injection
 
 
 def test_already_taut_cable_is_detected_on_the_first_step_and_restored(rig):
@@ -190,22 +205,22 @@ def test_cable_that_never_goes_taut_aborts_with_a_hold_not_a_disable(rig):
     r, S = rig
     st = r.cfg.startup
     saved = st.probe_max_m
-    pay_out(r, S, 2, 0.004)                                    # C slack by ~4 mm ...
-    assert truth_slack_mm(r.world)[2] > 3.0                    # ... against a bound of 1 mm set below
+    j, total = pay_out_until_slack(r, S, 2, 3.0)               # a cable slack by >= 3 mm ...
+    assert truth_slack_mm(r.world)[j] > 3.0                    # ... against a bound of 1 mm set below
     P_before = r.co.positions().copy()
     st.probe_max_m = 0.001
     try:
         ref = S._still(n=10, state=STATE, suspended=True)
         with pytest.raises(StartupAbort) as e:
-            S._probe_cable(2, ref, 10, STATE)
+            S._probe_cable(j, ref, 10, STATE)
     finally:
         st.probe_max_m = saved
-    assert "no taut onset" in e.value.reason and "station C" in e.value.reason
+    assert "no taut onset" in e.value.reason and f"station {IDS[j]}" in e.value.reason
     assert e.value.suspended and not e.value.paused            # fault path, claw still supported by the cables
     assert all(r.co.links[s].tel["st"] != State.OFF for s in IDS)       # holding torque stays on
     assert not r.world.on_floor
     S._restore_positions(P_before, STATE)
-    pay_out(r, S, 2, -0.004)
+    pay_out(r, S, 2, -total)
 
 
 def test_claw_running_away_without_a_significant_onset_aborts(rig, monkeypatch):

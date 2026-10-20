@@ -1,0 +1,606 @@
+{
+ "model": "\nRealistic cable-line clearance for the claw camera bay.\n\nRun:  /usr/bin/python3 scripts/analyze_cable_lines_claw_camera_bay.py\nReads config/robot.sim.json (stations anchor_room_m, room, workspace_margin_m,\nceiling_margin_m) -- read-only.  Writes verification/claw_camera_bay_cable_lines.json\n\nModel\n  * Corner hole k leaves the box at the mouth (sx*54.09, 14.05, sz*54.09) in the bay\n    frame (bay X, up Y, bay Z).  Each line runs from that mouth straight to its anchor.\n  * Room frame: x east, y north, z up.  The claw hangs vertical; claw yaw psi rotates the\n    bay frame about the vertical: bay +X -> room (cos psi, sin psi); bay +Z -> room\n    (sin psi, -cos psi)  (v6 axes are right-handed with Y up, so Z is clockwise from X\n    seen from above).  At psi = 0 the bay (bay -Z side) faces room +y.\n  * Corner -> station mapping is fixed at psi = 0 by the nearest corner diagonal:\n        corner(+X,+Z) -> B (3.30, 0.05)   corner(+X,-Z) -> C (3.30, 2.69)\n        corner(-X,-Z) -> D (0.05, 2.69)   corner(-X,+Z) -> A (0.05, 0.05)\n    and kept fixed for every yaw (cables are physically attached to fixed corners).\n  * Claw reference (mouth-plane centre on the tube axis) is sampled over the workspace:\n    x,y in [margin, size - margin] (margin 0.2 m), z in [lowest-point height, room height -\n    ceiling margin 0.4 m]; lowest point = 523.8 mm below the mouth plane (jaw tips, v6).\n  * Clearance = min distance from the line (mouth -> anchor) to the exposed bay surface\n    (bay body outside the box + cover) sampled at <= 0.5 mm spacing.\n",
+ "workspace_m": {
+  "x": [
+   0.2,
+   3.1527999999999996
+  ],
+  "y": [
+   0.2,
+   2.5431999999999997
+  ],
+  "z": [
+   0.524,
+   2.3432
+  ]
+ },
+ "sampling": {
+  "x": 8,
+  "y": 7,
+  "z": 6,
+  "yaw_step_deg": 15
+ },
+ "nominal_yaw0_min_clearance_mm": 17.58,
+ "yaw_within_pm15deg_min_clearance_mm": 17.52,
+ "all_yaw_min_clearance_mm": 17.22,
+ "worst_yaw_deg": 90,
+ "total_lines_hitting_bay_all_yaws": 0,
+ "per_yaw": {
+  "0": {
+   "min_clearance_mm": 17.58,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     1,
+     -1
+    ],
+    "station": "C",
+    "claw_xyz_m": [
+     3.153,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 74.67,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     -0.722,
+     0.028,
+     0.691
+    ]
+   }
+  },
+  "15": {
+   "min_clearance_mm": 17.52,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     -1,
+     -1
+    ],
+    "station": "D",
+    "claw_xyz_m": [
+     0.2,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 75.18,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     0.726,
+     0.028,
+     0.687
+    ]
+   }
+  },
+  "30": {
+   "min_clearance_mm": 17.48,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     -1,
+     -1
+    ],
+    "station": "D",
+    "claw_xyz_m": [
+     0.2,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 75.77,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     0.729,
+     0.027,
+     0.684
+    ]
+   }
+  },
+  "45": {
+   "min_clearance_mm": 17.44,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     -1,
+     -1
+    ],
+    "station": "D",
+    "claw_xyz_m": [
+     3.153,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 73.46,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     0.73,
+     0.028,
+     0.682
+    ]
+   }
+  },
+  "60": {
+   "min_clearance_mm": 17.33,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     -1,
+     -1
+    ],
+    "station": "D",
+    "claw_xyz_m": [
+     3.153,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 74.24,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     0.737,
+     0.028,
+     0.676
+    ]
+   }
+  },
+  "75": {
+   "min_clearance_mm": 17.26,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     -1,
+     -1
+    ],
+    "station": "D",
+    "claw_xyz_m": [
+     3.153,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 75.17,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     0.741,
+     0.028,
+     0.671
+    ]
+   }
+  },
+  "90": {
+   "min_clearance_mm": 17.22,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     -1,
+     -1
+    ],
+    "station": "D",
+    "claw_xyz_m": [
+     3.153,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 76.19,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     0.743,
+     0.027,
+     0.669
+    ]
+   }
+  },
+  "105": {
+   "min_clearance_mm": 17.24,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     -1,
+     -1
+    ],
+    "station": "D",
+    "claw_xyz_m": [
+     3.153,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 77.23,
+    "elevation_deg": 1.5,
+    "bay_frame_dir": [
+     0.742,
+     0.027,
+     0.67
+    ]
+   }
+  },
+  "120": {
+   "min_clearance_mm": 17.29,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     -1,
+     -1
+    ],
+    "station": "D",
+    "claw_xyz_m": [
+     3.153,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 78.21,
+    "elevation_deg": 1.5,
+    "bay_frame_dir": [
+     0.739,
+     0.026,
+     0.673
+    ]
+   }
+  },
+  "135": {
+   "min_clearance_mm": 17.37,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     -1,
+     -1
+    ],
+    "station": "D",
+    "claw_xyz_m": [
+     3.153,
+     2.543,
+     0.524
+    ],
+    "line_length_m": 76.74,
+    "elevation_deg": 1.5,
+    "bay_frame_dir": [
+     0.735,
+     0.027,
+     0.678
+    ]
+   }
+  },
+  "150": {
+   "min_clearance_mm": 17.39,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     -1,
+     -1
+    ],
+    "station": "D",
+    "claw_xyz_m": [
+     3.153,
+     2.543,
+     0.524
+    ],
+    "line_length_m": 77.53,
+    "elevation_deg": 1.5,
+    "bay_frame_dir": [
+     0.733,
+     0.027,
+     0.679
+    ]
+   }
+  },
+  "165": {
+   "min_clearance_mm": 17.45,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     -1,
+     -1
+    ],
+    "station": "D",
+    "claw_xyz_m": [
+     3.153,
+     2.543,
+     0.524
+    ],
+    "line_length_m": 78.25,
+    "elevation_deg": 1.5,
+    "bay_frame_dir": [
+     0.73,
+     0.026,
+     0.683
+    ]
+   }
+  },
+  "180": {
+   "min_clearance_mm": 17.54,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     -1,
+     -1
+    ],
+    "station": "D",
+    "claw_xyz_m": [
+     3.153,
+     2.543,
+     0.524
+    ],
+    "line_length_m": 78.85,
+    "elevation_deg": 1.5,
+    "bay_frame_dir": [
+     0.725,
+     0.026,
+     0.688
+    ]
+   }
+  },
+  "195": {
+   "min_clearance_mm": 17.45,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     1,
+     -1
+    ],
+    "station": "C",
+    "claw_xyz_m": [
+     0.2,
+     2.543,
+     0.524
+    ],
+    "line_length_m": 78.25,
+    "elevation_deg": 1.5,
+    "bay_frame_dir": [
+     -0.73,
+     0.026,
+     0.683
+    ]
+   }
+  },
+  "210": {
+   "min_clearance_mm": 17.39,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     1,
+     -1
+    ],
+    "station": "C",
+    "claw_xyz_m": [
+     0.2,
+     2.543,
+     0.524
+    ],
+    "line_length_m": 77.53,
+    "elevation_deg": 1.5,
+    "bay_frame_dir": [
+     -0.733,
+     0.027,
+     0.679
+    ]
+   }
+  },
+  "225": {
+   "min_clearance_mm": 17.37,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     1,
+     -1
+    ],
+    "station": "C",
+    "claw_xyz_m": [
+     0.2,
+     2.543,
+     0.524
+    ],
+    "line_length_m": 76.74,
+    "elevation_deg": 1.5,
+    "bay_frame_dir": [
+     -0.735,
+     0.027,
+     0.678
+    ]
+   }
+  },
+  "240": {
+   "min_clearance_mm": 17.29,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     1,
+     -1
+    ],
+    "station": "C",
+    "claw_xyz_m": [
+     0.2,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 78.21,
+    "elevation_deg": 1.5,
+    "bay_frame_dir": [
+     -0.739,
+     0.026,
+     0.673
+    ]
+   }
+  },
+  "255": {
+   "min_clearance_mm": 17.24,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     1,
+     -1
+    ],
+    "station": "C",
+    "claw_xyz_m": [
+     0.2,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 77.23,
+    "elevation_deg": 1.5,
+    "bay_frame_dir": [
+     -0.742,
+     0.027,
+     0.67
+    ]
+   }
+  },
+  "270": {
+   "min_clearance_mm": 17.22,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     1,
+     -1
+    ],
+    "station": "C",
+    "claw_xyz_m": [
+     0.2,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 76.19,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     -0.743,
+     0.027,
+     0.669
+    ]
+   }
+  },
+  "285": {
+   "min_clearance_mm": 17.26,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     1,
+     -1
+    ],
+    "station": "C",
+    "claw_xyz_m": [
+     0.2,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 75.17,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     -0.741,
+     0.028,
+     0.671
+    ]
+   }
+  },
+  "300": {
+   "min_clearance_mm": 17.33,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     1,
+     -1
+    ],
+    "station": "C",
+    "claw_xyz_m": [
+     0.2,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 74.24,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     -0.737,
+     0.028,
+     0.676
+    ]
+   }
+  },
+  "315": {
+   "min_clearance_mm": 17.44,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     1,
+     -1
+    ],
+    "station": "C",
+    "claw_xyz_m": [
+     0.2,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 73.46,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     -0.73,
+     0.028,
+     0.682
+    ]
+   }
+  },
+  "330": {
+   "min_clearance_mm": 17.48,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     1,
+     -1
+    ],
+    "station": "C",
+    "claw_xyz_m": [
+     3.153,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 75.77,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     -0.729,
+     0.027,
+     0.684
+    ]
+   }
+  },
+  "345": {
+   "min_clearance_mm": 17.52,
+   "lines_hitting_bay": 0,
+   "lines": 1344,
+   "worst": {
+    "corner(sx,sz)": [
+     1,
+     -1
+    ],
+    "station": "C",
+    "claw_xyz_m": [
+     3.153,
+     0.2,
+     0.524
+    ],
+    "line_length_m": 75.18,
+    "elevation_deg": 1.6,
+    "bay_frame_dir": [
+     -0.726,
+     0.028,
+     0.687
+    ]
+   }
+  }
+ }
+}

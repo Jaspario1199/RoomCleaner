@@ -9,8 +9,8 @@ Writes:
   exports/step/claw_camera_bay_cover.step                       access cover (v6 world frame)
   exports/step/claw_camera_bay_body.step                        bay feature alone (review only)
   exports/step/gripper_v6_with_camera_bay_preview.step          v6 assembly, original box replaced
-  exports/stl/*.stl                                             print-orientation STLs (+Z up,
-                                                                origin on the tube axis at the box bottom)
+  exports/stl/*.stl                                             print-orientation STLs (+Z up, z min = 0;
+                                                                cover has its flat outer face on the bed)
 The original v6 STEP is never modified.
 """
 
@@ -39,6 +39,13 @@ def bay_to_world(shape: cq.Shape) -> cq.Shape:
 def bay_to_print(wp: cq.Workplane) -> cq.Workplane:
     """Rotate +90 deg about X so bay +Y (up) becomes print +Z."""
     return wp.rotate((0, 0, 0), (1, 0, 0), 90)
+
+
+def cover_to_print(wp: cq.Workplane) -> cq.Workplane:
+    """Cover print pose: outer (top) face flat on the bed, lip/pegs/corral up, z min = 0."""
+    r = bay_to_print(wp).rotate((0, 0, 0), (1, 0, 0), 180)
+    zmin = r.val().BoundingBox().zmin
+    return r.translate((0, 0, -zmin))
 
 
 def build():
@@ -78,7 +85,8 @@ def build():
         "claw_camera_bay_body": body,
     }
     for name, wp in printed.items():
-        cq.exporters.export(bay_to_print(wp), os.path.join(STL_DIR, name + ".stl"),
+        pose = cover_to_print(wp) if name == "claw_camera_bay_cover" else bay_to_print(wp)
+        cq.exporters.export(pose, os.path.join(STL_DIR, name + ".stl"),
                             tolerance=0.05, angularTolerance=0.2)
 
     # preview assembly: v6 with the original box replaced by box+bay

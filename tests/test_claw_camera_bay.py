@@ -105,7 +105,9 @@ def test_single_valid_solids(combined, body, cover, box_bay):
 
 def test_bbox_sanity(combined, body, cover):
     bb = body.val().BoundingBox()
-    assert bb.zmin == pytest.approx(-(P.CAMBAY_CAM_R + P.CAMBAY_XIAO_W / 2 + P.CAMBAY_FIT_CLEAR + P.CAMBAY_WALL), abs=0.05)
+    # outer end wall (r = 101.2) plus the 2 mm tie-pit bulge on the radial end
+    assert bb.zmin == pytest.approx(-(B.OUT_R1 + B.WALL), abs=0.05)
+    assert bb.xmin == pytest.approx(B.OUT_X_IMU, abs=0.05)
     assert bb.ymin == pytest.approx(0.0, abs=0.02)          # on the print bed plane with the box
     assert bb.ymax == pytest.approx(B.H_CAV, abs=0.05)
     cb = combined.val().BoundingBox()
@@ -113,50 +115,66 @@ def test_bbox_sanity(combined, body, cover):
     assert cb.ymax == pytest.approx(P.CAMBAY_BOX_TOP_Y, abs=0.05)
     assert cb.zmax == pytest.approx(P.CAMBAY_BOX_FLANGE_HALF, abs=0.05)
     kb = cover.val().BoundingBox()
-    assert kb.zmin == pytest.approx(body.val().BoundingBox().zmin, abs=0.05)
-    assert kb.ymax <= B.Y_TOP + 1.6                          # corral rails only
+    assert kb.zmin == pytest.approx(-B.OUT_R1, abs=0.05)
+    assert kb.ymax == pytest.approx(B.Y_TOP, abs=0.05)       # flat outer face, nothing above it
+    # lowest cover feature = the IMU clamp pegs (0.2 mm above the PCB top)
+    assert kb.ymin == pytest.approx(B.IMU_TOP_Y + 0.2, abs=0.05)
 
 
 # ---------------------------------------------------------- optical geometry ----
 def test_lens_window_size_and_chamfer(combined):
     p = Probe(combined)
     r0 = P.CAMBAY_CAM_R
-    # along bay X through the window centre at mid floor height
-    runs = p.run((-10.7, 1.0, r0), (1, 0, 0), 21.4)
-    # solid from the cavity edge to the window edge on both sides
-    gaps = [(a, b) for (a, b) in runs]
-    assert len(gaps) == 2
-    win_x = gaps[1][0] - gaps[0][1]
-    assert win_x == pytest.approx(P.CAMBAY_LENS_WINDOW, abs=2 * TOL)
-    assert win_x >= 14.0
-    # along bay radial through the centre
-    runs = p.run((0.0, 1.0, r0 - 9.15), (0, 0, 1), 18.3)
+    runs = p.run((-12.4, 1.0, r0), (1, 0, 0), 24.8)
+    assert len(runs) == 2
+    win_x = runs[1][0] - runs[0][1]
+    assert win_x == pytest.approx(P.CAMBAY_LENS_WINDOW_X, abs=2 * TOL)
+    runs = p.run((0.0, 1.0, r0 - 9.9), (0, 0, 1), 19.8)
     assert len(runs) == 2
     win_r = runs[1][0] - runs[0][1]
-    assert win_r == pytest.approx(P.CAMBAY_LENS_WINDOW, abs=2 * TOL)
-    # outer-edge chamfer: wider opening right at the bottom face than inside
-    wide = Probe(combined).run((-10.7, 0.15, r0), (1, 0, 0), 21.4)
+    assert win_r == pytest.approx(P.CAMBAY_LENS_WINDOW_R, abs=2 * TOL)
+    assert win_x >= 14.0 and win_r >= 14.0
+    # ledge between the window and the cavity edge on the neck side is >= 2.0 mm
+    wide = Probe(combined).run((-12.4, 0.15, r0), (1, 0, 0), 24.8)
     win_bottom = wide[1][0] - wide[0][1]
     assert win_bottom > win_x + 1.2          # 1 mm chamfer each side at y~0
-    # whole tunnel is void from the floor underside to the board seat
     for y in (0.1, 1.0, 3.0, 6.0):
         assert not p.inside(0.0, y, r0)
+    # lens-position tolerance: the 8 mm barrel (4.5 mm long) fits with the lens off-centre by +-3 mm
+    for dx, dr in ((3, 0), (-3, 0), (0, 3), (0, -3), (3, 3), (-3, -3)):
+        barrel = (cq.Workplane("XZ").workplane(offset=-B.Y_BOARD0).center(dx, z_of(r0 + dr))
+                  .circle(P.CAMBAY_LENS_BARREL_D / 2).extrude(B.Y_BOARD0 - B.LENS_FRONT_Y))
+        assert combined.intersect(barrel).val().Volume() < 0.01, (dx, dr)
 
 
 def test_lens_barrel_and_field_of_view_unclipped(combined):
-    """Lens glass sits inside the tunnel; the 70 deg diagonal cone (35 deg half
-    angle) from the lens front must clear the window edges."""
+    """The 70 deg diagonal FOV (35 deg half angle) must leave the tunnel unclipped
+    even with the lens +-3 mm off-centre (lens position is an assumption)."""
     lens_y = B.LENS_FRONT_Y
     half = math.radians(P.CAMBAY_FOV_DIAG_DEG / 2)
     V, F = tessellate(combined, 0.2, 0.3)
-    origin = np.array([0.0, lens_y, z_of(P.CAMBAY_CAM_R)])
     dirs = []
     for a in np.linspace(0, 2 * math.pi, 72, endpoint=False):
         dirs.append([math.sin(half) * math.cos(a), -math.cos(half), math.sin(half) * math.sin(a)])
-    t = ray_mesh_first_hit(origin, np.array(dirs), V, F)
-    # every cone-edge ray must leave the tunnel unobstructed within 15 mm
-    assert not np.any(t < 15.0), f"FOV clipped by the bay tunnel: {np.sort(t)[:5]}"
-    # barrel envelope (diameter 8 from lens front to board seat) is inside the void
+    dirs = np.array(dirs)
+    # 4:3 sensor pyramid edge rays (long side along X)
+    tx = math.tan(half) * 4 / 5
+    ty = math.tan(half) * 3 / 5
+    pyr = []
+    for u in np.linspace(-tx, tx, 9):
+        for v in (-ty, ty):
+            pyr.append([u, -1.0, v])
+    for v in np.linspace(-ty, ty, 7):
+        for u in (-tx, tx):
+            pyr.append([u, -1.0, v])
+    pyr = np.array(pyr)
+    pyr /= np.linalg.norm(pyr, axis=1, keepdims=True)
+    for dx, dr in ((0, 0), (3, 0), (-3, 0), (0, 3), (0, -3)):
+        origin = np.array([dx, lens_y, z_of(P.CAMBAY_CAM_R + dr)])
+        t = ray_mesh_first_hit(origin, pyr, V, F)
+        assert not np.any(t < 15.0), f"sensor pyramid clipped for lens offset ({dx},{dr})"
+    t = ray_mesh_first_hit(np.array([0.0, lens_y, z_of(P.CAMBAY_CAM_R)]), dirs, V, F)
+    assert not np.any(t < 15.0), f"circular cone clipped: {np.sort(t)[:5]}"
     barrel = (cq.Workplane("XZ").workplane(offset=-B.Y_BOARD0).center(0, z_of(P.CAMBAY_CAM_R))
               .circle(P.CAMBAY_LENS_BARREL_D / 2).extrude(B.Y_BOARD0 - lens_y))
     assert combined.intersect(barrel).val().Volume() < 0.01
@@ -184,63 +202,81 @@ def test_xiao_cradle_and_clearance(combined, cover):
     assert not p.inside(-9.0, B.Y_BOARD0 + 0.1, B.BOARD_CR + 7.0)
 
 
-def test_imu_envelope_and_posts(combined, cover):
+def test_imu_pocket_pads_pegs_ties(combined, cover):
     L, W, T = P.CAMBAY_IMU_L, P.CAMBAY_IMU_W, P.CAMBAY_IMU_T
-    env = _env(B.IMU_XC - L / 2, B.IMU_XC + L / 2, B.IMU_Y_BOARD, B.IMU_Y_BOARD + T,
+    # repo-selected Adafruit 3886 (26 x 17.8 x 4.6) fits: board + full reservation are void
+    res = _env(B.IMU_XC - L / 2, B.IMU_XC + L / 2, B.IMU_SEAT_Y, B.IMU_SEAT_Y + P.CAMBAY_IMU_RESERVE_H,
                B.IMU_RC - W / 2, B.IMU_RC + W / 2)
-    assert combined.intersect(env).val().Volume() < 0.05
-    assert cover.intersect(env).val().Volume() < 0.05
-    # headroom above the IMU for the chip / wires under the cover
-    above = _env(B.IMU_XC - L / 2, B.IMU_XC + L / 2, B.IMU_Y_BOARD + T, B.IMU_Y_BOARD + T + 3.0,
-                 B.IMU_RC - W / 2, B.IMU_RC + W / 2)
-    assert combined.intersect(above).val().Volume() < 0.05
-    # board plane parallel to the camera board plane: both are y = const planes
-    # posts: pilot holes Ø2.1 at the 15.2 mm pitch
+    assert combined.intersect(res).val().Volume() < 0.05
+    # the cover touches the reservation only with the 4 clamp pegs at the board corners
+    peg_vol = 4 * P.CAMBAY_IMU_PAD ** 2 * (B.IMU_SEAT_Y + P.CAMBAY_IMU_RESERVE_H - (B.IMU_TOP_Y + 0.2))
+    assert cover.intersect(res).val().Volume() == pytest.approx(peg_vol, abs=1.0)
+    # the pocket is 26.6 x 18.4 (0.3 mm per side) and >= 5 mm deep (walls up to the cover seat)
     p = Probe(combined)
-    (hx0, hr0), (hx1, hr1) = B.IMU_HOLES
-    assert hr1 - hr0 == pytest.approx(P.CAMBAY_IMU_HOLE_PITCH, abs=1e-6)
-    assert hx0 == hx1 == pytest.approx(-P.CAMBAY_IMU_L / 2 + P.CAMBAY_IMU_HOLE_EDGE)
-    runs = p.run((hx1 - 3.0, B.IMU_Y_BOARD - 2.0, hr1), (1, 0, 0), 6.0)
-    assert len(runs) == 2
-    assert runs[1][0] - runs[0][1] == pytest.approx(P.CAMBAY_IMU_SCREW_PILOT, abs=2 * TOL)
-    # post wall >= 2.5 mm around the pilot (outer diameter check)
-    assert B.IMU_POST_OD / 2 - P.CAMBAY_IMU_SCREW_PILOT / 2 >= P.CAMBAY_BOSS_WALL - 1e-9
-    # the post stands from the floor and ends at the board underside
-    assert p.inside(hx1 + 2.5, B.IMU_Y_BOARD - 0.1, hr1) and not p.inside(hx1 + 2.5, B.IMU_Y_BOARD + 0.1, hr1)
+    ys = B.IMU_SEAT_Y + 1.0
+    runs = p.run((B.IMU_XC - 14.0, ys, B.IMU_RC), (1, 0, 0), 28.0)
+    assert len(runs) == 2 and runs[1][0] - runs[0][1] == pytest.approx(L + 0.6, abs=2 * TOL)
+    runs = p.run((B.IMU_XC - 3.0, ys, B.IMU_RC - 10.5), (0, 0, 1), 21.0)
+    assert len(runs) == 2 and runs[1][0] - runs[0][1] == pytest.approx(W + 0.6, abs=2 * TOL)
+    assert B.IMU_RESERVE_TOP - B.FLOOR_T >= 5.0 and B.H_CAV - B.FLOOR_T >= 5.0
+    # board plane parallel to the camera board: both seats are y = const planes
+    cx, cr = B._imu_pad_positions()[0]
+    assert p.inside(cx, B.IMU_SEAT_Y - 0.1, cr) and not p.inside(cx, B.IMU_SEAT_Y + 0.1, cr)
+    assert B.Y_BOARD0 != B.IMU_SEAT_Y                          # (different heights, same orientation)
+    # 4 corner pads exist
+    assert len(B._imu_pad_positions()) == 4
+    # cover pegs press the board corners: solid 0.3 mm above the PCB top, void 0.1 mm above it
+    pc = Probe(cover)
+    assert pc.inside(cx, B.IMU_TOP_Y + 0.3, cr) and not pc.inside(cx, B.IMU_TOP_Y + 0.1, cr)
+    # two zip-tie loops: a floor slot pair straddling the board at each tie x
+    for xt in B.IMU_TIE_X:
+        for r_edge, sgn in ((B.HEAD_R1, +1), (B.HEAD_R0, -1)):
+            rs = r_edge + sgn * P.CAMBAY_WALL / 2
+            assert not p.inside(xt, 1.0, rs)                    # slot through the floor
+            assert p.inside(xt + 2.5, 1.0, rs)                  # floor continues beside it
+            assert not p.inside(xt, B.FLOOR_T + 3.0, rs)        # pit open above the slot
+    # no screw posts (hole positions unknown): nothing rises between the pads
+    assert not p.inside(B.IMU_XC, B.IMU_SEAT_Y + 0.5, B.IMU_RC)
 
 
 def test_antenna_pocket_and_hold_down(cover):
-    # antenna 30x10 lies on the cover between the corral rails
-    ant_r0 = B.BOARD_CR - 22.0
-    y1 = B.H_CAV + B.COVER_T
-    env = _env(-P.CAMBAY_ANT_W / 2, P.CAMBAY_ANT_W / 2, y1, y1 + 1.0, ant_r0 + 0.1, ant_r0 + P.CAMBAY_ANT_L + 0.1)
+    # antenna 30x10 lies against the cover underside between the corral rails
+    y0 = B.H_CAV
+    ant_r0 = 65.0
+    env = _env(-P.CAMBAY_ANT_W / 2, P.CAMBAY_ANT_W / 2, y0 - 1.0, y0, ant_r0 + 0.1, ant_r0 + P.CAMBAY_ANT_L + 0.1)
     assert cover.intersect(env).val().Volume() < 0.05
-    # ...and the rails exist to hold it (solid just outside the antenna width)
-    rail = _env(P.CAMBAY_ANT_W / 2 + 0.5, P.CAMBAY_ANT_W / 2 + 1.0, y1 + 0.2, y1 + 1.0, ant_r0 + 5, ant_r0 + 10)
+    rail = _env(P.CAMBAY_ANT_W / 2 + 0.5, P.CAMBAY_ANT_W / 2 + 1.0, y0 - 1.2, y0 - 0.2, ant_r0 + 5, ant_r0 + 10)
     assert cover.intersect(rail).val().Volume() > 1.0
-    # board hold-down pegs reach to within 0.3 mm of the stack top
+    # board hold-down pegs reach to within 0.3 mm of the XIAO envelope top
     p = Probe(cover)
-    px = P.CAMBAY_XIAO_L / 2 - 1.4 - 0.2
-    pr = B.BOARD_CR + P.CAMBAY_XIAO_W / 2 - 1.4 - 0.2
+    px = P.CAMBAY_XIAO_L / 2 - 1.4
+    pr = B.BOARD_CR + P.CAMBAY_XIAO_W / 2 - 1.4
     assert p.inside(px, B.Y_BOARD1 + 0.35, pr) and not p.inside(px, B.Y_BOARD1 + 0.25, pr)
 
 
 # --------------------------------------------------------------- openings ----
-def test_usb_c_window_through_plus_x_wall(combined):
+def test_usb_c_notch_open_top_closed_by_cover(combined, cover):
     p = Probe(combined)
     r0 = B.BOARD_CR
-    yc = B.Y_BOARD1 - P.CAMBAY_XIAO_USB_Z_FROM_TOP
-    # clear path through the wall at the connector height
-    runs = p.run((B.CAV_HALF_X - 1.0, yc, r0), (1, 0, 0), 4.0)
-    assert not any(a < 3.2 for a, b in runs if b > 1.0 and a > 0.5), "USB-C window blocked"
-    assert not p.inside(B.CAV_HALF_X + 1.0, yc, r0)
-    # opening size: width along radial >= 12.5 at the wall mid-plane, height >= 7 mm
-    wr = p.run((B.CAV_HALF_X + 1.0, yc, r0 - 8), (0, 0, 1), 16.0)
-    assert len(wr) == 2 and wr[1][0] - wr[0][1] == pytest.approx(P.CAMBAY_USB_W, abs=2 * TOL)
-    hy = p.run((B.CAV_HALF_X + 1.0, yc - 5, r0), (0, 1, 0), 10.0)
-    assert len(hy) == 2 and hy[1][0] - hy[0][1] == pytest.approx(P.CAMBAY_USB_H, abs=2 * TOL)
-    # opening is above the board seat and the connector sits inside the opening height
-    assert yc - P.CAMBAY_USB_H / 2 > B.Y_BOARD0
+    # 13 x 8 plug overmould (outside the wall) and the plug tip inside the cavity pass
+    plug = _env(B.CAV_HALF_X - 0.2, B.OUT_HALF_X + 30.0, B.USB_YC - P.CAMBAY_USB_PLUG_H / 2,
+                B.USB_YC + P.CAMBAY_USB_PLUG_H / 2, r0 - P.CAMBAY_USB_PLUG_W / 2, r0 + P.CAMBAY_USB_PLUG_W / 2)
+    assert combined.intersect(plug).val().Volume() < 1e-3
+    assert cover.intersect(plug).val().Volume() < 1e-3
+    assert P.CAMBAY_USB_PLUG_W >= 13.0 and P.CAMBAY_USB_PLUG_H >= 8.0
+    # open-top notch: void from the sill to the wall top (no roof / lintel), width 13.5
+    xm = B.CAV_HALF_X + 1.0
+    ys = p.run((xm, B.USB_SILL_Y - 3.0, r0), (0, 1, 0), 3.0 + B.H_CAV - B.USB_SILL_Y + 0.5)
+    assert len(ys) == 1 and ys[0][1] == pytest.approx(3.0, abs=2 * TOL)        # solid only below the sill
+    rr = p.run((xm, B.USB_SILL_Y + 3.0, r0 - 8.0), (0, 0, 1), 16.0)
+    assert len(rr) == 2 and rr[1][0] - rr[0][1] == pytest.approx(B.USB_NOTCH_W, abs=2 * TOL)
+    assert B.USB_NOTCH_W >= 13.0
+    # the cover closes the notch from above (plate directly over the wall top)
+    pc = Probe(cover)
+    assert pc.inside(xm, B.H_CAV + 0.3, r0) and not pc.inside(xm, B.H_CAV - 0.1, r0)
+    # connector end of the XIAO envelope is aligned with the notch (same radial centre, +X end)
+    assert abs(B.BOARD_CR - (B.HEAD_R0 + B.HEAD_R1) / 2) < 1e-9
+    assert B.USB_SILL_Y > B.Y_BOARD0
 
 
 def test_wire_window_into_box_below_lid_seat(combined, box_bay):
@@ -270,13 +306,13 @@ def test_wire_window_into_box_below_lid_seat(combined, box_bay):
     assert 54.1 - (P.CAMBAY_WIN_W / 2 + P.CAMBAY_WIN_FLARE + 4.5) > P.CAMBAY_CORNER_HOLE_KEEPOUT
 
 
-def test_box_only_modified_at_window_and_pilot(combined, box_bay):
+def test_box_only_modified_at_window(combined, box_bay):
     removed = box_bay.cut(combined)
     v = removed.val().Volume()
-    assert 300.0 < v < 3500.0, v            # wire window + flares + IMU pilot 1
+    assert 300.0 < v < 3500.0, v            # wire window + flares only
     bb = removed.val().BoundingBox()
     assert bb.xmin > -16 and bb.xmax < 16
-    assert bb.ymin > 2.0 and bb.ymax < 30.0       # pilot hole 1 reaches down to y = 2.4
+    assert bb.ymin > 6.0 and bb.ymax < 30.0       # window + bay-side flare only
     assert abs(bb.zmin) < 66.0 and abs(bb.zmax) < 66.0
     # corner cable-hole region untouched: sample the box/combined volumes near the 4 mouths
     for sx in (1, -1):
@@ -310,37 +346,45 @@ def test_cable_lines_clear_of_bay(body, cover):
 def test_min_wall_thickness(combined, cover):
     p = Probe(combined)
     r0 = B.BOARD_CR
-    wall = P.CAMBAY_WALL - 0.05
-    # -X wall (XIAO zone, between vent slots) and +X wall (clear of the USB window)
-    runs = p.run((-B.OUT_HALF_X - 1.0, 8.0, r0 - 6.0), (1, 0, 0), 4.0)
-    assert any(abs((b - a) - P.CAMBAY_WALL) < 0.1 for a, b in runs[:1])
-    runs = p.run((B.CAV_HALF_X - 1.0, 12.0, B.HEAD_R1 - 0.6), (1, 0, 0), 4.0)
-    assert runs and (runs[0][1] - runs[0][0]) >= P.CAMBAY_WALL - 0.1
-    # outer end wall
-    runs = p.run((0.0, 15.0, B.HEAD_R1 - 1.0), (0, 0, 1), 4.0)
+    # IMU -X end wall, partition (x -14.48..-12.48 below its top), XIAO +X wall beside the notch
+    runs = p.run((B.OUT_X_IMU - 1.0, 12.0, r0), (1, 0, 0), 4.0)
+    assert abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
+    runs = p.run((B.IMU_X1 - 1.0, 12.0, r0), (1, 0, 0), 4.5)
+    assert abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
+    runs = p.run((B.CAV_HALF_X - 1.0, 12.0, B.BOARD_CR + 8.0), (1, 0, 0), 4.0)
     assert runs and abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
-    # floor beside the window
-    runs = p.run((-11.5, -0.5, B.BOARD_CR + 12.0 - 8.0), (0, 1, 0), 4.0)
-    # (position chosen outside cradle block; floor solid from y=0)
-    # vent ligaments between the -X wall slots stay >= 2.0 mm
-    slots = [B.BOARD_CR - 4.0, B.BOARD_CR, B.BOARD_CR + 4.0]
-    assert (slots[1] - 1.0) - (slots[0] + 1.0) >= P.CAMBAY_WALL - 1e-9
-    # cover plate and ears
+    # outer end wall between the vent slots
+    runs = p.run((3.0, 12.0, B.HEAD_R1 - 1.0), (0, 0, 1), 4.0)
+    assert runs and abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
+    # fence on the neck side of the XIAO bay and the IMU pocket's neck-side wall
+    runs = p.run((8.0, 10.0, B.HEAD_R0 - 3.0), (0, 0, 1), 4.0)
+    assert runs and abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
+    runs = p.run((B.IMU_XC, 10.0, B.HEAD_R0 - 3.0), (0, 0, 1), 4.0)
+    assert runs and abs((runs[0][1] - runs[0][0]) - P.CAMBAY_WALL) < 0.1
+    # ledge between the window and the cavity on the neck side (block reaches 2 mm past the window)
+    runs = p.run((0.0, 4.0, B.BOARD_CR - P.CAMBAY_LENS_WINDOW_R / 2 - 3.0), (0, 0, 1), 3.0)
+    assert runs and runs[0][1] - runs[0][0] >= P.CAMBAY_WALL - 0.1
+    # vent ligaments between slots
+    assert (0.0 - 1.0) - (-6.0 + 1.0) >= P.CAMBAY_WALL - 1e-9
+    # cover plate
     pc = Probe(cover)
-    runs = pc.run((0.0, B.H_CAV - 0.5, B.COVER_R0 + 20.0), (0, 1, 0), 4.0)
+    runs = pc.run((0.0, B.H_CAV - 0.5, B.COVER_R0 + 14.0), (0, 1, 0), 4.0)
     assert runs and (runs[0][1] - runs[0][0]) >= P.CAMBAY_COVER_T - 0.1
-    # floor thickness under the neck (outside the window, at the box side of the IMU)
-    pf = Probe(combined)
-    runs = pf.run((0.0, -0.3, B.IMU_RC), (0, 1, 0), 4.0)
+    # floor thickness under the neck
+    runs = p.run((0.0, -0.3, 70.4), (0, 1, 0), 4.0)
     assert runs and abs((runs[0][1] - runs[0][0]) - P.CAMBAY_FLOOR_T) < 0.1
 
 
 def test_cover_fasteners_and_boss_walls(combined, cover):
     p = Probe(combined)
-    # insert holes in the cover columns: diameter = heat-set melt-in hole, wall >= 2.5
-    assert B.COL_OD / 2 - P.M3_THREAD_HOLE / 2 >= P.CAMBAY_BOSS_WALL - 1e-9
+    # M3 heat-set insert boss: hole D4.0-4.2 x >= 5.7 (+ melt-in reserve), boss OD >= 8, wall >= 2.5
+    assert 4.0 <= P.CAMBAY_INSERT_D <= 4.2 and P.CAMBAY_INSERT_DEPTH >= P.CAMBAY_INSERT_LEN + 1.0
+    assert B.COL_OD >= 8.0
+    assert B.COL_OD / 2 - P.CAMBAY_INSERT_D / 2 >= P.CAMBAY_BOSS_WALL - 1e-9
     runs = p.run((B.COL_X - 3.0, B.H_CAV - 2.0, B.COL_R), (1, 0, 0), 6.0)
-    assert len(runs) == 2 and runs[1][0] - runs[0][1] == pytest.approx(P.M3_THREAD_HOLE, abs=2 * TOL)
+    assert len(runs) == 2 and runs[1][0] - runs[0][1] == pytest.approx(P.CAMBAY_INSERT_D, abs=2 * TOL)
+    ys = p.run((B.COL_X, -0.5, B.COL_R), (0, 1, 0), B.H_CAV + 1.0)
+    assert len(ys) == 1 and ys[0][1] == pytest.approx(0.5 + B.H_CAV - P.CAMBAY_INSERT_DEPTH, abs=0.1)
     pc = Probe(cover)
     runs = pc.run((B.COL_X - 3.0, B.H_CAV + 1.0, B.COL_R), (1, 0, 0), 6.0)
     assert len(runs) == 2 and runs[1][0] - runs[0][1] == pytest.approx(P.SCREW_M3, abs=2 * TOL)
@@ -352,11 +396,12 @@ def test_gusset_ribs_stiffen_root(body):
     bb = body.val().BoundingBox()
     assert bb.xmax == pytest.approx(P.CAMBAY_RIB_SPAN_X + P.CAMBAY_RIB_T / 2 * 0.9, abs=1.5)
     assert bb.xmax + P.CAMBAY_CORNER_HOLE_KEEPOUT < 54.09
+    assert -bb.xmin + P.CAMBAY_CORNER_HOLE_KEEPOUT < 54.09
     p = Probe(body)
     for sx in (1, -1):
         # a point on the rib centre line half way along
-        x = sx * (B.OUT_HALF_X - 0.5 + (P.CAMBAY_RIB_SPAN_X - B.OUT_HALF_X + 0.5) * 0.5)
-        r = 82.0 - (82.0 - 56.0) * 0.5
+        x = sx * 0.5 * ((B.OUT_HALF_X - 0.5) + P.CAMBAY_RIB_SPAN_X)
+        r = 0.5 * (76.0 + 56.0)
         assert p.inside(x, P.CAMBAY_RIB_H / 2, r)
 
 
@@ -365,6 +410,7 @@ def test_added_mass_under_30g(combined, box_bay, cover):
     added = combined.val().Volume() - box_bay.val().Volume() + cover.val().Volume()
     mass_g = added / 1000.0 * PETG
     assert 5.0 < mass_g <= 30.0, mass_g
+    assert mass_g < 29.0, "little margin left"
 
 
 # --------------------------------------------------- STEP round trip ----

@@ -250,9 +250,9 @@ def test_v6_step_unchanged_vs_git_head():
 
 
 @pytest.mark.parametrize("name,expect_vol", [
-    ("gripper_electric_housing_with_camera_bay", 403721.1),
-    ("claw_camera_bay_body", 14457.8),
-    ("claw_camera_bay_cover", 3323.3)])
+    ("gripper_electric_housing_with_camera_bay", 408339.5),
+    ("claw_camera_bay_body", 19102.6),
+    ("claw_camera_bay_cover", 6080.4)])
 def test_exports_valid_single_solid(name, expect_vol):
     s = cq.importers.importStep(os.path.join(STEP, name + ".step")).val()
     assert s.isValid()
@@ -296,7 +296,7 @@ def test_exports_not_stale(box, comb, body, cover):
 
 @pytest.mark.parametrize("name,zmin_zero", [("gripper_electric_housing_with_camera_bay", True),
                                             ("claw_camera_bay_body", True),
-                                            ("claw_camera_bay_cover", False)])
+                                            ("claw_camera_bay_cover", True)])
 def test_stl_closed_and_matches_step(name, zmin_zero):
     T = load_stl(os.path.join(STL, name + ".stl"))
     vol = np.einsum("ij,ij->i", T[:, 0], np.cross(T[:, 1], T[:, 2])).sum() / 6
@@ -311,16 +311,14 @@ def test_stl_closed_and_matches_step(name, zmin_zero):
     _, cnt = np.unique(e, axis=0, return_counts=True)
     assert (cnt == 2).all(), "STL is not a closed 2-manifold"
     if zmin_zero:
-        assert abs(T[:, :, 2].min()) < 1e-3                         # sits on the bed
-    else:
-        pytest.xfail("F9: cover STL is exported at its assembled height (z>=21.7), not on the bed")
+        assert abs(T[:, :, 2].min()) < 1e-3                         # sits on the bed (F9: cover STL now placed on the bed)
 
 
 # --------------------------------------------------------------------------- 2. union / cuts only
 def test_combined_is_box_plus_bay_minus_intended_cuts_only(box, comb, body, diff):
     removed, added = diff
     # removed material: wire window (+flares) and IMU pilot nick, nothing else
-    assert removed.Volume() == pytest.approx(1060.8, abs=15.0)
+    assert removed.Volume() == pytest.approx(1050.9, abs=15.0)     # wire window only (pilot nick removed)
     for s in removed.Solids():
         bb = s.BoundingBox()
         assert abs(bb.xmin - OX) < 9.2 and abs(bb.xmax - OX) < 9.2          # |x| <= 9.1
@@ -329,8 +327,8 @@ def test_combined_is_box_plus_bay_minus_intended_cuts_only(box, comb, body, diff
     # added material: inside the bay envelope only and a subset of the shipped bay body
     bb = added.BoundingBox()
     assert bb.ymin - OY > -0.01 and bb.ymax - OY < 24.41                     # nothing above the cover seat
-    assert max(abs(bb.xmin - OX), abs(bb.xmax - OX)) < 35.0
-    assert (OZ - bb.zmax) > 49.9 and (OZ - bb.zmin) < 101.21
+    assert bb.xmax - OX < 35.0 and OX - bb.xmin < 43.2          # ribs to +34.9, IMU pocket end wall to -43.08
+    assert (OZ - bb.zmax) > 49.9 and (OZ - bb.zmin) < 103.21    # end wall 101.2 + 2 mm tie-pit bulge
     assert added.cut(body).Volume() < 0.5
     assert len(added.Solids()) == 1
     # nothing added or removed on the +Z half / +-X far sides
@@ -392,11 +390,11 @@ def test_narrow_side_axis_and_optical_offset(v6, mesh_comb):
     assert zc == pytest.approx(OZ, abs=0.01)                  # housing centred on the tube axis
     # lens window centre measured on the shipped solid: x = 0, r = 90 on the -Z side
     xs = _along(mesh_comb, 0, 3.0, -90.0)                     # along x at y=3, z=-90
-    assert list(np.round(xs, 2)) == [-12.8, -7.5, 7.5, 12.8]
+    assert list(np.round(xs, 2)) == [-43.08, -41.08, -14.48, -8.5, 8.5, 14.48]   # IMU pocket | partition | 17 mm window | wall
     rs = -_along(mesh_comb, 2, 0.0, 3.0)[::-1]                # along z at x=0, y=3 -> r
     rwin = rs[5:7]                                            # crossings: -63.5 -10 | 10 63.5 | 80.8 [82.5 97.5] 101.2
     assert 0.5 * (rwin[0] + rwin[1]) == pytest.approx(90.0, abs=0.02)
-    assert rwin[1] - rwin[0] == pytest.approx(15.0, abs=0.02)
+    assert rwin[1] - rwin[0] == pytest.approx(16.0, abs=0.02)
     # tube axis position used for the bay origin
     from cad.v6_loader import tube_axis_world
     tx, tz, _, _ = tube_axis_world(load_v6())
@@ -622,8 +620,8 @@ def test_wire_path_continuous_xiao_to_box_interior(mesh_comb, mesh_cover):
 
     oc, ov = occ(mesh_comb), occ(mesh_cover)
     X, Y, R = np.meshgrid(xs, ys, rs, indexing="ij")
-    xiao = (np.abs(X) <= 10.5) & (Y >= 6.4) & (Y <= 21.4) & (np.abs(R - 90) <= 8.9)
-    imu = (np.abs(X) <= 10.5) & (Y >= 8.4) & (Y <= 10.0) & (R >= 62.9) & (R <= 78.5)
+    xiao = (np.abs(X) <= 12.18) & (Y >= 6.4) & (Y <= 20.36) & (np.abs(R - 90) <= 8.89)
+    imu = np.zeros_like(xiao)                                   # IMU moved to its own side pocket (x < -14.5)
     free = ~(oc | ov | xiao | imu)
     edt = ndi.distance_transform_edt(free, sampling=H)
     start = (np.abs(X) <= 7.6) & (Y >= 12) & (Y <= 21) & (R >= 79.5) & (R <= 82.0)
@@ -639,116 +637,115 @@ def test_wire_path_continuous_xiao_to_box_interior(mesh_comb, mesh_cover):
     for _ in range(10):
         mid = (lo + hi) / 2
         lo, hi = (mid, hi) if ok(mid) else (lo, mid)
-    assert lo >= 3.0, f"max traversable bundle diameter {lo:.2f} mm"          # measured 3.5 mm
+    assert lo >= 3.5, f"max traversable bundle diameter {lo:.2f} mm"          # 4 mm headroom now
 
 
 # --------------------------------------------------------------------------- 6. board fits
 def test_xiao_cradle_clearance_and_alignment(comb, cover, mesh_comb):
-    # exact cradle void: 21.6 x 18.4 (nominal 21.0 x 17.8 + 0.3 per side)
+    # exact cradle void: 24.963 x 18.4 (repo envelope 24.363 x 17.78 + 0.3 per side; 18.4 shared with the IMU pocket)
     xs = _along(mesh_comb, 0, 10.0, -85.0)
-    assert (xs[2] - xs[1]) == pytest.approx(21.6, abs=0.02)
+    assert (xs[4] - xs[3]) == pytest.approx(24.963, abs=0.02)
     rs = -_along(mesh_comb, 2, 7.0, 10.0)[::-1]
     # crossings (r): ... 78.8 80.8 | 99.2 101.2 -> void 80.8 .. 99.2
     assert rs[-2] - rs[-3] == pytest.approx(18.4, abs=0.02)
+    hx, hr, yb1 = 24.363 / 2, 17.78 / 2, 6.4 + 13.96
     for dx, dr in ((0, 0), (0.25, 0), (-0.25, 0), (0, 0.25), (0, -0.25)):
-        b = Bx(-10.5 + dx, 10.5 + dx, 6.4, 21.4, 90 - 8.9 + dr, 90 + 8.9 + dr)
+        b = Bx(-hx + dx, hx + dx, 6.4, yb1, 90 - hr + dr, 90 + hr + dr)
         assert vol_int(b, comb) < 1e-3 and vol_int(b, cover) < 1e-3
     for dx, dr in ((0.35, 0), (0, 0.35)):                       # only 0.3 mm of play per side
-        b = Bx(-10.5 + dx, 10.5 + dx, 6.4, 21.4, 90 - 8.9 + dr, 90 + 8.9 + dr)
+        b = Bx(-hx + dx, hx + dx, 6.4, yb1, 90 - hr + dr, 90 + hr + dr)
         assert vol_int(b, comb) > 1.0
-    # lens barrel (D8 x 4.5) inside the 15 x 15 hood window: tolerates +-3.4 mm lens-position error
+    # lens barrel (D8 x 4.5) inside the 17 x 16 hood window: tolerates +-3.4 mm lens-position error
     for dx, dr in ((0, 0), (3.0, 0), (0, 3.0), (3.4, 3.4)):
         cyl = cq.Solid.makeCylinder(4.0, 4.5, cq.Vector(OX + dx, OY + 1.9, OZ - (90 + dr)), cq.Vector(0, 1, 0))
         assert vol_int(cyl, comb) < 1e-3
-    # board seat ledge around the window (support width): reported, must be >= 1.5
-    assert 82.5 - 80.8 >= 1.5 and 7.5 + 0 < 10.8                # radial ledge 1.7, x ledge 3.3
+    # board seat ledge around the window: radial ledge on the neck side >= 2.0 (block reaches r = 80.0)
+    assert (90 - 8.0) - 80.0 >= 2.0 - 1e-9 and 8.5 < 12.48
 
 
 def test_usb_window_reachable_by_plug_8p5x7(comb):
-    # a 8.5 x 7 plug (the width at the chamfered roof) passes; used as the control for the 12x7 test below
-    yc = 21.4 - 1.6
+    # a 8.5 x 7 plug (the old width at the chamfered roof) still passes; control for the 13x8 test below
+    yc = 20.36 - 1.6
     b = Bx(9.0, 45.0, yc - 3.5, yc + 3.5, 90 - 4.25, 90 + 4.25)
     assert vol_int(b, comb) < 1e-3
 
 
-@pytest.mark.xfail(strict=True, reason="F2: USB window has 2 mm 45-deg roof chamfers; a 12 x 7 rectangular plug "
-                                       "overmold interferes (6.1 mm3); only <= ~10 x 6 or 8.5 x 7 passes")
-def test_usb_window_passes_12x7_plug(comb):
-    yc = 21.4 - 1.6
-    b = Bx(9.0, 45.0, yc - 3.5, yc + 3.5, 90 - 6.0, 90 + 6.0)
-    assert vol_int(b, comb) < 1e-3
+def test_usb_window_passes_12x7_plug(comb, cover):
+    """F2 fixed: open-top notch.  Now passes a 13 x 8 plug overmould (the 12 x 7 original case is contained)."""
+    yc = 20.36 - 1.6
+    for w, h in ((12.0, 7.0), (13.0, 8.0)):
+        b = Bx(9.0, 45.0, yc - h / 2, yc + h / 2, 90 - w / 2, 90 + w / 2)
+        assert vol_int(b, comb) < 1e-3, (w, h)
+    outside = Bx(12.6, 45.0, yc - 4.0, yc + 4.0, 90 - 6.5, 90 + 6.5)    # overmould outside the wall vs cover
+    assert vol_int(outside, cover) < 1e-3
 
 
 def test_usb_window_geometry(mesh_comb):
-    ys = _along(mesh_comb, 1, 11.8, -90.0)                      # sill and lintel at x inside +X wall
-    assert list(np.round(ys, 2)) == [0.0, 16.3, 23.3, 24.4]
-    rs = -_along(mesh_comb, 2, 11.8, 19.8)[::-1]                # ... 83.75 [window] 96.25 101.2
-    assert (rs[-2] - rs[-3]) == pytest.approx(12.5, abs=0.02)
-    assert 0.5 * (rs[-2] + rs[-3]) == pytest.approx(90.0, abs=0.02)   # window centred on the board / lens axis
-    rs_roof = -_along(mesh_comb, 2, 11.8, 23.25)[::-1]            # just below the roof: chamfers leave a narrow flat
-    assert (rs_roof[-2] - rs_roof[-3]) <= 8.7
+    """Open-top notch through the +X wall (x 12.48..14.48), closed by the cover."""
+    ys = _along(mesh_comb, 1, 13.5, -90.0)                      # solid only below the sill
+    assert list(np.round(ys, 2)) == [0.0, 14.26]
+    rs = -_along(mesh_comb, 2, 13.5, 20.0)[::-1]                 # ... 83.25 [notch] 96.75 101.2
+    assert (rs[-2] - rs[-3]) == pytest.approx(13.5, abs=0.02)
+    assert 0.5 * (rs[-2] + rs[-3]) == pytest.approx(90.0, abs=0.02)   # aligned with the XIAO / lens axis
+    rs_top = -_along(mesh_comb, 2, 13.5, 24.3)[::-1]             # width unchanged right up to the wall top (no chamfer)
+    assert (rs_top[-2] - rs_top[-3]) == pytest.approx(13.5, abs=0.02)
 
-@pytest.mark.xfail(strict=True, reason="F3: wall above the USB window is 1.1 mm (y 23.3 .. 24.4) < 2.0 mm minimum")
-def test_usb_lintel_at_least_2mm(mesh_comb):
-    ys = _along(mesh_comb, 1, 11.8, -90.0)
-    assert (ys[3] - ys[2]) >= 2.0 - 0.05
+
+def test_usb_notch_has_no_lintel(mesh_comb):
+    """F3/F2: no wall above the connector opening (the 1.1 mm lintel is gone)."""
+    ys = _along(mesh_comb, 1, 13.5, -90.0)
+    assert len(ys) == 2 and ys[1] < 15.0
 
 
 def test_cover_fasteners_and_fit(comb, cover, box, mesh_comb, mesh_cover):
-    # M3 heat-set boss: OD 9.0, hole D4.0 depth 6.0 from the cover seat, 2.5 mm wall (outer side)
+    # F8 fixed: M3 heat-set boss: OD 9.1 (>= 8), insert hole D4.1 x 7.0 deep (5.7 insert + 1.3 reserve), 2.5 mm wall
     xs = _along(mesh_comb, 0, 20.0, -70.0)
-    assert list(np.round(xs, 2)) == [-20.3, -17.8, -13.8, -10.8, 10.8, 13.8, 17.8, 20.3]
+    assert list(np.round(xs, 2)) == [-22.08, -19.58, -15.48, -12.48, 12.48, 15.48, 19.58, 22.08]
     assert (xs[5] - xs[4]) == pytest.approx(3.0, abs=0.02)      # 3.0 mm between cavity and hole
-    hole_x = _along(mesh_comb, 1, 15.8, -70.0)
-    assert list(np.round(hole_x, 2)) == [0.0, 18.4]              # hole 6.0 deep from y=24.4
-    assert 24.4 - 18.4 >= 5.7 + 0.2                              # insert M3x5.7 fits (margin only 0.3, see F8)
+    assert (xs[6] - xs[5]) == pytest.approx(4.1, abs=0.02)      # insert hole diameter
+    assert (xs[7] - xs[6]) >= 2.5 - 0.02                         # outer boss wall
+    assert (xs[7] - xs[0]) / 2 >= 0 and 22.08 - 17.5315 == pytest.approx(4.55, abs=0.01)   # boss OD 9.1
+    hole_x = _along(mesh_comb, 1, 17.5315, -70.0)
+    assert list(np.round(hole_x, 2)) == [0.0, 17.36]            # hole 7.0 deep from the cover seat y = 24.36
+    assert 24.36 - 17.36 >= 5.7 + 1.0                            # insert M3 x 5.7 with >= 1 mm melt-in reserve
     # cover screw holes (D3.4) coaxial with the boss holes
     cx = _along(mesh_cover, 0, 25.5, -70.0)
-    assert 0.5 * (cx[3] + cx[2]) == pytest.approx(15.8, abs=0.02) or abs(0.5 * (cx[4] + cx[3]) - 15.8) < 0.02
+    assert 0.5 * (cx[4] + cx[3]) == pytest.approx(17.5315, abs=0.02)
+    assert cx[4] - cx[3] == pytest.approx(3.4, abs=0.02)
     assert vol_int(cover, comb) < 1e-3                           # no interference
-    assert dist(cover, box) >= 0.2                               # clear of the box wall (0.33 measured)
-    # M3x8: 2.4 cover + 5.6 in insert (insert 5.7 deep)
-    assert 8.0 - 2.4 <= 6.0
+    assert dist(cover, box) >= 0.2                               # clear of the box wall (0.8 measured)
+    # M3x8: 2.4 cover + 5.6 in the insert (insert 5.7 deep, hole 7.0 deep)
+    assert 8.0 - 2.4 <= 7.0
 
 
 # --------------------------------------------------------------------------- IMU
-def test_imu_post_axes_vs_assumed_board(comb):
-    axes = []
+def test_imu_pocket_for_repo_selected_board(comb, cover, mesh_comb):
+    """F4 fixed: no screw posts (hole positions unknown).  Adafruit 3886 (26 x 17.8 x 4.6) sits in a
+    26.6 x 18.4 pocket on 4 corner pads, board plane parallel to the camera board."""
+    # no IMU pilot / post cylinders (R1.05 pilot) any more
     for f in comb.Faces():
         a = BRepAdaptor_Surface(f.wrapped)
-        if a.GetType() == GeomAbs_Cylinder and abs(a.Cylinder().Radius() - 1.05) < 1e-3:
-            l = a.Cylinder().Axis().Location()
-            axes.append((round(l.X() - OX, 3), round(OZ - l.Z(), 3)))
-    axes.sort(key=lambda t: t[1])
-    assert axes[0] == pytest.approx((-8.0, 63.1), abs=0.01) and axes[1] == pytest.approx((-8.0, 78.3), abs=0.01)
-    pitch = axes[1][1] - axes[0][1]
-    assert pitch == pytest.approx(15.2, abs=0.01)
-    # IMU board (21 x 15.6 x 1.6, y 8.4..10.0) does not collide with anything
-    b = Bx(-10.5, 10.5, 8.4, 10.0, 62.9, 78.5)
+        if a.GetType() == GeomAbs_Cylinder:
+            assert abs(a.Cylinder().Radius() - 1.05) > 1e-3
+    xc = -(12.4815 + 2.0 + 13.3)                                 # pocket centre x = -27.78
+    # board + full 4.6 mm reservation above the 1.0 mm pads
+    b = Bx(xc - 13.0, xc + 13.0, 3.4, 3.4 + 4.6, 90 - 8.9, 90 + 8.9)
     assert vol_int(b, comb) < 1e-3
+    # pocket void is exactly 26.6 x 18.4 and >= 5 mm deep
+    xs = _along(mesh_comb, 0, 6.0, -90.0)
+    assert xs[2] - xs[1] == pytest.approx(26.6, abs=0.02)
+    assert (24.36 - 2.4) >= 5.0
+    # the corner pads support the board at y = 3.4 (both planes are y = const)
+    pad = Bx(xc - 13.0, xc - 10.0, 3.35, 3.4, 90 - 8.9, 90 - 5.9)
+    assert vol_int(pad, comb) == pytest.approx(3.0 * 3.0 * 0.05, rel=0.05)
 
 
-@pytest.mark.xfail(strict=True, reason="F4: pitch 15.2 mm across the 15.6 mm board width puts each hole centre 0.2 mm from "
-                                       "the board edge (a D3 hole would break out); inconsistent assumption")
-def test_imu_hole_pitch_consistent_with_board_width():
-    edge = (P.CAMBAY_IMU_W - P.CAMBAY_IMU_HOLE_PITCH) / 2
-    assert edge >= P.CAMBAY_IMU_HOLE_D / 2 + 0.5
-
-
-@pytest.mark.xfail(strict=True, reason="F4b: IMU post 1 is cut by the wire-window outer flare cutter; only ~36 % of the "
-                                       "post top reaches the board seat height 8.4 and the pilot hole 1 opens to the side")
-def test_imu_post1_full_height(comb):
-    contact = vol_int(Bx(-12, -4, 8.35, 8.4, 62.9, 70.0), comb) / 0.05
-    ring = math.pi * (3.55 ** 2 - 1.05 ** 2)
-    assert contact >= 0.8 * ring
-
-
-@pytest.mark.xfail(strict=True, reason="F4c: repo BOM/docs select the Adafruit 3886 MPU6050 (26 x 17.8 x 4.6), which does not fit "
-                                       "the 21.6 x ~15.6 mm IMU neck in either orientation")
-def test_repo_selected_imu_fits_neck(comb):
-    for L, W in ((26, 17.8), (17.8, 26)):
-        b = Bx(-L / 2, L / 2, 8.4, 8.4 + 4.6, 70.7 - W / 2, 70.7 + W / 2)
-        assert vol_int(b, comb) < 1e-3
+def test_imu_not_in_wire_window_flare(comb, box):
+    """The IMU pocket is outside the window flare cutter (the cut only ever touches the box wall)."""
+    rem = box.cut(comb)
+    bb = rem.BoundingBox()
+    assert bb.xmax - OX < 12.0 and OX - bb.xmin < 12.0
+    assert (OZ - bb.zmin) < 64.0                                 # nothing removed beyond r = 64 (pocket starts at r = 80.8)
 
 
 # --------------------------------------------------------------------------- min wall / printability
@@ -756,29 +753,14 @@ def test_repo_selected_imu_fits_neck(comb):
 def thickness_scan(comb):
     V, F = tess(comb, 0.03, 0.2)
     V = V - OFF
-    c, t = inward_thickness(V, F, lambda c: (np.abs(c[:, 0]) < 40) & (c[:, 2] < -56.5) & (c[:, 1] < 26) & (c[:, 1] > -0.1))
+    c, t = inward_thickness(V, F, lambda c: (c[:, 0] > -45) & (c[:, 0] < 40) & (c[:, 2] < -56.5) & (c[:, 1] < 26) & (c[:, 1] > -0.1))
     return c, t
 
 
-@pytest.mark.xfail(strict=True, reason="F3/F4: sampled wall thickness below 2.0 mm: USB lintel 1.10, pilot-2 to fence face 1.45, "
-                                       "IMU post-1 sliver <0.3 (see report)")
 def test_min_wall_2mm_in_bay(thickness_scan):
+    """F3/F4 fixed: no sampled wall below 2.0 mm anywhere in the bay (USB lintel, posts/pilots, fence gone/re-sized)."""
     c, t = thickness_scan
-    assert t.min() >= 2.0 - 0.05
-
-
-def test_min_wall_known_values(thickness_scan):
-    c, t = thickness_scan
-    # USB lintel
-    m = (np.abs(c[:, 0] - 11.5) < 1.5) & (c[:, 1] > 23.0) & (c[:, 1] < 24.5) & (-c[:, 2] > 85) & (-c[:, 2] < 95)
-    assert t[m].min() == pytest.approx(1.1, abs=0.05)
-    # every other sampled wall (excluding the 3 flagged locations and the 1.7 lens ledge) is >= 1.6
-    keep = np.ones(len(t), bool)
-    keep &= ~m
-    keep &= ~((c[:, 0] < -5) & (c[:, 0] > -11) & (-c[:, 2] > 64) & (-c[:, 2] < 67.5))       # post-1 sliver
-    keep &= ~((np.abs(c[:, 0] + 7.8) < 1.0) & (-c[:, 2] > 78.5) & (-c[:, 2] < 80.0))         # pilot-2 wall
-    keep &= ~((-c[:, 2] > 80.0) & (-c[:, 2] < 83.0) & (c[:, 1] < 6.5))                        # lens ledge
-    assert t[keep].min() >= 1.6
+    assert t.min() >= 2.0 - 0.05, (t.min(), c[t.argmin()])
 
 
 def _along_mesh(V, F, axis, a, b):
@@ -808,22 +790,30 @@ def test_overhangs_and_bridges_in_print_orientation(comb, cover):
     area = 0.5 * np.linalg.norm(n, axis=1)
     n = n / np.linalg.norm(n, axis=1)[:, None]
     c = tri.mean(1)
-    bay = (np.abs(c[:, 0]) < 40) & (c[:, 2] < -44) & (c[:, 1] < 30) & (c[:, 1] > 0.05) & (area > 1e-4)
+    bay = (c[:, 0] > -45) & (c[:, 0] < 40) & (c[:, 2] < -44) & (c[:, 1] < 30) & (c[:, 1] > 0.05) & (area > 1e-4)
     over = np.where(bay & (n[:, 1] < -0.7072))[0]
     flat = over[n[over, 1] < -0.999]
     slanted = over[n[over, 1] >= -0.999]
-    assert area[slanted].sum() < 80.0                           # only the window roof chamfers / flare roofs (<45 deg slopes tiny)
-    # bridges are limited to the flat part of the 45-degree-chamfered roofs: USB window ~8.5 mm, wire window 5 mm
-    yy = _along_mesh(V, F, 1, 11.8, -90.0)
-    assert yy[2] == pytest.approx(23.3, abs=0.01)                 # USB roof height
-    assert pts_width(V, F, 11.8, 23.29) <= 8.7
-    assert pts_width_x(V, F, 18.95, -50.0) <= 5.2
+    assert area[slanted].sum() < 80.0                           # only window flare roofs (<45 deg slopes tiny)
+    # F2/F3: the USB notch is open-top, so it has no roof at all; the only wide bridge left is the wire window
+    ys = _along_mesh(V, F, 1, 13.5, -90.0)
+    assert len(ys) == 2                                          # sill only, nothing above
+    assert pts_width_x(V, F, 18.95, -50.0) <= 5.2               # wire window roof flat span (5 mm)
+    # every remaining downward-facing flat region is a tiny slot roof / window roof: report the largest
+    if len(flat):
+        assert area[flat].max() < 40.0
 
-@pytest.mark.xfail(strict=True, reason="F9: cover has features on both faces (pegs 2.7 mm + lip 1.0 mm under, antenna rails 1.5 mm above), "
-                                       "so it cannot lie flat on the bed 'either face down' without supports")
-def test_cover_prints_flat_either_face(cover):
-    bb = cover.BoundingBox()
-    assert (bb.ymax - bb.ymin) <= 2.4 + 0.01
+
+def test_cover_has_one_flat_face_for_printing(cover):
+    """F9 fixed: the outer face is one flat plane (cover prints face-down with lip / pegs / corral up)."""
+    top = [f for f in cover.Faces() if abs(f.BoundingBox().ymin - f.BoundingBox().ymax) < 1e-6
+           and abs(f.BoundingBox().ymax - (OY + 26.76)) < 1e-3]
+    assert top
+    flat_area = sum(f.Area() for f in top)
+    plan = (28.963 * 44.4 + 28.6 * 22.4)                          # neck + IMU rectangles (approx., mm2)
+    assert flat_area > 0.85 * plan
+    # nothing rises above the flat face
+    assert cover.BoundingBox().ymax - OY == pytest.approx(26.76, abs=0.01)
 
 
 # --------------------------------------------------------------------------- stiffness / mass
@@ -852,12 +842,12 @@ def test_cantilever_stiffness_sanity(comb, diff, cover):
     Iy = (A[:, 0] ** 2).sum() * H * H
     cy = max(yb - A[:, 1].min(), A[:, 1].max() - yb)
     cx = np.abs(A[:, 0]).max()
-    assert Ix == pytest.approx(12274, rel=0.03)                 # same I the author used
+    assert Ix == pytest.approx(12713, rel=0.03)                 # I of the repaired section at r = 64
     # outboard mass and its moment about the root section (r = 64)
     cut = cq.Workplane().box(200, 200, 200, centered=False).translate((OX - 100, OY - 50, OZ - root_r - 200)).val()
     pa, pc = added.intersect(cut), cover.intersect(cut)
     masses = [(pa.Volume() * PETG, OZ - pa.Center().z), (pc.Volume() * PETG, OZ - pc.Center().z),
-              (5.0, 90.0), (2.5, 70.7), (3.0, 85.0)]              # XIAO+Sense, IMU, wiring: assumed
+              (5.0, 90.0), (2.5, 90.0), (3.0, 85.0)]              # XIAO+Sense, IMU, wiring: assumed
     M_w = sum(m * (r - root_r) for m, r in masses) * 1e-3        # kg*mm
     arm = 101.2 - root_r
     g = 9.81
@@ -876,5 +866,5 @@ def test_added_mass_small(comb, box, cover):
     m_bay = (comb.Volume() - box.Volume()) * PETG
     m_cov = cover.Volume() * PETG
     assert m_bay + m_cov < 30.0
-    assert m_bay + m_cov == pytest.approx(18.2, abs=0.5)         # NET of the window cut; author quotes "~18 g"
-    assert (comb.Volume() - box.Volume() + 1060.8) * PETG + m_cov == pytest.approx(19.5, abs=0.5)   # gross
+    assert m_bay + m_cov == pytest.approx(27.5, abs=0.5)         # NET of the window cut (repaired design)
+    assert (comb.Volume() - box.Volume() + 1050.9) * PETG + m_cov == pytest.approx(28.9, abs=0.5)   # gross

@@ -112,33 +112,36 @@ CAMBAY_BOSS_WALL = 2.5            # min material around a screw/insert hole
 CAMBAY_FIT_CLEAR = 0.3            # per-side clearance around boards
 
 # --- Seeed XIAO ESP32-S3 Sense (VERIFY every value with calipers) --------------
-CAMBAY_XIAO_L = 21.0              # board long edge (bay X; USB-C on the +X short edge)
-CAMBAY_XIAO_W = 17.8              # board short edge
-CAMBAY_XIAO_H = 15.0              # XIAO + Sense stack incl. connectors (VERIFY)
-CAMBAY_XIAO_USB_Z_FROM_TOP = 1.6  # USB-C centre below the stack top (VERIFY)
-CAMBAY_LENS_DX = 0.0              # lens offset from board centre along bay X (VERIFY)
-CAMBAY_LENS_DR = 0.0              # lens offset from board centre, radial (outward +) (VERIFY)
+# Repo records the OEM-model overall envelope incl. protrusions as 24.363 x 17.78 x 13.96
+# (docs/CLAW_SELF_CAD_DESIGN_20261012.md, docs/SELF_CAD_DIMENSIONS_AND_WIRING_20261006.md);
+# the cradle is sized for that envelope + CLEAR per side.  USB-C end faces bay +X.
+CAMBAY_XIAO_L = 24.363            # envelope along bay X (USB-C end at +X)
+CAMBAY_XIAO_W = 17.78             # envelope along the radial direction
+CAMBAY_XIAO_H = 13.96             # envelope height, camera face down
+CAMBAY_XIAO_USB_Z_FROM_TOP = 1.6  # USB-C centre below the envelope top (VERIFY)
+CAMBAY_LENS_DX = 0.0              # lens offset from envelope centre along bay X (VERIFY)
+CAMBAY_LENS_DR = 0.0              # lens offset from envelope centre, radial outward + (VERIFY)
 CAMBAY_LENS_BARREL_D = 8.0        # lens barrel diameter
 CAMBAY_LENS_BARREL_H = 4.5        # barrel protrusion below the board face (VERIFY)
-CAMBAY_LENS_WINDOW = 15.0         # square lens window (>= 14)
+CAMBAY_LENS_WINDOW_X = 17.0       # lens window along bay X (>= 14)
+CAMBAY_LENS_WINDOW_R = 16.0       # lens window radial (>= 14); +-3.2 mm lens-position tolerance
 CAMBAY_LENS_CHAMFER = 1.0         # 45 deg chamfer on the window's outer edge
 CAMBAY_LENS_BLOCK_H = 4.0         # cradle block under the board = hood tunnel depth
-CAMBAY_WIRE_HEADROOM = 3.0        # free height above the XIAO for wires/antenna lead
-CAMBAY_USB_W = 12.5               # USB-C plug opening (overmould width)
-CAMBAY_USB_H = 7.0                # USB-C plug opening height
+CAMBAY_WIRE_HEADROOM = 4.0        # free height above the XIAO for wires / antenna
+CAMBAY_USB_PLUG_W = 13.0          # USB-C plug overmould the notch must pass (>= 13)
+CAMBAY_USB_PLUG_H = 8.0           # (>= 8); the notch is open at the top and closed by the cover
+CAMBAY_USB_PLAY = 0.5             # extra notch width / sill depth around the plug
 CAMBAY_ANT_L = 30.0               # flexible U.FL antenna length (VERIFY)
 CAMBAY_ANT_W = 10.0               # flexible U.FL antenna width (VERIFY)
 
-# --- GY-521 MPU6050 (VERIFY: supplied hole pitch 15.2 is larger than the 15.6
-# board width less hole radius -> check the real hole positions) ---------------
-CAMBAY_IMU_L = 21.0
-CAMBAY_IMU_W = 15.6
-CAMBAY_IMU_HOLE_PITCH = 15.2
-CAMBAY_IMU_HOLE_D = 3.0
-CAMBAY_IMU_HOLE_EDGE = 2.5        # hole centre from the short edge (VERIFY)
-CAMBAY_IMU_SCREW_PILOT = 2.1      # M2.5 thread-forming pilot into PETG
-CAMBAY_IMU_POST_H = 6.0           # post height (board underside clearance)
-CAMBAY_IMU_T = 1.6
+# --- Adafruit 3886 MPU6050 breakout (repo-selected IMU; hole positions UNKNOWN ->
+# no screw posts: rigid pocket, corner pads, cover pegs, 2 zip-tie slot pairs) ----
+CAMBAY_IMU_L = 26.0               # board length (reservation 26 x 17.8 x 4.6)
+CAMBAY_IMU_W = 17.8
+CAMBAY_IMU_RESERVE_H = 4.6        # height reserved above the pads (board + components)
+CAMBAY_IMU_PAD_H = 1.0            # seat pads under the board corners (underside leads/foam)
+CAMBAY_IMU_PAD = 3.0              # pad / peg footprint (VERIFY: clear of components)
+CAMBAY_IMU_T = 1.6                # PCB thickness (assumed)
 
 # --- wire window into the box (below the lid seat, rim stays continuous) -------
 CAMBAY_WIN_W = 10.0               # >= 8
@@ -148,6 +151,9 @@ CAMBAY_WIN_FLARE = 1.5            # chamfer flare at both mouths (no wire chafe)
 
 # --- cover fasteners (M3 into heat-set inserts per USE_HEATSET_INSERTS) --------
 CAMBAY_COVER_SCREW_R = 70.0       # cover screw columns: radial distance from tube axis
+CAMBAY_INSERT_D = 4.1             # heat-set insert melt-in hole (common M3: 4.0-4.2)
+CAMBAY_INSERT_LEN = 5.7           # M3 x 5.7 insert
+CAMBAY_INSERT_DEPTH = 7.0         # blind hole depth (insert + 1.3 melt-in reserve)
 CAMBAY_RIB_T = 2.4                # root gusset rib thickness
 CAMBAY_RIB_H = 18.0               # root gusset rib height
 CAMBAY_RIB_SPAN_X = 34.0          # gusset reach on the box wall (< 54.4 - 5 keep-out)

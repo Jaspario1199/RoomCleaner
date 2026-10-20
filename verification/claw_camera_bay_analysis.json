@@ -1,0 +1,158 @@
+{
+ "cable_lines": {
+  "per_corner": {
+   "corner_-1x_-1z": {
+    "mouth_world": [
+     897.75,
+     1105.24,
+     1049.9
+    ],
+    "mouth_bay_frame": [
+     -54.09,
+     14.05,
+     -54.09
+    ],
+    "rays": 323,
+    "rays_hitting_bay": 0,
+    "min_clearance_mm": 19.17
+   },
+   "corner_+1x_-1z": {
+    "mouth_world": [
+     1005.94,
+     1105.24,
+     1049.9
+    ],
+    "mouth_bay_frame": [
+     54.09,
+     14.05,
+     -54.09
+    ],
+    "rays": 323,
+    "rays_hitting_bay": 0,
+    "min_clearance_mm": 19.17
+   },
+   "corner_+1x_+1z": {
+    "mouth_world": [
+     1005.94,
+     1105.24,
+     1158.08
+    ],
+    "mouth_bay_frame": [
+     54.09,
+     14.05,
+     54.09
+    ],
+    "rays": 323,
+    "rays_hitting_bay": 0,
+    "min_clearance_mm": 111.33
+   },
+   "corner_-1x_+1z": {
+    "mouth_world": [
+     897.75,
+     1105.24,
+     1158.08
+    ],
+    "mouth_bay_frame": [
+     -54.09,
+     14.05,
+     54.09
+    ],
+    "rays": 323,
+    "rays_hitting_bay": 0,
+    "min_clearance_mm": 111.33
+   }
+  },
+  "rays_total": 1292,
+  "rays_hitting_bay": 0,
+  "min_clearance_mm": 19.17
+ },
+ "lens_center_world": [
+  951.85,
+  1093.09,
+  1013.99
+ ],
+ "floor_y_world": 581.43,
+ "lens_height_above_floor_mm": 511.7,
+ "fov_sensor_rect_4x3_70diag": {
+  "rays": 2806,
+  "blocked": 349,
+  "blocked_fraction": 0.1244,
+  "unblocked_fraction": 0.8756,
+  "blocked_by": {
+   "Gripper_gear_housing_Part2": 0.0795,
+   "Gripper_gear_housing": 0.0285,
+   "aluminum tubing": 0.0157,
+   "Claw_arm_extension": 0.0004
+  },
+  "floor_footprint_unblocked_x_range_from_tube_axis": [
+   -286.6,
+   286.6
+  ],
+  "floor_footprint_unblocked_z_range_from_tube_axis": [
+   -305.0,
+   125.0
+  ],
+  "nearest_floor_point_seen_from_camera_mm": 4.8
+ },
+ "fov_circular_cone_35deg": {
+  "rays": 2819,
+  "blocked": 309,
+  "blocked_fraction": 0.1096,
+  "unblocked_fraction": 0.8904,
+  "blocked_by": {
+   "Gripper_gear_housing_Part2": 0.0479,
+   "aluminum tubing": 0.0411,
+   "Gripper_gear_housing": 0.0192,
+   "Claw_arm_extension": 0.0007
+  },
+  "floor_footprint_unblocked_x_range_from_tube_axis": [
+   -358.3,
+   358.3
+  ],
+  "floor_footprint_unblocked_z_range_from_tube_axis": [
+   -448.3,
+   256.3
+  ],
+  "nearest_floor_point_seen_from_camera_mm": 0.0
+ },
+ "fov_sensor_rect_rotated_90": {
+  "rays": 2806,
+  "blocked": 408,
+  "blocked_fraction": 0.1454,
+  "unblocked_fraction": 0.8546,
+  "blocked_by": {
+   "Gripper_gear_housing_Part2": 0.0773,
+   "aluminum tubing": 0.0388,
+   "Gripper_gear_housing": 0.0278,
+   "Claw_arm_extension": 0.0007
+  },
+  "floor_footprint_unblocked_x_range_from_tube_axis": [
+   -215.0,
+   215.0
+  ],
+  "floor_footprint_unblocked_z_range_from_tube_axis": [
+   -376.6,
+   196.6
+  ],
+  "nearest_floor_point_seen_from_camera_mm": 6.4
+ },
+ "hood_tunnel_clipped_rays_sensor_rect": 0,
+ "visibility": {
+  "floor_between_jaw_tips_x+-40_z-13..+7": 0.0,
+  "floor_strip_camera_side_z-60..-34_x+-60": 1.0,
+  "floor_strip_camera_side_z-34..-20_x+-60": 0.385,
+  "floor_strip_far_side_z+60..+110_x+-60": 0.0,
+  "nearest_fully_visible_floor_toward_claw_from_camera_side_z_rel": -29.0
+ },
+ "bay_interference_mm3_with_other_v6_parts": {
+  "Griper Cylinder": 0.005
+ },
+ "stiffness_estimate": {
+  "assumptions": "rigid box wall, U-section (floor + 2 side walls, cover ignored, ribs ignored), E=2.1 GPa, tip mass 30 g",
+  "I_mm4": 12277,
+  "cantilever_length_mm": 40.1,
+  "k_N_per_mm": 1201.5,
+  "deflection_under_30g_x_2g_dynamic_mm": 0.00073,
+  "first_mode_hz_upper_bound": 1007
+ }
+}

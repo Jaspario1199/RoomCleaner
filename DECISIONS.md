@@ -174,3 +174,12 @@ Also adopted: per-pose slack probing by motion onset during suspended
 calibration (user's method: reel each cable in turn; no claw motion = slack),
 and a printed multi-sheet floor reference (~1 m, spaced Letter sheets, scale
 check) replacing the single 6" tag once the slack probe makes its sigma honest.
+
+D27. **No IMU on the claw** (Jasper, 2026-10-20). The Adafruit 3886 / MPU-6050
+is dropped from the design. Claw tilt comes from vision when the floor
+reference is in view; the camera-to-body mounting offset is measured at every
+startup while the claw rests upright on its jaws over the printout (Jasper's
+proposal). Away from the reference the claw waits for the pendulum to settle
+and uses the cable model's static-equilibrium tilt; the host approves grips
+(the firmware's own IMU tilt gate is removed). Camera bay: IMU pocket removed.
+Supersedes the IMU parts of D20/D22 (gravity fusion becomes optional, unused).

@@ -158,6 +158,24 @@ def test_simulator_relaxes_to_the_predicted_attitude_when_given_consistent_lengt
         assert abs(yaw_of(R1)) < 0.6
 
 
+def test_prediction_is_anchored_to_the_last_measured_pose():
+    """Where a pose has been measured, R_at returns the measurement exactly; elsewhere the statics-predicted change
+    is applied on top of it (so the planner never jumps by the nominal tilt at the pose it starts from)."""
+    cfg = load_config(SIM)
+    geo = geometry_from_config(cfg, cfg.anchor_priors())
+    p_ref = np.array([1.6, 1.3, 1.2])
+    R_meas = rot_z(0.2) @ rpy_to_matrix(0.03, -0.02, 0.0)          # a tilt the statics do not predict
+    nominal_ref = geo.R_at(p_ref)
+    geo.set_reference(p_ref, R_meas)
+    assert np.allclose(geo.R_at(p_ref), R_meas, atol=1e-12) and abs(geo.yaw - math.atan2(R_meas[1, 0], R_meas[0, 0])) < 1e-12
+    assert np.allclose(geo.lengths(p_ref), brute_lengths(geo.anchors, geo.attach, p_ref, R_meas), atol=1e-12)
+    p2 = p_ref + [0.4, -0.3, 0.5]
+    d_nom = geometry_from_config(cfg, cfg.anchor_priors(), yaw=geo.yaw)
+    n2, n1 = d_nom.R_at(p2), d_nom.R_at(p_ref)
+    assert np.allclose(geo.R_at(p2), R_meas @ n1.T @ n2, atol=1e-9)   # the statics-predicted change is carried over
+    assert np.degrees(math.acos(min(1.0, (np.trace(R_meas @ nominal_ref.T) - 1) / 2))) > 0.5   # the offset was non-trivial
+
+
 # ============================================================== (b) one common point = the old model
 def test_single_point_reproduces_the_point_claw_model_exactly():
     cfg = common_cfg()

@@ -193,6 +193,7 @@ class RobotContext:
         self.T_B_C = cfg.claw.T_body_cam
         self.persist = lambda: None         # supervisor installs its durable save here
         self.claw_yaw_room = 0.0            # last measured claw yaw (room frame): the yaw the attitude statics hold
+        self.claw_ref_room = None           # (p, R) of the last measured claw pose (room frame)
 
     # -- time ------------------------------------------------------------
     def wait(self, s):
@@ -206,6 +207,8 @@ class RobotContext:
         if T_R_M is not None:
             self.T_R_M = np.asarray(T_R_M, float)
         geo = geometry_from_config(self.cfg, anchors_room, self.claw_yaw_room)
+        if self.claw_ref_room is not None:
+            geo.set_reference(*self.claw_ref_room)
         self.model = model_from(geo, self.cfg, L0)
         self.ws = workspace_from_config(self.cfg, np.asarray(anchors_room),
                                         lowest_point_z=float(self.cfg.claw.lowest_point_body_m[2]))
@@ -263,19 +266,23 @@ class RobotContext:
     def room_pose(self, sp):
         """Claw origin (room frame) of a vision pose. Side effect: the measured yaw becomes the held yaw of the
         attitude model (planning predicts roll/pitch from statics at this yaw; yaw itself is only measured)."""
-        self.note_attitude(sp.R)
+        self.note_attitude(sp.R, sp.p)
         return to_room(self.T_R_M, sp.p)
 
     def room_R(self, sp):
         """Claw orientation (room frame) of a vision pose (IMU roll/pitch + vision yaw)."""
         return self.T_R_M[:3, :3] @ np.asarray(sp.R, float)
 
-    def note_attitude(self, R_M):
+    def note_attitude(self, R_M, p_M=None):
+        """Anchor the attitude prediction to a measured claw pose (marker frame)."""
         R_room = self.T_R_M[:3, :3] @ np.asarray(R_M, float)
         self.claw_yaw_room = float(math.atan2(R_room[1, 0], R_room[0, 0]))
-        self.cal.note_yaw_M(R_M)
+        self.cal.note_yaw_M(R_M, p_M)
+        self.claw_ref_room = None if p_M is None else (to_room(self.T_R_M, p_M), R_room)
         if self.model is not None:
             self.model.geometry.set_yaw(self.claw_yaw_room)
+            if self.claw_ref_room is not None:
+                self.model.geometry.set_reference(*self.claw_ref_room)
 
     def length_sigma_room(self, q_R):
         if self.result is None:
@@ -985,7 +992,7 @@ class StartupSequencer:
                 qM = to_marker(res.T_R_M, q)
                 extra = None
                 if Ls is not None:
-                    extra = cc.payout_scale_sigma * np.min(np.abs(Ls - geo.lengths(qM)[None, :]), axis=0)   # R: statics at the held yaw
+                    extra = cc.payout_scale_sigma * np.min(np.abs(Ls - geo.lengths(qM, ctx.cal.predicted_R(res.anchors_M, qM))[None, :]), axis=0)
                 b = ctx.cal.boundary_sigma(res, qM, extra_len_sigma=extra)
                 comps = {"ceiling": (("vertical", b["ceiling_z"]), ("distance", b["ceiling_dist"])),
                          "wall": (("x", b["wall_x"]), ("y", b["wall_y"]))}

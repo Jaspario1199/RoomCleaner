@@ -304,12 +304,14 @@ class Calibrator:
         # last measured (held) yaw is used, see kinematics.Attitude.
         self.spaced = bool(np.max(np.abs(self.attach - self.attach[0])) > 1e-9)
         self.hold_yaw_M = 0.0
+        self._ref_M = None                # (p, R) of the last measured pose (marker frame)
         self._geoM: dict = {}
 
-    def note_yaw_M(self, R_M):
-        """Remember the claw yaw (marker frame) from a measured orientation."""
+    def note_yaw_M(self, R_M, p_M=None):
+        """Remember the claw yaw (marker frame) and, with ``p_M``, the measured pose the prediction is anchored to."""
         R_M = np.asarray(R_M, float)
         self.hold_yaw_M = float(math.atan2(R_M[1, 0], R_M[0, 0]))
+        self._ref_M = None if p_M is None else (np.asarray(p_M, float), R_M)
 
     def predicted_R(self, anchors_M, q_M, R=None) -> np.ndarray:
         """Orientation (marker frame) for a claw at ``q_M``: the caller's measurement if given, else the
@@ -327,6 +329,10 @@ class Calibrator:
             g = Geometry(anchors_M, self.attach, com=c.com_body_m, mass_kg=c.mass_kg, payload_body=c.lowest_point_body_m)
             self._geoM[key] = g
         g.set_yaw(self.hold_yaw_M)
+        if self._ref_M is not None:
+            g.set_reference(*self._ref_M)
+        else:
+            g._ref = None
         return g.R_at(np.asarray(q_M, float))
 
     # -- parameter packing -------------------------------------------------
@@ -594,7 +600,7 @@ class Calibrator:
         fit_s = [s for s in samples if s.kind == "fit"]
         onsets = list(onsets)
         if fit_s:
-            self.note_yaw_M(fit_s[-1].R)
+            self.note_yaw_M(fit_s[-1].R, fit_s[-1].p)
         lay = Layout(len(fit_s), self.cc.fit_payout_scale)
         for i in range(4):
             if not any(o.i == i for o in onsets) and not fit_s:

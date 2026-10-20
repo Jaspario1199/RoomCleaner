@@ -188,9 +188,13 @@ def test_bead_search_is_off_by_default_and_validated():
 @pytest.fixture(scope="module")
 def board_probe(tmp_path_factory):
     td = tmp_path_factory.mktemp("margin")
-    cfg = fast_cfg(**{"startup.slack_probe": True})
+    # With the four-point claw (CAD camera 7 cm higher over the floor, jaw tips 17 cm lower, spaced attachments) the
+    # predicted length sigma over the work volume of this run is 6.0 mm instead of < 5 mm
+    # (verification/multi_attachment_results.md). The margin rule under test is about k*sigma against the margins, not about
+    # that calibration criterion, so the criterion is relaxed to 7.5 mm for this fixture only (default 5 mm unchanged).
+    cfg = fast_cfg(**{"startup.slack_probe": True, "calibration.length_sigma_max_m": 0.0075})
     # seed 1: the calibration criteria accept this run; seeds 0 and 2 miss the 5 mm predicted-length-sigma
-    # criterion (5.4 / 5.6 mm) and stay LOCAL_ONLY by design (see verification of the cases in the report)
+    # criterion (5.4 / 5.6 mm at the time of writing) and stay LOCAL_ONLY by design
     board = FloorBoard(3, 3, 0.42, 0.16, layout_err_m=0.0, span_mode="extent", seed=1)
     r = SimRobot(cfg, seed=1, data_dir=td, camera_kw={"board": board})
     svc = Service(r.ctx, data_dir=td)

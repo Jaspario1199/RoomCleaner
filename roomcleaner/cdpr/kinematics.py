@@ -171,20 +171,33 @@ class Geometry:
         # spaced attachments make the lengths orientation dependent
         self.spaced = bool(np.max(np.abs(self.attach - self.attach[0])) > 1e-9)
         self._att = Attitude(self) if (self.spaced and self.mass_kg) else None
+        self._ref = None
 
     # -- orientation ---------------------------------------------------------
     def set_yaw(self, yaw: float):
         self.yaw = float(yaw)
 
+    def set_reference(self, p, R):
+        """Anchor the attitude prediction to a MEASURED pose: ``R_at(p)`` then returns exactly ``R`` there and the
+        statics-predicted change elsewhere (a constant world-frame tilt offset carries the part of the real tilt
+        that statics cannot know, e.g. from mm-level line-length inconsistencies). Sets the held yaw from ``R``."""
+        R = np.asarray(R, float)
+        self.yaw = float(np.arctan2(R[1, 0], R[0, 0]))
+        self._ref = None
+        if self._att is not None:
+            nominal = self.R_at(np.asarray(p, float))
+            self._ref = R @ nominal.T
+
     def R_at(self, p, R=None) -> np.ndarray:
-        """Orientation to use at claw position ``p``: the caller's ``R``, else the
-        statics prediction at the held yaw (spaced attachments), else identity."""
+        """Orientation to use at claw position ``p``: the caller's ``R``, else the statics prediction at the held
+        yaw (spaced attachments, anchored to the last measured pose, see :meth:`set_reference`), else identity."""
         if R is not None:
             return np.asarray(R, float)
         if self._att is None:
             return _rot_z(self.yaw) if self.spaced else np.eye(3)
         sol = self._att.solve(p)
-        return sol.R if sol.ok else _rot_z(self.yaw)
+        nominal = sol.R if sol.ok else _rot_z(self.yaw)
+        return nominal if self._ref is None else self._ref @ nominal
 
     def attach_world(self, p, R=None) -> np.ndarray:
         R = self.R_at(p, R)

@@ -592,6 +592,10 @@ def default_world(cfg, stations, *, seed=0, anchor_err_m=0.04, marker_xy=None, m
     cam_xy = (T_R_M @ np.r_[0, 0, 0, 1])[:2]
     cam_off_body = cfg.claw.T_body_cam[:2, 3] if cfg.claw.T_body_cam is not None else np.zeros(2)
     claw_yaw = float(rng.uniform(-math.pi, math.pi))
+    if cfg.claw.attachment == "spaced":
+        # the four lines are physically tied to fixed corners of the box and the claw is set down roughly facing the
+        # way it hangs (a line cannot pass through the box): +-25 deg, same random stream as the point-claw profile
+        claw_yaw *= math.radians(25.0) / math.pi
     xy = cam_xy - rot_z(claw_yaw)[:2, :2] @ cam_off_body + np.asarray(claw_offset)
     slack = kw.pop("slack_m", tuple(rng.uniform(0.03, 0.10, 4)))
     return World(cfg, stations, anchors=anchors, T_R_M=T_R_M, claw_xy=xy, claw_yaw=claw_yaw, slack_m=slack,

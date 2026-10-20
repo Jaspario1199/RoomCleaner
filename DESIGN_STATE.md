@@ -330,3 +330,22 @@ scanned at startup. Study: `scripts/sim_floor_reference_study.py`, report
   end-of-travel switches. Work in order: (1) per-pose slack probe (in
   progress), (2) margin-based trust rule, (3) printable ~1 m floor board +
   multi-tag detection.
+
+## Gripper v7 gearbox redesign — requirements gathered (10/20, not started)
+From Jasper (10/20) and the v6 inspection (verification/gripper_v6_inspection.md):
+- Bearings: 7x14x5 bearings (five in v6, not in the STEP) sit inside the gears:
+  compound lower x1, compound upper x2, follower upper x2. Any redesign keeps
+  bearings in the gears (pockets ~Ø14.05 with lip relief or crush ribs) and
+  supports every gear shaft on both sides (straddle), with full bearing
+  engagement and coaxial seats (v6: lower pin enters only 1.05 mm, seats
+  0.40 mm out of line). Prefer Ø7 steel dowel pins over printed Ø7 pins.
+- Gearbox may be partly exposed (open frame) but must stay stable; add thin
+  guard bands over each mesh so fabric cannot be drawn in.
+- Proposal under discussion (awaiting Jasper): 54T -> 36T (2:1), jaw arm
+  75 -> ~53 mm from the gear axis (same opening, ~16 N grip per jaw, pinion SF
+  unchanged ~2.1); keep the 24:24 sync stage; rim-and-spoke gear webs; centre
+  allowance +0.3 mm; bolted horn-to-pinion drive. Uniform scaling rejected
+  (tooth stress ~ 1/s^3: 90 % -> SF 1.5, 80 % -> SF 1.07).
+- Electrical box is structural: the four lines attach through radial holes in
+  its corner fillets. Camera bay (XIAO S3 Sense + MPU6050) is being added to the
+  box on the claw's narrow side, wiring into the box below the light top cap.

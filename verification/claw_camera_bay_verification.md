@@ -106,3 +106,81 @@ mass), a lean of order 1 deg if the CoM sits roughly 250 mm below the cable plan
 - FOV, lens height, mass, cantilever I and cable-clearance claims reproduce within tolerance.  The structure is far stiffer than needed.
 
 Files: `tests/test_claw_camera_bay_verify.py`, `verification/claw_camera_bay_verification.md`.  No other repo files were modified.
+
+---
+
+# ROUND 2: re-verification of repair round 1 (commit 5b7764d)
+
+Same rules as round 1: shipped exports measured, own ray casting and probing, nothing repaired or committed.
+Reproduce: `/usr/bin/python3 -m pytest tests/test_claw_camera_bay_verify.py -q -rxX` (about 3.5 min).  Author's suite re-run: 18 passed.
+Final run: see the status line at the end of this section.  Round-1 findings F2, F3, F4, F4b, F4c, F7(envelope), F8, F9 are re-checked below;
+F5 (grasp point hidden) and F6 (lines at shallow elevation) remain.
+
+## R2.1 Results table
+
+| # | Check | Expected | Measured | Status |
+|---|---|---|---|---|
+| 1 | Exports valid, one solid each; v6 STEP unchanged | valid, 1 solid | box+bay 408,848.1 mm3, body 19,603.6, cover 6,515.4 mm3, all valid, 1 solid; v6 blob = git HEAD; regeneration vs shipped 0.0 mm3; STEP round-trip exact; STL closed | PASS |
+| 2 | F2 USB-C open notch, 13 x 8 overmold + cover | no interference | notch x 12.48..14.48 through the +X wall, width 13.50 (r 83.25..96.75) constant to the wall top, sill y = 14.26, no roof. 13 x 8 and 12 x 7 plugs (x >= 12.6, outside the wall): 0 interference with box+bay, cover and all other v6 parts. Plug top 22.76, cover lip underside 23.36 (0.6 mm) | PASS |
+| 2b | Plug position tolerance | not specified | lateral play is only +-0.25 mm (r offset +-0.2 passes, +0.4 hits the notch wall 12 mm3); vertical -0.5 / +0.6 mm. USB-C height (1.6 below envelope top) is still an assumption | WARN (R2-W1) |
+| 3 | XIAO cradle 24.963 x 18.4 for the 24.363 x 17.78 x 13.96 envelope | 0.3 mm per side | exact void 24.962 x 18.400; envelope clears for shifts +-0.25 (0 interference with box and cover), hits at +0.35 (8.3 / 13.6 mm3); headroom 4.0 mm to the cover seat | PASS |
+| 3b | Lens window 17 x 16 and tolerance | >= 14 x 14, +-3.2 | 17.00 x 16.00 centred on r = 90; D8 x 4.5 barrel clears for offsets up to 4.4 mm (X) and 3.9 mm (r), hits at 4.6 / 4.1; hood rays clipped 0; FOV blockage unchanged 12.6 / 12.7 % (bay and cover block 0 rays); lens height 511.66 mm | PASS |
+| 3c | Board seat under the envelope | support ledge | radial bearing of the 17.78 board on the block is only 0.89 mm per long edge (window edge at r 82.0 / 98.0, board edge 81.11 / 98.89); 3.7 mm along X | WARN (R2-W2) |
+| 4 | Adafruit 3886 IMU pocket outboard of the XIAO | board fits, rigid | pocket 18.40 x 26.60 (r 101.2..127.8) for the 17.8 x 26 board (0.3 per side); 4 pads 3 x 3 x 1.0 at y 3.4 (36.0 mm2 measured), side blocks to y = 8.0, PCB-only envelope and 4.6 mm envelope clear of the body (0 interference), no screw posts/pilots left; 4 cover pegs 3 x 3 end 0.2 mm above the PCB (36 mm2 at y 5.2); two zip-tie loops at r = 107.5 / 121.5, pit 4.4 wide, floor slot 1.8 x 3.8 | PASS |
+| 4b | IMU rigidity | no rattle | board play +-0.3 mm in plan (about +-0.7 deg about the board normal, irrelevant for tilt), vertical play 0.2 mm (0.4-0.6 deg tilt) unless the zip ties are tightened; the cover pegs act through a cover held by two screws near the root, so the far end only floats 0.2 mm above the PCB. Corner pegs sit on 4.6 mm component envelope corners (100.8 mm3 interference of the cover pegs with the full 4.6 envelope); hole/component-free corners are an UNVERIFIED assumption | WARN (R2-W3) |
+| 4c | IMU wire route to box | free | widest sphere IMU pocket -> box pocket 3.0 mm (limited by the 3.5 mm gap over the partition, top 20.86); XIAO -> box 3.8 / 4.0 mm | PASS |
+| 5 | Min wall >= 2.0, own sampling (inward-normal rays, 1,787 bay facets without any near-box-wall exclusion, 1,496 cover facets) | >= 2.0 | bay 1.989, cover 1.999 (tessellation noise). Axis-run scan in x, y, r: no solid run < 1.95 mm except the 0.35 mm convex corner tip where each gusset rib start pokes out of the wall (x 14.48..14.83, r about 76.9, 18 mm tall, cosmetic) | PASS |
+| 6 | Insert bosses D4.1 x 7, OD 9.1 | as stated | hole 4.10 dia, bottom at y = 17.36 (7.00 deep from the 24.36 seat, 1.3 mm over a 5.7 insert); boss OD 9.10, outer wall 2.50, 3.00 mm to the cavity; cover holes 3.40 coaxial (x = 17.53) | PASS |
+| 7 | Cover flat face / STL on bed | flat outer face down | STL zmin 0.0000; bed contact 2178.6 mm2 = the whole flat outer face (2178.7); 0 overhang facets in the print orientation (lip, pegs, corral up); cover to original box gap 0.33 mm; no interference with box+bay | PASS |
+| 8 | Cantilever, tip now at r = 129.8 | << 12.5 MPa | section r = 64: Ix 12,713 mm4, Iy 102,832; outboard mass 39.1 g (20.9 bay + 7.7 cover + 10.5 assumed electronics); weight + 2 m/s2: 0.016 MPa; plus 10 N at the tip (arm 65.8): vertical 0.84 MPa (x3 = 2.5), lateral 0.18 (0.53); droop 0.036 mm, 0.046 deg | PASS |
+| 9 | Mass | small | net added 28.7 g solid (20.5 bay + 8.3 cover), up from 18.2 g (+10.5 g); 38.7 g with electronics | PASS (watch) |
+| 10 | Everything else unchanged | as round 1 | removed material now only the wire window, 1,050.9 mm3 (pilot nick gone); corner holes, lid seat and rim unchanged (volumes, areas, bore areas identical); cable-line stated range (az 0..90, el >= 10): 0 hits, min clearance 20.6 mm; window 10 x 7, 53 mm under the seat | PASS |
+| 11 | Realistic cable lines at 0, +-15 deg yaw | 0 hits | own implementation, 4 installation orientations (0/90/180/270): 1,344 feasible lines each, 0 hits, min clearance 21.2 (0), 19.4 (+15), 20.1 (-15) | PASS |
+| 12 | Realistic cable lines at |yaw| >= 30 deg | 0 hits | 2 hits at +-30 (min clearance 0.1-0.2 mm), 7 at +-45 (installed facing 0/180), 3 and 11 for installed 90/270; all with the claw reference at z >= 1.98 m (top 0.4..0.8 m of the workspace) and line elevation <= 11 deg | FAIL at yaw >= 30 (F6, conditional) |
+
+## R2.2 Repair claim by claim
+
+- F2 fixed.  The open notch removes both the chamfered roof and the 1.1 mm lintel; a 13 x 8 plug passes.  Residual: lateral play +-0.25 mm.
+- F3 fixed.  No wall below 1.989 mm in either part (own scans).  The earlier USB lintel, pilot-2 and post-1 slivers are gone.
+- F4/F4b/F4c fixed by removing the posts and pilots and designing for the repo-selected Adafruit 3886.  New residual: R2-W3 (corner-peg assumption).
+- F7 envelope fixed (24.963 cradle).  Lens and USB-C positions inside the envelope remain assumptions; both tolerate small errors (lens +-3.9 mm, USB lateral +-0.25 mm).
+- F8 fixed (7.0 deep hole, 1.3 reserve).  F9 fixed (flat face on the bed, no overhangs).
+- F5 unchanged: the gear housing still hides the floor under the jaws (first visible floor 30 mm from the tube axis).
+
+## R2.3 Cable-line analysis (item 8): review of scripts/analyze_cable_lines_claw_camera_bay.py
+
+- Units: stations in metres, line length L converted to mm before it is compared with the ray parameter (mm), positions and offsets in metres with 54.09/1000.  The mm/m bug disclosed earlier is fixed; my independent run reproduces the author's numbers (yaw 0: clearance 21.2 vs 20.8; 15 deg: 19.4 vs 19.1; 30 deg: 2 hits vs 2; 45 deg: 7 vs 7).
+- Mapping: the corner-to-station map is made at psi = 0 by the nearest corner diagonal (B, C, D, A for (+X,+Z), (+X,-Z), (-X,-Z), (-X,+Z)) and held fixed.  I rebuilt it with my own handedness derivation (v6 is right-handed with Y up, so bay +Z maps to room -y) and also for installed orientations of 90, 180 and 270 deg: the same 0.0 hits at 0 and +-15 deg and the same hit counts at +-30 / +-45 deg (3 and 11 hits at 90/270 because the room is not square).
+- Feasibility filter (lines through the box excluded) is right; the claw reference sampling (8 x 7 x 6 grid, z from the jaw-tip limit to ceiling - 0.4 m) is coarse but adequate.
+
+**Are hits at |yaw| >= 30 deg physically reachable?  Yes, they cannot be ruled out.**  Reason (my linear model of a rigid claw hung from four inextensible lines, attach points 54.09 mm from the axis):
+the four lines leave nearly radially from the corners (the corner diagonals are at 45 deg while the lines to the stations are at about 39 deg from the room centre), so the yaw lever arm of each line is only a few mm.  Consequences:
+ - yaw sensitivity to line-length inconsistency is 3.6 to 6.0 deg per mm (median 4.7); a 2 mm 1-sigma error per line (spool payout, anchor position) gives about 9 deg 1-sigma yaw, and about 6 mm of inconsistency reaches 30 deg.  `anchor_sigma_m` is 0.05 in the simulation profile (unsurveyed).
+ - the restoring torque from line tension is tiny: about 0.1 to 0.7 N.mm per degree (450 g claw, equal vertical share); roughly 3 to 20 N.mm of disturbance torque moves the claw 30 deg.
+ So "four corner holes 108 mm apart" holds the claw near the installed yaw only if the lengths are calibrated to a few mm; it does not provide a stiff yaw constraint.  This is a linear estimate (cable elasticity, tilt coupling and slack were not modelled), so treat the numbers as order of magnitude.
+ Where it matters: hits occur only with the claw in the top 0.4 to 0.8 m of the workspace.  In my 6-level grid there are no hits at |yaw| <= 45 deg for a claw reference at z <= 1.62 m.  Mitigation options for the lead: raise `ceiling_margin_m` to about 0.8 m while yaw is unmeasured, or measure/limit yaw, or shorten/shape the bay.
+
+## R2.4 Audit of changes to tests/test_claw_camera_bay_verify.py (git diff be58fc5..HEAD)
+
+All 16 hunks were read.  Legitimate geometry-driven changes (new numbers verified by my own measurements above): volume baselines (408,848 / 19,604 / 6,515), removed volume 1,050.9 (pilot nick gone), added bbox r <= 129.81 and |x| <= 34.85, lens window x -8.5..8.5 and r 82..98, cradle 24.963 x 18.4, boss numbers, cover STL on bed, the xfails F2/F3/F4/F4b/F4c/F9 removed once fixed, IMU tests replaced for the pocket design, stiffness Ix 12,713 / arm 65.8 / IMU CoM 114.5, mass 28.7 g.
+Findings in the changes (corrected by me in this round, keeping the stricter intent):
+ 1. Two assertions were reduced to constant arithmetic and tested nothing: `(24.36 - 2.4) >= 5.0` in the IMU test, and `(90 - 8.0) - 80.0 >= 2.0 - 1e-9 and 8.5 < 12.48` for the cradle ledge.  A third, `(xs[7] - xs[0]) / 2 >= 0 and 22.08 - 17.5315 == approx(4.55)`, was vacuous.  I replaced them with measurements (floor height, side-block height, space above the reservation, peg gap, peg area, block bearing, measured boss OD).
+ 2. `thickness_scan` mask was changed to exclude facets within 1.0 mm of the box wall and x < -45; this could hide defects.  `test_min_wall_known_values` was deleted (acceptable, the flagged defects are fixed).  I added `test_r2_thin_wall_unmasked_scan` (no exclusion): minimum 1.989 / 1.999, so nothing was hidden.
+ 3. `test_wire_path...` dropped the IMU obstacle (acceptable, the IMU moved) and raised the bound to 3.5 mm (stricter), but no longer covered the IMU wires; added `test_r2_wire_path_from_imu_pocket`.
+ 4. `test_overhangs...` lost its USB-roof span assertions (fine, no roof now) and gained `area[flat].max() < 40`; unchanged slanted-area bound 80 mm2.
+ 5. Mass baseline rose from 18.2 to 28.7 g and now sits close to the existing `< 30 g` bound (the bound was not raised).
+ 6. The cover flat-face test accepts 85 % of an approximate plan area; mine checks that the bed contact equals the whole flat face (1 %) and that nothing overhangs.
+No assertion was weakened to hide a failing measurement; the numeric changes track real geometry moves.
+
+## R2.5 New findings (ranked)
+
+1. R2-W1 (LOW-MEDIUM): USB plug lateral tolerance +-0.25 mm (13.5 mm notch for a 13 mm overmold) and vertical -0.5 / +0.6 mm, on an unverified connector height.  Widen the notch (every 0.5 mm of width costs nothing structurally) or measure a real plug.
+2. F6 (MEDIUM, upgraded): lines at |yaw| >= 30 deg hit the bay near the ceiling margin, and yaw is only weakly held (above).  The cable-line claim in the design record should say "clear for |yaw| <= 15 deg, or whenever the claw is lower than about 1.6 m".
+3. R2-W3 (LOW-MEDIUM): IMU corner pegs and pads assume component-free board corners; vertical play 0.2 mm until the ties are tightened; the cover (two screws near the root, 60 mm cantilever beyond them) floats at the IMU.
+4. R2-W2 (LOW): 0.89 mm board bearing on the cradle block; the lens window (16 mm) is nearly as wide as the 17.78 mm board.
+5. F10 (INFO, updated): outboard mass 39.1 g solid at r_cg about 94 mm is a CoM shift of about 8 mm for a 450 g claw and a lean near 2 deg if the CoM is about 250 mm below the cable plane (both assumed).  Bay length from the box wall is now about 70 mm (r 56 to 129.8).
+6. Cosmetic: gusset-rib start corners protrude 0.35 mm beyond the bay side wall.
+
+Final status of the verification suite: see the next line (updated after the last run).
+
+Final run of the round-2 suite: **45 passed, 3 xfailed (strict: F5 grasp point hidden, F6 lines at yaw 30 deg, both signs)**.  Author suite: 18 passed.

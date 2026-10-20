@@ -659,8 +659,19 @@ def test_xiao_cradle_clearance_and_alignment(comb, cover, mesh_comb):
     for dx, dr in ((0, 0), (3.0, 0), (0, 3.0), (3.4, 3.4)):
         cyl = cq.Solid.makeCylinder(4.0, 4.5, cq.Vector(OX + dx, OY + 1.9, OZ - (90 + dr)), cq.Vector(0, 1, 0))
         assert vol_int(cyl, comb) < 1e-3
-    # board seat ledge around the window: radial ledge on the neck side >= 2.0 (block reaches r = 80.0)
-    assert (90 - 8.0) - 80.0 >= 2.0 - 1e-9 and 8.5 < 12.48
+    # [round 2: the implementer's constant-only assertion replaced by a measurement]
+    # board bearing: the XIAO envelope (r 81.11 .. 98.89) rests on the cradle block along both long edges
+    # (block top y = 6.4 must be solid under r = 81.5 and r = 98.5 at x = 0); measured bearing 0.89 mm per side.
+    for r in (81.5, 98.5):
+        ys = _along(mesh_comb, 1, 0.0, -r)
+        assert ys[-1] == pytest.approx(6.4, abs=0.01), (r, ys)
+    bearing = [vol_int(Bx(-8.0, 8.0, 6.3, 6.4, a, b), comb) / 0.1 / 16.0 for a, b in ((81.2, 82.0), (98.0, 98.8))]
+    assert min(bearing) >= 0.75, bearing                     # mm of radial bearing per long edge
+    # plug-position tolerance is tiny: lateral play of the 13 x 8 plug in the notch is +-0.25 mm
+    yc = 20.36 - 1.6
+    for dr in (-0.2, 0.2):
+        assert vol_int(Bx(12.6, 45, yc - 4, yc + 4, 90 + dr - 6.5, 90 + dr + 6.5), comb) < 1e-3
+    assert vol_int(Bx(12.6, 45, yc - 4, yc + 4, 90 + 0.4 - 6.5, 90 + 0.4 + 6.5), comb) > 1.0
 
 
 def test_usb_window_reachable_by_plug_8p5x7(comb):
@@ -704,7 +715,7 @@ def test_cover_fasteners_and_fit(comb, cover, box, mesh_comb, mesh_cover):
     assert (xs[5] - xs[4]) == pytest.approx(3.0, abs=0.02)      # 3.0 mm between cavity and hole
     assert (xs[6] - xs[5]) == pytest.approx(4.1, abs=0.02)      # insert hole diameter
     assert (xs[7] - xs[6]) >= 2.5 - 0.02                         # outer boss wall
-    assert (xs[7] - xs[0]) / 2 >= 0 and 22.08 - 17.5315 == pytest.approx(4.55, abs=0.01)   # boss OD 9.1
+    assert 2 * (xs[7] - 0.5 * (xs[5] + xs[6])) == pytest.approx(9.1, abs=0.03)                  # boss OD 9.1 measured
     hole_x = _along(mesh_comb, 1, 17.5315, -70.0)
     assert list(np.round(hole_x, 2)) == [0.0, 17.36]            # hole 7.0 deep from the cover seat y = 24.36
     assert 24.36 - 17.36 >= 5.7 + 1.0                            # insert M3 x 5.7 with >= 1 mm melt-in reserve
@@ -734,7 +745,12 @@ def test_imu_pocket_for_repo_selected_board(comb, cover, mesh_comb):
     assert xs[2] - xs[1] == pytest.approx(18.4, abs=0.02)
     rs = -_along(mesh_comb, 2, 3.0, 6.0)[::-1]                   # ... partition | 26.6 void | end wall
     assert rs[-2] - rs[-3] == pytest.approx(26.6, abs=0.02)
-    assert (24.36 - 2.4) >= 5.0
+    # [round 2: constant-only assertion replaced by measurements] pocket depth to the cover seat, side-block height, floor
+    assert _along(mesh_comb, 1, 0.0, -rc)[-1] == pytest.approx(2.4, abs=0.01)           # floor only under the board
+    assert _along(mesh_comb, 1, 11.0, -rc)[-1] == pytest.approx(8.0, abs=0.01)          # side blocks reach the 4.6 reservation top
+    assert vol_int(Bx(-9.2, 9.2, 8.0, 24.36, 101.2, 127.8), comb) < 1e-3                  # open above the reservation up to the cover
+    assert vol_int(Bx(-8.9, 8.9, 5.0, 5.2, 101.2, 127.8), cover) < 1e-3                  # 0.2 mm pegs gap above the PCB
+    assert vol_int(Bx(-9.2, 9.2, 5.2, 5.21, 101.2, 127.8), cover) / 0.01 == pytest.approx(36.0, rel=0.03)   # 4 pegs x 9 mm2
     pad = Bx(5.9, 8.9, 3.35, 3.4, rc - 13.0, rc - 10.0)          # corner pads at y = 3.4 support the board
     assert vol_int(pad, comb) == pytest.approx(3.0 * 3.0 * 0.05, rel=0.05)
 
@@ -875,3 +891,159 @@ def test_added_mass_small(comb, box, cover):
     assert m_bay + m_cov < 30.0
     assert m_bay + m_cov == pytest.approx(28.7, abs=0.5)         # NET of the window cut (repaired design)
     assert (comb.Volume() - box.Volume() + 1050.9) * PETG + m_cov == pytest.approx(30.0, abs=0.5)   # gross
+
+
+# =========================================================================== ROUND 2 additions (independent)
+def test_r2_thin_wall_unmasked_scan(comb, cover):
+    """Own sampling, no 'near box wall' exclusion: facets of the bay (r beyond the box wall) and of the cover."""
+    off = OFF
+    V, F = tess(comb, 0.02, 0.15)
+    V = V - off
+    wall = _box_wall_r
+    c, t = inward_thickness(V, F, lambda c: (c[:, 0] > -45) & (c[:, 0] < 40) & (-c[:, 2] > wall(c[:, 1])) & (c[:, 1] < 26) & (c[:, 1] > -0.1), minarea=0.02)
+    assert len(t) > 1500 and t.min() >= 1.95, (t.min(), c[t.argmin()])
+    Vc, Fc = tess(cover, 0.02, 0.15)
+    c2, t2 = inward_thickness(Vc - off, Fc, lambda c: np.ones(len(c), bool), minarea=0.02)
+    assert len(t2) > 1000 and t2.min() >= 1.95, (t2.min(), c2[t2.argmin()])
+
+
+def test_r2_cover_stl_flat_on_bed_no_overhang():
+    T = load_stl(os.path.join(STL, "claw_camera_bay_cover.stl"))
+    n = np.cross(T[:, 1] - T[:, 0], T[:, 2] - T[:, 0])
+    a = 0.5 * np.linalg.norm(n, axis=1)
+    n = n / np.linalg.norm(n, axis=1)[:, None]
+    z = T[:, :, 2]
+    bed = (np.abs(z).max(1) < 1e-3) & (n[:, 2] < -0.99)
+    over = (n[:, 2] < -0.7072) & (z.min(1) > 0.01)
+    step = cq.importers.importStep(os.path.join(STEP, "claw_camera_bay_cover.step")).val()
+    top = sum(f.Area() for f in step.Faces() if abs(f.BoundingBox().ymin - f.BoundingBox().ymax) < 1e-6
+              and abs(f.BoundingBox().ymax - f.BoundingBox().ymin) < 1e-6 and abs(f.BoundingBox().ymax - (OY + 26.76)) < 1e-3)
+    assert abs(z.min()) < 1e-3
+    assert a[bed].sum() == pytest.approx(top, rel=0.01)           # whole outer face is on the bed
+    assert a[over].sum() < 1e-6                                   # nothing overhangs once printed face-down
+
+
+def test_r2_wire_path_from_imu_pocket(mesh_comb, mesh_cover):
+    """Widest sphere from the IMU pocket (above the board, either end) to the box interior, with the XIAO
+    envelope (24.363 x 17.78 x 13.96) and the IMU envelope (17.8 x 26 x 4.6 above the pads) as obstacles."""
+    from scipy import ndimage as ndi
+    H = 0.25
+    xs = np.arange(-18, 18 + H / 2, H)
+    ys = np.arange(-1, 30 + H / 2, H)
+    rs = np.arange(40, 132 + H / 2, H)
+
+    def occ(mesh):
+        V, F = mesh
+        pts = [(x + 1.2e-4, y + 7e-5) for x in xs for y in ys]
+        cr = cross_coords(V, F, 2, pts)
+        o = np.zeros((len(xs), len(ys), len(rs)), bool)
+        k = 0
+        for i in range(len(xs)):
+            for j in range(len(ys)):
+                z = cr[k]
+                k += 1
+                if len(z):
+                    o[i, j, :] = (np.searchsorted(z, -rs) % 2) == 1
+        return o
+
+    X, Y, R = np.meshgrid(xs, ys, rs, indexing="ij")
+    xiao = (np.abs(X) <= 12.18) & (Y >= 6.4) & (Y <= 20.36) & (np.abs(R - 90) <= 8.89)
+    imu = (np.abs(X) <= 8.9) & (Y >= 3.4) & (Y <= 8.0) & (R >= 101.5) & (R <= 127.5)
+    free = ~(occ(mesh_comb) | occ(mesh_cover) | xiao | imu)
+    edt = ndi.distance_transform_edt(free, sampling=H)
+    goal = (R <= 44.5) & (np.abs(X) <= 6) & (Y >= 11) & (Y <= 20)
+    start = (np.abs(X) <= 4) & (Y >= 8.2) & (Y <= 22) & (R >= 101.5) & (R <= 106)
+
+    def ok(d):
+        lab, _ = ndi.label(edt >= d / 2, structure=np.ones((3, 3, 3)))
+        a = set(np.unique(lab[start & (edt >= d / 2)])) - {0}
+        b = set(np.unique(lab[goal & (edt >= d / 2)])) - {0}
+        return bool(a & b)
+
+    lo, hi = 0.0, 8.0
+    for _ in range(9):
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if ok(mid) else (lo, mid)
+    assert lo >= 2.9, lo                                         # measured 3.0 mm (limited by the 3.5 mm gap over the partition)
+
+
+# ---- realistic cable lines (own implementation; config/robot.sim.json read-only)
+@pytest.fixture(scope="module")
+def realistic(box, comb, cover):
+    import json
+    cfg = json.load(open(os.path.join(REPO, "config", "robot.sim.json")))
+    W, D, Hh = cfg["room"]["width_m"] * 1000, cfg["room"]["depth_m"] * 1000, cfg["room"]["height_m"] * 1000
+    mg, cm = cfg["motion"]["workspace_margin_m"] * 1000, cfg["motion"]["ceiling_margin_m"] * 1000
+    anch = {s["id"]: np.array(s["anchor_room_m"]) * 1000 for s in cfg["stations"]}
+    added = comb.cut(box)
+    Va, Fa = tess(added, 0.05, 0.2)
+    Vc, Fc = tess(cover, 0.05, 0.2)
+    V = np.concatenate([Va, Vc]) - OFF
+    F = np.concatenate([Fa, Fc + len(Va)])
+    Vb, Fb = tess(box, 0.3, 0.3)
+    return dict(W=W, D=D, H=Hh, mg=mg, cm=cm, anch=anch, V=V, F=F, Vb=Vb - OFF, Fb=Fb)
+
+
+def _realistic_hits(rz, psi0_deg, delta_deg):
+    W, D, Hh, mg, cm, anch = rz["W"], rz["D"], rz["H"], rz["mg"], rz["cm"], rz["anch"]
+    corners = [(1, 1), (1, -1), (-1, -1), (-1, 1)]
+    mouth, my = 54.09, 14.05
+
+    def vec(psi, bx, bz):
+        return bx * np.array([math.cos(psi), math.sin(psi)]) + bz * np.array([math.sin(psi), -math.cos(psi)])
+    cen = np.array([W / 2, D / 2])
+    psi0 = math.radians(psi0_deg)
+    mapping = {}
+    for c in corners:                                         # nearest corner diagonal at the installed yaw
+        v = vec(psi0, c[0], c[1])
+        az = math.atan2(v[1], v[0])
+        mapping[c] = min(anch, key=lambda k: abs((math.atan2(*(anch[k][:2] - cen)[::-1]) - az + math.pi) % (2 * math.pi) - math.pi))
+    psi = math.radians(psi0_deg + delta_deg)
+    ex, ez = np.array([math.cos(psi), math.sin(psi)]), np.array([math.sin(psi), -math.cos(psi)])
+    xs, ys, zs = np.linspace(mg, W - mg, 8), np.linspace(mg, D - mg, 7), np.linspace(523.8, Hh - cm, 6)
+    hits = feas = 0
+    zhit = []
+    for c in corners:
+        a = anch[mapping[c]]
+        h = mouth * (c[0] * ex + c[1] * ez)
+        D_, L, pz = [], [], []
+        for px in xs:
+            for py in ys:
+                for z in zs:
+                    d = np.array([a[0] - (px + h[0]), a[1] - (py + h[1]), a[2] - z])
+                    l = np.linalg.norm(d)
+                    D_.append([d[:2] @ ex / l, d[2] / l, d[:2] @ ez / l])
+                    L.append(l)
+                    pz.append(z)
+        D_, L, pz = np.array(D_), np.array(L), np.array(pz)
+        o = np.array([c[0] * mouth, my, c[1] * mouth])
+        tb = np.array([mt_first_hit(o + d * 0.6, d[None], rz["Vb"], rz["Fb"])[0] for d in D_])
+        feasible = ~(tb < L)
+        t = mt_first_hit(o, D_, rz["V"], rz["F"])
+        hit = (t < L) & feasible
+        hits += int(hit.sum())
+        feas += int(feasible.sum())
+        zhit += list(pz[hit])
+    return hits, feas, zhit, mapping
+
+
+@pytest.mark.parametrize("psi0", [0, 90])
+@pytest.mark.parametrize("delta", [-15, 0, 15])
+def test_r2_realistic_lines_clear_within_15deg_yaw(realistic, psi0, delta):
+    hits, feas, _, _ = _realistic_hits(realistic, psi0, delta)
+    assert feas == 1344 and hits == 0
+
+
+@pytest.mark.xfail(strict=True, reason="F6: at |yaw| >= 30 deg from the installed orientation, lines of the two stations on the bay side "
+                                       "hit the bay when the claw is within 0.4 m of the ceiling margin (el <= ~7 deg)")
+@pytest.mark.parametrize("delta", [-30, 30])
+def test_r2_realistic_lines_clear_at_30deg_yaw(realistic, delta):
+    hits, _, _, _ = _realistic_hits(realistic, 0, delta)
+    assert hits == 0
+
+
+def test_r2_hits_only_at_top_of_workspace(realistic):
+    hits, feas, zhit, _ = _realistic_hits(realistic, 90, 45)
+    assert hits > 0 and min(zhit) >= 1.9e3                      # claw reference >= 1.98 m (top two z levels)
+    hits2, _, _, _ = _realistic_hits(realistic, 90, 0)
+    assert hits2 == 0

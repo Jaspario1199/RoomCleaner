@@ -74,7 +74,8 @@ Existing tests adjusted for physics that legitimately changed (listed so they ar
   the old limit-cycle test now asserts the fixed point.
 * `test_margin_trust.py`: the board+probe fixture relaxes `calibration.length_sigma_max_m` to 7.5 mm (predicted sigma of its seed 1 is 6.0 mm with the four-point claw; see 5). Default unchanged.
 
-Suite: see section 6.
+Suite: `OMP_NUM_THREADS=1 python3 -m pytest -q tests/cdpr tests/firmware` -> **180 passed in 1423 s (23:43)**. Same command at HEAD 14d5981: 160 passed in 820 s (13:40);
+the 20 added tests account for the count, the longer run for the 4-point plant, the probe's longer poses and the margin fixture (580 s setup).
 
 ## 5. Calibration accuracy before / after (`scripts/sim_floor_reference_study.py --suite main --only "3c" --seeds 3 --probe --no-whatif`; board 3x3 p0.42 + slack probe, seeds 0-2)
 

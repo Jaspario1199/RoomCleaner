@@ -390,3 +390,16 @@ Adafruit 3886 MPU-6050 as selected, "not recorded ordered").
   ~1.05–1.25 kg as printed vs 450 g budget — budget decision pending
   (proposed: 1.25 A on the existing A4988s → ~40 N → ~650 g claw).
 - Tube-length / camera visibility study running.
+
+## Claw tube wall measured (10/20)
+- Jasper: the aluminium tube wall is **0.019 in (0.48 mm)**, not the 3 mm in
+  the CAD (OD 28.54 / ID 22.54). With OD ~28.5 (likely 1-1/8 in, VERIFY), the
+  ID is ~27.6 mm. The tube at 254.8 mm (D28) is ~29 g, not ~166 g
+  (−136 g against the CAD mass roll-ups).
+- Stiffness/strength (hand calc, 6061 E 69 GPa): I 4,200 mm^4 (vs 19,900);
+  10 N side load at 250 mm → 0.18 mm deflection, 8.5 MPa. M3 cross-bolt
+  bearing at the 100 N design load → ~35 MPa on two 0.48 mm walls. Fine,
+  but a thin wall dents: don't overtighten the cross-bolt; the printed saddle
+  must carry the clamp, not the tube. Alloy unknown (VERIFY).
+- To do: update GRIPV7_TUBE_ID (and OD if not 28.54) once OD is confirmed,
+  then rerun the mass roll-up and the claw CoM for the body-frame refresh.

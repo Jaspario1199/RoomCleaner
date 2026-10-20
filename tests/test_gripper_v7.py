@@ -506,7 +506,7 @@ def test_mesh_guards(printed):
         for f in walls:
             w = f.outerWire()
             per = sum(e.Length() for e in w.Edges())
-            if per / f.Area() > 1.0:                    # thin strip, not a boss
+            if len(w.Edges()) == 4 and per / f.Area() > 1.0:   # straight guard strip (quad), not a boss
                 ts.append(_wall_thickness(f.Area(), per))
         assert ts, name
         for t in ts:

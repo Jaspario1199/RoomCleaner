@@ -239,7 +239,7 @@ GRIPV7_SERVO_EAR_DROP = 10.0      # boss bottom face -> ear bottom face
 GRIPV7_SERVO_EAR_HOLE_DX = 47.0   # ear-hole pitch along x (v6 pattern; interfaces.py says 48.3 -- VERIFY)
 GRIPV7_SERVO_EAR_HOLE_DY = 10.0
 GRIPV7_SERVO_EAR_HOLE_D = 4.0
-GRIPV7_SERVO_CUTOUT_CLEAR = 0.3   # per side, rectangular body cutout in the upper plate
+GRIPV7_SERVO_CUTOUT_CLEAR = 0.6   # per side: lets the servo float +-0.6 mm so it self-aligns to the pinion pilot before the ear screws are tightened
 GRIPV7_SERVO_SCREW = 2.5          # M2.5 ear screws into heat-set inserts (wall at the cutout)
 GRIPV7_SERVO_INSERT_D = 3.6       # M2.5 heat-set insert melt-in hole
 GRIPV7_SERVO_INSERT_DEPTH = 5.0
@@ -259,7 +259,7 @@ GRIPV7_HORN_SCREW_PILOT_D = 1.7   # self-tapping pilot in PETG
 GRIPV7_HORN_SCREW_PILOT_DEPTH = 9.0
 GRIPV7_PINION_HUB_D = 20.0        # pinion hub extension above the teeth (carries the horn)
 GRIPV7_PINION_PILOT_D = 8.0       # plate pilot post entering the pinion bottom (journal support)
-GRIPV7_PINION_PILOT_CLEAR = 0.2   # radial
+GRIPV7_PINION_PILOT_CLEAR = 0.4   # radial (pilot Ø8.0 in a Ø8.8 bore): safety journal, the servo float absorbs the misalignment
 GRIPV7_PINION_PILOT_H = 8.0       # pilot height above the lower plate inner face
 
 # --- jaw four-bar (re-derived for the 2:1 train; see cad/parts/gripper_v7_kin.py) ----------------
@@ -301,5 +301,5 @@ GRIPV7_SADDLE_SPLIT_GAP = 0.3     # total gap between the two half saddles at th
 GRIPV7_GUARD_T = 1.4              # mesh guard band thickness (1.2 - 1.6)
 GRIPV7_GUARD_CLEAR = 1.5          # guard inner face to gear tip circle
 GRIPV7_GUARD_Z_MARGIN = 0.5       # guard end to the nearest gear face
-GRIPV7_P_STUB_R = 6.0             # link ground-pivot stub (hangs from the upper plate)
-GRIPV7_P_TAB_HALF_W = 8.0
+GRIPV7_P_STUB_R = 7.0             # link ground-pivot stub (hangs from the upper plate; bending check in calculations)
+GRIPV7_P_TAB_HALF_W = 9.0

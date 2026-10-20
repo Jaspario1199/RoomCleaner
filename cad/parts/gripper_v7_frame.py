@@ -255,8 +255,12 @@ def make_upper_plate() -> cq.Workplane:
     cx = S[0] - P.GRIPV7_SERVO_X_OFF
     keep = keep.union(_rrect(cx - 28.8, cx + 28.8, S[1] - 14.0, S[1] + 14.0, 3.0, UP_Z0 - 2, UP_Z1 + 2))
     px, py = P.GRIPV7_LINK_GROUND
+    hw = P.GRIPV7_P_TAB_HALF_W
     for sx in (1, -1):
-        keep = keep.union(_rrect(sx * px - 9.0, sx * px + 9.0, py - 10.0, py + 12.0, 5.0, UP_Z0 - 2, UP_Z1 + 2))
+        keep = keep.union(_rrect(sx * px - hw, sx * px + hw, py - 10.0, py + 12.0, 5.0, UP_Z0 - 2, UP_Z1 + 2))
+        # link reaction (up to ~150 N) goes into the pin bosses: triangulate the tabs to both axes
+        for ax in (C, F):
+            keep = keep.union(_bar((sx * px, py), ax, P.GRIPV7_RIB_W, UP_Z0 - 2, UP_Z1 + 2))
     win = _windows(UP_Z0, UP_Z1, keep, p_tabs=True)
     plate = plate.cut(win)
     # race rings (underside), P stubs, columns' landing is the plate inner face itself

@@ -889,10 +889,13 @@ def test_min_wall_1p2_everywhere_including_ribs(thickness_scan):
 
 def test_rib_defect_is_confined_to_the_stale_ribs(thickness_scan):
     c, t = thickness_scan
-    thin = t < 1.2
-    assert thin.sum() > 0 and _rib_zone(c[thin]).all()                       # every sub-1.2 facet is on a locating rib
+    thin = t < 1.1
+    assert thin.sum() > 0 and _rib_zone(c[thin]).all()                       # every facet under 1.1 mm is on a locating rib
     assert t[thin].min() == pytest.approx(0.5, abs=0.02)
     assert np.all(np.abs(c[thin][:, 0] + 1.0) < 0.7)                         # the 0.5 mm fins are the x = -1.0 pair, in the wire gap
+    # the other rib faces (x = -8.0) are only 1.2 mm wide (module: 1.6)
+    rib = _rib_zone(c) & (np.abs(c[:, 0] + 8.0) < 0.7)
+    assert rib.sum() > 0 and t[rib].min() == pytest.approx(1.2, abs=0.02)
 
 
 def _along_mesh(V, F, axis, a, b):
@@ -1149,7 +1152,7 @@ def test_r3_unchanged_regions_vs_previous_export(box, comb, tmp_path):
     assert box.cut(old).cut(box.cut(comb)).Volume() < 0.01 and box.cut(comb).cut(box.cut(old)).Volume() < 0.01   # same wire window
     assert box.cut(comb).Volume() == pytest.approx(1050.94, abs=0.05)
     ho, hn = hole_faces(old), hole_faces(comb)
-    assert len(ho) == len(hn) == 8
+    assert len(ho) == len(hn) and len(hn) in (4, 8)                          # 4 full bores in the exports (8 half faces in the v6 STEP)
     assert sum(f.Area() for f in ho) == pytest.approx(sum(f.Area() for f in hn), abs=0.01)
     # the bay got smaller and lighter
     assert comb.Volume() < old.Volume() - 4000.0
@@ -1221,10 +1224,10 @@ def test_d28_only_the_four_parts_moved_exactly_50(previews, comb, cover):
     assert new[56].cut(old[56].moved(cq.Location(cq.Vector(0, -D28_CUT, 0)))).Volume() < 0.01
     # box+bay and cover: exactly the CURRENT exports shifted by -50 in y
     for idx, ex in ((57, comb), (58, cover)):
-        sh = ex.moved(cq.Location(cq.Vector(0, -D28_CUT, 0)))
-        assert new[idx].cut(sh).Volume() < 0.01 and sh.cut(new[idx]).Volume() < 0.01
         bb, be = _bb(new[idx]), _bb(ex)
         assert bb - be == pytest.approx([0, 0, -D28_CUT, -D28_CUT, 0, 0], abs=1e-4)
+        sh = ex.moved(cq.Location(cq.Vector(0, -D28_CUT, 0)))
+        assert new[idx].cut(sh).Volume() < 0.01 and sh.cut(new[idx]).Volume() < 0.01
 
 
 def test_d28_no_new_interference_between_moved_parts_and_head_or_tube(previews):

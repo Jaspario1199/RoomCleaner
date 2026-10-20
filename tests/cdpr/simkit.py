@@ -49,3 +49,14 @@ def fast_cfg(**overrides):
             d = d[int(k)] if isinstance(d, list) else d[k]
         d[keys[-1]] = v
     return load_config(raw)
+
+
+def assert_no_eq_failures(sim, where=""):
+    """Harness hardening (review finding 6): a lifecycle / system run is only evidence if the plant's static
+    equilibrium solver never failed. ``World.settle`` keeps the old state and counts ``eq_failures`` when it cannot
+    converge (silently, unless ``strict``), so every system run must assert it. ``sim``: a ``SimRobot`` or a ``World``."""
+    w = getattr(sim, "world", sim)
+    events = [e for e in getattr(w, "events", []) if e and e[0] == "no_equilibrium"]
+    assert w.eq_failures == 0 and not events, (
+        f"{where or 'simulation'}: the plant's equilibrium solver failed {w.eq_failures} time(s) "
+        f"(worst accepted residual {getattr(w, 'eq_worst_residual', float('nan')):.3g}); the run is not valid evidence")

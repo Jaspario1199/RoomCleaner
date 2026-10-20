@@ -192,6 +192,14 @@ class RobotContext:
 
 
 class StartupSequencer:
+    # STUDY HOOK (floor-reference study; None = off, behaviour unchanged): an
+    # object with visible(camera, T_B_C, T_M_B, min_side_px=, margin_px=) -> bool
+    # and edge_eff(camera, T_B_C, T_M_B, min_side_px=, margin_px=) -> float
+    # (e.g. sim.world.FloorBoard). When set, the excitation design treats a pose
+    # as visible if ANY tag of the board is in view, and predicts the vision
+    # covariance with the board's effective span instead of the single tag edge.
+    study_board = None
+
     def __init__(self, ctx: RobotContext):
         self.ctx = ctx
         self.cfg = ctx.cfg
@@ -482,6 +490,9 @@ class StartupSequencer:
         if not t.feasible:
             return False
         T_M_B = make_T(R_M, to_marker(ctx.T_R_M, q_R))
+        if self.study_board is not None:
+            return self.study_board.visible(ctx.camera, ctx.T_B_C, T_M_B,
+                                            min_side_px=cfg.camera.min_marker_pixels * 1.2, margin_px=30)
         return marker_visible(ctx.camera, ctx.T_B_C, T_M_B, cfg.marker.edge_m,
                               min_side_px=cfg.camera.min_marker_pixels * 1.2, margin_px=30)
 
@@ -493,7 +504,11 @@ class StartupSequencer:
                                               f"(need {n_fit + n_wit})", suspended=True)
 
         def cov_fn(qM):
-            return predicted_vision_cov(ctx.camera, ctx.T_B_C, make_T(R_M, qM), cfg.marker.edge_m)
+            edge = cfg.marker.edge_m
+            if self.study_board is not None:
+                edge = self.study_board.edge_eff(ctx.camera, ctx.T_B_C, make_T(R_M, qM),
+                                                 min_side_px=cfg.camera.min_marker_pixels * 1.2, margin_px=30)
+            return predicted_vision_cov(ctx.camera, ctx.T_B_C, make_T(R_M, qM), edge)
         candM = [to_marker(ctx.T_R_M, q) for q in cands]
         here = to_marker(ctx.T_R_M, ctx.model.pose_from_positions(ctx.co.positions())[0])
         fitM, witM = design_excitation(ctx.cal, ctx.result, candM, n_fit, cov_fn=cov_fn,

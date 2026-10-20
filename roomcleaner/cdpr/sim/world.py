@@ -467,10 +467,15 @@ class SimCamera:
     the same error model, optional dropouts and stale frames."""
 
     def __init__(self, world: World, camera, T_B_C, edge_m, *, pixel_sigma=0.3, rot_sigma=0.002,
-                 dropout=0.0, min_side_px=40.0, seed=0, bias_m=(0, 0, 0), board_span_m=None, board=None):
+                 dropout=0.0, min_side_px=40.0, seed=0, bias_m=(0, 0, 0), board_span_m=None, board=None,
+                 mount_rotvec=(0.0, 0.0, 0.0)):
         self.w = world
         self.cam = camera
-        self.T_B_C = np.asarray(T_B_C, float)
+        # ``T_B_C`` is the nominal (configured) mount; the TRUE camera is rotated from it by ``mount_rotvec`` (rad,
+        # camera frame): the unknown tilt error that the startup measures (D27). Zero = the CAD mount is exact.
+        self.T_B_C_nominal = np.asarray(T_B_C, float)
+        self.T_B_C = self.T_B_C_nominal.copy()
+        self.T_B_C[:3, :3] = self.T_B_C[:3, :3] @ rotvec_to_matrix(np.asarray(mount_rotvec, float))
         self.edge = edge_m
         self.pixel_sigma = pixel_sigma
         self.rot_sigma = rot_sigma
@@ -553,7 +558,9 @@ class SimCamera:
 
 
 class SimClaw:
-    """Claw node: IMU tilt, battery, servo; camera via SimCamera."""
+    """Claw node: battery, servo; camera via SimCamera. D27: no IMU. ``roll_pitch`` is an OPTIONAL gravity sensor
+    (truth + ``tilt_noise``) used only when a profile sets ``claw.imu`` for the optional gravity-fusion path; nothing
+    else (status, tilt checks, grip gating) reads it."""
 
     def __init__(self, world: World, camera: SimCamera, *, tilt_noise=0.002, seed=0):
         self.w = world
@@ -566,14 +573,10 @@ class SimClaw:
         self.online = True
 
     def roll_pitch(self):
-        """Body roll/pitch relative to gravity (IMU), radians."""
+        """Body roll/pitch relative to gravity (optional gravity sensor, not on the claw), radians."""
         from ..frames import matrix_to_rpy
         r, p, _ = matrix_to_rpy(self.w.R)
         return (r + float(self.rng.normal(0, self.tilt_noise)), p + float(self.rng.normal(0, self.tilt_noise)))
-
-    def tilt(self) -> float:
-        r, p = self.roll_pitch()
-        return float(math.hypot(r, p))
 
     def grip(self, close: bool):
         self.grip_closed = close
@@ -581,8 +584,7 @@ class SimClaw:
         return True
 
     def status(self) -> dict:
-        return {"online": self.online, "battery_v": self.battery_v, "grip_closed": self.grip_closed,
-                "tilt_rad": self.tilt()}
+        return {"online": self.online, "battery_v": self.battery_v, "grip_closed": self.grip_closed}
 
 
 def default_world(cfg, stations, *, seed=0, anchor_err_m=0.04, marker_xy=None, marker_yaw_err=0.15,

@@ -12,7 +12,8 @@ SELF_CHECK
     stations configured (hash), clock-synced, fault-free, switches closed
     (NC: open = bead at switch or broken wire), armed; claw online, battery
     >= min; camera calibration id recorded; marker visible and still; claw
-    resting upright on the floor (height and tilt). Vision noise measured.
+    resting upright on the floor (height; the camera-to-body tilt offset is measured
+    here at every startup, D27: no IMU). Vision noise measured.
 SLACK_TAKEUP
     one station at a time, a slow continuous retraction (claw on the floor, so
     the stations are not coupled) bounded by ``max_slack_m``. Vision is polled
@@ -71,7 +72,8 @@ import numpy as np
 
 from .calibration import (IDS, BeadObs, Calibrator, OnsetSample, PoseSample, Priors, align_from_bearings,
                           box_candidates, design_excitation, marker_visible, predicted_vision_cov)
-from .frames import inv_T, make_T, planar_T
+from .attitude import mount_offset_from_up
+from .frames import inv_T, make_T, matrix_to_rotvec, planar_T, rotvec_to_matrix, tilt_angle
 from .kinematics import Geometry, geometry_from_config, tension_distribution, workspace_from_config
 from .perception import to_marker, to_room
 from .spool import CableMap
@@ -190,10 +192,22 @@ class RobotContext:
         self.lim = limits_from_config(cfg)
         self.ws = None
         self.validated_volume = None        # room-frame points where the model is validated
-        self.T_B_C = cfg.claw.T_body_cam
+        self.mount_angle_rad = None         # camera-to-body tilt offset measured at startup (D27); None = not measured
+        self.mount_sigma_rad = 0.0          # its standard error
         self.persist = lambda: None         # supervisor installs its durable save here
         self.claw_yaw_room = 0.0            # last measured claw yaw (room frame): the yaw the attitude statics hold
         self.claw_ref_room = None           # (p, R) of the last measured claw pose (room frame)
+
+    @property
+    def T_B_C(self):
+        """Camera pose in the body frame: nominal CAD rotation corrected by the mount tilt measured at startup."""
+        v = getattr(self.vision, "T_B_C", None)
+        return self.cfg.claw.T_body_cam if v is None else v
+
+    def set_mount_offset(self, off):
+        """Store the measured camera-to-body tilt offset (attitude.MountOffset) and use it for all later vision poses."""
+        self.vision.set_mount_offset(off.Q)
+        self.mount_angle_rad, self.mount_sigma_rad = float(off.angle_rad), float(off.sigma_rad)
 
     # -- time ------------------------------------------------------------
     def wait(self, s):
@@ -247,6 +261,8 @@ class RobotContext:
               "L0": {s: self.model.maps[s].L0 for s in IDS},
               "boots": {s: self.co.links[s].boot for s in IDS},
               "validated_volume": None if self.validated_volume is None else np.asarray(self.validated_volume).tolist(),
+              "mount": {"rotvec": matrix_to_rotvec(self.vision.mount_Q).tolist(), "angle_rad": self.mount_angle_rad,
+                        "sigma_rad": self.mount_sigma_rad},
               "beads": [[b.i, b.P, b.trigger, b.sigma] for b in self.cal.beads]}
         atomic_write(self.data_dir / "model.json", json.dumps(st))
 
@@ -257,6 +273,10 @@ class RobotContext:
         d = json.loads((self.data_dir / "model.json").read_text())
         self.result = CalibrationResult.from_state(d["result"])
         self.set_model(self.result.anchors_room, d["L0"], d["T_R_M"])
+        mt = d.get("mount")
+        if mt:                                        # the offset measured at the last startup (the claw is hanging now)
+            self.vision.set_mount_offset(rotvec_to_matrix(mt["rotvec"]))
+            self.mount_angle_rad, self.mount_sigma_rad = mt["angle_rad"], mt["sigma_rad"]
         vv = d.get("validated_volume")
         self.validated_volume = None if vv is None else np.asarray(vv)
         self.cal.beads = [BeadObs(int(i), P, t, sg) for i, P, t, sg in d.get("beads", [])]
@@ -270,7 +290,7 @@ class RobotContext:
         return to_room(self.T_R_M, sp.p)
 
     def room_R(self, sp):
-        """Claw orientation (room frame) of a vision pose (IMU roll/pitch + vision yaw)."""
+        """Claw orientation (room frame) of a vision pose (full vision attitude; D27: no IMU)."""
         return self.T_R_M[:3, :3] @ np.asarray(sp.R, float)
 
     def note_attitude(self, R_M, p_M=None):
@@ -304,6 +324,9 @@ class RobotContext:
         (self.data_dir / name).write_text(json.dumps(obj, indent=2, default=lambda o: np.asarray(o).tolist()))
 
 
+MOUNT_FRAMES = 30            # frames averaged for the camera-mount tilt offset (standard error = scatter / sqrt(30))
+
+
 class StartupSequencer:
     # STUDY HOOK (floor-reference study; None = off, behaviour unchanged): an
     # object with visible(camera, T_B_C, T_M_B, min_side_px=, margin_px=) -> bool
@@ -328,14 +351,32 @@ class StartupSequencer:
         self.rep.history.append((round(self.ctx.now_s(), 3), state, msg))
         self.ctx.log(f"[startup] {state} {msg}")
 
-    def _still(self, n=None, state="?", suspended=False):
+    def _still(self, n=None, state="?", suspended=False, min_frames=None):
         st = self.cfg.startup
-        sp, why = self.ctx.vision.still_pose(n or st.still_samples, self.ctx.wait, interval_s=st.frame_interval_s,
+        sp, why = self.ctx.vision.still_pose(max(n or st.still_samples, min_frames or 0), self.ctx.wait, interval_s=st.frame_interval_s,
                                              max_wait_s=max(10.0, st.max_marker_wait_s if n is None else 10.0),
                                              spread_max_m=st.still_spread_max_m)
         if sp is None:
             raise StartupAbort(state, why, suspended=suspended, paused=True)
         return sp
+
+    def _measure_mount(self, sp, S):
+        """Camera-to-body tilt offset (D27), measured at EVERY startup while the claw rests upright on its jaws over
+        the printout: the marker normal seen by the camera is body z. Stored in the context (and the saved model) and
+        applied to every later vision pose; returns a fresh still pose taken with the corrected mount. Aborts if the
+        offset is implausibly large (claw not resting upright, or the camera mount is wrong)."""
+        ctx, cfg = self.ctx, self.cfg
+        off = mount_offset_from_up(ctx.vision.T_B_C_nominal[:3, :3], sp.up_cam, sigma_rad=sp.up_sigma_rad, n=sp.n)
+        if off.angle_rad > cfg.claw.mount_offset_max_rad:
+            raise StartupAbort(S, f"camera-to-body tilt offset {math.degrees(off.angle_rad):.1f} deg exceeds "
+                                  f"{math.degrees(cfg.claw.mount_offset_max_rad):.1f} deg: the claw is not resting upright "
+                                  "on its jaws, or the camera mount differs from the CAD")
+        ctx.set_mount_offset(off)
+        self.rep.measurements["camera_mount_offset_rad"] = off.angle_rad
+        self.rep.measurements["camera_mount_offset_sigma_rad"] = off.sigma_rad
+        ctx.log(f"camera mount tilt offset {math.degrees(off.angle_rad):.2f} deg "
+                f"(+-{math.degrees(off.sigma_rad):.2f}, {off.n} frames)")
+        return self._still(state=S, min_frames=MOUNT_FRAMES)
 
     def _execute(self, plan, state, *, suspended, monitor=None, stop_on_capture=False):
         r = self.ctx.co.execute(plan, monitor=monitor, stop_on_capture=stop_on_capture)
@@ -387,15 +428,14 @@ class StartupSequencer:
             raise StartupAbort(S, f"claw battery {st['battery_v']:.2f} V < {cfg.startup.battery_min_v} V")
         # 1) the claw must demonstrably rest upright on the floor BEFORE any
         #    station is touched; only then is clearing latched faults safe
-        sp = self._still(state=S)
+        sp = self._measure_mount(self._still(state=S, min_frames=MOUNT_FRAMES), S)
         self.noise_m = max(sp.spread_m, 2e-4)
         zf = -float(cfg.claw.lowest_point_body_m[2])
         if abs(sp.p[2] - zf) > cfg.startup.floor_height_tol_m:
             raise StartupAbort(S, f"claw origin {sp.p[2]:.3f} m above the marker, expected {zf:.3f} m: "
                                   "not resting upright on the floor (or marker edge / camera mount wrong)")
-        tilt = max(sp.tilt_rad, ctx.claw.tilt())
-        if tilt > cfg.startup.max_tilt_rad:
-            raise StartupAbort(S, f"claw tilted {math.degrees(tilt):.1f} deg")
+        if sp.tilt_rad > cfg.startup.max_tilt_rad:      # ~0 by construction after the mount correction; a consistency check
+            raise StartupAbort(S, f"claw tilted {math.degrees(sp.tilt_rad):.1f} deg after the mount correction")
         ctx.ledger.claw_supported = True
         ctx.persist()
         # 2) stations
@@ -456,7 +496,7 @@ class StartupSequencer:
                     mon["onset"] = float(ctx.co.positions()[i])
                 if disp >= bearing_d:
                     return "onset"
-                if ctx.claw.tilt() > st.max_tilt_rad:
+                if tilt_angle(o.R) > st.max_tilt_rad:
                     return "tilt"
                 return None
 
@@ -563,7 +603,7 @@ class StartupSequencer:
             obs = ctx.room_pose(sp2)
             rise = obs[2] - p0[2]
             drift = float(np.linalg.norm(obs[:2] - p0[:2]))
-            tilt = max(sp2.tilt_rad, ctx.claw.tilt())
+            tilt = sp2.tilt_rad
             if drift > st.max_lateral_drift_m:
                 raise StartupAbort(S, f"lateral drift {drift * 1e3:.0f} mm during lift", suspended=True)
             if tilt > st.max_tilt_rad:

@@ -443,7 +443,7 @@ class Supervisor:
                 raise CommandRefused(f"lost the marker while lowering: {why}")
             if np.linalg.norm(sp.p[:2] - sp0.p[:2]) > 2 * st.max_lateral_drift_m:
                 raise CommandRefused("lateral drift while lowering: stopped (lower by another method)")
-            if max(sp.tilt_rad, ctx.claw.tilt()) > st.max_tilt_rad:
+            if sp.tilt_rad > st.max_tilt_rad:
                 raise CommandRefused("claw tilted while lowering: stopped")
             z = sp.p[2]
             if last is not None and last - z < 0.3 * st.lift_packet_m and z - zf < st.floor_height_tol_m:

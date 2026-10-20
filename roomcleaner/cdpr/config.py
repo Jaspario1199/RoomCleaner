@@ -275,7 +275,8 @@ class TaskConfig:
     max_grip_attempts: int = 3
     max_consecutive_failures: int = 3
     # grip approval on the host (D27): wait until the claw is still, then check the tilt
-    grip_still_speed_m_s: float = 0.02              # camera-observed speed below which the claw counts as still
+    grip_still_rate_rad_s: float = 0.02             # camera-observed image motion (rad/s: pixel shift / (fx dt)) below which
+                                                    # the claw counts as still
     grip_still_frames: int = 5                      # ... for this many consecutive frame pairs
     grip_settle_periods: float = 5.0                # no camera motion signal: dwell this many pendulum periods
     grip_settle_min_s: float = 2.0                  # floor on that dwell (a short pendulum length gives tiny periods)
@@ -563,7 +564,7 @@ def load_config(path_or_dict) -> SystemConfig:
         raise ConfigError("calibration.attitude_sigma_rad is below claw.vision_attitude_sigma_rad although the claw has "
                           "no IMU (D27): the calibration would trust the attitude more than vision can deliver")
     tk = cfg.tasks
-    for k in ("grip_still_speed_m_s", "grip_settle_periods", "grip_settle_timeout_s"):
+    for k in ("grip_still_rate_rad_s", "grip_settle_periods", "grip_settle_timeout_s"):
         _f(getattr(tk, k), f"tasks.{k}", positive=True, allow_none=False)
     _f(tk.grip_settle_min_s, "tasks.grip_settle_min_s", allow_none=False)
     if tk.grip_settle_min_s < 0 or tk.grip_settle_timeout_s < tk.grip_settle_min_s:

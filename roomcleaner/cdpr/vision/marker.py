@@ -44,7 +44,7 @@ class MarkerObservation:
     frame_id: int | None = None
     capture_us: float | None = None
     edge_eff: float | None = None          # span of the tag set used (marker board), else None
-    imu_rp: tuple | None = None            # claw roll/pitch sampled with this frame (gravity fusion)
+    imu_rp: tuple | None = None            # roll/pitch sampled with this frame: OPTIONAL gravity fusion (claw.imu), unused (D27)
 
     def sigma_cam(self, cam_fx: float, edge_m: float, pixel_sigma=0.3) -> np.ndarray:
         """Rough 1-sigma of the marker position in the camera frame (m):
@@ -93,8 +93,8 @@ class MarkerDetector:
 
     def pose_from_corners(self, c, *, prev_T_C_M=None, up_in_cam=(0, 0, -1), up_sigma_rad=None, obs=None):
         """``up_in_cam``: world-up direction in camera coordinates (the floor
-        marker's normal should match it). From the IMU when fitted; otherwise
-        from the camera mount assuming an upright claw. ``None`` disables the
+        marker's normal should match it). From a gravity sensor when one is fitted (D27: the claw has none);
+        otherwise from the camera mount assuming an upright claw. ``None`` disables the
         prior. ``up_sigma_rad`` defaults to the detector's upright tolerance."""
         obs = obs or MarkerObservation(False, corners=c)
         side = float(np.mean([np.linalg.norm(c[i] - c[(i + 1) % 4]) for i in range(4)]))

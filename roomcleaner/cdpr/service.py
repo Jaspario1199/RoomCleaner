@@ -321,8 +321,11 @@ def build_hardware_context(config_path, data_dir):
                          ambiguity_ratio_min=cfg.camera.ambiguity_ratio_min)
     src = ThreadedFrameSource(DetectorFrameSource(claw, det, camera_mode="SVGA-800x600-q10",
                                                   T_B_C=cfg.claw.T_body_cam))
+    if cfg.claw.imu:
+        raise SystemExit("claw.imu = true needs an external roll/pitch provider: the claw node has no IMU (D27). "
+                         "Set claw.imu to false (attitude comes from vision and the cable model).")
     vision = VisionSource(src, cfg.claw.T_body_cam, cam.fx, cfg.marker.edge_m, max_age_s=cfg.camera.max_frame_age_s,
-                          now_us=rt.now_us, imu=claw if cfg.claw.imu else None)
+                          now_us=rt.now_us, rot_sigma=cfg.claw.vision_attitude_sigma_rad)
     return RobotContext(cfg, co, claw, vision, cam, TrustLedger(), data_dir=data_dir)
 
 

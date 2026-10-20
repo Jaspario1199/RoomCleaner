@@ -132,7 +132,7 @@ class ClawGarmentPerception(ItemPerception):
         usually outside the camera's footprint, so then the claw position
         comes from the cable kinematics and the heading from the last marker
         pose (yaw is unobservable from cable lengths; the runner has waited
-        for the IMU tilt to be small, so upright is assumed)."""
+        for the claw to settle and approved the predicted tilt, so upright is assumed)."""
         sp, why = ctx.vision.still_pose(3, ctx.wait, max_wait_s=self.marker_wait_s)
         if sp is not None:
             T_R_B = ctx.T_R_M @ make_T(sp.R, sp.p)

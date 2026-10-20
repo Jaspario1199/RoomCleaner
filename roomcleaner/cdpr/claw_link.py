@@ -59,25 +59,16 @@ class HttpClawClient:
             self.status()
         return claw_us + (self.offset_us or 0.0)
 
-    def roll_pitch(self):
-        s = self.status()
-        if not s.get("online") or not s.get("imu_ok"):
-            raise ClawError("claw IMU unavailable")
-        return float(s["roll"]), float(s["pitch"])
-
-    def tilt(self) -> float:
-        r, p = self.roll_pitch()
-        return float(np.hypot(r, p))
-
     # -- actions ---------------------------------------------------------
-    def grip(self, close: bool, force=False) -> bool:
-        q = f"/grip?close={int(close)}" + ("&force=1" if force else "")
+    def grip(self, close: bool) -> bool:
+        """Close / open the claw. The claw node has no IMU and no tilt gate (D27): it obeys; the host decides whether
+        the grip is approved (tasks.TaskRunner: settle, then approve). False if the claw answered ok=false."""
         try:
-            with self._get(q, "POST") as r:
+            with self._get(f"/grip?close={int(close)}", "POST") as r:
                 return bool(json.loads(r.read()).get("ok"))
         except urllib.error.HTTPError as e:
-            if e.code == 409:
-                return False                          # refused: not upright
+            if e.code == 400:
+                return False                          # claw rejected the request parameters
             raise ClawError(f"grip failed: HTTP {e.code}")
 
     def frame(self):
@@ -121,17 +112,10 @@ class DetectorFrameSource:
             return MarkerObservation(False, f"no frame: {e}")
         if self.mode and mode != self.mode:
             return MarkerObservation(False, f"camera mode {mode!r} != calibrated {self.mode!r}")
-        rp = None
-        try:
-            self.client._status = None                 # fresh attitude, taken right after the frame
-            rp = self.client.roll_pitch()
-            from .frames import rpy_to_matrix
-            up_body = rpy_to_matrix(rp[0], rp[1], 0.0).T @ np.array([0, 0, 1.0])   # world up in body
-            up_cam = self.R_C_B @ up_body
-        except Exception:
-            up_cam = (0, 0, -1)
+        # no IMU (D27): the disambiguation prior is "claw upright", i.e. world up = body z, seen from the nominal mount
+        # (the detector's upright tolerance is far larger than any mount error)
+        up_cam = self.R_C_B @ np.array([0.0, 0.0, 1.0])
         obs = self.det.detect(img, prev_T_C_M=self.prev, up_in_cam=up_cam, frame_id=fid, capture_us=cap)
-        obs.imu_rp = rp
         if obs.ok:
             self.prev = obs.T_C_M
         return obs

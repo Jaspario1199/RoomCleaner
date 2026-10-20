@@ -5,8 +5,13 @@ Workflow per item (each step bounded; failures are counted, never ignored):
 SCAN                  claw at scan height; perception lists candidate items.
 APPROACH              move above the item (lowest point ``approach_clearance``
                       above it) inside the trusted volume.
-GRIP                  wait for the claw to hang still and upright (IMU tilt <=
-                      grip_tilt_max), descend vertically to grip height, close.
+GRIP                  settle, then approve on the host (D27: the claw has no IMU
+                      and no tilt gate): wait until the claw is still (camera-
+                      observed motion below a rate for N frames; with no camera
+                      motion signal, a dwell of k pendulum periods), then require
+                      the tilt (vision when the floor reference is in view, and
+                      the cable model's predicted R_at at the hover and the grip
+                      pose) <= grip_tilt_max; descend vertically, close.
 PICKUP_VERIFICATION   lift back to approach height; perception must confirm
                       the item is held (and the floor spot is empty). Else
                       open, retry up to ``max_grip_attempts``.
@@ -29,6 +34,7 @@ from dataclasses import dataclass, replace
 
 import numpy as np
 
+from .attitude import estimate_attitude, predicted_tilt_rad, wait_until_still
 from .startup import StartupAbort
 from .trajectory import PlanError, plan_line_from
 
@@ -97,6 +103,7 @@ class TaskRunner:
         self.vol = TrustedVolume(ctx)
         self.zf = -float(ctx.cfg.claw.lowest_point_body_m[2])      # origin height when the claw rests
         self.log = []
+        self.approvals = []           # one record per settle-and-approve (method, wait, tilt, source), for the report
 
     # -------------------------------------------------------------- motion
     def _move(self, q, *, label, below_ok=False, payload=0.0, slow=1.0):
@@ -123,15 +130,30 @@ class TaskRunner:
     def _here(self):
         return self.ctx.model.pose_from_positions(self.ctx.co.positions())[0]
 
-    def _wait_upright(self, timeout_s=5.0):
+    def _settle_and_approve(self, what, target=None):
+        """Wait until the claw is still, then approve on the host. Returns (ok, why). ``target``: the pose the claw
+        will go to next (the grip pose); its predicted tilt is checked too. Tilt now: vision when the floor reference
+        is in view, else the cable model's static tilt; the predicted tilt (R_at) at the current and target pose must
+        also be within ``claw.grip_tilt_max_rad``."""
         ctx = self.ctx
-        t = 0.0
-        while t < timeout_s:
-            if ctx.claw.tilt() <= self.cfg.claw.grip_tilt_max_rad:
-                return True
-            ctx.wait(0.2)
-            t += 0.2
-        return False
+        lim = self.cfg.claw.grip_tilt_max_rad
+        res = wait_until_still(ctx)
+        rec = dict(what=what, method=res.method, waited_s=round(res.waited_s, 2), still_ok=res.ok)
+        self.approvals.append(rec)
+        if not res.ok:
+            return False, f"claw would not settle ({res.reason})"
+        here = self._here()
+        geo = ctx.model.geometry
+        est = estimate_attitude(ctx, here)
+        pred = max(predicted_tilt_rad(geo, here), predicted_tilt_rad(geo, target) if target is not None else 0.0)
+        rec.update(source=est.source, tilt_deg=round(math.degrees(est.tilt_rad), 2),
+                   sigma_deg=round(math.degrees(est.sigma_rad), 2), predicted_tilt_deg=round(math.degrees(pred), 2))
+        if est.tilt_rad > lim:
+            return False, f"{est.source} tilt {math.degrees(est.tilt_rad):.1f} deg > {math.degrees(lim):.1f} deg"
+        if pred > lim:
+            return False, f"predicted tilt {math.degrees(pred):.1f} deg (cable model) > {math.degrees(lim):.1f} deg"
+        rec["approved"] = True
+        return True, ""
 
     # -------------------------------------------------------------- run
     def run(self, *, on_state=lambda s, m="": None, max_items=10):
@@ -173,11 +195,13 @@ class TaskRunner:
             self._move(above, label=f"approach {item.id}")
             on_state("GRIP", item.id)
             ctx.claw.grip(False)
-            if not self._wait_upright():
-                return False, "claw would not settle upright"
+            grip_pose = np.array([item.xy[0], item.xy[1], self.zf + tc.grip_clearance_m])
+            ok, why = self._settle_and_approve(f"grip {item.id}", grip_pose)
+            if not ok:
+                return False, f"grip not approved: {why}"
             if hasattr(self.per, "note_target"):
                 self.per.note_target(item)
-            self._move(np.array([item.xy[0], item.xy[1], self.zf + tc.grip_clearance_m]), below_ok=True,
+            self._move(grip_pose, below_ok=True,
                        label=f"descend {item.id}", slow=0.3)        # slow near the object
             ctx.claw.grip(True)
             ctx.wait(tc.grip_settle_s)
@@ -210,8 +234,9 @@ class TaskRunner:
         self._move(np.array([here[0], here[1], z_t]), label="raise", payload=tc.max_payload_kg)
         self._move(np.array([hamper[0], hamper[1], z_t]), label="transport", payload=tc.max_payload_kg)
         on_state("RELEASE", item.id)
-        if not self._wait_upright():
-            return False, "claw would not settle over the hamper"
+        ok, why = self._settle_and_approve(f"release {item.id}")
+        if not ok:
+            return False, f"release not approved: {why}"
         ctx.claw.grip(False)
         ctx.wait(tc.grip_settle_s)
         on_state("DELIVERY_VERIFICATION", item.id)

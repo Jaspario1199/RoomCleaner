@@ -35,6 +35,12 @@ CALIBRATION
     acceptance (identifiability, residuals, uniqueness, witnesses, predicted
     length sigma over the work volume). Partial acceptance gives LOCAL_ONLY
     with the validated volume.
+    With ``startup.slack_probe`` every suspended sample (this state and
+    VISUAL_INITIALIZATION) is preceded by a per-pose slack probe: each cable in
+    turn is retracted in small steps until the claw moves (taut onset), its
+    slack is measured, it is left just taut, the sample is taken with all four
+    taut, and the motor positions are restored afterwards (so the planner's
+    model-consistent positions are unchanged).
 REFERENCE_VERIFICATION
     bead verification, one station at a time (homing.py).
 READY
@@ -61,6 +67,66 @@ from .perception import to_marker, to_room
 from .spool import CableMap
 from .protocol import State
 from .trajectory import PlanError, limits_from_config, model_from, plan_cable_move, plan_line_from
+
+def probe_response(geo, q_room, i, k_rel=None):
+    """Claw displacement (room frame) per unit retraction of cable ``i`` beyond
+    the taut point, for equal-modulus cables of stiffness ~ 1/length (the
+    modulus cancels): ``x = (sum_j k_j u_j u_j^T)^-1 k_i u_i`` over all four
+    cables (a slack cable not yet found is the main source of mismatch, hence the
+    prior sigma ``probe_response_sigma``)."""
+    U = geo.unit_vectors(q_room)
+    k = 1.0 / geo.lengths(q_room) if k_rel is None else np.asarray(k_rel, float)
+    K = sum(k[j] * np.outer(U[j], U[j]) for j in range(4))
+    return np.linalg.solve(K, k[i] * U[i])
+
+
+def hinge_analysis(r, P, C, v, sig_w, k_noise, floor_m):
+    """Taut-onset analysis of one cable's retraction series.
+
+    Data: ``r`` (K,) cumulative retraction (m), ``P`` (K,3) vision positions
+    (marker frame) and ``C`` (K,3,3) covariances of the individual measurements.
+    Model: ``p_k = p0 + w * max(r_k - s, 0)``: the claw does not move until the
+    slack ``s`` is taken up, then moves by ``w`` per metre of further
+    retraction (``w`` has a Gaussian prior ``N(v, sig_w^2 I)`` from the cable
+    geometry). ``s`` is profiled on a grid; the null model is "no response yet".
+
+    Returns a dict: ``detected`` (the hinge beats the null by ``k_noise`` sigma
+    AND the fitted claw motion at the last step is >= ``floor_m``), ``s`` (best
+    slack), ``sigma_s`` (profile 1-sigma), ``sig`` (significance, sigma),
+    ``disp`` (fitted motion at the last step, m)."""
+    r = np.asarray(r, float)
+    P = np.asarray(P, float)
+    W = np.linalg.inv(np.asarray(C, float))
+    rK = float(r[-1])
+    n = int(min(max(round(rK / 5e-5), 20), 240))
+    sg = np.linspace(0.0, rK, n + 1)                           # s = rK is the null model
+    H = np.maximum(r[None, :] - sg[:, None], 0.0)               # (G, K)
+    S0 = W.sum(0)
+    S1 = np.einsum("gk,kab->gab", H, W)
+    S2 = np.einsum("gk,kab->gab", H * H, W) + np.eye(3) / sig_w ** 2
+    N = np.zeros((len(sg), 6, 6))
+    N[:, :3, :3] = S0
+    N[:, :3, 3:] = S1
+    N[:, 3:, :3] = np.swapaxes(S1, 1, 2)
+    N[:, 3:, 3:] = S2
+    b0 = np.einsum("kab,kb->a", W, P)
+    b1 = np.einsum("gk,kab,kb->ga", H, W, P)
+    rhs = np.concatenate([np.broadcast_to(b0, (len(sg), 3)), b1 + v / sig_w ** 2], axis=1)
+    th = np.linalg.solve(N, rhs[:, :, None])[:, :, 0]
+    p0, w = th[:, :3], th[:, 3:]
+    res = P[None] - p0[:, None, :] - H[:, :, None] * w[:, None, :]
+    chi2 = np.einsum("gka,kab,gkb->g", res, W, res) + np.sum((w - v) ** 2, axis=1) / sig_w ** 2
+    g = int(np.argmin(chi2))
+    null = float(chi2[-1])
+    sig = math.sqrt(max(null - float(chi2[g]), 0.0))
+    ok = np.flatnonzero(chi2 <= chi2[g] + 1.0)
+    lo, hi = sg[ok.min()], sg[ok.max()]
+    step = sg[1] - sg[0] if len(sg) > 1 else 0.0
+    sigma_s = max(0.5 * (hi - lo), 0.5 * step)
+    disp = float(np.linalg.norm(w[g]) * max(rK - sg[g], 0.0))
+    return {"detected": bool(g < len(sg) - 1 and sig >= k_noise and disp >= floor_m), "s": float(sg[g]),
+            "sigma_s": float(sigma_s), "sig": float(sig), "disp": disp, "w": w[g].copy()}
+
 
 STARTUP_STATES = ("DISARMED", "SELF_CHECK", "SLACK_TAKEUP", "INITIAL_LIFT", "VISUAL_INITIALIZATION",
                   "CALIBRATION", "REFERENCE_VERIFICATION", "READY")
@@ -206,6 +272,7 @@ class StartupSequencer:
         self.rep = StartupReport()
         self.noise_m = 0.001
         self.p_floor = None
+        self.probe_log: list = []               # one record per probed pose (slack_probe)
 
     # -------------------------------------------------------------- helpers
     def _enter(self, state, msg=""):
@@ -469,9 +536,182 @@ class StartupSequencer:
         sp = self._still(n=self.cfg.calibration.noise_capture_frames, state=state, suspended=True)
         return PoseSample(ctx.co.positions().copy(), sp.p, sp.R, sp.cov, kind, ctx.now_s())
 
+    # ------------------------------------------------------------ slack probe
+    # Fraction of the measured slack's 1-sigma by which a probed cable is left on the slack side of its onset (so it
+    # cannot pull the claw toward itself and loosen a neighbour). 0 = leave it just taut. Simulation showed no
+    # difference (seeds 1, 2, single tag: residual truth slack of probed readings mean -0.28 mm, max 1.34 mm at 0
+    # against max 0.78 / 1.20 mm at 0.5; verification/slack_probe_results.md), so the simplest choice stays.
+    PROBE_MARGIN_SIGMA = 0.0
+    # The claw moving this far from the reference during one cable's probe without a significant onset means the
+    # vision or the response model cannot be trusted: abort (hold) rather than keep retracting.
+    PROBE_MAX_DISP_M = 0.010
+
+    def _probe_geometry(self, i, ref):
+        """Predicted claw response to retracting cable ``i`` at the pose of ``ref`` and what the vision noise
+        allows: (v, |v|, sigma_proj, rho) with ``v`` the response (marker frame, per metre of retraction),
+        ``sigma_proj`` the 1-sigma of a differential position measurement along it (reference + one
+        measurement, both averaged over the frames of ``ref``) and ``rho`` the over-retraction beyond the
+        taut point at which the onset becomes detectable (max(floor, k sigma) / |v|)."""
+        ctx, st = self.ctx, self.cfg.startup
+        v = ctx.T_R_M[:3, :3].T @ probe_response(ctx.model.geometry, ctx.room_pose(ref), i)
+        vn = float(np.linalg.norm(v))
+        vhat = v / vn
+        sig_proj = math.sqrt(float(vhat @ (2.0 * ref.cov) @ vhat))
+        rho = max(st.probe_onset_translation_m, st.onset_noise_k * sig_proj) / vn
+        return v, vn, sig_proj, rho
+
+    def _probe_cable(self, i, ref, n_frames, state):
+        """Retract cable ``i`` in small steps until the claw moves (taut onset), measure the slack, leave
+        the cable just taut. ``ref`` is a still pose (``n_frames`` frames) with the cable as it is. Returns a
+        record dict. Aborts (hold) when the cable never goes taut within ``probe_max_m``."""
+        ctx, cfg = self.ctx, self.cfg
+        st, sid = cfg.startup, IDS[i]
+        q_room = ctx.room_pose(ref)
+        v, vn, sig_proj, rho = self._probe_geometry(i, ref)
+        rec = {"station": sid, "status": "ok", "response_per_m": vn, "detect_overshoot_m": rho,
+               "sigma_proj_m": sig_proj, "frames": n_frames}
+        rate = st.probe_speed_m_s
+        r_arr, P_arr, C_arr = [0.0], [ref.p], [ref.cov]
+        r, step, n_steps, a = 0.0, st.probe_step_m, 0, None
+        while True:
+            if r >= st.probe_max_m - 1e-9:
+                raise StartupAbort(state, f"station {sid}: no taut onset within {st.probe_max_m * 1e3:.0f} mm of probe "
+                                          f"retraction at claw {np.round(q_room, 3).tolist()} (cable detached or "
+                                          "slipping on its spool, or the model is badly wrong)", suspended=True)
+            h = min(step, st.probe_max_m - r)
+            ppu = ctx.ppu(i)
+            P_b = float(ctx.co.positions()[i])
+            delta = np.zeros(4)
+            delta[i] = -h / ppu
+            plan = plan_cable_move(ctx.co.positions(), delta, rate / ppu, rate / ppu / 0.2,
+                                   segment_s=cfg.motion.segment_s, label=f"probe {sid}")
+            res = self._execute(plan, state, suspended=True)
+            if not res.ok:
+                raise StartupAbort(state, f"station {sid}: probe motion {res.reason}", suspended=True)
+            r += (P_b - float(ctx.co.positions()[i])) * ppu
+            n_steps += 1
+            ctx.wait(st.probe_settle_s)
+            sp = self._still(n=n_frames, state=state, suspended=True)
+            r_arr.append(r)
+            P_arr.append(sp.p)
+            C_arr.append(sp.cov)
+            a = hinge_analysis(r_arr, P_arr, C_arr, v, st.probe_response_sigma * vn, st.onset_noise_k,
+                               st.probe_onset_translation_m)
+            if a["detected"]:
+                break
+            moved = float(np.linalg.norm(sp.p - ref.p))
+            if moved > self.PROBE_MAX_DISP_M:
+                raise StartupAbort(state, f"station {sid}: claw moved {moved * 1e3:.1f} mm during the probe without a "
+                                          "significant onset (vision or response model unreliable)", suspended=True)
+            step = min(max(st.probe_step_m, 0.5 * r), st.probe_max_step_m)
+        s_hat, sig_s = a["s"], a["sigma_s"]
+        r_final = min(max(s_hat - self.PROBE_MARGIN_SIGMA * sig_s, 0.0), r)
+        back = r - r_final
+        if back > 0.5 * ctx.ppu(i):
+            pb = np.zeros(4)
+            pb[i] = back / ctx.ppu(i)
+            rb = self._execute(plan_cable_move(ctx.co.positions(), pb, rate / ctx.ppu(i), rate / ctx.ppu(i) / 0.2,
+                                               segment_s=cfg.motion.segment_s, label=f"probe back {sid}"),
+                               state, suspended=True)
+            if not rb.ok:
+                raise StartupAbort(state, f"station {sid}: probe pay-out {rb.reason}", suspended=True)
+        rec.update(slack_m=float(s_hat), sigma_m=float(sig_s), peak_m=float(r), final_m=float(r_final),
+                   steps=n_steps, significance=float(a["sig"]), response_fit_per_m=float(np.linalg.norm(a["w"])))
+        return rec
+
+    def _probe_pose(self, state):
+        """Probe the cables at the current (suspended) pose, one at a time, leaving each just taut.
+
+        Vision decides what is possible: from a reference still pose, each cable's detection over-retraction
+        ``rho`` is predicted; the frames per measurement are raised (up to ``probe_frames_max``) until ``rho`` is
+        within ``probe_overshoot_max_m`` (this bounds the tension excursion on a taut cable); a cable that still
+        does not make it is skipped (its reading keeps the fit's slack hypothesis selection). Up to
+        ``probe_rounds`` rounds: later rounds re-probe a cable only when the claw has since moved toward its
+        anchor by a detectable amount (a later probe loosened it). The caller restores the positions."""
+        ctx, st = self.ctx, self.cfg.startup
+        t0 = ctx.now_s()
+        k = st.onset_noise_k
+        recs = {}
+        n_base = st.probe_frames
+        ref = self._still(n=n_base, state=state, suspended=True)
+        need = {}
+        for i in range(4):
+            _, _, _, rho = self._probe_geometry(i, ref)
+            n_i = n_base if rho <= st.probe_overshoot_max_m else int(math.ceil(n_base * (rho / st.probe_overshoot_max_m) ** 2))
+            if n_i <= st.probe_frames_max:
+                need[i] = n_i
+            else:
+                recs[i] = {"station": IDS[i], "status": "skipped", "detect_overshoot_m": rho,
+                           "reason": f"vision too noisy: detecting onset needs {rho * 1e3:.1f} mm of over-retraction "
+                                     f"(> {st.probe_overshoot_max_m * 1e3:.1f} mm) even with {st.probe_frames_max} frames"}
+        todo = sorted(need)
+        n_pose = max(need.values(), default=n_base)
+        n_rounds = 0
+        if todo and n_pose > n_base:
+            ref = self._still(n=n_pose, state=state, suspended=True)
+        for rnd in range(st.probe_rounds if todo else 0):
+            if not todo:
+                break
+            n_rounds += 1
+            done_pose = {}                                        # cable -> still pose right after it was finished
+            for i in todo:
+                rec = self._probe_cable(i, ref, n_pose, state)
+                rec["round"] = rnd
+                if i in recs and recs[i].get("status") == "ok":
+                    rec["slack_first_round_m"] = recs[i].get("slack_m")
+                recs[i] = rec
+                ref = self._still(n=n_pose, state=state, suspended=True)
+                done_pose[i] = ref
+            todo = []
+            if rnd + 1 < st.probe_rounds:
+                U = ctx.model.geometry.unit_vectors(ctx.room_pose(ref))
+                Rm = ctx.T_R_M[:3, :3].T
+                for i, pose in done_pose.items():
+                    u = Rm @ U[i]
+                    dist = float(u @ (ref.p - pose.p))            # motion toward anchor i since it was finished
+                    thr = max(st.probe_onset_translation_m, k * math.sqrt(float(u @ (pose.cov + ref.cov) @ u)))
+                    if dist >= thr:
+                        todo.append(i)
+        taut = np.array([recs[i]["status"] == "ok" for i in range(4)])
+        sigma = np.array([recs[i].get("sigma_m", 0.0) * (1.0 + self.PROBE_MARGIN_SIGMA) if taut[i] else 0.0
+                          for i in range(4)])
+        slack = [recs[i].get("slack_m", float("nan")) for i in range(4)]
+        return {"taut": taut, "sigma_m": sigma, "slack_m": slack, "rounds": n_rounds, "t_s": ctx.now_s() - t0,
+                "frames": n_pose, "cables": {IDS[i]: recs[i] for i in range(4)}}
+
+    def _restore_positions(self, P_target, state):
+        """Back to the model-consistent motor positions the planner started from (pay-out only)."""
+        ctx, cfg, st = self.ctx, self.cfg, self.cfg.startup
+        delta = np.asarray(P_target, float) - ctx.co.positions()
+        if np.max(np.abs(delta)) < 0.5:
+            return
+        ppus = np.array([ctx.ppu(j) for j in range(4)])
+        rate = st.probe_speed_m_s / float(np.min(ppus))
+        r = self._execute(plan_cable_move(ctx.co.positions(), delta, rate, rate / 0.2, segment_s=cfg.motion.segment_s,
+                                          label="probe restore"), state, suspended=True)
+        if not r.ok:
+            raise StartupAbort(state, f"probe restore: {r.reason}", suspended=True)
+
+    def _sample_probed(self, kind, state):
+        """A calibration sample, preceded by the slack probe when enabled (all cables just taut)."""
+        if not self.cfg.startup.slack_probe:
+            return self._sample(kind, state)
+        ctx = self.ctx
+        P_before = ctx.co.positions().copy()
+        ctx.wait(self.cfg.startup.settle_s)
+        rec = self._probe_pose(state)
+        smp = self._sample(kind, state)
+        smp.taut, smp.taut_sigma_m = rec["taut"], rec["sigma_m"]
+        smp.probe = {k_: v for k_, v in rec.items() if k_ != "sigma_m"}
+        smp.probe["sigma_m"] = rec["sigma_m"].tolist()
+        smp.probe["taut"] = rec["taut"].tolist()
+        self._restore_positions(P_before, state)
+        self.probe_log.append(dict(smp.probe, kind=kind, state=state, z_m=float(smp.p[2])))
+        return smp
+
     def visual_init(self):
         ctx, S = self.ctx, "VISUAL_INITIALIZATION"
-        s = self._sample("fit", S)
+        s = self._sample_probed("fit", S)
         ctx.samples = [s]
         res = ctx.cal.fit(ctx.samples, ctx.onsets, L0_init=ctx.result.L0, psi_inits=[ctx.result.psi])
         ctx.apply_result(res, "visual")
@@ -524,7 +764,7 @@ class StartupSequencer:
                 r = self._execute(plan, "CALIBRATION", suspended=True)
                 if not r.ok:
                     raise StartupAbort("CALIBRATION", f"{name}: motion {r.reason}", suspended=True)
-                ctx.samples.append(self._sample(kind, "CALIBRATION"))
+                ctx.samples.append(self._sample_probed(kind, "CALIBRATION"))
 
     def calibrate(self):
         ctx, cfg, S = self.ctx, self.cfg, "CALIBRATION"
@@ -568,7 +808,9 @@ class StartupSequencer:
         vol = self._work_volume(res)
         report = ctx.cal.validate(res, wit, [to_marker(res.T_R_M, q) for q in vol])
         self.rep.measurements["calibration"] = {k: v for k, v in report.items()}
-        ctx.save("calibration.json", {"result": res.to_jsonable(), "validation": report})
+        ctx.save("calibration.json", {"result": res.to_jsonable(), "validation": report, "slack_probe": self.probe_log})
+        if self.probe_log:
+            self.rep.measurements["slack_probe"] = self._probe_summary()
         hard = [r for r in report["reasons"] if not r.startswith(("prior-dominated", "predicted length sigma"))]
         if hard:
             raise StartupAbort(S, "calibration rejected: " + "; ".join(hard), suspended=True)
@@ -583,6 +825,17 @@ class StartupSequencer:
             ctx.ledger.set_level("LOCAL_ONLY")
             self.rep.reasons.extend(report["reasons"])
         self.rep.measurements["validated_points"] = f"{len(ok_pts)}/{len(vol)}"
+
+    def _probe_summary(self):
+        L = self.probe_log
+        ok = [(i, r) for r in L for i, c in enumerate(r["taut"]) if c]
+        sl = np.array([r["slack_m"][i] for i, r in ok]) if ok else np.zeros(0)
+        return {"poses": len(L), "time_s": float(sum(r["t_s"] for r in L)),
+                "readings_probed": len(ok), "readings_skipped": 4 * len(L) - len(ok),
+                "slack_median_m": float(np.median(sl)) if len(sl) else None,
+                "slack_max_m": float(sl.max()) if len(sl) else None,
+                "peak_retraction_max_m": float(max((c.get("peak_m", 0.0) for r in L for c in r["cables"].values()),
+                                                   default=0.0))}
 
     def _work_volume(self, res, n=(5, 5, 3)):
         ctx, cfg = self.ctx, self.cfg

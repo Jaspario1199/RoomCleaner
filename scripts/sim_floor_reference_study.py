@@ -9,6 +9,9 @@ status, witness RMS and wall time.
 
     /usr/bin/python3 scripts/sim_floor_reference_study.py --suite all --seeds 3 --out results.json
     /usr/bin/python3 scripts/sim_floor_reference_study.py --suite quick --seeds 1
+    # per-pose slack probe (verification/slack_probe_results.md): same cases with startup.slack_probe on
+    /usr/bin/python3 scripts/sim_floor_reference_study.py --suite main --only "1 baseline,3c sparse" --seeds 5 \
+        --probe --no-whatif --tag probe --out probe.json
 
 SIMULATION ONLY. The multi-tag board is the STUDY HOOK ``sim.world.FloorBoard``
 (plus ``StartupSequencer.study_board``); neither is active by default.
@@ -216,7 +219,9 @@ def run_one(args):
     from roomcleaner.cdpr.startup import StartupSequencer
     from roomcleaner.cdpr.supervisor import Supervisor
     from simkit import fast_cfg
-    cfg = fast_cfg(**({"calibration.expanded_box_m": list(spec["box"])} if spec.get("box") else {}))
+    ov = {"calibration.expanded_box_m": list(spec["box"])} if spec.get("box") else {}
+    ov.update(spec.get("cfg") or {})                  # e.g. startup.slack_probe (--probe / --set)
+    cfg = fast_cfg(**ov)
     ck = {}
     if spec["span"]:
         ck["board_span_m"] = spec["span"]
@@ -237,6 +242,13 @@ def run_one(args):
             r.claw.tilt_noise = spec["tilt"]
             r.vision.tilt_sigma = spec["tilt"]
         sup = Supervisor(r.ctx, state_path=td / "state.json", ledger_path=td / "ledger.json")
+        peak = {"T": 0.0}                              # peak cable tension of the plant over the whole startup
+        _settle = r.world.settle
+
+        def _settle_tracked():
+            _settle()
+            peak["T"] = max(peak["T"], float(np.max(r.world.tension)))
+        r.world.settle = _settle_tracked
         StartupSequencer.study_board = board
         try:
             rep = sup.start()
@@ -247,6 +259,9 @@ def run_one(args):
         finally:
             StartupSequencer.study_board = None
         m = rep.measurements
+        out["sim_time_s"] = r.rt.now_us() / 1e6
+        out["peak_tension_n"] = peak["T"]
+        out["probe"] = m.get("slack_probe")
         out["state"] = sup.state
         out["reasons"] = [x[:160] for x in rep.reasons][:4]
         out["log_tail"] = [x[:200] for x in r.log_lines if "reject" in x.lower() or "abort" in x.lower()][-2:]
@@ -301,11 +316,12 @@ def run_one(args):
                 spread.append(float(np.sqrt(np.mean(np.sum((u - u.mean(0)) ** 2, axis=1)))))
             out["dir_spread_rad"] = spread
             out["vis_sigma_med_mm"] = float(np.median([math.sqrt(np.trace(s.cov) / 3) for s in fit]) * 1e3)
-        try:
-            out["whatif_sigma_max_mm"] = whatif(r, board, spec["pix"], r.vision.tilt_sigma,
-                                                cfg.calibration.noise_capture_frames)
-        except Exception as ex:
-            out["whatif_sigma_max_mm"] = {"error": f"{type(ex).__name__}: {ex}"[:200]}
+        if not spec.get("no_whatif"):
+            try:
+                out["whatif_sigma_max_mm"] = whatif(r, board, spec["pix"], r.vision.tilt_sigma,
+                                                    cfg.calibration.noise_capture_frames)
+            except Exception as ex:
+                out["whatif_sigma_max_mm"] = {"error": f"{type(ex).__name__}: {ex}"[:200]}
     out["time_s"] = time.time() - t0
     return out
 
@@ -345,6 +361,16 @@ def summarize(results):
                                                        for r in acc if r.get("beads")] or [np.nan])),
                        payout_term_med=float(np.median([max(r["payout_term_mm"]) for r in acc
                                                         if "payout_term_mm" in r] or [np.nan])))
+        sim_t = [r["sim_time_s"] for r in rs if "sim_time_s" in r]
+        if sim_t:
+            row["sim_s"] = float(np.mean(sim_t))
+            row["peak_T"] = float(np.max([r["peak_tension_n"] for r in rs if "peak_tension_n" in r]))
+        pr = [r["probe"] for r in rs if r.get("probe")]
+        if pr:
+            row["probe_cov"] = float(np.mean([p["readings_probed"] / max(p["readings_probed"] + p["readings_skipped"], 1)
+                                              for p in pr]))
+            row["probe_t_pose"] = float(np.mean([p["time_s"] / max(p["poses"], 1) for p in pr]))
+            row["probe_peak_mm"] = float(np.max([p["peak_retraction_max_m"] for p in pr]) * 1e3)
         row["rejections"] = [(r["seed"], (r.get("error") or "; ".join(r.get("reasons", [])))[:90])
                              for r in rs if not r.get("accepted")]
         row["whatif"] = _median_whatif(rs)
@@ -377,6 +403,10 @@ def print_table(rows):
               f"{r.get('witness_mm', float('nan')):5.2f} {r.get('trust', '-'):>10s} {r.get('beads', '-'):>9s} "
               f"{r.get('gate_sigma_med', float('nan')):6.1f} {r.get('payout_term_med', float('nan')):5.1f} "
               f"{r['fit_xy']:5.2f} {r['dir_spread']:6.3f} {r['time_s']:6.0f}")
+        if "sim_s" in r:
+            print(f"{'':44s} sim time {r['sim_s']:.0f} s, peak plant tension {r['peak_T']:.1f} N"
+                  + (f", probe: {r['probe_cov'] * 100:.0f} % of readings probed, {r['probe_t_pose']:.0f} s/pose, "
+                     f"max retraction {r['probe_peak_mm']:.1f} mm" if "probe_cov" in r else ""))
         for sd, why in r["rejections"]:
             print(f"{'':50s} seed {sd} rejected: {why}")
 
@@ -393,6 +423,11 @@ def main():
     ap.add_argument("--best", default="3a dense 3x3 p0.22 (0.60 m, 9 sheets)", help="board case for groups 4/5")
     ap.add_argument("--best-box", default=None, help="bx,bz half extents for groups 4/5 (default: config)")
     ap.add_argument("--best-ea", type=float, default=None)
+    ap.add_argument("--probe", action="store_true", help="enable startup.slack_probe in every case")
+    ap.add_argument("--set", action="append", default=[], metavar="KEY=JSON",
+                    help="config override for every case, e.g. startup.probe_overshoot_max_m=0.012 (repeatable)")
+    ap.add_argument("--no-whatif", action="store_true", help="skip the what-if refits (faster)")
+    ap.add_argument("--tag", default="", help="suffix for case names (to tell runs apart in one output)")
     a = ap.parse_args()
     table = case_table()
     cases = {}
@@ -411,6 +446,12 @@ def main():
     if a.only:
         keys = [x.strip() for x in a.only.split(",")]
         cases = {k: v for k, v in cases.items() if any(x in k for x in keys)}
+    extra = {"startup.slack_probe": True} if a.probe else {}
+    for kv in a.set:
+        k_, v_ = kv.split("=", 1)
+        extra[k_] = json.loads(v_)
+    cases = {(k + (f" [{a.tag}]" if a.tag else "")): dict(v, cfg={**(v.get("cfg") or {}), **extra},
+                                                         no_whatif=a.no_whatif) for k, v in cases.items()}
     jobs = [(k, v, s) for k, v in cases.items() for s in range(a.seed0, a.seed0 + a.seeds)]
     print(f"{len(jobs)} runs on {a.procs} processes", flush=True)
     results = []

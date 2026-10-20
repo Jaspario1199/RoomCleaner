@@ -191,6 +191,22 @@ class StartupConfig:
     lift_slack_budget_m: float = 0.015               # commanded - observed lift before abort
     frame_interval_s: float = 0.1
     still_spread_max_m: float = 0.003
+    # Per-pose slack probe while suspended (VISUAL_INITIALIZATION and every CALIBRATION pose):
+    # each cable in turn is retracted in small steps until the claw moves (taut onset),
+    # the slack is measured, the cable is left just taut, the sample is taken with all
+    # four taut and the positions are restored afterwards. See docs/CONTROL_SYSTEM_V1.md 6.1a.
+    slack_probe: bool = False                        # opt-in: it deliberately tensions taut cables
+    probe_step_m: float = 0.0005                     # smallest retraction step (>= 2 microsteps)
+    probe_max_step_m: float = 0.002                  # steps grow (x1.5) up to this while no response is seen
+    probe_max_m: float = 0.040                       # max total retraction per cable per pose, else abort
+    probe_rounds: int = 1                            # extra rounds re-probe cables a later probe may have loosened
+    probe_frames: int = 10                           # vision frames averaged per probe measurement (base)
+    probe_frames_max: int = 40                       # frames may be raised to this where vision is noisy
+    probe_settle_s: float = 0.3                      # wait after each step before the vision measurement
+    probe_onset_translation_m: float = 0.001         # least fitted claw motion that counts as onset (differential,
+                                                     # same pose: half of the floor take-up's absolute 2 mm)
+    probe_overshoot_max_m: float = 0.006             # skip a cable whose detection needs more over-retraction
+    probe_response_sigma: float = 0.5                # relative 1-sigma of the predicted claw response
 
 
 @dataclass
@@ -482,6 +498,21 @@ def load_config(path_or_dict) -> SystemConfig:
     )
     if cfg.startup.max_slack_m is not None and len(cfg.startup.max_slack_m) != 4:
         raise ConfigError("startup.max_slack_m needs 4 values (A-D)")
+    su = cfg.startup
+    for k in ("probe_step_m", "probe_max_step_m", "probe_max_m", "probe_settle_s", "probe_onset_translation_m",
+              "probe_overshoot_max_m", "probe_response_sigma"):
+        _f(getattr(su, k), f"startup.{k}", positive=True, allow_none=False)
+    if not su.probe_step_m <= su.probe_max_step_m <= su.probe_max_m:
+        raise ConfigError("startup: need probe_step_m <= probe_max_step_m <= probe_max_m")
+    if not isinstance(su.probe_rounds, int) or isinstance(su.probe_rounds, bool) or not 1 <= su.probe_rounds <= 3:
+        raise ConfigError("startup.probe_rounds must be an integer 1..3")
+    if not isinstance(su.probe_frames, int) or isinstance(su.probe_frames, bool) or su.probe_frames < 3:
+        raise ConfigError("startup.probe_frames must be an integer >= 3")
+    if not isinstance(su.probe_frames_max, int) or isinstance(su.probe_frames_max, bool) \
+            or su.probe_frames_max < su.probe_frames:
+        raise ConfigError("startup.probe_frames_max must be an integer >= probe_frames")
+    if not isinstance(su.slack_probe, bool):
+        raise ConfigError("startup.slack_probe must be true/false")
     return cfg
 
 

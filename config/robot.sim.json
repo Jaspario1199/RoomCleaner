@@ -273,7 +273,18 @@
     "max_tilt_rad": 0.13962634015954636,
     "still_samples": 10,
     "settle_s": 0.5,
-    "max_marker_wait_s": 120.0
+    "max_marker_wait_s": 120.0,
+    "slack_probe": false,
+    "probe_step_m": 0.0005,
+    "probe_max_step_m": 0.002,
+    "probe_max_m": 0.04,
+    "probe_rounds": 1,
+    "probe_frames": 10,
+    "probe_frames_max": 40,
+    "probe_settle_s": 0.3,
+    "probe_onset_translation_m": 0.001,
+    "probe_overshoot_max_m": 0.006,
+    "probe_response_sigma": 0.5
   },
   "faults": {
     "tracking_tol_counts": 60,

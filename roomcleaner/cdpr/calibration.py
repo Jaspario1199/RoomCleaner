@@ -67,12 +67,29 @@ class PoseSample:
     cov: np.ndarray               # (3,3) covariance of p (m^2)
     kind: str = "fit"             # "fit" | "witness"
     t: float | None = None
+    # Slack-probe result (startup.py, ``startup.slack_probe``): stations whose cable was
+    # tautened by motion onset at this pose are flagged here. Such a reading is
+    # a taut-cable length (never a slack hypothesis candidate) whose extra
+    # 1-sigma (probe uncertainty) is added in quadrature to the length noise.
+    taut: np.ndarray | None = None          # (4,) bool or None (not probed)
+    taut_sigma_m: np.ndarray | None = None  # (4,) extra 1-sigma per probed reading (m)
+    probe: dict | None = None               # raw probe record (logs only)
 
     def __post_init__(self):
         self.P = np.asarray(self.P, float).reshape(4)
         self.p = np.asarray(self.p, float).reshape(3)
         self.R = np.asarray(self.R, float).reshape(3, 3)
         self.cov = np.asarray(self.cov, float).reshape(3, 3)
+        if self.taut is not None:
+            self.taut = np.asarray(self.taut, bool).reshape(4)
+            self.taut_sigma_m = (np.zeros(4) if self.taut_sigma_m is None
+                                 else np.asarray(self.taut_sigma_m, float).reshape(4))
+
+    def length_sigma(self, sl: float) -> np.ndarray:
+        """(4,) 1-sigma of this sample's length readings given the base noise ``sl``."""
+        if self.taut is None:
+            return np.full(4, sl)
+        return np.where(self.taut, np.hypot(sl, self.taut_sigma_m), sl)
 
 
 @dataclass
@@ -311,10 +328,18 @@ class Calibrator:
             x[lay.p(k)] = smp.p
         return x
 
+    def _len_sigmas(self, samples) -> np.ndarray:
+        """(K,4) 1-sigma of every length reading (probe uncertainty added to probed ones)."""
+        sl = self.cc.length_sigma_m
+        if not samples:
+            return np.zeros((0, 4))
+        return np.array([smp.length_sigma(sl) for smp in samples])
+
     # -- residuals and Jacobian ---------------------------------------------
     def _rows(self, x, lay, samples, onsets, w_len, w_vis, w_on, include_priors=True):
         """Whitened residual vector and dense Jacobian."""
         sl = self.cc.length_sigma_m
+        sg = self._len_sigmas(samples)
         aM = np.array([x[lay.a(i)] for i in range(4)])
         rs, Js = [], []
         K = len(samples)
@@ -332,7 +357,7 @@ class Calibrator:
                 d = aM[i] - q
                 dist = np.linalg.norm(d)
                 u = d / dist
-                w = w_len[k, i] / sl
+                w = w_len[k, i] / float(sg[k, i])
                 J = np.zeros(lay.n)
                 J[lay.a(i)] = -u * w
                 J[lay.p(k)] = u * w
@@ -441,6 +466,7 @@ class Calibrator:
         declared slack only if its model length then exceeds its span by more
         than slack_k sigma; a fixed penalty prefers 'all taut' when in doubt."""
         sl = self.cc.length_sigma_m
+        sg = self._len_sigmas(samples)
         aM = np.array([x[lay.a(i)] for i in range(4)])
         K = len(samples)
         out = np.zeros((K, 4), bool)
@@ -455,9 +481,11 @@ class Calibrator:
 
             def res(q, keep):
                 d = np.linalg.norm(aM - (q[None, :] + att.T), axis=1)
-                return np.r_[(Lm[k] - d)[keep] / sl, W @ (q - smp.p)]
+                return np.r_[((Lm[k] - d) / sg[k])[keep], W @ (q - smp.p)]
             best = None
             for drop in (None, 0, 1, 2, 3):
+                if drop is not None and smp.taut is not None and smp.taut[drop]:
+                    continue                          # probed taut by motion onset: never a slack candidate
                 keep = [i for i in range(4) if i != drop]
                 sol = least_squares(res, x[lay.p(k)], args=(keep,), method="lm")
                 cost = float(sol.fun @ sol.fun)
@@ -561,7 +589,7 @@ class Calibrator:
             for i in range(4):
                 keep_rows[i * K + k] = not slack[k, i]
         norm_rms = float(np.sqrt(np.mean(r0[keep_rows] ** 2))) if len(r0) else 0.0
-        res_m = (r0[: 4 * K].reshape(4, K).T * self.cc.length_sigma_m) if K else np.zeros((0, 4))
+        res_m = (r0[: 4 * K].reshape(4, K).T * self._len_sigmas(fit_s)) if K else np.zeros((0, 4))
         outliers = []
         for k in range(K):
             for i in range(4):
@@ -672,6 +700,8 @@ class Calibrator:
             sol = least_squares(f, w.p, method="lm")
             # a slack witness cable is longer than its span: drop the clearly longest
             rf = -sol.fun / self.cc.length_sigma_m
+            if w.taut is not None:
+                rf = np.where(w.taut, -np.inf, rf)    # probed taut by motion onset: not a slack candidate
             j = int(np.argmax(rf))
             if rf[j] > self.cc.slack_k:
                 keep = [i for i in range(4) if i != j]

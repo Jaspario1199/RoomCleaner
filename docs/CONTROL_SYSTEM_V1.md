@@ -198,10 +198,59 @@ abort conditions. Aborts **hold**; they never disable.
 | SLACK_TAKEUP | one station at a time, a slow continuous retraction (claw on the floor = stations uncoupled), bounded by `max_slack_m`. Each vision frame is checked; claw motion ≥ max(onset_translation, k·noise) marks taut onset. Pulling continues to `bearing_translation_m` so the **slide direction** is measured, then a hold and a pay-out of `onset_backoff_m` | no onset within max slack (cable unattached, wrong winding direction, station order); marker lost > 1 s; tilt |
 | — after all four | slide bearings vs anchor entries (catches **swapped station wiring**); first fit → L0 per station + marker registration | bearing RMS > limit |
 | INITIAL_LIFT | all cables to just-taut, then vertical packets computed from the model's cable directions; vision after each | lateral drift > max, tilt > max, commanded − observed lift > budget, no clearance by `max_lift_m` |
-| VISUAL_INITIALIZATION | still pose while suspended → refit | marker lost |
-| CALIBRATION | staged excitation: local box → intermediate → expanded, D-optimal poses + held-out witnesses, refit between stages | witness, residual, ambiguity or outlier failure |
+| VISUAL_INITIALIZATION | still pose while suspended → refit (with `startup.slack_probe`: probed first, §6.1a) | marker lost |
+| CALIBRATION | staged excitation: local box → intermediate → expanded, D-optimal poses + held-out witnesses, refit between stages (with `startup.slack_probe`: every pose probed first, §6.1a) | witness, residual, ambiguity or outlier failure; probe: no taut onset within `probe_max_m`, claw moved > 10 mm without onset |
 | REFERENCE_VERIFICATION | bead per station, sequentially (§6.4); verified captures refit jointly | bead fault; refit rejected |
 | READY | trust level VERIFIED (all beads verified) or LOCAL_ONLY with stated reasons | — |
+
+### 6.1a Per-pose slack probe (`startup.slack_probe`, opt-in, simulation-validated only)
+
+**Why.** Suspended, four cables over-constrain the claw: with any length-model error the claw hangs on three cables and
+one (which one changes with the pose) carries a few mm to 20 mm of slack. The fit-based slack classifier only drops a
+reading more than `slack_k` (3 mm) beyond its span, so slack of 0.5 to 3 mm enters the fit as an ordinary length. That
+bias is amplified into `L0` by the weak absolute-length geometry (`verification/floor_reference_study.md`).
+
+**What.** Before every suspended sample (the VISUAL_INITIALIZATION pose and every CALIBRATION fit/witness pose), after
+the claw has settled, each station in turn is probed (`StartupSequencer._probe_pose` / `_probe_cable`):
+
+1. A still reference pose (`probe_frames` frames; more, up to `probe_frames_max`, where vision is noisy).
+2. Cable `i` is retracted in steps of `probe_step_m` (0.5 mm; the step grows x1.5 up to `probe_max_step_m` while no
+   response is seen), `probe_settle_s`, then a still pose after every step. All motion is `plan_cable_move` packets through
+   `Coordinator.execute` (readiness, lease, tracking, station faults, pause, hold unchanged).
+3. Onset analysis (`hinge_analysis`): the claw does not move until the slack `s` is taken up, then moves by
+   `w * (r - s)` per metre of further retraction; `w` has a Gaussian prior (relative sigma `probe_response_sigma`) from the
+   cable geometry (`probe_response`: `x = (sum k_j u_j u_j^T)^-1 k_i u_i`, `k_j ~ 1/L_j`, the modulus cancels). `s` is
+   profiled on a grid with the full per-measurement vision covariance. Onset is declared when the hinge beats "no response
+   yet" by `onset_noise_k` sigma (the take-up's k) AND the fitted claw motion is at least `probe_onset_translation_m`
+   (1 mm, half of the take-up's absolute 2 mm: this is a differential measurement at one pose, no systematic offsets).
+   A cable that is already taut gives `s` = 0 within its sigma ("onset on the first step": the retraction is paid back).
+4. The measured slack `s` (profile minimum, 1-sigma from the profile) fixes the stopping point: the cable is paid out by
+   `(peak retraction - s)` and left just taut (no safety margin, see the results report). The detection overshoot is not
+   guessed from a fixed number: it comes out of the fit, which uses every step beyond the onset.
+5. After all four cables: optional extra rounds (`probe_rounds`, default 1): a cable is re-probed only if the claw has since
+   moved toward its anchor by a detectable amount (a later probe loosened it).
+6. The sample is taken with all probed cables just taut and carries `PoseSample.taut` (per cable) and `taut_sigma_m`
+   (the probe's sigma, added in quadrature to `length_sigma_m` for that reading); the per-pose record (slack per station,
+   steps, peak retraction, time, skipped cables) goes to `StartupSequencer.probe_log`, `calibration.json` and
+   `measurements["slack_probe"]`.
+7. The motor positions are then restored to the model-consistent values the planner started from (a pay-out only), so the
+   next `plan_line_from` sees exactly the state it would have seen without the probe.
+
+**Estimator.** A probed reading is never a slack-hypothesis candidate (`_assign_slack`, witness check) and gets the
+extra sigma; unprobed readings (skipped cables or `slack_probe` off) keep the hypothesis selection described in §6.2 as a
+backstop. No gate or threshold changed.
+
+**Bounds and aborts (hold, never disable).** Total retraction per cable per pose <= `probe_max_m` (40 mm): beyond that
+without onset the startup aborts to FAULT with "no taut onset within ... mm of probe retraction ... (cable detached or
+slipping on its spool, or the model is badly wrong)"; the claw stays on the cables. The claw moving > 10 mm without a
+significant onset also aborts. A pause (between steps or mid-step) holds and returns PAUSED. **Vision decides what can be
+probed:** from the reference pose the over-retraction at which onset becomes detectable
+`rho = max(floor, k * sigma_proj) / |response|` is predicted; if it exceeds `probe_overshoot_max_m` (6 mm) with
+`probe_frames_max` frames, the cable is skipped at that pose (not probed blind), which bounds the tension excursion on a
+taut cable.
+
+**Limits.** Simulation only. See `verification/slack_probe_results.md` for numbers, the coverage by pose height and the
+hardware caveats (tension rise when probing a taut cable on real Dyneema; recommended step; quantisation).
 
 ### 6.2 Estimator
 
@@ -227,7 +276,9 @@ abort conditions. Aborts **hold**; they never disable.
   under "all taut" and "cable i slack" (θ held). Cable i may be declared slack
   only if its model length then exceeds its span by > `slack_k` σ, and a
   penalty prefers "all taut". In simulation this cut witness error from
-  7.2 mm to 0.9 mm.
+  7.2 mm to 0.9 mm. Samples whose cables were probed taut by motion onset
+  (§6.1a) skip this selection for those readings; it stays the backstop for
+  everything the probe could not resolve.
 
 **Acceptance is never "the optimiser converged".** All five must hold:
 1. Identifiability: data information ≥ prior information in every direction,

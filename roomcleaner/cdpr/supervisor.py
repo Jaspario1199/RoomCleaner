@@ -293,7 +293,7 @@ class Supervisor:
             return False, why
         p_vis = ctx.room_pose(sp)
         try:
-            p_mod = self._fk_slack_aware(ctx.co.positions(), p_vis)
+            p_mod = self._fk_slack_aware(ctx.co.positions(), p_vis, ctx.room_R(sp))
         except Exception as e:                      # spool range etc.
             return False, f"model evaluation failed: {e}"
         err = p_mod - p_vis
@@ -304,14 +304,16 @@ class Supervisor:
         d = float(np.sqrt(err @ np.linalg.solve(C, err) / 3))
         return d <= k, f"model vs vision {np.linalg.norm(err) * 1e3:.1f} mm ({d:.1f} sigma)"
 
-    def _fk_slack_aware(self, P, p0):
+    def _fk_slack_aware(self, P, p0, R=None):
+        """Model pose from the motor positions; ``R`` = the measured claw orientation (room frame) when known
+        (spaced attachments: the lengths depend on it)."""
         from scipy.optimize import least_squares
         m = self.ctx.model
         L = m.lengths_from_positions(P)
         geo = m.geometry
-        f = lambda q, keep: (geo.lengths(q) - L)[keep]
+        f = lambda q, keep: (geo.lengths(q, R) - L)[keep]
         sol = least_squares(f, p0, args=(list(range(4)),), method="lm")
-        r = L - geo.lengths(sol.x)                       # + = model longer than span (slack)
+        r = L - geo.lengths(sol.x, R)                    # + = model longer than span (slack)
         j = int(np.argmax(r))
         if r[j] > 3 * self.ctx.cfg.calibration.length_sigma_m:
             keep = [i for i in range(4) if i != j]

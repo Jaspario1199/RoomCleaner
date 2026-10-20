@@ -101,6 +101,11 @@ class TaskRunner:
     # -------------------------------------------------------------- motion
     def _move(self, q, *, label, below_ok=False, payload=0.0, slow=1.0):
         ctx = self.ctx
+        zmax = self.cfg.motion.task_max_height_m
+        if zmax is not None and q[2] > zmax + 1e-9:
+            raise StartupAbort("TASK", f"{label}: target height {q[2]:.3f} m is above motion.task_max_height_m "
+                                       f"({zmax:.2f} m): the task layer never plans above it (the claw's yaw is only "
+                                       "weakly held by the four lines near the ceiling)")
         if not self.vol.allows(q, below_ok=below_ok):
             raise StartupAbort("TASK", f"{label}: target {np.round(q, 3).tolist()} outside the trusted volume")
         lim = replace(ctx.lim, mass_kg=self.cfg.claw.mass_kg + payload, cart_v=ctx.lim.cart_v * slow,

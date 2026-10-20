@@ -1,0 +1,276 @@
+{
+ "provenance": {
+  "generator": "scripts/extract_claw_body_frame.py",
+  "inputs": [
+   "exports/step/gripper_electric_housing_with_camera_bay.step",
+   "solidworks/gripper_v6_2026-10-20/LaundryGripperAssem1.STEP",
+   "cad/params.py CAMBAY_*",
+   "cad/parts/claw_camera_bay.py"
+  ],
+  "status": "CAD-derived, not measured; items marked VERIFY need a physical check (v6 geometry; v7 jaws are being redesigned)"
+ },
+ "frame": {
+  "origin": "on the tube axis at the mean height of the four inner hole mouths",
+  "axes": "+z up along the tube (= v6 +Y); +x = v6 +X; +y = -v6 Z (camera bay on v6 -Z lies at body +y)",
+  "origin_v6_world_mm": [
+   951.8474966951608,
+   1098.7241179163989,
+   1103.9898710253387
+  ],
+  "at_yaw_0": "body x/y axes = room x/y (x toward station B, y toward station D)"
+ },
+ "attachment_points_body_m": [
+  [
+   -0.042071067494392426,
+   -0.04207106812902407,
+   7.503331289626658e-15
+  ],
+  [
+   0.04207106812937661,
+   -0.042071067494007366,
+   -1.1823431123048067e-14
+  ],
+  [
+   0.042071067494381394,
+   0.0420710681297021,
+   7.73070496506989e-15
+  ],
+  [
+   -0.04207106812940401,
+   0.04207106749470085,
+   -3.183231456205249e-15
+  ]
+ ],
+ "station_order": [
+  "A",
+  "B",
+  "C",
+  "D"
+ ],
+ "corner_to_station": {
+  "(+1X,+1Z)": "B",
+  "(+1X,-1Z)": "C",
+  "(-1X,-1Z)": "D",
+  "(-1X,+1Z)": "A"
+ },
+ "holes": {
+  "D": {
+   "corner_v6_signs_XZ": [
+    -1,
+    -1
+   ],
+   "attachment_inner_mouth_body_m": [
+    -0.04207106812940401,
+    0.04207106749470085,
+    -3.183231456205249e-15
+   ],
+   "outer_mouth_body_m": [
+    -0.05410284177450296,
+    0.0541028405901468,
+    0.006520710388535235
+   ],
+   "hole_axis_dir_body_outward": [
+    -0.6602828240815629,
+    0.660282793917563,
+    0.35784525186076316
+   ],
+   "hole_elevation_deg": 20.967924396824372,
+   "hole_length_mm": 18.22215148763689,
+   "inner_mouth_radial_mm": 59.49749750837905,
+   "outer_mouth_radial_mm": 76.51299458801711,
+   "inner_surface": "CYLINDER",
+   "outer_surface": "BSPLINE",
+   "inner_mouth_v6_world_mm": [
+    909.7764285657568,
+    1098.7241179163957,
+    1061.918803530638
+   ]
+  },
+  "A": {
+   "corner_v6_signs_XZ": [
+    -1,
+    1
+   ],
+   "attachment_inner_mouth_body_m": [
+    -0.042071067494392426,
+    -0.04207106812902407,
+    7.503331289626658e-15
+   ],
+   "outer_mouth_body_m": [
+    -0.05410284059020569,
+    -0.054102841774490346,
+    0.006520710388744874
+   ],
+   "hole_axis_dir_body_outward": [
+    -0.660282793917563,
+    -0.6602828240815629,
+    0.35784525186076316
+   ],
+   "hole_elevation_deg": 20.967924396824372,
+   "hole_length_mm": 18.22215148819316,
+   "inner_mouth_radial_mm": 59.49745653153491,
+   "outer_mouth_radial_mm": 76.51295361169207,
+   "inner_surface": "CYLINDER",
+   "outer_surface": "BSPLINE",
+   "inner_mouth_v6_world_mm": [
+    909.7764292007683,
+    1098.7241179164064,
+    1146.0609391543628
+   ]
+  },
+  "B": {
+   "corner_v6_signs_XZ": [
+    1,
+    1
+   ],
+   "attachment_inner_mouth_body_m": [
+    0.04207106812937661,
+    -0.042071067494007366,
+    -1.1823431123048067e-14
+   ],
+   "outer_mouth_body_m": [
+    0.05410284177471863,
+    -0.05410284058969637,
+    0.006520710388658244
+   ],
+   "hole_axis_dir_body_outward": [
+    0.6602828240815629,
+    -0.660282793917563,
+    0.35784525186076316
+   ],
+   "hole_elevation_deg": 20.967924396824372,
+   "hole_length_mm": 18.222151488004982,
+   "inner_mouth_radial_mm": 59.4974518577622,
+   "outer_mouth_radial_mm": 76.51294893774413,
+   "inner_surface": "CYLINDER",
+   "outer_surface": "BSPLINE",
+   "inner_mouth_v6_world_mm": [
+    993.9185648245374,
+    1098.724117916387,
+    1146.060938519346
+   ]
+  },
+  "C": {
+   "corner_v6_signs_XZ": [
+    1,
+    -1
+   ],
+   "attachment_inner_mouth_body_m": [
+    0.042071067494381394,
+    0.0420710681297021,
+    7.73070496506989e-15
+   ],
+   "outer_mouth_body_m": [
+    0.05410284058998786,
+    0.05410284177496146,
+    0.006520710388633233
+   ],
+   "hole_axis_dir_body_outward": [
+    0.660282793917563,
+    0.6602828240815629,
+    0.35784525186076316
+   ],
+   "hole_elevation_deg": 20.967924396824372,
+   "hole_length_mm": 18.222151487879966,
+   "inner_mouth_radial_mm": 59.49749283461744,
+   "outer_mouth_radial_mm": 76.51298991448222,
+   "inner_surface": "CYLINDER",
+   "outer_surface": "BSPLINE",
+   "inner_mouth_v6_world_mm": [
+    993.9185641895422,
+    1098.7241179164066,
+    1061.9188028956366
+   ]
+  }
+ },
+ "outer_mouth_vs_old_analysis": "scripts/analyze_cable_lines_claw_camera_bay.py used the OUTER mouth (+-54.09, 14.05, +-54.09) mm",
+ "camera_in_body": {
+  "translation_m": [
+   3.304839196971443e-09,
+   0.08999997102533872,
+   -0.005633617916398862
+  ],
+  "rpy_rad": [
+   3.141592653589793,
+   0.0,
+   0.0
+  ],
+  "optical_axis_body": [
+   0.0,
+   -0.0,
+   -1.0
+  ],
+  "source": "cad/parts/claw_camera_bay.py LENS_CENTER_BAY / OPTICAL_AXIS_BAY",
+  "VERIFY": "sensor rotation about the optical axis (long side along body x) and lens height are assumed (CAMBAY_LENS_*, CAMBAY_SENSOR_ASPECT); measure on the print"
+ },
+ "lowest_point_body_m": [
+  -0.0004468422325771826,
+  0.002500000000010459,
+  -0.5172983352911317
+ ],
+ "lowest_point_note": "VERIFY: lowest vertex of the v6 jaws (Claw_arm_extension); v7 jaws are being redesigned",
+ "com_body_m": [
+  0.000809229007417116,
+  0.0011989460827117,
+  -0.19638122035755623
+ ],
+ "com_note": "VERIFY: CAD-solid estimate (PETG 1.27 g/cc, tube 2.70 g/cc, servo 55 g; total 2065 g; electronics/battery and sliced infill NOT modelled, so the real CoM is higher). Used only for rigid-body orientation prediction/sim.",
+ "com_mass_rows_g": [
+  [
+   "Griper Cylinder",
+   320.7
+  ],
+  [
+   "Body_40x19x38_tabs_and_boss_ESTIMATED.step",
+   38.0
+  ],
+  [
+   "Shaft_ESTIMATED_no_spline_or_thread.step",
+   0.1
+  ],
+  [
+   "Gripper_gear_housing",
+   385.2
+  ],
+  [
+   "06_compound_54T_24T",
+   115.5
+  ],
+  [
+   "24T_Follower",
+   31.7
+  ],
+  [
+   "Simple_18T_Pinionvlast",
+   10.2
+  ],
+  [
+   "Gripper_Electric_Housing_Base (2)",
+   519.2
+  ],
+  [
+   "aluminum tubing",
+   198.1
+  ],
+  [
+   "Gripper_gear_housing_Part2",
+   353.6
+  ],
+  [
+   "Claw_arm_extension",
+   38.3
+  ],
+  [
+   "Claw_arm_extension",
+   38.3
+  ],
+  [
+   "Claw_arm_extension3",
+   8.0
+  ],
+  [
+   "Claw_arm_extension3",
+   8.0
+  ]
+ ]
+}

@@ -122,6 +122,7 @@ class ClawConfig:
     mass_kg: float | None = None
     T_body_cam: np.ndarray | None = None             # camera pose in body frame
     lowest_point_body_m: np.ndarray | None = None    # e.g. jaw tips
+    com_body_m: np.ndarray | None = None             # claw centre of mass in the body frame (None = origin)
     imu: bool = False
     grip_tilt_max_rad: float = math.radians(5)
     address: str | None = None
@@ -164,6 +165,7 @@ class MotionConfig:
     segment_s: float = 0.10
     lookahead_s: float = 0.8
     start_lead_s: float = 0.40
+    task_max_height_m: float = 1.6                   # pickup/delivery transit never plans above this claw-origin height
 
 
 @dataclass
@@ -236,6 +238,8 @@ class CalibrationConfig:
     expanded_box_m: list = field(default_factory=lambda: [0.80, 0.80, 0.50])
     fit_payout_scale: bool = False
     length_sigma_m: float = 0.001                   # spool-model / stretch noise per length reading
+    attitude_sigma_rad: float = 0.004               # fused attitude error (IMU roll/pitch + vision yaw); with
+                                                    # spaced attachments it moves b_i by |b_i| * sigma
     onset_sigma_m: float = 0.010                    # taut-onset length observation (low weight)
     data_sv_min: float = 1.0                        # data info >= prior info in every direction
     length_sigma_max_m: float = 0.005               # predicted L sigma allowed in the work volume
@@ -459,12 +463,14 @@ def load_config(path_or_dict) -> SystemConfig:
         if s.encoder.mount not in ("spool", "motor_shaft"):
             raise ConfigError(f"{s.id}: encoder.mount must be spool|motor_shaft")
     cd = dict(raw.get("claw", {}))
+    cd.pop("_provenance", None)                      # free-text notes (where the CAD-derived numbers come from)
     claw = ClawConfig(
         attachment=cd.pop("attachment", "common"),
         attachment_points_body_m=np.asarray(cd.pop("attachment_points_body_m", [[0, 0, 0]] * 4), float),
         mass_kg=_f(cd.pop("mass_kg", None), "claw.mass_kg", positive=True),
         T_body_cam=_T_from(cd.pop("camera_in_body", None), "claw.camera_in_body"),
         lowest_point_body_m=_vec(cd.pop("lowest_point_body_m", None), "claw.lowest_point_body_m"),
+        com_body_m=_vec(cd.pop("com_body_m", None), "claw.com_body_m"),
         imu=bool(cd.pop("imu", False)),
         grip_tilt_max_rad=_f(cd.pop("grip_tilt_max_rad", math.radians(5)), "claw.grip_tilt_max_rad"),
         address=cd.pop("address", None),
@@ -521,7 +527,8 @@ def load_config(path_or_dict) -> SystemConfig:
     if not isinstance(su.bead_search, bool):
         raise ConfigError("startup.bead_search must be true/false")
     for k, v in (("motion.workspace_margin_m", cfg.motion.workspace_margin_m),
-                 ("motion.ceiling_margin_m", cfg.motion.ceiling_margin_m)):
+                 ("motion.ceiling_margin_m", cfg.motion.ceiling_margin_m),
+                 ("motion.task_max_height_m", cfg.motion.task_max_height_m)):
         if not isinstance(v, (int, float)) or isinstance(v, bool) or not v >= 0:
             raise ConfigError(f"{k} must be a number >= 0")
     k_ = cfg.calibration.bead_k_sigma

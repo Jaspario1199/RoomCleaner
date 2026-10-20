@@ -52,6 +52,7 @@ import numpy as np
 from scipy.optimize import least_squares
 
 from .frames import planar_T, rot_z
+from .kinematics import Geometry
 from .spool import CableMap, SpoolRangeError
 
 IDS = ("A", "B", "C", "D")
@@ -298,6 +299,35 @@ class Calibrator:
         self.attach = np.asarray(cfg.attachment_points() if attach is None else attach, float)
         self.priors = priors or Priors.from_config(cfg)
         self.beads: list = []             # BeadObs included in every fit once verified
+        # spaced attachments: lengths depend on the claw orientation. Measured samples carry their R;
+        # for poses not yet visited (excitation design, predicted sigmas) the statics prediction at the
+        # last measured (held) yaw is used, see kinematics.Attitude.
+        self.spaced = bool(np.max(np.abs(self.attach - self.attach[0])) > 1e-9)
+        self.hold_yaw_M = 0.0
+        self._geoM: dict = {}
+
+    def note_yaw_M(self, R_M):
+        """Remember the claw yaw (marker frame) from a measured orientation."""
+        R_M = np.asarray(R_M, float)
+        self.hold_yaw_M = float(math.atan2(R_M[1, 0], R_M[0, 0]))
+
+    def predicted_R(self, anchors_M, q_M, R=None) -> np.ndarray:
+        """Orientation (marker frame) for a claw at ``q_M``: the caller's measurement if given, else the
+        statics prediction at the held yaw (spaced attachments) or the identity (common point)."""
+        if R is not None:
+            return np.asarray(R, float)
+        if not self.spaced:
+            return np.eye(3)
+        key = np.asarray(anchors_M, float).tobytes()
+        g = self._geoM.get(key)
+        if g is None:
+            if len(self._geoM) > 64:
+                self._geoM.clear()
+            c = self.cfg.claw
+            g = Geometry(anchors_M, self.attach, com=c.com_body_m, mass_kg=c.mass_kg, payload_body=c.lowest_point_body_m)
+            self._geoM[key] = g
+        g.set_yaw(self.hold_yaw_M)
+        return g.R_at(np.asarray(q_M, float))
 
     # -- parameter packing -------------------------------------------------
     def _init_x(self, lay, samples, onsets, psi0, L0_init=None):
@@ -333,7 +363,10 @@ class Calibrator:
         sl = self.cc.length_sigma_m
         if not samples:
             return np.zeros((0, 4))
-        return np.array([smp.length_sigma(sl) for smp in samples])
+        out = np.array([smp.length_sigma(sl) for smp in samples])
+        if self.spaced:        # attitude error moves the attachment point: |b_i| * sigma_R along the line, at most
+            out = np.hypot(out, self.cc.attitude_sigma_rad * np.linalg.norm(self.attach, axis=1)[None, :])
+        return out
 
     # -- residuals and Jacobian ---------------------------------------------
     def _rows(self, x, lay, samples, onsets, w_len, w_vis, w_on, include_priors=True):
@@ -491,7 +524,7 @@ class Calibrator:
                 cost = float(sol.fun @ sol.fun)
                 if drop is not None:
                     d = np.linalg.norm(aM[drop] - (sol.x + att[:, drop]))
-                    if (Lm[k, drop] - d) / sl < self.cc.slack_k:
+                    if (Lm[k, drop] - d) / sg[k, drop] < self.cc.slack_k:
                         continue
                     cost += self.cc.slack_k ** 2
                 if best is None or cost < best[0]:
@@ -543,6 +576,8 @@ class Calibrator:
     def fit(self, samples: list, onsets: list = (), *, L0_init=None, psi_inits=None) -> CalibrationResult:
         fit_s = [s for s in samples if s.kind == "fit"]
         onsets = list(onsets)
+        if fit_s:
+            self.note_yaw_M(fit_s[-1].R)
         lay = Layout(len(fit_s), self.cc.fit_payout_scale)
         for i in range(4):
             if not any(o.i == i for o in onsets) and not fit_s:
@@ -648,7 +683,7 @@ class Calibrator:
     def length_sigma(self, res: CalibrationResult, q_M, R=None) -> np.ndarray:
         """Posterior 1-sigma (m) of the four cable lengths commanded for a claw
         pose q (marker frame): uncertainty in anchors, L0 and scale."""
-        R = np.eye(3) if R is None else R
+        R = self.predicted_R(res.anchors_M, q_M, R)
         lay = Layout(0, res.fit_scale)
         nt = lay.n_theta
         C = res.cov_theta[:nt, :nt]
@@ -672,7 +707,7 @@ class Calibrator:
     def position_sigma(self, res: CalibrationResult, q_M, R=None) -> float:
         """RMS 1-sigma (m) of the claw position the model would reach for a
         commanded pose: the length errors mapped through the forward kinematics."""
-        R = np.eye(3) if R is None else R
+        R = self.predicted_R(res.anchors_M, q_M, R)
         lay = Layout(0, res.fit_scale)
         nt = lay.n_theta
         C = res.cov_theta[:nt, :nt]
@@ -713,7 +748,7 @@ class Calibrator:
           adds to ``dq``: ``e_room = Rz(yaw_est) dq + dyaw * z_hat x (Rz q_M) + (dx, dy, 0)``. Returned:
           ``wall_x``, ``wall_y`` (sd of the room x / y error) and ``wall`` = the larger.
         """
-        R = np.eye(3) if R is None else R
+        R = self.predicted_R(res.anchors_M, q_M, R)
         lay = Layout(0, res.fit_scale)
         nt = lay.n_theta
         C = np.asarray(res.cov_theta, float)                      # (nt + 3)^2 : theta then psi
@@ -770,7 +805,7 @@ class Calibrator:
                 return np.array([np.linalg.norm(res.anchors_M[i] - (q + w.R @ self.attach[i])) for i in range(4)]) - L
             sol = least_squares(f, w.p, method="lm")
             # a slack witness cable is longer than its span: drop the clearly longest
-            rf = -sol.fun / self.cc.length_sigma_m
+            rf = -sol.fun / self._len_sigmas([w])[0]
             if w.taut is not None:
                 rf = np.where(w.taut, -np.inf, rf)    # probed taut by motion onset: not a slack candidate
             j = int(np.argmax(rf))
@@ -831,14 +866,14 @@ class Calibrator:
         """New L0 for station i from the other three (trusted) cables: the claw
         position is solved from three lengths, then cable i's span follows.
         Requires all three to be taut, so use only while suspended and still."""
-        R = np.eye(3) if R is None else R
+        q_guess = np.mean(res.anchors_M, axis=0) - [0, 0, 1.5] if p_guess is None else np.asarray(p_guess, float)
+        R = self.predicted_R(res.anchors_M, q_guess, R)
         others = [j for j in range(4) if j != i]
         L = {j: float(self.lm.length(j, P[j], res.L0[j], res.scale[j])[0]) for j in others}
 
         def f(q):
             return np.array([np.linalg.norm(res.anchors_M[j] - (q + R @ self.attach[j])) - L[j] for j in others])
-        q0 = np.mean(res.anchors_M, axis=0) - [0, 0, 1.5] if p_guess is None else np.asarray(p_guess, float)
-        q = least_squares(f, q0, method="lm").x
+        q = least_squares(f, q_guess, method="lm").x
         Li = float(np.linalg.norm(res.anchors_M[i] - (q + R @ self.attach[i])))
         return self.lm.solve_L0(i, P[i], Li, res.L0[i]), q
 
@@ -883,8 +918,8 @@ def align_from_bearings(priors: Priors, claw_M, bearings_M, sigma_rad=0.15):
 def sample_information(cal: Calibrator, res_or_state, q_M, cov_p, R=None) -> np.ndarray:
     """Information on theta contributed by one vision sample at q (positions
     marginalised): G^T S^-1 G with S = sigma_L^2 I + H cov_p H^T."""
-    R = np.eye(3) if R is None else R
     anchors = res_or_state.anchors_M
+    R = cal.predicted_R(anchors, q_M, R)
     lay = Layout(0, cal.cc.fit_payout_scale)
     nt = lay.n_theta
     G = np.zeros((4, nt))
@@ -897,7 +932,10 @@ def sample_information(cal: Calibrator, res_or_state, q_M, cov_p, R=None) -> np.
         if lay.fit_scale:
             G[i, lay.s(i)] = float(np.linalg.norm(d)) - res_or_state.L0[i]
         H[i] = u
-    S = cal.cc.length_sigma_m ** 2 * np.eye(4) + H @ cov_p @ H.T
+    sig_len = np.full(4, cal.cc.length_sigma_m)
+    if cal.spaced:
+        sig_len = np.hypot(sig_len, cal.cc.attitude_sigma_rad * np.linalg.norm(cal.attach, axis=1))
+    S = np.diag(sig_len ** 2) + H @ cov_p @ H.T
     return G.T @ np.linalg.solve(S, G)
 
 

@@ -164,12 +164,21 @@ def plan_line(model: RobotModel, p_from, p_to, lim: Limits, *, R=None, ws: Works
     pos = np.array([model.positions_for(q, R) for q in cart])
     vel = np.zeros_like(pos)
     for k, (q, t) in enumerate(zip(cart, times)):
-        dLdt = model.geometry.length_rates(q, direction * sd(t), R)
+        dLdt = _length_rates(model.geometry, q, direction, sd(t), R)
         L = model.lengths(q, R)
         vel[k] = [dl / model.maps[sid].payout_per_ustep(Li) for sid, dl, Li in zip(model.ids, dLdt, L)]
     vel[0] = vel[-1] = 0.0
     refs = np.zeros((n, 4), int) if ref is None else np.tile(np.asarray(ref, int), (n, 1))
     return Plan(times, pos, vel, refs, cart, label, {"v": v, "a": a, "dist": dist})
+
+
+def _length_rates(geo: Geometry, q, direction, speed, R, h: float = 1e-4):
+    """dL/dt along the path. With a predicted attitude R(p) the lengths also change through the tilt
+    that follows the position, so the rate is a central difference along the path; otherwise the
+    analytic -u . v (identical to the original point-claw model)."""
+    if R is not None or geo._att is None:
+        return geo.length_rates(q, direction * speed, R)
+    return (geo.lengths(q + h * direction) - geo.lengths(q - h * direction)) / (2 * h) * speed
 
 
 def plan_line_from(model: RobotModel, P_actual, p_to, lim: Limits, *, R=None, p_guess=None,

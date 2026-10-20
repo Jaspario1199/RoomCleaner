@@ -104,13 +104,21 @@ def approach_pose(model, i, L_target, ws: Workspace, *, mass_kg, t_min, t_max, R
     geo = model.geometry
     a = geo.anchors[i]
     attach = geo.attach[i]
-    R = np.eye(3) if R is None else R
+    R_fixed = R
     ws_i = bead_workspace(ws, i, L_target - 1e-3)
     best, why = None, {}
     for el in np.linspace(math.radians(3), math.radians(87), n_el):
         for az in np.linspace(-math.pi, math.pi, n_az, endpoint=False):
             d = np.array([math.cos(el) * math.cos(az), math.cos(el) * math.sin(az), -math.sin(el)])
-            p = a + L_target * d - R @ attach
+            Rk = np.eye(3) if R_fixed is None else R_fixed
+            p = a + L_target * d - Rk @ attach
+            if R_fixed is None and geo.spaced:
+                for _ in range(3):                      # attitude depends on the pose it determines
+                    Rk = geo.R_at(p)
+                    p = a + L_target * d - Rk @ attach
+                R = Rk
+            else:
+                R = Rk
             v = ws_i.violations(geo, p, R)
             if v:
                 why[v[0].split(" ")[0]] = why.get(v[0].split(" ")[0], 0) + 1

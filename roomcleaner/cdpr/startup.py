@@ -72,22 +72,37 @@ import numpy as np
 from .calibration import (IDS, BeadObs, Calibrator, OnsetSample, PoseSample, Priors, align_from_bearings,
                           box_candidates, design_excitation, marker_visible, predicted_vision_cov)
 from .frames import inv_T, make_T, planar_T
-from .kinematics import Geometry, tension_distribution, workspace_from_config
+from .kinematics import Geometry, geometry_from_config, tension_distribution, workspace_from_config
 from .perception import to_marker, to_room
 from .spool import CableMap
 from .protocol import State
 from .trajectory import PlanError, limits_from_config, model_from, plan_cable_move, plan_line_from
 
-def probe_response(geo, q_room, i, k_rel=None):
+def probe_response(geo, q_room, i, k_rel=None, R=None):
     """Claw displacement (room frame) per unit retraction of cable ``i`` beyond
     the taut point, for equal-modulus cables of stiffness ~ 1/length (the
     modulus cancels): ``x = (sum_j k_j u_j u_j^T)^-1 k_i u_i`` over all four
     cables (a slack cable not yet found is the main source of mismatch, hence the
-    prior sigma ``probe_response_sigma``)."""
-    U = geo.unit_vectors(q_room)
-    k = 1.0 / geo.lengths(q_room) if k_rel is None else np.asarray(k_rel, float)
-    K = sum(k[j] * np.outer(U[j], U[j]) for j in range(4))
-    return np.linalg.solve(K, k[i] * U[i])
+    prior sigma ``probe_response_sigma``).
+
+    Spaced attachments: the rigid claw also rotates. The twist (dp, dtheta) of
+    the body responds with the 6x6 stiffness ``sum_j k_j w_j w_j^T`` (w_j = [u_j;
+    r_j x u_j], r_j the attachment offset in the world frame); the translation part
+    is returned. (The pendulum stiffness of gravity at the CoM, ~m g |c| ~ 1 N m/rad, is
+    negligible against the line elasticity ~EA |b|^2 / L and is left out; yaw has no
+    gravity restoring term at all.)
+    A common point reduces to the 3x3 formula above exactly."""
+    U = geo.unit_vectors(q_room, R)
+    k = 1.0 / geo.lengths(q_room, R) if k_rel is None else np.asarray(k_rel, float)
+    if not geo.spaced:
+        K = sum(k[j] * np.outer(U[j], U[j]) for j in range(4))
+        return np.linalg.solve(K, k[i] * U[i])
+    Rm = geo.R_at(q_room, R)
+    r = geo.attach @ Rm.T
+    W = np.hstack([U, np.cross(r, U)])                               # (4, 6) rows w_j
+    K = (W * k[:, None]).T @ W
+    x = np.linalg.solve(K + 1e-12 * np.eye(6), k[i] * W[i])
+    return x[:3]
 
 
 def hinge_analysis(r, P, C, v, sig_w, k_noise, floor_m):
@@ -177,6 +192,7 @@ class RobotContext:
         self.validated_volume = None        # room-frame points where the model is validated
         self.T_B_C = cfg.claw.T_body_cam
         self.persist = lambda: None         # supervisor installs its durable save here
+        self.claw_yaw_room = 0.0            # last measured claw yaw (room frame): the yaw the attitude statics hold
 
     # -- time ------------------------------------------------------------
     def wait(self, s):
@@ -189,7 +205,7 @@ class RobotContext:
     def set_model(self, anchors_room, L0: dict, T_R_M=None):
         if T_R_M is not None:
             self.T_R_M = np.asarray(T_R_M, float)
-        geo = Geometry(anchors_room, self.cfg.attachment_points())
+        geo = geometry_from_config(self.cfg, anchors_room, self.claw_yaw_room)
         self.model = model_from(geo, self.cfg, L0)
         self.ws = workspace_from_config(self.cfg, np.asarray(anchors_room),
                                         lowest_point_z=float(self.cfg.claw.lowest_point_body_m[2]))
@@ -245,7 +261,21 @@ class RobotContext:
         return True
 
     def room_pose(self, sp):
+        """Claw origin (room frame) of a vision pose. Side effect: the measured yaw becomes the held yaw of the
+        attitude model (planning predicts roll/pitch from statics at this yaw; yaw itself is only measured)."""
+        self.note_attitude(sp.R)
         return to_room(self.T_R_M, sp.p)
+
+    def room_R(self, sp):
+        """Claw orientation (room frame) of a vision pose (IMU roll/pitch + vision yaw)."""
+        return self.T_R_M[:3, :3] @ np.asarray(sp.R, float)
+
+    def note_attitude(self, R_M):
+        R_room = self.T_R_M[:3, :3] @ np.asarray(R_M, float)
+        self.claw_yaw_room = float(math.atan2(R_room[1, 0], R_room[0, 0]))
+        self.cal.note_yaw_M(R_M)
+        if self.model is not None:
+            self.model.geometry.set_yaw(self.claw_yaw_room)
 
     def length_sigma_room(self, q_R):
         if self.result is None:
@@ -565,7 +595,7 @@ class StartupSequencer:
         measurement, both averaged over the frames of ``ref``) and ``rho`` the over-retraction beyond the
         taut point at which the onset becomes detectable (max(floor, k sigma) / |v|)."""
         ctx, st = self.ctx, self.cfg.startup
-        v = ctx.T_R_M[:3, :3].T @ probe_response(ctx.model.geometry, ctx.room_pose(ref), i)
+        v = ctx.T_R_M[:3, :3].T @ probe_response(ctx.model.geometry, ctx.room_pose(ref), i, R=ctx.room_R(ref))
         vn = float(np.linalg.norm(v))
         vhat = v / vn
         sig_proj = math.sqrt(float(vhat @ (2.0 * ref.cov) @ vhat))
@@ -855,7 +885,7 @@ class StartupSequencer:
         lo, hi = ctx.ws.lo.copy(), ctx.ws.hi.copy()
         lo[2] += cfg.startup.target_clearance_m
         pts = box_candidates((lo + hi) / 2, (hi - lo) / 2, n)
-        geo = Geometry(res.anchors_room, cfg.attachment_points())
+        geo = geometry_from_config(cfg, res.anchors_room, ctx.claw_yaw_room)
         return [q for q in pts if tension_distribution(geo, q, cfg.claw.mass_kg, t_min=cfg.motion.min_tension_n,
                                                        t_max=cfg.motion.max_tension_n).feasible]
 
@@ -866,7 +896,7 @@ class StartupSequencer:
         lo, hi = ctx.ws.lo.copy(), ctx.ws.hi.copy()
         lo[2] = min(lo[2] + cfg.startup.target_clearance_m, hi[2])
         pts = box_candidates((lo + hi) / 2, (hi - lo) / 2, n)
-        geo = Geometry(res.anchors_room, cfg.attachment_points())
+        geo = geometry_from_config(cfg, res.anchors_room, ctx.claw_yaw_room)
         return [q for q in pts if tension_distribution(geo, q, cfg.claw.mass_kg, t_min=cfg.motion.min_tension_n,
                                                        t_max=cfg.motion.max_tension_n).feasible]
 
@@ -925,7 +955,7 @@ class StartupSequencer:
         # (c)
         if res is not None and ctx.ws is not None:
             fit = [x for x in smp if x.kind == "fit"]
-            geo = Geometry(res.anchors_M, cfg.attachment_points())
+            geo = geometry_from_config(cfg, res.anchors_M, ctx.cal.hold_yaw_M)
             Ls = np.array([geo.lengths(x.p, x.R) for x in fit]) if fit else None
             pts = self._margin_volume(res)
             worst = {"ceiling": (-1.0, None, ""), "wall": (-1.0, None, "")}
@@ -933,7 +963,7 @@ class StartupSequencer:
                 qM = to_marker(res.T_R_M, q)
                 extra = None
                 if Ls is not None:
-                    extra = cc.payout_scale_sigma * np.min(np.abs(Ls - geo.lengths(qM)[None, :]), axis=0)
+                    extra = cc.payout_scale_sigma * np.min(np.abs(Ls - geo.lengths(qM)[None, :]), axis=0)   # R: statics at the held yaw
                 b = ctx.cal.boundary_sigma(res, qM, extra_len_sigma=extra)
                 comps = {"ceiling": (("vertical", b["ceiling_z"]), ("distance", b["ceiling_dist"])),
                          "wall": (("x", b["wall_x"]), ("y", b["wall_y"]))}

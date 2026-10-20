@@ -242,13 +242,25 @@ def run_one(args):
             r.claw.tilt_noise = spec["tilt"]
             r.vision.tilt_sigma = spec["tilt"]
         sup = Supervisor(r.ctx, state_path=td / "state.json", ledger_path=td / "ledger.json")
-        peak = {"T": 0.0}                              # peak cable tension of the plant over the whole startup
+        peak = {"T": 0.0, "probe": 0.0, "in_probe": False}   # peak cable tension: whole startup / probe motions only
         _settle = r.world.settle
+        _execute = r.co.execute
 
         def _settle_tracked():
             _settle()
-            peak["T"] = max(peak["T"], float(np.max(r.world.tension)))
+            t = float(np.max(r.world.tension))
+            peak["T"] = max(peak["T"], t)
+            if peak["in_probe"]:
+                peak["probe"] = max(peak["probe"], t)
+
+        def _execute_tracked(plan, **kw):
+            peak["in_probe"] = plan.label.startswith("probe")
+            try:
+                return _execute(plan, **kw)
+            finally:
+                peak["in_probe"] = False
         r.world.settle = _settle_tracked
+        r.co.execute = _execute_tracked
         StartupSequencer.study_board = board
         try:
             rep = sup.start()
@@ -261,6 +273,7 @@ def run_one(args):
         m = rep.measurements
         out["sim_time_s"] = r.rt.now_us() / 1e6
         out["peak_tension_n"] = peak["T"]
+        out["peak_probe_tension_n"] = peak["probe"]
         out["probe"] = m.get("slack_probe")
         out["state"] = sup.state
         out["reasons"] = [x[:160] for x in rep.reasons][:4]
@@ -365,6 +378,7 @@ def summarize(results):
         if sim_t:
             row["sim_s"] = float(np.mean(sim_t))
             row["peak_T"] = float(np.max([r["peak_tension_n"] for r in rs if "peak_tension_n" in r]))
+            row["peak_T_probe"] = float(np.max([r.get("peak_probe_tension_n", 0.0) for r in rs]))
         pr = [r["probe"] for r in rs if r.get("probe")]
         if pr:
             row["probe_cov"] = float(np.mean([p["readings_probed"] / max(p["readings_probed"] + p["readings_skipped"], 1)
@@ -405,6 +419,7 @@ def print_table(rows):
               f"{r['fit_xy']:5.2f} {r['dir_spread']:6.3f} {r['time_s']:6.0f}")
         if "sim_s" in r:
             print(f"{'':44s} sim time {r['sim_s']:.0f} s, peak plant tension {r['peak_T']:.1f} N"
+                  + (f" (during probe motions {r['peak_T_probe']:.1f} N)" if "probe_cov" in r else "")
                   + (f", probe: {r['probe_cov'] * 100:.0f} % of readings probed, {r['probe_t_pose']:.0f} s/pose, "
                      f"max retraction {r['probe_peak_mm']:.1f} mm" if "probe_cov" in r else ""))
         for sd, why in r["rejections"]:

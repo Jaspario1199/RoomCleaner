@@ -543,7 +543,8 @@ class StartupSequencer:
     # against max 0.78 / 1.20 mm at 0.5; verification/slack_probe_results.md), so the simplest choice stays.
     PROBE_MARGIN_SIGMA = 0.0
     # The claw moving this far from the reference during one cable's probe without a significant onset means the
-    # vision or the response model cannot be trusted: abort (hold) rather than keep retracting.
+    # vision or the response model cannot be trusted: abort (hold) rather than keep retracting. The limit is the
+    # larger of this value and twice the motion at which the onset is expected to become significant.
     PROBE_MAX_DISP_M = 0.010
 
     def _probe_geometry(self, i, ref):
@@ -600,7 +601,7 @@ class StartupSequencer:
             if a["detected"]:
                 break
             moved = float(np.linalg.norm(sp.p - ref.p))
-            if moved > self.PROBE_MAX_DISP_M:
+            if moved > max(self.PROBE_MAX_DISP_M, 2.0 * rho * vn):
                 raise StartupAbort(state, f"station {sid}: claw moved {moved * 1e3:.1f} mm during the probe without a "
                                           "significant onset (vision or response model unreliable)", suspended=True)
             step = min(max(st.probe_step_m, 0.5 * r), st.probe_max_step_m)

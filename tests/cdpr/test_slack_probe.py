@@ -208,6 +208,22 @@ def test_cable_that_never_goes_taut_aborts_with_a_hold_not_a_disable(rig):
     pay_out(r, S, 2, -0.004)
 
 
+def test_claw_running_away_without_a_significant_onset_aborts(rig, monkeypatch):
+    r, S = rig
+    from roomcleaner.cdpr import startup as startup_mod
+    P0 = r.co.positions().copy()
+    monkeypatch.setattr(startup_mod, "hinge_analysis", lambda *a, **k: {"detected": False})   # a blind onset detector
+    monkeypatch.setattr(S, "PROBE_MAX_DISP_M", 0.0005)
+    ref = S._still(n=10, state=STATE, suspended=True)
+    with pytest.raises(StartupAbort) as e:
+        S._probe_cable(0, ref, 10, STATE)                      # A is taut: the claw moves as soon as it retracts
+    assert "claw moved" in e.value.reason and e.value.suspended and not e.value.paused
+    assert all(r.co.links[s].tel["st"] != State.OFF for s in IDS)
+    monkeypatch.undo()
+    S._restore_positions(P0, STATE)
+    assert np.all(np.abs(r.co.positions() - P0) <= 1.0)
+
+
 def test_pause_during_a_probe_holds_between_and_during_motions(rig):
     r, S = rig
     P0 = r.co.positions().copy()

@@ -30,6 +30,13 @@ NEED_PER_JAW = 1.0 * 4.448 / (2 * 0.3)  # N, 1 lb at mu 0.3 (R5)
 # Lewis form factors, 20 deg full depth (R5 values for 18/24/54; 36 interpolated 34: 0.371, 38: 0.384)
 LEWIS_Y = {18: 0.309, 24: 0.337, 36: 0.3775, 54: 0.416}
 
+# Effective face width of the pinion / 36T mesh: the 36T-layer top carries a GRIPV7_AXIAL_RELIEF annular relief (axial gap to the
+# follower), so the pinion (16 mm) meshes over min(16, 16 - 0.3) = 15.7 mm.  The 24T pair is not relieved (20 mm).
+FACE_MAIN_EFF = P.GRIPV7_FACE_MAIN - P.GRIPV7_AXIAL_RELIEF
+# Lead decision (repair round 1): sync 24T one-jaw SF at the 6 V stall is 1.997 (< 2.0 by 0.15 %).  ACCEPTED as is: it sits at the
+# precision of the assumed stall torque (11 kg cm) and of the Lewis form factor; the gear width is NOT changed.
+ACCEPTED = {("6.0 V", "sync 24T, one jaw takes all"): "lead decision: SF 1.997 vs 2.0 accepted (within stall-torque precision)"}
+
 # v6 reference numbers (verification/gripper_v6_inspection.md)
 V6 = dict(module=1.5, z_pinion=18, z_big=54, z_sync=24, face_main=16.0, face_sync=20.0, ratio=3.0)
 
@@ -56,7 +63,8 @@ def tooth_table(ratio: float, z_big: int, module: float, face_main: float, face_
                 ("sync 24T, jaws balanced", ft_sync_bal, face_sync, 24),
                 ("sync 24T, one jaw takes all", ft_sync_one, face_sync, 24)):
             s, sf = lewis(ft, face, module, z)
-            rows.append(dict(train=tag, servo=vname, gear=name, Ft_N=ft, stress_MPa=s / 1e6, SF=sf))
+            rows.append(dict(train=tag, servo=vname, gear=name, Ft_N=ft, stress_MPa=s / 1e6, SF=sf,
+                             face_mm=face, accepted=ACCEPTED.get((vname, name), "") if tag == "v7" else ""))
     return rows
 
 
@@ -149,12 +157,13 @@ def link_and_pivot_check() -> dict:
 def main() -> dict:
     out = {}
     print("=== gear teeth (Lewis, PETG allowable %.1f MPa) ===" % (PETG_ALLOW / 1e6))
-    rows = tooth_table(P.GRIPV7_RATIO, P.GRIPV7_Z_MAIN, P.GRIPV7_MODULE, P.GRIPV7_FACE_MAIN,
+    rows = tooth_table(P.GRIPV7_RATIO, P.GRIPV7_Z_MAIN, P.GRIPV7_MODULE, FACE_MAIN_EFF,
                        P.GRIPV7_FACE_SYNC, "v7")
     rows6 = tooth_table(V6["ratio"], V6["z_big"], V6["module"], V6["face_main"], V6["face_sync"], "v6")
     for r in rows6 + rows:
-        print("%s  %s  %-28s Ft %6.1f N  %5.1f MPa  SF %.2f" % (r["train"], r["servo"], r["gear"], r["Ft_N"],
-                                                              r["stress_MPa"], r["SF"]))
+        print("%s  %s  %-28s face %4.1f mm  Ft %6.1f N  %5.1f MPa  SF %.3f%s" % (
+            r["train"], r["servo"], r["gear"], r["face_mm"], r["Ft_N"], r["stress_MPa"], r["SF"],
+            ("   ACCEPTED: " + r["accepted"]) if r["accepted"] else ""))
     out["teeth"] = rows
     out["teeth_v6"] = rows6
     tab = force_table()

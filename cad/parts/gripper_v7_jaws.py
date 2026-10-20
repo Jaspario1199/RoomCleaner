@@ -40,12 +40,14 @@ _sync_mid = (P.GRIPV7_L2_Z0 + P.GRIPV7_L2_Z1) / 2.0   # 27.0
 JAW_Z0 = _sync_mid - JAW_T / 2.0                      # 17.5
 TONGUE_Z0 = _sync_mid - TONGUE_T / 2.0                # 22.5
 LINK_Z0 = TONGUE_Z0                                   # link tongue = same band as the lug
-BOSS_R = 9.5                                          # jaw boss radius at A and B
+BOSS_R = 9.5                                          # jaw boss radius at B
+BOSS_R_A = P.GRIPV7_JAW_BOSS_R_A                      # jaw boss radius at A (9.8: keeps >= 1.2 mm wall around the crank slot)
 LINK_END_R = 6.0
 HOLE_D = 4.15                                         # Ø4.1-4.2 for the Ø4 shoulder
 PAD_W = 16.0
 PAD_H = 36.0
-SLOT_MARGIN = 0.8                                     # extra clearance around the swept tongue
+SLOT_MARGIN = 0.8                                     # extra clearance around the swept link tongue (B)
+CRANK_SLOT_MARGIN = P.GRIPV7_JAW_CRANK_SLOT_MARGIN    # ... and around the swept crank lug (A): 0.5
 SHOULDER_LEN = 20.0                                   # M3 shoulder length at the clevises (stack 19)
 LINK_SHOULDER_LEN = 10.0                              # at the frame pivot P (stack 9 + 2 x 0.5)
 
@@ -114,8 +116,8 @@ def _swept_tongue_cut(fb: K.FourBar, which: str, n: int = 24) -> cq.Workplane:
         if which == "crank":
             far = _to_jaw_frame(fb, ps, fb.C)
             near = fb.Ac
-            r_near = GR.LUG_END_R + SLOT_MARGIN
-            r_far = GR.LUG_ROOT_R + SLOT_MARGIN
+            r_near = GR.LUG_END_R + CRANK_SLOT_MARGIN
+            r_far = GR.LUG_ROOT_R + CRANK_SLOT_MARGIN
         else:
             far = _to_jaw_frame(fb, ps, fb.Pg)
             near = fb.Bc
@@ -131,9 +133,26 @@ def jaw_outline_solid(fb: K.FourBar) -> cq.Workplane:
     A, B, tip = tuple(fb.Ac), tuple(fb.Bc), tuple(fb.tip_c)
     y_f = tip[1] + PAD_H
     pad = [(0.0, tip[1]), (PAD_W, tip[1]), (PAD_W, y_f), (0.0, y_f)]
-    neck = _hull_prism([(A, BOSS_R), (B, BOSS_R)], [], 0.0, JAW_T)
+    neck = _hull_prism([(A, BOSS_R_A), (B, BOSS_R)], [], 0.0, JAW_T)
     strut = _hull_prism([(B, BOSS_R)], pad, 0.0, JAW_T)
     return neck.union(strut)
+
+
+def _boss_cap_cut(fb: K.FourBar) -> cq.Workplane:
+    """Half-disc beyond the crank pin A (the side away from B), in the slot band only.  Without it the
+    boss leaves a free-standing crescent (wall 0.7 -> 0, ending in a knife edge) around the swept crank
+    slot.  The cut face runs through A along the strut's outer tangent, so the wall at its end is the
+    full BOSS_R_A - (LUG_END_R + CRANK_SLOT_MARGIN) = 1.3 mm and meets the outline at 90 deg."""
+    A, B = np.asarray(fb.Ac, float), np.asarray(fb.Bc, float)
+    d = (B - A) / np.linalg.norm(B - A)
+    n = np.array([-d[1], d[0]])                  # outer tangent side of the neck (A -> B turned +90 deg)
+    t = -d                                       # away from B
+    rc = BOSS_R_A + 1.5
+    pts = [tuple(A + rc * n), tuple(A + rc * n + rc * t), tuple(A - rc * n + rc * t), tuple(A - rc * n)]
+    z0 = TONGUE_Z0 - TONGUE_GAP - JAW_Z0
+    z1 = TONGUE_Z0 + TONGUE_T + TONGUE_GAP - JAW_Z0
+    box = _prism(pts, z0, z1)
+    return box.intersect(_cyl(rc, z0 - 1.0, z1 + 1.0, A[0], A[1]))
 
 
 def make_jaw() -> cq.Workplane:
@@ -144,6 +163,7 @@ def make_jaw() -> cq.Workplane:
     for which in ("crank", "link"):
         cut = _swept_tongue_cut(fb, which).translate((0, 0, -JAW_Z0))
         body = body.cut(cut)
+    body = body.cut(_boss_cap_cut(fb))
     # shoulder-screw holes through the whole stack
     for c in (tuple(fb.Ac), tuple(fb.Bc)):
         body = body.cut(_cyl(HOLE_D / 2.0, -1.0, JAW_T + 1.0, c[0], c[1]))

@@ -3,7 +3,7 @@ Gripper v7 -- open frame: lower plate, upper plate (servo), tie columns, tube so
 mesh guard bands.  Local frame (z = 0 on the lower-plate INNER face).
 
 Lower plate  z [-6, 0]   : pocketed PETG plate, Ø7.05 blind pin seats (4 mm), inner-race rings
-                           Ø9 x 0.85, pinion pilot post, six tie columns (integral, 42 mm, hollow for
+                           Ø9.7 x 0.85, pinion pilot post, six tie columns (integral, 42 mm, hollow for
                            the M3 bolt), lower tube saddle, main-mesh (pinion/36T) guard bands.
 Upper plate  z [42, 48]  : pocketed PETG plate with the MG996R body cutout (ears rest on the top
                            face, M2.5 heat-set inserts), pin seats, race rings, upper saddle,
@@ -164,6 +164,28 @@ def _saddle(lower: bool) -> cq.Workplane:
     return s.cut(_bore())
 
 
+def _saddle_column_notch(x, y):
+    """Material removed from the UPPER saddle (shell + ribs) beside a tie column.  The column clearance
+    bore (R4.7) alone leaves 0.4 - 1.1 mm ligaments next to the tube bore (R14.42) between the equator and
+    z ~ 29.3, and slivers (< 1.2 mm) between the bore and the saddle edge (|x| = 24).  Two boxes over the
+    column's y-range remove them:
+      * low box   |x| >= NOTCH_X0 (inside the tube bore), z up to NOTCH_Z: everything at the bore side; above
+        NOTCH_Z the ligament to the tube bore is >= 1.2 mm and ends in a blunt step, not a knife edge;
+      * edge box  |x| >= column axis, full height to the plate: no sliver outside the clearance bore.
+    """
+    half_y = P.GRIPV7_TIE_COL_OD / 2.0 + 0.2 + P.GRIPV7_SADDLE_NOTCH_Y_PAD
+    xs = 1.0 if x > 0 else -1.0
+    x_far = P.GRIPV7_SADDLE_HALF_W + 2.0
+
+    def box(xa, xb, z0, z1):
+        lo, hi = sorted((xs * xa, xs * xb))
+        return (cq.Workplane("XY").workplane(offset=z0).center((lo + hi) / 2.0, y)
+                .rect(hi - lo, 2.0 * half_y).extrude(z1 - z0))
+    low = box(P.GRIPV7_SADDLE_NOTCH_X0, x_far, TUBE_Z - 2.0, P.GRIPV7_SADDLE_NOTCH_Z)
+    edge = box(abs(x), x_far, TUBE_Z - 2.0, UP_Z0)
+    return low.union(edge)
+
+
 def _tie_hole(x, y, z0, z1):
     return _cyl(P.GRIPV7_TIE_HOLE_D / 2.0, z0, z1, x, y)
 
@@ -271,6 +293,8 @@ def make_upper_plate() -> cq.Workplane:
     plate = plate.union(_saddle(lower=False)).union(sync_guard())
     for t in P.GRIPV7_TIE_XY:     # the lower-plate columns run through the saddle footprint
         plate = plate.cut(_cyl(P.GRIPV7_TIE_COL_OD / 2.0 + 0.2, 20.0, UP_Z0 + 0.01, *t))
+    for t in P.GRIPV7_TIE_XY[2:]:  # saddle columns (x = +-19.5): remove the thin ligaments, see _saddle_column_notch
+        plate = plate.cut(_saddle_column_notch(*t))
     # servo cutout + M2.5 insert holes
     cl = P.GRIPV7_SERVO_CUTOUT_CLEAR
     plate = plate.cut(cq.Workplane("XY").workplane(offset=UP_Z0 - 1.0).center(cx, S[1])

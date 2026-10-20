@@ -55,7 +55,7 @@ V6_TUBE_G, V6_SERVO_G = 198.0, 55.0
 # purchased-part mass estimates (g): steel 7.85 g/cc computed; the rest ASSUMED catalogue values
 HW_MASS_G = {"servo MG996R (supplied)": 55.0, "horn (ASSUMED metal 25T)": 8.0,
              "pins 2 x Ø7x50 steel": 2 * 7.85e-3 * np.pi * 3.5 ** 2 * 50.0,
-             "bearings 6 x 607 (ASSUMED 2.0 g)": 6 * 2.0,
+             "bearings 6 x 687 (ASSUMED 2.0 g)": 6 * 2.0,
              "shoulder screws 6 + nyloc 6 + washer 4 (ASSUMED)": 6 * 2.2 + 6 * 0.5 + 4 * 0.1,
              "M3x50 ties 7 + nyloc 7 (ASSUMED)": 7 * 2.9 + 7 * 0.5,
              "horn screws 4 + M2.5 inserts/screws 4 (ASSUMED)": 4 * 0.2 + 4 * 0.5}

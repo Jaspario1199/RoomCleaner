@@ -362,15 +362,22 @@ def test_grip_force_vs_v6_and_requirement():
 
 # ---- 7. strength ----------------------------------------------------------------------------------------
 def test_lewis_safety_factors():
-    rows = SC.tooth_table(P.GRIPV7_RATIO, P.GRIPV7_Z_MAIN, P.GRIPV7_MODULE, P.GRIPV7_FACE_MAIN,
+    # pinion / 36T mesh face = 16 - 0.30 relief = 15.7 mm (the 24T pair keeps 20 mm)
+    rows = SC.tooth_table(P.GRIPV7_RATIO, P.GRIPV7_Z_MAIN, P.GRIPV7_MODULE, SC.FACE_MAIN_EFF,
                           P.GRIPV7_FACE_SYNC, "v7")
+    assert SC.FACE_MAIN_EFF == pytest.approx(P.GRIPV7_FACE_MAIN - P.GRIPV7_AXIAL_RELIEF)
     for r in rows:
         if r["servo"] == "6.0 V":
             assert r["SF"] >= 1.5, r
     pin6 = next(r for r in rows if r["servo"] == "6.0 V" and r["gear"] == "pinion 18T")
+    big6 = next(r for r in rows if r["servo"] == "6.0 V" and r["gear"] == "big gear 36T")
     syn6 = next(r for r in rows if r["servo"] == "6.0 V" and r["gear"] == "sync 24T, one jaw takes all")
-    assert pin6["SF"] == pytest.approx(2.09, abs=0.02)          # unchanged pinion (R5: 2.1)
+    assert pin6["SF"] >= 2.0 and pin6["SF"] == pytest.approx(2.05, abs=0.02)   # 2.087 at the full 16 mm
+    assert big6["SF"] >= 2.5                                                    # 2.550 -> 2.502 with the relief
     assert syn6["SF"] > 1.33                                    # v6 worst case was 1.33
+    # lead decision: 1.997 (< 2.0 by 0.15 %) is accepted as is and is recorded in the screening output
+    assert syn6["SF"] == pytest.approx(1.997, abs=0.001)
+    assert "accepted" in syn6["accepted"].lower()
 
 
 def test_gear_web_rim_and_spokes(printed):
@@ -385,11 +392,11 @@ def test_gear_web_rim_and_spokes(printed):
     big = max(faces, key=lambda f: f.Area())
     n_inner = len(big.innerWires())
     assert n_inner == P.GRIPV7_SPOKES + 1                       # six windows + the bearing seat bore
-    # full face width at the teeth: tooth ring spans the whole 16 mm layer
+    # face width at the teeth: the tooth ring spans the 36T layer minus the axial relief on its top
     ring = (cq.Workplane("XY").workplane(offset=P.GRIPV7_L1_Z0 + 0.01).center(*GR.C_AXIS)
             .circle(27.0 + 1.0).circle(27.0 - 1.0).extrude(P.GRIPV7_FACE_MAIN - 0.02).val())
     inter = comp.intersect(ring)
-    assert inter.BoundingBox().zlen == pytest.approx(P.GRIPV7_FACE_MAIN - 0.02, abs=1e-3)
+    assert inter.BoundingBox().zlen == pytest.approx(P.GRIPV7_FACE_MAIN - P.GRIPV7_AXIAL_RELIEF - 0.01, abs=1e-3)
 
 
 # ---- 8. masses ------------------------------------------------------------------------------------------
@@ -596,3 +603,138 @@ def test_jaw_swept_against_gears_and_frame_fine_sweep():
             for b in static:
                 if overlaps(sh[a], sh[b]):
                     assert vol(sh[a], sh[b]) <= EPS_VOL, (round(float(th), 1), a, b)
+
+
+# ---- 13. repair round 1: axial relief, minimum walls, bearing designation ------------------------------------------------
+def _dist(a, b):
+    from OCP.BRepExtrema import BRepExtrema_DistShapeShape
+    d = BRepExtrema_DistShapeShape(a.wrapped, b.wrapped)
+    d.Perform()
+    return d.Value()
+
+
+def _section_face(shape, z):
+    sec = shape.intersect(slab(z, 0.01))
+    return max(sec.Faces(), key=lambda f: f.Area())
+
+
+def _wire_polyline(w, step):
+    """Ordered (x, y) polyline of a closed wire, sampled every `step` mm (edges walked in loop order)."""
+    from OCP.BRepAdaptor import BRepAdaptor_Curve
+    from OCP.BRepTools import BRepTools_WireExplorer
+    from OCP.TopAbs import TopAbs_REVERSED
+    pts = []
+    ex = BRepTools_WireExplorer(w.wrapped)
+    while ex.More():
+        e = ex.Current()
+        c = BRepAdaptor_Curve(e)
+        n = max(2, int(cq.Edge(e).Length() / step) + 1)
+        u = np.linspace(c.FirstParameter(), c.LastParameter(), n)
+        seg = [(c.Value(t).X(), c.Value(t).Y()) for t in u]
+        pts += seg[::-1] if e.Orientation() == TopAbs_REVERSED else seg
+        ex.Next()
+    return np.array(pts)
+
+
+def _thin_regions(shape, z, px=0.05, min_area=0.3):
+    """Section of `shape` at z, rasterised at `px`; returns thin features (components of the part that a disc of
+    GRIPV7_MIN_WALL diameter cannot enter, i.e. walls / ligaments / knife edges below the minimum wall)."""
+    cv2 = pytest.importorskip("cv2")
+    sec = shape.intersect(slab(z, 0.005))
+    bb = sec.BoundingBox()
+    faces = [f for f in sec.Faces() if f.BoundingBox().zlen < 1e-6 and abs(f.BoundingBox().zmin - (z - 0.005)) < 1e-6]
+    assert faces
+    pad = 10
+    W, H = int((bb.xlen) / px) + 2 * pad, int((bb.ylen) / px) + 2 * pad
+    m = np.zeros((H, W), np.uint8)
+    for f in faces:
+        wires = [f.outerWire()] + list(f.innerWires())
+        t = np.zeros((H, W), np.uint8)
+        for w in wires:
+            P_ = _wire_polyline(w, px / 2)
+            xy = np.stack([np.round((P_[:, 0] - bb.xmin) / px + pad), np.round((P_[:, 1] - bb.ymin) / px + pad)], 1).astype(np.int32)
+            q = np.zeros((H, W), np.uint8)
+            cv2.fillPoly(q, [xy], 1)
+            t ^= q
+        m |= t
+    k = int(round(0.5 * P.GRIPV7_MIN_WALL / px))
+    op = cv2.morphologyEx(m, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * k + 1, 2 * k + 1)))
+    thin = ((m == 1) & (op == 0)).astype(np.uint8)
+    n, lab, st, cen = cv2.connectedComponentsWithStats(thin, 8)
+    return [(st[i, 4] * px * px, (cen[i][0] * px + bb.xmin - pad * px, cen[i][1] * px + bb.ymin - pad * px))
+            for i in range(1, n) if st[i, 4] * px * px >= min_area]
+
+
+def test_follower_axial_gap_to_36t_layer(printed):
+    """D1: follower bottom (z 17.0) vs the 36T-layer top: relief >= 0.3 mm at every crank angle (relief is
+    axisymmetric about the compound axis, so the sweep cannot close it)."""
+    gap_min = 1e9
+    for th in (FB.theta_c, 0.5 * (FB.theta_c + FB.theta_open), FB.theta_open):
+        parts = AS.build(float(th), hardware=False)
+        comp, fol = parts["compound"][0].val(), parts["follower"][0].val()
+        z_cut = P.GRIPV7_L1_Z1 - 0.5 * P.GRIPV7_AXIAL_RELIEF        # inside the relief: keeps the 36T layer, drops the 24T teeth
+        layer36 = comp.intersect(slab(0.5 * (P.GRIPV7_L1_Z0 + z_cut), 0.5 * (z_cut - P.GRIPV7_L1_Z0)))
+        gap = _dist(fol, layer36)
+        gap_min = min(gap_min, gap)
+        # no face contact at all: a 0.01 mm z shift of the follower onto the layer must not overlap either
+        assert vol(fol.translate(cq.Vector(0, 0, -0.01)), layer36) < 1e-9
+    assert gap_min >= P.GRIPV7_AXIAL_RELIEF - 1e-6, gap_min
+    assert P.GRIPV7_AXIAL_RELIEF >= 0.3
+    # gear-stack z-band and mesh unchanged: compound 1..37 (LP frame), follower 17..37
+    cb = printed["compound"].val().BoundingBox()
+    fb_ = printed["follower"].val().BoundingBox()
+    assert (cb.zmin, cb.zmax) == (pytest.approx(P.GRIPV7_L1_Z0), pytest.approx(P.GRIPV7_L2_Z1))
+    assert (fb_.zmin, fb_.zmax) == (pytest.approx(P.GRIPV7_L2_Z0), pytest.approx(P.GRIPV7_L2_Z1))
+
+
+def test_wall_pinion_horn_pilots(printed):
+    face = _section_face(printed["pinion"].val(), 28.0)
+    outer, inners = face.outerWire(), face.innerWires()
+    assert len(inners) == 1 + P.GRIPV7_HORN_SCREWS
+    assert min(_dist(outer, w) for w in inners) >= P.GRIPV7_MIN_WALL
+
+
+def test_wall_upper_plate_insert_holes(printed):
+    up = printed["upper_plate"].val()
+    z_top = P.GRIPV7_PLATE_GAP + P.GRIPV7_PLATE_T
+    face = _section_face(up, z_top - 1.0)            # inside the insert-hole depth
+    cx = GR.S_AXIS[0] - P.GRIPV7_SERVO_X_OFF
+    holes = [w for w in face.innerWires() if w.BoundingBox().xlen < 4.0 and w.BoundingBox().ylen < 4.0
+             and abs(abs((w.BoundingBox().xmin + w.BoundingBox().xmax) / 2 - cx) - P.GRIPV7_SERVO_EAR_HOLE_DX / 2) < 0.1]
+    cut = [w for w in face.innerWires()
+           if abs(w.BoundingBox().xlen - (P.GRIPV7_SERVO_BODY_L + 2 * P.GRIPV7_SERVO_CUTOUT_CLEAR)) < 0.05]
+    assert len(holes) == 4 and len(cut) == 1
+    assert min(_dist(h, cut[0]) for h in holes) >= P.GRIPV7_MIN_WALL
+    assert P.GRIPV7_PLATE_T - P.GRIPV7_SERVO_INSERT_DEPTH >= P.GRIPV7_MIN_WALL      # blind-hole floor
+
+
+def test_wall_race_rings(printed):
+    """Full rings Ø9.7 around the Ø7.05 pin seat (race land assumed, not checkable from CAD): wall >= 1.2."""
+    wall = (P.GRIPV7_RACE_BOSS_D - P.GRIPV7_PIN_HOLE_D) / 2.0
+    assert wall >= P.GRIPV7_MIN_WALL
+    for name in ("lower_plate", "upper_plate"):
+        rings = [c for c in cyl_faces(printed[name].val()) if abs(c["r"] - P.GRIPV7_RACE_BOSS_D / 2) < 1e-6
+                 and abs(abs(c["x"]) - GR.C_AXIS[0]) < 1e-6]
+        assert rings, name
+
+
+def test_wall_jaw_slot_band_and_saddle_ligaments(printed):
+    for z in (JW.TONGUE_Z0 - JW.TONGUE_GAP + 0.1, JW.TONGUE_Z0 + JW.TONGUE_T / 2, JW.TONGUE_Z0 + JW.TONGUE_T + JW.TONGUE_GAP - 0.1):
+        assert _thin_regions(printed["jaw_R"].val(), z) == [], z
+    # boss wall at the crank slot
+    assert JW.BOSS_R_A - (GR.LUG_END_R + JW.CRANK_SLOT_MARGIN) >= P.GRIPV7_MIN_WALL
+    up = printed["upper_plate"].val()
+    for z in (24.8, 25.0, 26.5, 28.32, 29.5, 30.5, 31.0, 34.0, 38.0, 41.5):
+        assert _thin_regions(up, z) == [], z
+
+
+def test_no_607_designation_left():
+    import glob
+    here = os.path.join(REPO, "cad")
+    for path in glob.glob(os.path.join(here, "parts", "gripper_v7_*.py")) + [os.path.join(here, "params.py"),
+                                                                          os.path.join(REPO, "scripts", "build_gripper_v7.py"),
+                                                                          os.path.join(REPO, "calculations", "gripper_v7_screening.py")]:
+        txt = open(path, encoding="utf-8").read()
+        for ln in txt.splitlines():
+            if "607" in ln:
+                assert "a 607 is" in ln, (path, ln)         # the one explanatory remark

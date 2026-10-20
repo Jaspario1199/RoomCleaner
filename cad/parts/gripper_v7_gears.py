@@ -17,7 +17,13 @@ Mesh phasing is built into the parts for the CLOSED pose (compound crank at GRIP
 Because 36 = 2 x 18 and 24 = 24, the phasing then holds at every crank angle (n1*phi1 + n2*phi2 = const).
 
 Print orientation (STL): axis vertical, lower face (z = 0) on the bed.  The crank-lug underside
-needs supports (tongue sits mid-band); 36T windows are bridged by the 24T underside (about 10 mm).
+needs supports (tongue sits mid-band); 36T windows are bridged by the 24T underside (span up to about 15 mm at R19.4).
+
+Axial relief (repair round 1): the follower bottom face sits at the same z as the 36T-layer top face
+(LP z 17.0) and the two parts counter-rotate, so the 36T-layer top is relieved by GRIPV7_AXIAL_RELIEF
+(0.30 mm) over the annulus R >= CD_SYNC - tip24 - margin (everything the follower can overlap, at every
+rotation): rim, tooth ring and the outer ends of the spokes.  The 36T/pinion mesh face is therefore
+16 - 0.3 = 15.7 mm; the 24T pair keeps its full 20 mm.  The relief is on a top face -> no print support.
 """
 
 from __future__ import annotations
@@ -80,7 +86,7 @@ def _cyl(r: float, z0: float, z1: float, x: float = 0.0, y: float = 0.0) -> cq.W
 
 
 def _bearing_pocket(z_face: float, n: int, from_top: bool) -> cq.Workplane:
-    """Cutter for n stacked 7x14x5 bearings entered from the face at z_face: Ø14.05 x (n*5+0.05)
+    """Cutter for n stacked 7x14x5 (type 687) bearings entered from the face at z_face: Ø14.05 x (n*5+0.05)
     plus the 0.3 mm radial lip relief counterbore at the mouth."""
     depth = n * P.GRIPV7_BRG_W + P.GRIPV7_BRG_DEPTH_EXTRA
     r = P.GRIPV7_BRG_POCKET_D / 2.0
@@ -179,6 +185,9 @@ def _web_windows() -> cq.Workplane:
 
 
 WINDOW_R_OUT = 19.4      # window outer radius: under the 24T disc (R19.5) -> no through slit
+# 36T-layer top relief annulus (compound part frame): inner radius = nearest point of the follower disc, less a margin
+RELIEF_R_IN = P.GRIPV7_CD_SYNC - M * (P.GRIPV7_Z_SYNC + 2) / 2.0 - P.GRIPV7_RELIEF_R_MARGIN     # 36.3 - 19.5 - 0.3 = 16.5
+RELIEF_R_OUT = M * (P.GRIPV7_Z_MAIN + 2) / 2.0 + 1.0                                          # 36T tip radius + 1 mm
 
 
 def make_compound(theta_lug_deg: float, reach: float | None = None) -> cq.Workplane:
@@ -192,6 +201,11 @@ def make_compound(theta_lug_deg: float, reach: float | None = None) -> cq.Workpl
     t24 = _toothed(P.GRIPV7_Z_SYNC, P.GRIPV7_FACE_SYNC, beta_cf).translate((0, 0, P.GRIPV7_FACE_MAIN))
     body = t36.union(t24)
     body = body.cut(_web_windows())
+    # axial relief of the 36T-layer top (see module docstring): annulus on the top of the 36T layer
+    z_top36 = P.GRIPV7_FACE_MAIN
+    relief = _cyl(RELIEF_R_OUT, z_top36 - P.GRIPV7_AXIAL_RELIEF, z_top36).cut(
+        _cyl(RELIEF_R_IN, z_top36 - 1.0, z_top36 + 1.0))
+    body = body.cut(relief)
     body = body.union(_lug_profile(theta_lug_deg, reach, LUG_Z0, LUG_Z0 + LUG_T))
     # bearing pockets: 1 at the lower face, 2 at the upper face; seat bore between them
     body = body.cut(_seat_bore(-1.0, COMPOUND_H + 1.0))

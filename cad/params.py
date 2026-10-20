@@ -188,7 +188,7 @@ GRIPV7_SPOKES = 6                 # spokes of the 36T web (>= 5)
 GRIPV7_SPOKE_W = 5.0              # mm
 GRIPV7_HUB_R = 11.0               # mm, gear hub radius around the bearing pockets
 
-# --- purchased bearings (7x14x5, 607 type) and steel axle pins --------------------------------
+# --- purchased bearings (7x14x5 = type 687; a 607 is 7x19x6 and does NOT fit) and steel axle pins --------------------------------
 GRIPV7_BRG_ID = 7.0
 GRIPV7_BRG_OD = 14.0
 GRIPV7_BRG_W = 5.0
@@ -200,7 +200,10 @@ GRIPV7_BRG_SEAT_BORE = 10.0       # bore past the pocket floor: clears the inner
 GRIPV7_PIN_D = 7.0                # Ø7 h-tolerance steel dowel pin
 GRIPV7_PIN_HOLE_D = 7.05          # blind seat in each plate (vertical print: expect 6.9-7.0 as printed)
 GRIPV7_PIN_LEN = 50.0             # buy-able standard length (ISO 2338 series); engagement = (50 - gap)/2
-GRIPV7_RACE_BOSS_D = 9.0          # plate boss/ring touching only the stationary inner race (VERIFY race land >= 9.2)
+GRIPV7_RACE_BOSS_D = 9.7          # plate ring facing the stationary inner race: kept as a FULL ring (it limits the axial float of the gear
+                                  # stack, so it is NOT removed), wall (9.7 - 7.05)/2 = 1.325 >= MIN_WALL (1.25 mm = raster-check disc).
+                                  # The ring only faces the 687 inner race / recessed shield with 0.15 mm axial clearance and is never in
+                                  # contact with a rotating part, so an inner-race land smaller than 9.7 is harmless (VERIFY on hardware)
 GRIPV7_RACE_AXIAL_GAP = 0.15      # mm gap between race and boss at each end
 
 # --- vertical stack (local z, lower plate inner face = 0) --------------------------------------
@@ -241,8 +244,8 @@ GRIPV7_SERVO_EAR_HOLE_DY = 10.0
 GRIPV7_SERVO_EAR_HOLE_D = 4.0
 GRIPV7_SERVO_CUTOUT_CLEAR = 0.6   # per side: lets the servo float +-0.6 mm so it self-aligns to the pinion pilot before the ear screws are tightened
 GRIPV7_SERVO_SCREW = 2.5          # M2.5 ear screws into heat-set inserts (wall at the cutout)
-GRIPV7_SERVO_INSERT_D = 3.6       # M2.5 heat-set insert melt-in hole
-GRIPV7_SERVO_INSERT_DEPTH = 5.0
+GRIPV7_SERVO_INSERT_D = 3.3       # M2.5 heat-set insert melt-in hole (was 3.6: wall to the servo cut-out 1.10 -> 1.25; VERIFY vs the real insert)
+GRIPV7_SERVO_INSERT_DEPTH = 4.7     # blind, from the plate top (6 mm plate): floor 1.3 mm (was 5.0 / 1.0)
 # servo boss bottom face = upper-plate TOP face minus the ear drop (ears rest on the plate)
 GRIPV7_SERVO_BOSS_Z = GRIPV7_PLATE_GAP + GRIPV7_PLATE_T - GRIPV7_SERVO_EAR_DROP            # 38.0
 
@@ -257,7 +260,7 @@ GRIPV7_HORN_SCREW_R = 8.0         # screw circle radius (VERIFY against the real
 GRIPV7_HORN_SCREW_D = 2.0
 GRIPV7_HORN_SCREW_PILOT_D = 1.7   # self-tapping pilot in PETG
 GRIPV7_HORN_SCREW_PILOT_DEPTH = 9.0
-GRIPV7_PINION_HUB_D = 20.0        # pinion hub extension above the teeth (carries the horn)
+GRIPV7_PINION_HUB_D = 21.0        # pinion hub extension above the teeth (carries the horn); was 20.0: wall to the R8 pilots 1.15 -> 1.65
 GRIPV7_PINION_PILOT_D = 8.0       # plate pilot post entering the pinion bottom (journal support)
 GRIPV7_PINION_PILOT_CLEAR = 0.4   # radial (pilot Ø8.0 in a Ø8.8 bore): safety journal, the servo float absorbs the misalignment
 GRIPV7_PINION_PILOT_H = 8.0       # pilot height above the lower plate inner face
@@ -308,3 +311,14 @@ GRIPV7_GUARD_CLEAR = 1.5          # guard inner face to gear tip circle
 GRIPV7_GUARD_Z_MARGIN = 0.5       # guard end to the nearest gear face
 GRIPV7_P_STUB_R = 7.0             # link ground-pivot stub (hangs from the upper plate; bending check in calculations)
 GRIPV7_P_TAB_HALF_W = 9.0
+
+# --- repair round 1 (minimum wall, axial relief between counter-rotating faces) ----------------------
+GRIPV7_MIN_WALL = 1.2             # mm, minimum printed wall / ligament anywhere (3 perimeters of 0.4)
+GRIPV7_AXIAL_RELIEF = 0.30        # mm, annular relief cut into the 36T-layer top face (rim, teeth, spoke ends): axial gap to the
+                                  # follower bottom (which sits at the same z as the 36T top).  36T / pinion mesh face = 16 - 0.30 = 15.7
+GRIPV7_RELIEF_R_MARGIN = 0.30     # mm, relief annulus starts this far inside the follower's nearest point (CD_SYNC - tip radius 24T)
+GRIPV7_SADDLE_NOTCH_Z = 30.0      # mm, top of the notch cut in the upper saddle around each tie column (ligament to the tube bore >= 1.2 above it)
+GRIPV7_SADDLE_NOTCH_X0 = 12.0     # mm, notch starts at |x| = 12 (inside the tube bore, so only shell/rib material is removed)
+GRIPV7_SADDLE_NOTCH_Y_PAD = 0.3   # mm, notch half-length in y beyond the column clearance radius
+GRIPV7_JAW_BOSS_R_A = 9.8         # mm, jaw boss radius at the crank pin A (was 9.5; B keeps 9.5): wall to the crank slot = 9.8 - (8.0 + 0.5) = 1.3
+GRIPV7_JAW_CRANK_SLOT_MARGIN = 0.5  # mm, radial clearance tongue end -> slot wall at A (was 0.8: crescent wall 0.7 mm)

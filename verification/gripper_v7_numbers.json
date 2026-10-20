@@ -3,10 +3,10 @@
   "lower_plate": {
    "valid": true,
    "solids": 1,
-   "volume_mm3": 61604.05448785727,
-   "area_mm2": 39649.78100842979,
-   "mass_cad_g": 78.23714919957874,
-   "mass_printed_est_g": 63.98844284539335,
+   "volume_mm3": 61944.392975449904,
+   "area_mm2": 39741.35043895384,
+   "mass_cad_g": 78.66937907882138,
+   "mass_printed_est_g": 64.1865302709368,
    "bbox": [
     -46.5,
     52.0,
@@ -23,7 +23,7 @@
    "step": "exports/step/gripper_v7_lower_plate.step",
    "stl": "exports/stl/gripper_v7_lower_plate.stl",
    "roundtrip": {
-    "volume_rel_diff": 1.5496606855388067e-08,
+    "volume_rel_diff": 1.5413391184693257e-08,
     "bbox_max_diff": 0.0,
     "solids": 1
    }
@@ -31,10 +31,10 @@
   "upper_plate": {
    "valid": true,
    "solids": 1,
-   "volume_mm3": 51398.33234938994,
-   "area_mm2": 33555.413272273596,
-   "mass_cad_g": 65.27588208372522,
-   "mass_printed_est_g": 53.96593627830101,
+   "volume_mm3": 51050.17264523062,
+   "area_mm2": 33125.05318195322,
+   "mass_cad_g": 64.83371925944289,
+   "mass_printed_est_g": 53.35280869132595,
    "bbox": [
     -46.5,
     52.0,
@@ -51,7 +51,7 @@
    "step": "exports/step/gripper_v7_upper_plate.step",
    "stl": "exports/stl/gripper_v7_upper_plate.stl",
    "roundtrip": {
-    "volume_rel_diff": 3.371652384233761e-08,
+    "volume_rel_diff": 7.0561938449024046e-09,
     "bbox_max_diff": 0.0,
     "solids": 1
    }
@@ -59,10 +59,10 @@
   "pinion": {
    "valid": true,
    "solids": 1,
-   "volume_mm3": 12487.96961592795,
-   "area_mm2": 5225.659420239531,
-   "mass_cad_g": 15.859721412228497,
-   "mass_printed_est_g": 9.543068247601736,
+   "volume_mm3": 12938.788161718085,
+   "area_mm2": 5269.641717389788,
+   "mass_cad_g": 16.432260965381968,
+   "mass_printed_est_g": 9.711199374918023,
    "bbox": [
     -4.896434060895932,
     24.896434060895935,
@@ -79,7 +79,7 @@
    "step": "exports/step/gripper_v7_pinion.step",
    "stl": "exports/stl/gripper_v7_pinion.stl",
    "roundtrip": {
-    "volume_rel_diff": 2.0334043767300805e-13,
+    "volume_rel_diff": 1.9808316185120912e-13,
     "bbox_max_diff": 4.405364961712621e-13,
     "solids": 1
    }
@@ -87,10 +87,10 @@
   "compound": {
    "valid": true,
    "solids": 1,
-   "volume_mm3": 49613.10691722818,
-   "area_mm2": 21186.78040947754,
-   "mass_cad_g": 63.00864578487979,
-   "mass_printed_est_g": 38.43265183221098,
+   "volume_mm3": 49264.53357172918,
+   "area_mm2": 21135.64426109033,
+   "mass_cad_g": 62.565957636096066,
+   "mass_printed_est_g": 38.28176901034054,
    "bbox": [
     -10.348941787349483,
     46.64894178734948,
@@ -107,7 +107,7 @@
    "step": "exports/step/gripper_v7_compound.step",
    "stl": "exports/stl/gripper_v7_compound.stl",
    "roundtrip": {
-    "volume_rel_diff": 2.0531551625765215e-13,
+    "volume_rel_diff": 2.1105129140276095e-13,
     "bbox_max_diff": 3.353761712787673e-12,
     "solids": 1
    }
@@ -143,28 +143,28 @@
   "jaw": {
    "valid": true,
    "solids": 1,
-   "volume_mm3": 25089.783009854786,
-   "area_mm2": 8748.566098804746,
-   "mass_cad_g": 31.864024422515577,
-   "mass_printed_est_g": 17.039056672165863,
+   "volume_mm3": 25308.535259768978,
+   "area_mm2": 8657.440190281826,
+   "mass_cad_g": 32.141839779906604,
+   "mass_printed_est_g": 16.983519035972925,
    "bbox": [
     1.687538997430238e-14,
-    38.135813,
+    38.43581300000001,
     -126.95236000000001,
-    -42.45235999999999,
+    -42.15236,
     17.5,
     36.5
    ],
    "bbox_size": [
-    38.135812999999985,
-    84.50000000000003,
+    38.435812999999996,
+    84.80000000000001,
     19.0
    ],
    "step": "exports/step/gripper_v7_jaw.step",
    "stl": "exports/stl/gripper_v7_jaw.stl",
    "roundtrip": {
-    "volume_rel_diff": 3.8584078634194124e-13,
-    "bbox_max_diff": 7.950973213155521e-12,
+    "volume_rel_diff": 3.8063711638390533e-13,
+    "bbox_max_diff": 8.945733043219661e-12,
     "solids": 1
    }
   },
@@ -218,40 +218,40 @@
   },
   "v6_printed_gearbox_total_est_g": 477.8774402641543,
   "v7_cad_solid_g": {
-   "lower_plate": 78.23714919957874,
-   "upper_plate": 65.27588208372522,
-   "pinion": 15.859721412228497,
-   "compound": 63.00864578487979,
+   "lower_plate": 78.66937907882138,
+   "upper_plate": 64.83371925944289,
+   "pinion": 16.432260965381968,
+   "compound": 62.565957636096066,
    "follower": 29.900385396427176,
-   "jaw": 63.728048845031154,
+   "jaw": 64.28367955981321,
    "link": 16.14530704913083
   },
   "v7_printed_est_g": {
-   "lower_plate": 63.98844284539335,
-   "upper_plate": 53.96593627830101,
-   "pinion": 9.543068247601736,
-   "compound": 38.43265183221098,
+   "lower_plate": 64.1865302709368,
+   "upper_plate": 53.35280869132595,
+   "pinion": 9.711199374918023,
+   "compound": 38.28176901034054,
    "follower": 17.321654218569503,
-   "jaw": 34.078113344331726,
+   "jaw": 33.96703807194585,
    "link": 10.34208283174354
   },
-  "v7_printed_gearbox_total_cad_g": 332.1551397710014,
-  "v7_printed_gearbox_total_est_g": 227.67194959815185,
-  "frame_cad_g": 143.51303128330397,
+  "v7_printed_gearbox_total_cad_g": 332.83068894511354,
+  "v7_printed_gearbox_total_est_g": 227.1630824697802,
+  "frame_cad_g": 143.50309833826427,
   "frame_target_g": 150.0,
   "purchased_g": {
    "servo MG996R (supplied)": 55.0,
    "horn (ASSUMED metal 25T)": 8.0,
    "pins 2 x \u00d87x50 steel": 30.21034035508284,
-   "bearings 6 x 607 (ASSUMED 2.0 g)": 12.0,
+   "bearings 6 x 687 (ASSUMED 2.0 g)": 12.0,
    "shoulder screws 6 + nyloc 6 + washer 4 (ASSUMED)": 16.6,
    "M3x50 ties 7 + nyloc 7 (ASSUMED)": 23.8,
    "horn screws 4 + M2.5 inserts/screws 4 (ASSUMED)": 2.8
   },
   "purchased_total_g": 148.41034035508284,
   "v6_gripper_head_cad_g": 1044.0,
-  "v7_gripper_head_cad_g": 480.56548012608425,
-  "v7_gripper_head_printed_est_g": 376.0822899532347,
+  "v7_gripper_head_cad_g": 481.2410293001964,
+  "v7_gripper_head_printed_est_g": 375.57342282486303,
   "note": "v6 head = printed gearbox parts + servo; v7 head = printed parts + all purchased parts listed; tube, Griper Cylinder, electric box and electronics are unchanged and excluded."
  },
  "kinematics": {
@@ -348,16 +348,20 @@
    "servo": "4.8 V",
    "gear": "pinion 18T",
    "Ft_N": 68.30666666666669,
-   "stress_MPa": 9.210715569938873,
-   "SF": 2.4428069490532884
+   "stress_MPa": 9.386716504396304,
+   "SF": 2.397004318758539,
+   "face_mm": 15.7,
+   "accepted": ""
   },
   {
    "train": "v7",
    "servo": "4.8 V",
    "gear": "big gear 36T",
    "Ft_N": 68.30666666666669,
-   "stress_MPa": 7.53936718175129,
-   "SF": 2.9843353503806354
+   "stress_MPa": 7.683431522803863,
+   "SF": 2.9283790625609987,
+   "face_mm": 15.7,
+   "accepted": ""
   },
   {
    "train": "v7",
@@ -365,7 +369,9 @@
    "gear": "sync 24T, jaws balanced",
    "Ft_N": 48.6685,
    "stress_MPa": 4.813897131552917,
-   "SF": 4.673967761488438
+   "SF": 4.673967761488438,
+   "face_mm": 20.0,
+   "accepted": ""
   },
   {
    "train": "v7",
@@ -373,23 +379,29 @@
    "gear": "sync 24T, one jaw takes all",
    "Ft_N": 97.337,
    "stress_MPa": 9.627794263105834,
-   "SF": 2.336983880744219
+   "SF": 2.336983880744219,
+   "face_mm": 20.0,
+   "accepted": ""
   },
   {
    "train": "v7",
    "servo": "6.0 V",
    "gear": "pinion 18T",
    "Ft_N": 79.93333333333335,
-   "stress_MPa": 10.778496943545491,
-   "SF": 2.0874895746455375
+   "stress_MPa": 10.984455483868016,
+   "SF": 2.0483491451209335,
+   "face_mm": 15.7,
+   "accepted": ""
   },
   {
    "train": "v7",
    "servo": "6.0 V",
    "gear": "big gear 36T",
    "Ft_N": 79.93333333333335,
-   "stress_MPa": 8.822663723325977,
-   "SF": 2.5502502085070886
+   "stress_MPa": 8.991249654344944,
+   "SF": 2.502433017097581,
+   "face_mm": 15.7,
+   "accepted": ""
   },
   {
    "train": "v7",
@@ -397,7 +409,9 @@
    "gear": "sync 24T, jaws balanced",
    "Ft_N": 56.95250000000001,
    "stress_MPa": 5.633283877349159,
-   "SF": 3.9941179052719376
+   "SF": 3.9941179052719376,
+   "face_mm": 20.0,
+   "accepted": ""
   },
   {
    "train": "v7",
@@ -405,7 +419,9 @@
    "gear": "sync 24T, one jaw takes all",
    "Ft_N": 113.90500000000002,
    "stress_MPa": 11.266567754698318,
-   "SF": 1.9970589526359688
+   "SF": 1.9970589526359688,
+   "face_mm": 20.0,
+   "accepted": "lead decision: SF 1.997 vs 2.0 accepted (within stall-torque precision)"
   }
  ],
  "socket": {
@@ -424,9 +440,9 @@
   "path": "exports/step/gripper_v7_preview.step",
   "n_solids_src": 59,
   "n_solids_reimport": 59,
-  "volume_src": 1047982.2348949766,
-  "volume_reimport": 1047982.2434238032,
-  "volume_rel_diff": 8.138331316947266e-09,
+  "volume_src": 1048514.1633785294,
+  "volume_reimport": 1048514.1698139935,
+  "volume_rel_diff": 6.137698813305559e-09,
   "bbox_src": [
    888.3474965951553,
    1015.347496795161,

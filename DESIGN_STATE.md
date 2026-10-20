@@ -426,3 +426,9 @@ Adafruit 3886 MPU-6050 as selected, "not recorded ordered").
   2.7 mm thinner than designed. The motor M3 screws reach 2.7 mm deeper, so
   check that they don't bottom out in the motor's threaded holes (use screws
   ~3 mm shorter or add a washer).
+- Room air measured 69 °F (20.6 °C) (Jasper, 10/20). calculations/gen2_motor_thermal.py
+  assumes 30 °C; temperatures shift down ~7–9 °C (heat flows unchanged).
+  With the 0.019 in fin, assuming ~23 °C near the ceiling: sealed 1.25 A
+  ≈ 53–56 °C motor case, ~33 °C shell air; vented 1.25 A ≈ 47–49 °C;
+  sealed 1.5 A ≈ 65–69 °C. A4988 junction at 1.25 A sealed ≈ 90–115 °C
+  (165 °C shutdown); 1.5 A still too close in the worst case.

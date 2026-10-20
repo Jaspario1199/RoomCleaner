@@ -3,3 +3,6 @@
 # run the real detector or webcam capture.
 ultralytics>=8.1     # YOLO-World open-vocabulary object detection
 opencv-python>=4.8   # webcam capture + image ops
+# Floor reference printing (tools/print_floor_board.py): write + verify the Letter PDF
+reportlab>=4.0       # vector PDF with the exact tag size
+pypdf>=4.0           # read the PDF back to verify page size and tag edge

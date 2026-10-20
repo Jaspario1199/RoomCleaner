@@ -118,6 +118,12 @@ class MarkerDetector:
         if not cands:
             obs.reason = "no solution in front of camera"
             return obs
+        return self.select_pose(cands, obs, prev_T_C_M=prev_T_C_M, up_in_cam=up_in_cam, up_sigma_rad=up_sigma_rad)
+
+    def select_pose(self, cands, obs, *, prev_T_C_M=None, up_in_cam=(0, 0, -1), up_sigma_rad=None):
+        """Accept / disambiguate / reject sorted ``[(rms_px, T_C_M), ...]`` pose
+        candidates (rules 1-4 in the module docstring). Shared with the
+        multi-tag board detector (vision/board.py)."""
         best_err, best_T = cands[0]
         obs.rms_px = best_err
         if best_err > self.max_rms:

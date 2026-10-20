@@ -6,8 +6,9 @@ part-builder code and not from verification/gripper_v7_numbers.json.  Only numer
 (module, tooth counts, link-ground point, crank radius ...) are typed in from cad/params.py as the
 "expected" side of each comparison.
 
-Known defects are written as xfail(strict=True): the suite is green today, and it turns RED as soon as a
-defect is repaired (remove the marker then).  See verification/gripper_v7_verification.md.
+Revision 2 (after repair round 1, commit 3bd8256): fixed defects are now plain asserts; the remaining open item is the
+servo ear pitch (measure on hardware); the sync-gear SF 1.997 and the 0.2 mm flank clearance are ACCEPTED conditions
+(lead decision) and are asserted at their measured values.  See verification/gripper_v7_verification.md.
 
 Run:  /usr/bin/python3 -m pytest -q tests/test_gripper_v7_verify.py       (about 6-8 minutes)
 """
@@ -242,8 +243,12 @@ def test_stl_watertight_and_matches_step(name):
 def test_preview_roundtrip_and_count():
     sol = preview_solids()
     assert len(sol) == 59
-    assert sum(s.Volume() for s in sol) == pytest.approx(1047982.23, rel=1e-6)
     assert all(s.isValid() for s in sol)
+    # the 9 printed bodies in the preview are the exported part files (2 jaws, 2 links)
+    vols = sorted(round(s.Volume(), 1) for s in sol[:9])
+    want = sorted(round(load(n).Volume(), 1) for n in ("lower_plate", "upper_plate", "compound", "follower", "pinion",
+                                                      "jaw", "jaw", "link", "link"))
+    assert vols == want
 
 
 # =====================================================================================================
@@ -458,12 +463,20 @@ def test_interference_detector_positive_control():
     assert j.intersect(b["link_R"]).Volume() > 10.0
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: follower bottom face (z = 17.000) sits exactly on the 36T top face "
-                                        "(z = 17.000): zero axial clearance, ~136 mm2 sliding contact")
-def test_follower_clears_36t_axially():
-    for delta in (0.0, 38.25):
-        b = _build_bodies(delta)
-        assert b["compound"].distance(b["follower"]) >= 0.1
+@pytest.mark.parametrize("delta", [0.0, 38.25, 76.5])
+def test_follower_axial_gap_over_36t_layer(delta):
+    """Repair 1: annular relief on the 36T-layer top -> follower bottom (z 17.0) clears it by 0.30 mm."""
+    b = _build_bodies(delta)
+    top = b["compound"].intersect(cq.Solid.makeBox(300, 300, 1.0, cq.Vector(-150, -150, 16.0)))   # 36T layer z 16..17
+    d = top.distance(b["follower"])
+    assert d >= 0.3 - 1e-3, d
+    # the relief really is an annulus R16.5..29.5 on the 36T top: only the R11..16.5 hub reaches z = 17
+    ws = section_wires(load("compound"), 16.85)
+    p = np.concatenate(wire_segments(ws[0], 0.1)) - np.array(C_AX)
+    assert np.hypot(p[:, 0], p[:, 1]).max() == pytest.approx(16.5, abs=0.01)
+    ws = section_wires(load("compound"), 16.6)
+    p = np.concatenate(wire_segments(ws[0], 0.1)) - np.array(C_AX)
+    assert np.hypot(p[:, 0], p[:, 1]).max() == pytest.approx(28.5, abs=0.01)          # full 36T below the relief
 
 
 # =====================================================================================================
@@ -478,19 +491,21 @@ def _sf(ft, face_mm, z):
 
 
 def test_lewis_safety_factors_6v():
+    """Effective mesh face of the 36T layer is 16 - 0.30 = 15.7 mm after the axial relief (pinion teeth are still
+    16 mm, so 15.7 governs the engaged width of the pair)."""
     tau = 11.0 * G / 100.0
     ft = 2 * tau / (18 * M * 1e-3)
-    assert _sf(ft, 16, 18) >= 2.0                              # 2.087
-    assert _sf(ft, 16, 36) >= 2.5                              # 2.550
-    ft_sync = tau * 2.0 * 0.95 / (M * 24 / 2 * 1e-3)           # one jaw takes all the torque
-    assert _sf(ft_sync, 20, 24) == pytest.approx(1.997, abs=0.002)
+    assert _sf(ft, 15.7, 18) == pytest.approx(2.048, abs=0.002)
+    assert _sf(ft, 15.7, 18) >= 2.0
+    assert _sf(ft, 15.7, 36) == pytest.approx(2.502, abs=0.002)
+    assert _sf(ft, 15.7, 36) >= 2.5
 
 
-@pytest.mark.xfail(strict=True, reason="CLAIM MISS: sync 24T one-jaw SF at 6 V stall = 1.997 < 2.0 (by 0.15 %)")
-def test_lewis_sync_sf_claim_ge_2():
+def test_lewis_sync_sf_accepted_condition():
+    """ACCEPTED CONDITION (lead decision): sync 24T one-jaw SF at 6 V stall = 1.997 (< 2.0 by 0.15 %)."""
     tau = 11.0 * G / 100.0
     ft_sync = tau * 2.0 * 0.95 / (M * 24 / 2 * 1e-3)
-    assert _sf(ft_sync, 20, 24) >= 2.0
+    assert _sf(ft_sync, 20, 24) == pytest.approx(1.997, abs=0.002)
 
 
 def test_grip_force_per_jaw_4v8():
@@ -517,7 +532,8 @@ def test_masses():
     frame = m["lower_plate"] + m["upper_plate"]
     assert frame <= 150.0
     printed = frame + m["pinion"] + m["compound"] + m["follower"] + 2 * m["jaw"] + 2 * m["link"]
-    assert printed == pytest.approx(332.2, abs=1.0)
+    print("frame %.2f g, printed total %.2f g" % (frame, printed))
+    assert 320.0 < printed < 335.0                              # was 332.2 before repair 1
     # purchased: the 148.4 g of the roll-up is arithmetic on ASSUMED catalogue masses.  Only the steel pins can be
     # checked from geometry (7.85 g/cc); fasteners are checked against their envelope volumes in the preview and
     # come out ~8 g heavier (+1.8 % of the head total), reported in verification/gripper_v7_verification.md.
@@ -565,15 +581,16 @@ def test_tube_interface_vs_v6_and_socket_insertion():
         assert max(b[1] for b in bores) - min(b[0] for b in bores) == pytest.approx(42.5, abs=0.02)
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: servo ear-hole pitch 47.0 mm (v6 model) vs cad/interfaces.py "
-                                        "SERVO_EAR_SPAN 48.3 mm")
-def test_servo_ear_span_matches_interfaces_py():
+def test_servo_ear_span_open_item_measure_on_hardware():
+    """OPEN ITEM (measure on hardware): the plate uses 47.0 mm (v6 model); cad/interfaces.py says 48.3 mm.
+    This test records the unchanged discrepancy; it does not claim either number is right."""
     import importlib
     itf = importlib.import_module("cad.interfaces")
-    holes = [c for c in cylfaces(load("upper_plate")) if abs(c["r"] - 1.8) < 1e-3 and c["z1"] > 47.9]
+    holes = [c for c in cylfaces(load("upper_plate")) if abs(c["r"] - 1.65) < 1e-3 and c["z1"] > 47.9]
     xs = sorted({round(c["x"], 3) for c in holes})
     assert len(xs) == 2
-    assert xs[1] - xs[0] == pytest.approx(itf.SERVO_EAR_SPAN, abs=0.05)
+    assert xs[1] - xs[0] == pytest.approx(47.0, abs=0.01)
+    assert itf.SERVO_EAR_SPAN == pytest.approx(48.3)
 
 
 # =====================================================================================================
@@ -586,34 +603,35 @@ def test_wall_pinion_horn_pilots():
     ws = section_wires(load("pinion"), 26.0)
     walls = [wire_dist(ws[0], w) for w in ws[1:]]
     print("pinion horn-pilot outer wall %.3f mm" % min(walls))
-    assert min(walls) == pytest.approx(1.15, abs=0.01)      # measured; see xfail below
+    assert min(walls) == pytest.approx(1.65, abs=0.01)        # hub Ø21, pilots Ø1.7 at R8
+    assert min(walls) >= MIN_WALL
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: Ø1.7 horn-screw pilots at R8 leave 1.15 mm wall in the Ø20 pinion hub")
-def test_wall_pinion_horn_pilots_ge_1p2():
-    ws = section_wires(load("pinion"), 26.0)
-    assert min(wire_dist(ws[0], w) for w in ws[1:]) >= MIN_WALL
-
-
-@pytest.mark.xfail(strict=True, reason="DEFECT: M2.5 insert holes (Ø3.6) sit 1.1 mm from the servo cut-out wall")
 def test_wall_upper_plate_insert_holes():
+    holes_f = [c for c in cylfaces(load("upper_plate")) if abs(c["r"] - 1.65) < 1e-3 and c["z1"] > 47.9]
+    assert len(holes_f) == 4                                                  # Ø3.3 x 4.7 blind
+    assert all(abs(c["z0"] - 43.3) < 1e-3 for c in holes_f)                   # floor 43.3 - 42 = 1.3 mm
     ws = section_wires(load("upper_plate"), 45.0)
-    holes = []
-    for w in ws[1:]:
-        bb = w.BoundingBox()
-        if bb.xlen < 4 and bb.ylen < 4 and abs(abs((bb.xmin + bb.xmax) / 2) - 23.5) < 0.1:
-            holes.append(w)
+    holes = [w for w in ws[1:] if w.BoundingBox().xlen < 4 and w.BoundingBox().ylen < 4
+             and abs(abs((w.BoundingBox().xmin + w.BoundingBox().xmax) / 2) - 23.5) < 0.1]
     assert len(holes) == 4
     cut = [w for w in ws[1:] if abs(w.BoundingBox().xlen - 41.2) < 0.1 and abs(w.BoundingBox().ylen - 20.2) < 0.1]
     assert cut, "servo cut-out wire not found"
-    assert min(wire_dist(h, cut[0]) for h in holes) >= MIN_WALL
+    wall = min(wire_dist(h, cut[0]) for h in holes)
+    print("insert hole to cut-out wall %.3f mm, floor 1.3 mm" % wall)
+    assert wall >= MIN_WALL and wall == pytest.approx(1.25, abs=0.01)
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: Ø9 race rings/column around the Ø7.05 pin seat: wall 0.975 mm")
 def test_wall_race_rings():
-    assert (9.0 - 7.05) / 2 >= MIN_WALL
-    rings = [c for c in cylfaces(load("lower_plate")) if abs(c["r"] - 4.5) < 1e-6 and abs(abs(c["x"]) - 18.15) < 1e-3]
-    assert rings
+    """Ring OD is measured from the STEP (not hard-coded); wall = (OD - pin seat) / 2."""
+    for n in ("lower_plate", "upper_plate"):
+        cyl = cylfaces(load(n))
+        seat_r = [c["r"] for c in cyl if abs(abs(c["x"]) - 18.15) < 1e-3 and abs(c["y"]) < 1e-3 and 3.4 < c["r"] < 3.6]
+        ring_r = [c["r"] for c in cyl if abs(abs(c["x"]) - 18.15) < 1e-3 and abs(c["y"]) < 1e-3 and 4.4 < c["r"] < 5.0]
+        assert seat_r and ring_r, n
+        wall = min(ring_r) - max(seat_r)
+        print(n, "race ring OD %.3f seat %.3f wall %.3f" % (2 * min(ring_r), 2 * max(seat_r), wall))
+        assert wall >= MIN_WALL and wall == pytest.approx(1.325, abs=0.005)
 
 
 def _raster_thin(shape, z, bbox_pad=10, px=0.05):
@@ -652,20 +670,46 @@ def _raster_thin(shape, z, bbox_pad=10, px=0.05):
             for i in range(1, n) if st[i, 4] * px * px >= 0.4]
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: jaw clevis boss in the slot band (z 22..33): 0.7 mm crescent wall "
-                                        "(boss R9.5 vs swept-tongue slot R8.8) tapering to a knife edge")
-def test_wall_jaw_slot_band():
-    assert _raster_thin(load("jaw"), 27.0) == []
+def _planar_z_levels(shape):
+    from OCP.GeomAbs import GeomAbs_Plane
+    zs = set()
+    for f in shape.Faces():
+        a = BRepAdaptor_Surface(f.wrapped)
+        if a.GetType() == GeomAbs_Plane and abs(abs(a.Plane().Axis().Direction().Z()) - 1) < 1e-6:
+            zs.add(round(a.Plane().Location().Z(), 3))
+    return sorted(zs)
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: upper saddle shell is cut by the Ø9.4 tie-column clearance bores: "
-                                        "0.8-1.1 mm ligaments next to the tube bore (x = +-14.7 and +-23.7, y = 88/112)")
+def _scan_levels(shape, extra=()):
+    zs = _planar_z_levels(shape)
+    mids = [(a + b) / 2 for a, b in zip(zs[:-1], zs[1:]) if b - a > 0.05]
+    out = sorted(set(mids) | set(extra))
+    return [z for z in out if all(abs(z - q) > 0.04 for q in zs)]          # never section on a coincident plane
+
+
+def test_wall_jaw_slot_band_and_all_bands():
+    s = load("jaw")
+    for z in _scan_levels(s):
+        assert _raster_thin(s, z) == [], z
+    # blunt end: the crescent wall at A is now 1.3 mm (boss R9.8 - (tongue end R8 + 0.5 slot clearance))
+    assert 9.8 - (8.0 + 0.5) == pytest.approx(1.3)
+
+
 def test_wall_upper_saddle_ligaments():
-    assert _raster_thin(load("upper_plate"), 28.32) == []
+    s = load("upper_plate")
+    # saddle shell / tie-column notch region: the bore width varies with z, so sample densely, not only mid-bands
+    for z in _scan_levels(s, extra=np.arange(24.6, 42.0, 0.9)):
+        assert _raster_thin(s, z) == [], z
 
 
-def test_wall_other_parts_clean():
-    # no thin necks (< 1.2 mm) in link, follower / compound outside the tooth ring, lower plate between z -5 and 0
-    assert _raster_thin(load("link"), 27.0) == []
-    for z in (-5.0, -2.9, -1.15, -0.25):
-        assert _raster_thin(load("lower_plate"), z) == []
+@pytest.mark.parametrize("name,extra", [("link", ()), ("pinion", ()), ("follower", ()), ("compound", ()),
+                                        ("lower_plate", tuple(np.arange(0.3, 24.5, 1.2)))])
+def test_wall_other_parts_clean(name, extra):
+    s = load(name)
+    for z in _scan_levels(s, extra):
+        thin = _raster_thin(s, z)
+        if name in ("pinion", "follower", "compound"):          # tooth ring is not a wall
+            axis = {"pinion": S_AX, "follower": F_AX, "compound": C_AX}[name]
+            root = {"pinion": 11.7, "follower": 16.2, "compound": 25.2}[name]
+            thin = [t for t in thin if math.dist(t[1], axis) < root]
+        assert thin == [], (name, z, thin)

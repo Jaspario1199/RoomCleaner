@@ -257,10 +257,12 @@ COL = {"lower_plate": (0.55, 0.66, 0.9), "upper_plate": (0.42, 0.52, 0.82), "com
        "servo": (0.13, 0.13, 0.18), "horn": (0.75, 0.75, 0.8), "tube": (0.8, 0.8, 0.82)}
 
 
-def _meshes(parts, only=None, hide_hw_small=True, clip=None, tol=0.2):
+def _meshes(parts, only=None, hide_hw_small=True, clip=None, tol=0.2, skip=("tube",)):
     ms = []
     for n, (wp, kind) in parts.items():
         if only and n not in only:
+            continue
+        if n in skip:
             continue
         if kind == "hardware" and hide_hw_small and n not in ("servo", "horn", "pin_C", "pin_F") \
                 and not n.startswith("brg") and not n.startswith("sh_") and not n.startswith("tie"):
@@ -279,8 +281,7 @@ def _meshes(parts, only=None, hide_hw_small=True, clip=None, tol=0.2):
 def render_all(full_closed):
     os.makedirs(REN_DIR, exist_ok=True)
     fb = K.default()
-    b_all = ((-70, -135, -10), (80, 125, 60))
-    bd = ((-90, -140, -40), (90, 130, 90))
+    b_all = ((-70, -135, -5), (70, 125, 85))
     closed = full_closed
     open_ = AS.build(fb.theta_open, hardware=True)
     mid = AS.build(0.5 * (fb.theta_c + fb.theta_open), hardware=True)
@@ -289,32 +290,61 @@ def render_all(full_closed):
            bounds=b_all, up="z")
     render(_meshes(open_), os.path.join(REN_DIR, "iso_open.png"), 24, -52, "gripper v7 - jaws open (iso)",
            bounds=b_all, up="z")
-    render(_meshes(closed, only=[n for n in closed if n != "upper_plate" and n != "servo"]),
+    render(_meshes(closed, only=[n for n in closed if n != "upper_plate" and n != "servo" and n != "horn"]),
            os.path.join(REN_DIR, "iso_gear_head.png"), 40, -35, "gearbox, upper plate and servo removed",
-           bounds=((-60, -135, -10), (70, 70, 50)), up="z")
+           bounds=((-60, -130, -5), (70, 70, 60)), up="z")
     render(m_closed, os.path.join(REN_DIR, "top_along_gear_axes.png"), 90, -90, "top view along the gear axes (closed)",
-           bounds=((-75, -140, 0), (75, 130, 80)), up="z")
+           bounds=((-75, -135, 0), (75, 125, 80)), up="z")
     no_up = [n for n in closed if n not in ("upper_plate", "servo", "horn")]
     render(_meshes(closed, only=no_up), os.path.join(REN_DIR, "top_along_gear_axes_gears.png"), 90, -90,
-           "gears, links, jaws (upper plate and servo removed)", bounds=((-75, -140, 0), (75, 70, 50)), up="z")
+           "gears, links, jaws (upper plate and servo removed)", bounds=((-75, -135, 0), (75, 65, 50)), up="z")
     for lab, pts in (("open", open_), ("closed", closed), ("mid", mid)):
         no_up = [n for n in pts if n not in ("upper_plate", "servo", "horn")]
         render(_meshes(pts, only=no_up), os.path.join(REN_DIR, "jaws_%s_top.png" % lab), 90, -90,
-               "jaws %s (upper plate removed)" % lab, bounds=((-100, -140, 0), (100, 70, 50)), up="z")
+               "jaws %s (upper plate and servo removed)" % lab, bounds=((-100, -135, 0), (100, 65, 50)), up="z")
     # section through the gear axes (plane y = 0, keep y <= 0, look from +y)
     clip = cq.Workplane("XY").box(400, 300, 200, centered=(True, False, True)).translate((0, -300, 20)).val()
     render(_meshes(closed, clip=clip, tol=0.15), os.path.join(REN_DIR, "section_gear_axes.png"), 0, 90,
            "section through the compound / follower axes (y = 0), looking -y",
-           bounds=((-70, -60, -10), (70, 5, 60)), up="z")
-    # mesh guards close-up: plates + guards visible, gears underneath
-    only = ["lower_plate", "upper_plate", "compound", "follower", "pinion"]
-    render(_meshes(closed, only=only, tol=0.15), os.path.join(REN_DIR, "mesh_guards.png"), 38, -48,
-           "mesh guard bands (1.4 mm) on both gear meshes", bounds=((-50, -30, -5), (55, 60, 50)), up="z")
-    lp = FR.make_lower_plate()
-    up = FR.make_upper_plate()
-    gm = [tessellate(lp, 0.15, 0.3) + ((0.55, 0.66, 0.9), 1.0), tessellate(up, 0.15, 0.3) + ((0.42, 0.52, 0.82), 0.55)]
-    render(gm, os.path.join(REN_DIR, "frame_plates.png"), 30, -50, "frame: lower plate (solid) and upper plate (translucent)",
+           bounds=((-60, -50, -8), (60, 5, 52)), up="z", size=(9, 6))
+    # mesh guards: plates translucent, guard bands red, gears underneath
+    lp, up = AS.PartCache.get("lower_plate"), AS.PartCache.get("upper_plate")
+    g_main, g_sync = FR.main_guard(), FR.sync_guard()
+    gm = []
+    for n in ("compound", "follower", "pinion"):
+        V, F = tessellate(closed[n][0], 0.15, 0.3)
+        gm.append((V, F, COL[n], 1.0))
+    V, F = tessellate(lp, 0.2, 0.3)
+    gm.append((V, F, (0.55, 0.66, 0.9), 0.35))
+    V, F = tessellate(up, 0.2, 0.3)
+    gm.append((V, F, (0.42, 0.52, 0.82), 0.25))
+    for g in (g_main, g_sync):
+        V, F = tessellate(g, 0.1, 0.3)
+        gm.append((V, F, (0.85, 0.15, 0.15), 1.0))
+    render(gm, os.path.join(REN_DIR, "mesh_guards.png"), 42, -50,
+           "mesh guard bands (1.4 mm, red): pinion/36T on the lower plate, 24T/24T hanging from the upper plate",
+           bounds=((-50, -35, -5), (55, 55, 50)), up="z", size=(9, 7))
+    render(gm, os.path.join(REN_DIR, "mesh_guards_top.png"), 90, -90, "mesh guards, top view",
+           bounds=((-55, -40, 0), (55, 60, 50)), up="z", size=(8, 7))
+    # frame plates (lower solid, upper translucent)
+    gp = [tessellate(lp, 0.15, 0.3) + ((0.55, 0.66, 0.9), 1.0), tessellate(up, 0.15, 0.3) + ((0.42, 0.52, 0.82), 0.55)]
+    render(gp, os.path.join(REN_DIR, "frame_plates.png"), 30, -50, "frame: lower plate (solid) and upper plate (translucent)",
            bounds=((-50, -45, -8), (55, 125, 50)), up="z")
+    # preview overview in the v6 world frame (tube, v6 cylinder reference, camera-bay box)
+    from cad.v6_loader import load_v6, find, CYLINDER_NAME
+    ox, oy, oz = P.GRIPV7_WORLD_ORIGIN
+    ov = []
+    for n, (wp, kind) in closed.items():
+        if kind == AS.HARDWARE and n not in ("servo",):
+            continue
+        V, F = tessellate(AS.to_world(wp), 0.8 if kind == AS.TUBE else 0.3, 0.5)
+        ov.append((V, F, COL.get(n, (0.6, 0.6, 0.64)), 1.0))
+    cyl = find(load_v6(), CYLINDER_NAME)
+    ov.append(tessellate(cyl, 1.0, 0.5) + ((0.3, 0.55, 0.85), 1.0))
+    box = cq.importers.importStep(BOX_STEP).val()
+    ov.append(tessellate(box, 0.8, 0.5) + ((0.25, 0.55, 0.88), 1.0))
+    render(ov, os.path.join(REN_DIR, "preview_overview.png"), 20, -40, "preview assembly (v6 world frame, +y up the page)",
+           bounds=((ox - 190, 560, oz - 190), (ox + 190, 1200, oz + 190)), up="y", size=(7.5, 9))
     print("renders ->", REN_DIR)
 
 

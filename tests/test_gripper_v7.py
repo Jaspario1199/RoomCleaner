@@ -564,3 +564,35 @@ def test_exported_files_present_if_built():
     assert len(solids) >= len(AS.build(None, True)) + 2
     bb = cq.Compound.makeCompound(solids).BoundingBox()
     assert bb.ymax > 1150.0 and bb.ymin < 600.0           # jaws at the bottom, box at the top
+
+
+# ---- 12. extra evidence --------------------------------------------------------------------------------------
+def test_link_and_pivot_strength():
+    lk = SC.link_and_pivot_check()
+    assert lk["link_force_max_gap_le_80_N"] <= lk["design_N"]
+    assert lk["stub_SF"] >= 2.0 and lk["ear_SF"] >= 3.0
+    assert lk["link_buckling_Pcr_N"] >= 5 * lk["design_N"]
+
+
+def test_tube_axis_matches_the_v6_step_read_only(closed):
+    """Tube axis (x, z) and lower end compared with the tube in the user's v6 STEP (never modified)."""
+    from cad.v6_loader import load_v6, tube_axis_world
+    x6, z6, y0, y1 = tube_axis_world(load_v6())
+    bb = AS.to_world(closed["tube"][0]).val().BoundingBox()
+    assert (bb.xmin + bb.xmax) / 2 == pytest.approx(x6, abs=2e-2)
+    assert (bb.zmin + bb.zmax) / 2 == pytest.approx(z6, abs=2e-2)
+    assert bb.ymin == pytest.approx(y0, abs=2e-2)
+    assert bb.ymax - bb.ymin == pytest.approx(y1 - y0, abs=2e-2)
+
+
+def test_jaw_swept_against_gears_and_frame_fine_sweep():
+    """31 crank angles (every 2.5 deg), jaws + links + lugs vs the frame and servo only (fast subset)."""
+    moving = ("jaw_R", "jaw_L", "link_R", "link_L")
+    static = ("lower_plate", "upper_plate", "compound", "follower", "pinion")
+    for th in np.linspace(FB.theta_c, FB.theta_open, 31):
+        parts = AS.build(float(th), hardware=False)
+        sh = {n: parts[n][0].val() for n in parts}
+        for a in moving:
+            for b in static:
+                if overlaps(sh[a], sh[b]):
+                    assert vol(sh[a], sh[b]) <= EPS_VOL, (round(float(th), 1), a, b)

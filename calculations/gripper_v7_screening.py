@@ -110,6 +110,42 @@ def socket_tension_check(f_design: float = 100.0) -> dict:
     return dict(design_load_N=f_design, capacities_N=caps, governing=gov, SF=caps[gov] / f_design)
 
 
+def link_and_pivot_check() -> dict:
+    """Link axial force from the jaw statics at the 6.0 V stall torque, and the checks it drives:
+    link tension/buckling, frame-pivot stub bending (hangs 15 mm from the upper plate to the link mid-plane),
+    shoulder-screw bending at the stub, clevis ear bearing.  Design load = 150 N (bounds 6 V stall up to a
+    87 mm gap; the last 5 deg toward the open stop is a toggle, firmware must not stall there)."""
+    from cad.parts import gripper_v7_jaws as JW
+    fb = K.default()
+    ratio = P.GRIPV7_RATIO
+    rows = []
+    for th in np.linspace(fb.theta_c + 0.5, fb.theta_open - 8.0, 40):
+        p = fb.pose(th)
+        f6 = fb.tip_force(th, K.SERVO_STALL_6V0, ratio)
+        rows.append((fb.tip_gap(p), f6, fb.link_force_ratio(p) * f6))
+    link_max_80 = max(r[2] for r in rows if r[0] <= 80.0)
+    f_design = 150.0
+    E_PETG = 2100.0                              # MPa, ASSUMED (printed PETG, XY)
+    w, t, L = 2 * JW.LINK_END_R, JW.TONGUE_T, fb.L
+    sigma_link = f_design / (t * (w - JW.HOLE_D))
+    p_cr = math.pi ** 2 * E_PETG * (w * t ** 3 / 12.0) / L ** 2          # weaker axis (thickness 9)
+    r_o = P.GRIPV7_P_STUB_R
+    af = P.GRIPV7_NUT_POCKET_AF
+    r_i = af / math.cos(math.radians(30)) / 2.0                          # hex pocket circumscribed radius
+    i_stub = math.pi * (r_o ** 4 - r_i ** 4) / 4.0
+    lever = P.GRIPV7_PLATE_GAP - (JW.TONGUE_Z0 + JW.TONGUE_T / 2.0)
+    sigma_stub = f_design * lever * r_o / i_stub
+    # shoulder (Ø4 steel, ASSUMED 12.9 alloy: 1000 MPa tensile): bending at the stub face, lever = link mid to the stub face
+    lev_s = 32.0 - (JW.TONGUE_Z0 + JW.TONGUE_T / 2.0)
+    sigma_sh = f_design * lev_s / (math.pi * 4.0 ** 3 / 32.0)
+    bearing_ear = f_design / (4.0 * 2 * JW.EAR_T)                          # two 4.5 mm ears carry the shoulder
+    return dict(rows=rows, link_force_max_gap_le_80_N=link_max_80, design_N=f_design,
+                link_tension_MPa=sigma_link, link_buckling_Pcr_N=p_cr,
+                stub_bending_MPa=sigma_stub, stub_SF=PETG_ALLOW / 1e6 / sigma_stub,
+                shoulder_bending_MPa=sigma_sh, ear_bearing_MPa=bearing_ear,
+                ear_SF=PETG_ALLOW / 1e6 / bearing_ear)
+
+
 def main() -> dict:
     out = {}
     print("=== gear teeth (Lewis, PETG allowable %.1f MPa) ===" % (PETG_ALLOW / 1e6))
@@ -139,6 +175,14 @@ def main() -> dict:
     for k, v in sk["capacities_N"].items():
         print("  %-18s %8.0f N" % (k, v))
     print("  governing %s, SF %.1f" % (sk["governing"], sk["SF"]))
+    lk = link_and_pivot_check()
+    out["link"] = lk
+    print("\n=== link / frame pivot (6.0 V stall) ===")
+    print("  link axial force: max %.0f N for gaps <= 80 mm; design load %.0f N" % (lk["link_force_max_gap_le_80_N"], lk["design_N"]))
+    print("  link tension %.1f MPa, Euler buckling %.0f N; P stub bending %.1f MPa (SF %.2f); "
+          "shoulder bending %.0f MPa (steel); clevis ear bearing %.1f MPa (SF %.1f)" % (
+              lk["link_tension_MPa"], lk["link_buckling_Pcr_N"], lk["stub_bending_MPa"], lk["stub_SF"],
+              lk["shoulder_bending_MPa"], lk["ear_bearing_MPa"], lk["ear_SF"]))
     return out
 
 

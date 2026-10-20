@@ -154,7 +154,8 @@ def build_all(render_views: bool = True) -> dict:
         note="v6 head = printed gearbox parts + servo; v7 head = printed parts + all purchased parts listed; "
              "tube, Griper Cylinder, electric box and electronics are unchanged and excluded.")
     out["mass_rollup"] = roll
-    print("\nmass roll-up (g)   v6 CAD  v6 print~    v7 CAD  v7 print~ (3 walls, 20 % infill)")
+    lines = ["mass roll-up (g)         v6 CAD  v6 print~   v7 CAD  v7 print~   (CAD = solid volume x PETG 1.27 g/cc;",
+             "                                                      print~ = 3 walls (1.2 mm skin) + 20 % infill, same estimator both)"]
     pairs = [("compound", "compound"), ("follower", "follower"), ("pinion", "pinion"),
              ("housing / frame", None), ("jaw x2", "jaw"), ("link x2", "link")]
     for label, key in pairs:
@@ -166,13 +167,20 @@ def build_all(render_views: bool = True) -> dict:
             lab6 = label if label in V6_MASS_G else key
             a6, a6p = V6_MASS_G[lab6], v6_est[lab6]
             a7, a7p = v7_cad[key], v7_prt[key]
-        print("  %-16s %7.1f %8.1f  %8.1f %8.1f" % (label, a6, a6p, a7, a7p))
-    print("  %-16s %7.1f %8.1f  %8.1f %8.1f" % ("printed total", roll["v6_printed_gearbox_total_g"],
-                                                roll["v6_printed_gearbox_total_est_g"],
-                                                roll["v7_printed_gearbox_total_cad_g"], roll["v7_printed_gearbox_total_est_g"]))
-    print("  purchased parts (v7)  %.1f g  -> head total CAD %.1f g, as printed %.1f g (v6 head CAD %.1f g)" % (
-        roll["purchased_total_g"], roll["v7_gripper_head_cad_g"], roll["v7_gripper_head_printed_est_g"],
-        roll["v6_gripper_head_cad_g"]))
+        lines.append("  %-16s %8.1f %8.1f  %8.1f %8.1f" % (label, a6, a6p, a7, a7p))
+    lines.append("  %-16s %8.1f %8.1f  %8.1f %8.1f" % ("printed total", roll["v6_printed_gearbox_total_g"],
+                                                       roll["v6_printed_gearbox_total_est_g"],
+                                                       roll["v7_printed_gearbox_total_cad_g"], roll["v7_printed_gearbox_total_est_g"]))
+    lines.append("  v7 frame = lower plate %.1f g + upper plate %.1f g (target <= 150 g)" % (
+        v7_cad["lower_plate"], v7_cad["upper_plate"]))
+    lines.append("  purchased parts (v7): " + "; ".join("%s %.1f g" % (k, v) for k, v in hw.items()))
+    lines.append("  purchased total %.1f g -> gripper head (printed + purchased, no tube/cylinder/box): "
+                 "v7 CAD %.1f g, as printed %.1f g; v6 CAD %.1f g (printed gearbox + servo)" % (
+                     roll["purchased_total_g"], roll["v7_gripper_head_cad_g"], roll["v7_gripper_head_printed_est_g"],
+                     roll["v6_gripper_head_cad_g"]))
+    print("\n" + "\n".join(lines))
+    with open(os.path.join(VER_DIR, "gripper_v7_mass_rollup.txt"), "w") as fh:
+        fh.write("\n".join(lines) + "\n")
 
     # ---- kinematics + forces -------------------------------------------------------------------
     sc = SC.main()

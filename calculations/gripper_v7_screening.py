@@ -136,7 +136,7 @@ def link_and_pivot_check() -> dict:
     lever = P.GRIPV7_PLATE_GAP - (JW.TONGUE_Z0 + JW.TONGUE_T / 2.0)
     sigma_stub = f_design * lever * r_o / i_stub
     # shoulder (Ø4 steel, ASSUMED 12.9 alloy: 1000 MPa tensile): bending at the stub face, lever = link mid to the stub face
-    lev_s = 32.0 - (JW.TONGUE_Z0 + JW.TONGUE_T / 2.0)
+    lev_s = P.GRIPV7_P_STUB_Z0 - (JW.TONGUE_Z0 + JW.TONGUE_T / 2.0)
     sigma_sh = f_design * lev_s / (math.pi * 4.0 ** 3 / 32.0)
     bearing_ear = f_design / (4.0 * 2 * JW.EAR_T)                          # two 4.5 mm ears carry the shoulder
     return dict(rows=rows, link_force_max_gap_le_80_N=link_max_80, design_N=f_design,

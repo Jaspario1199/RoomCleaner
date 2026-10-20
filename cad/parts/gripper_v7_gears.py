@@ -46,7 +46,7 @@ FOLLOWER_H = P.GRIPV7_FACE_SYNC                                # 20: 24T only (t
 FOLLOWER_Z0 = P.GRIPV7_L2_Z0                                   # LP-frame z of the follower bottom face
 
 # crank lug tongue: 9 mm band centred in the sync layer
-LUG_T = 9.0
+LUG_T = P.GRIPV7_LUG_T
 LUG_Z_ABS0 = (P.GRIPV7_L2_Z0 + P.GRIPV7_L2_Z1) / 2.0 - LUG_T / 2.0       # 22.5 (LP frame)
 LUG_Z0 = LUG_Z_ABS0 - P.GRIPV7_GEAR_Z0                                   # 21.5 (compound part frame)
 LUG_Z0_FOLLOWER = LUG_Z_ABS0 - FOLLOWER_Z0                               # 5.5  (follower part frame)

@@ -276,6 +276,11 @@ GRIPV7_LINK_GROUND = (8.0, -30.0)      # right link ground pivot P (x, y); the l
 GRIPV7_JAW_AB = 31.81             # crank-pin to link-pin distance on the jaw (v6: 41.3)
 GRIPV7_JAW_PSI_CLOSED = -113.589  # deg, direction A -> B at the closed pose (link length follows: 51.7)
 GRIPV7_JAW_TIP_DROP = 75.0        # tip of the inner face below the crank pin at the closed pose
+GRIPV7_LUG_T = 9.0                # crank-lug / link tongue thickness (centred in the sync layer)
+GRIPV7_TONGUE_GAP = 0.5           # printed faces that rotate against each other: 0.5 mm washer gap
+GRIPV7_EAR_T = 4.5                # jaw clevis ear thickness (2 x 4.5 + 2 x 0.5 + 9 = 19 mm jaw)
+# frame pivot stub bottom face = link tongue top + gap (stubs hang from the upper plate)
+GRIPV7_P_STUB_Z0 = (GRIPV7_L2_Z0 + GRIPV7_L2_Z1) / 2 + GRIPV7_LUG_T / 2 + GRIPV7_TONGUE_GAP     # 32.0
 
 # --- frame layout (plates, ties, socket, guards) -----------------------------------------------------
 GRIPV7_RIM_W = 4.0                # plate rim width around the lightening windows

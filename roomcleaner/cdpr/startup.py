@@ -771,12 +771,34 @@ class StartupSequencer:
                                  accel=(0.0, 0.0, cfg.motion.dynamic_accel_m_s2))
         if not t.feasible:
             return False
-        T_M_B = make_T(R_M, to_marker(ctx.T_R_M, q_R))
-        if self.study_board is not None:
-            return self.study_board.visible(ctx.camera, ctx.T_B_C, T_M_B,
-                                            min_side_px=cfg.camera.min_marker_pixels * 1.2, margin_px=30)
-        return marker_visible(ctx.camera, ctx.T_B_C, T_M_B, cfg.marker.edge_m,
-                              min_side_px=cfg.camera.min_marker_pixels * 1.2, margin_px=30)
+        qM = to_marker(ctx.T_R_M, q_R)
+        for R_try in self._attitudes_at(qM, R_M):
+            T_M_B = make_T(R_try, qM)
+            if self.study_board is not None:
+                ok = self.study_board.visible(ctx.camera, ctx.T_B_C, T_M_B,
+                                              min_side_px=cfg.camera.min_marker_pixels * 1.2, margin_px=30)
+            else:
+                ok = marker_visible(ctx.camera, ctx.T_B_C, T_M_B, cfg.marker.edge_m,
+                                    min_side_px=cfg.camera.min_marker_pixels * 1.2, margin_px=30)
+            if not ok:
+                return False
+        return True
+
+    # tilt the claw may differ from its prediction by when it gets there (mm-level length inconsistencies tilt a
+    # rigid claw on four spaced lines by a few degrees; verified in the rigid-body simulator): visibility is required
+    # over this cone, not only at the nominal attitude.
+    VISIBILITY_TILT_RAD = math.radians(4.0)
+
+    def _attitudes_at(self, qM, R_M):
+        """Attitudes (marker frame) at which the marker must be visible from pose ``qM``: the held one for a common
+        point claw (unchanged), else the statics prediction at the held yaw and its +-tilt neighbours."""
+        ctx = self.ctx
+        if not ctx.model.geometry.spaced:
+            return [R_M]
+        R0 = ctx.cal.predicted_R(ctx.result.anchors_M, qM)
+        from .frames import rot_x, rot_y
+        t = self.VISIBILITY_TILT_RAD
+        return [R0] + [rot(sg * t) @ R0 for rot in (rot_x, rot_y) for sg in (1, -1)]
 
     def _stage(self, name, center_R, half, n_fit, n_wit, R_M, min_z, grid):
         ctx, cfg = self.ctx, self.cfg

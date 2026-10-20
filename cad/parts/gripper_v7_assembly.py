@@ -101,7 +101,7 @@ def build(theta_deg: float | None = None, hardware: bool = True) -> "OrderedDict
             parts["ny_%s%s" % (tag, side)] = (HW.nyloc(x, y, z_end - HW.WASHER_T - HW.NYLOC_H, up=True), HARDWARE)
         # link ground pivot: shoulder from below into the stub nyloc (nut sits in the stub pocket)
         gx, gy = mir * fb.Pg[0], fb.Pg[1]
-        z_sh_end = 32.0                         # stub bottom face
+        z_sh_end = P.GRIPV7_P_STUB_Z0           # stub bottom face
         sh = HW.shoulder_screw(gx, gy, z_sh_end, JW.LINK_SHOULDER_LEN, head_up=False)
         parts["sh_P%s" % side] = (sh, HARDWARE)
         parts["ny_P%s" % side] = (HW.nyloc(gx, gy, z_sh_end, up=True), HARDWARE)

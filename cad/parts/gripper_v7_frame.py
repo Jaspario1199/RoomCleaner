@@ -267,7 +267,7 @@ def make_upper_plate() -> cq.Workplane:
     for ax in PIN_XY:
         plate = plate.union(_cyl(RACE_R, UP_RACE_BOT, UP_Z0 + 0.01, *ax))
     for sx in (1, -1):
-        plate = plate.union(_cyl(P.GRIPV7_P_STUB_R, 32.0, UP_Z0 + 0.01, sx * px, py))
+        plate = plate.union(_cyl(P.GRIPV7_P_STUB_R, P.GRIPV7_P_STUB_Z0, UP_Z0 + 0.01, sx * px, py))
     plate = plate.union(_saddle(lower=False)).union(sync_guard())
     for t in P.GRIPV7_TIE_XY:     # the lower-plate columns run through the saddle footprint
         plate = plate.cut(_cyl(P.GRIPV7_TIE_COL_OD / 2.0 + 0.2, 20.0, UP_Z0 + 0.01, *t))
@@ -284,9 +284,9 @@ def make_upper_plate() -> cq.Workplane:
         plate = plate.cut(_tie_hole(t[0], t[1], 20.0, UP_Z1 + 1.0))
         plate = plate.cut(_cyl(P.GRIPV7_CBORE_D / 2.0, UP_Z1 - P.GRIPV7_CBORE_DEPTH, UP_Z1 + 1.0, *t))
     for sx in (1, -1):
-        plate = plate.cut(_cyl(P.GRIPV7_TIE_HOLE_D / 2.0, 32.0 - 1.0, 32.0 + 8.0, sx * px, py))
-        plate = plate.cut(_hex_pocket(sx * px, py, 32.0, HW.NYLOC_H + 0.2, down_from_top=False))
-        plate = plate.cut(_cyl(HW.WASHER_D / 2.0 + 0.3, 32.0 + HW.NYLOC_H, 32.0 + HW.NYLOC_H + HW.WASHER_T + 0.2, sx * px, py))
+        plate = plate.cut(_cyl(P.GRIPV7_TIE_HOLE_D / 2.0, P.GRIPV7_P_STUB_Z0 - 1.0, P.GRIPV7_P_STUB_Z0 + 8.0, sx * px, py))
+        plate = plate.cut(_hex_pocket(sx * px, py, P.GRIPV7_P_STUB_Z0, HW.NYLOC_H + 0.2, down_from_top=False))
+        plate = plate.cut(_cyl(HW.WASHER_D / 2.0 + 0.3, P.GRIPV7_P_STUB_Z0 + HW.NYLOC_H, P.GRIPV7_P_STUB_Z0 + HW.NYLOC_H + HW.WASHER_T + 0.2, sx * px, py))
     return plate
 
 

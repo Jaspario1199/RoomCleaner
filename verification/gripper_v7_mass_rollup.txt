@@ -1,0 +1,12 @@
+mass roll-up (g)         v6 CAD  v6 print~   v7 CAD  v7 print~   (CAD = solid volume x PETG 1.27 g/cc;
+                                                      print~ = 3 walls (1.2 mm skin) + 20 % infill, same estimator both)
+  compound            116.0     60.5      63.0     38.4
+  follower             32.0     20.2      29.9     17.3
+  pinion               10.0      7.1      15.9      9.5
+  housing / frame     739.0    325.6     143.5    118.0
+  jaw x2               76.0     51.0      63.7     34.1
+  link x2              16.0     13.4      16.1     10.3
+  printed total       989.0    477.9     332.2    227.7
+  v7 frame = lower plate 78.2 g + upper plate 65.3 g (target <= 150 g)
+  purchased parts (v7): servo MG996R (supplied) 55.0 g; horn (ASSUMED metal 25T) 8.0 g; pins 2 x Ø7x50 steel 30.2 g; bearings 6 x 607 (ASSUMED 2.0 g) 12.0 g; shoulder screws 6 + nyloc 6 + washer 4 (ASSUMED) 16.6 g; M3x50 ties 7 + nyloc 7 (ASSUMED) 23.8 g; horn screws 4 + M2.5 inserts/screws 4 (ASSUMED) 2.8 g
+  purchased total 148.4 g -> gripper head (printed + purchased, no tube/cylinder/box): v7 CAD 480.6 g, as printed 376.1 g; v6 CAD 1044.0 g (printed gearbox + servo)

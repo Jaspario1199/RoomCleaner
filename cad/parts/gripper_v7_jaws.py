@@ -32,8 +32,8 @@ from cad.parts import gripper_v7_gears as GR
 
 # ---- layout -------------------------------------------------------------------------------------
 TONGUE_T = GR.LUG_T                                   # 9
-TONGUE_GAP = 0.5                                      # printed faces that rotate: 0.5 mm washer gap
-EAR_T = 4.5
+TONGUE_GAP = P.GRIPV7_TONGUE_GAP                      # printed faces that rotate: 0.5 mm washer gap
+EAR_T = P.GRIPV7_EAR_T
 JAW_T = 2 * EAR_T + 2 * TONGUE_GAP + TONGUE_T         # 19
 SLOT_T = TONGUE_T + 2 * TONGUE_GAP                    # 10
 _sync_mid = (P.GRIPV7_L2_Z0 + P.GRIPV7_L2_Z1) / 2.0   # 27.0
@@ -141,7 +141,6 @@ def make_jaw() -> cq.Workplane:
     fb = fourbar()
     body = jaw_outline_solid(fb)
     # slots: crank tongue sweep at A and link tongue sweep at B, in the band z [5, 15]
-    slot_off = (TONGUE_Z0 - TONGUE_GAP) - JAW_Z0
     for which in ("crank", "link"):
         cut = _swept_tongue_cut(fb, which).translate((0, 0, -JAW_Z0))
         body = body.cut(cut)

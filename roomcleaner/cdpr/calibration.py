@@ -572,6 +572,23 @@ class Calibrator:
         self._last_slack = slack
         return x, r, J, n_meas, (w_len, w_vis, w_on)
 
+    def _same_valley(self, x, xa, chi2, c2, lay, samples, onsets, wts) -> bool:
+        """Is the alternate solution ``xa`` connected to the best ``x`` without a chi-squared barrier? The cost is
+        evaluated on the straight line between them with the best solution's robust weights; a barrier below
+        ``ambiguity_dchi2`` over the worse end point means one valley that is merely poorly constrained along the
+        line (reported by the identifiability check), not a second alignment. With spaced attachments the
+        orientation-dependent lengths make such flat valleys more common than for a point claw."""
+        w_len, w_vis, w_on = wts
+        xa = xa.copy()
+        iy = lay.psi.start + 2
+        xa[iy] = x[iy] + _wrap(xa[iy] - x[iy])             # same heading on the same branch (no 2 pi jump on the line)
+        top = max(chi2, c2)
+        for t in (0.25, 0.5, 0.75):
+            r_t = self._rows((1 - t) * x + t * xa, lay, samples, onsets, w_len, w_vis, w_on)[0]
+            if float(r_t @ r_t) - top >= self.cc.ambiguity_dchi2:
+                return False
+        return True
+
     # -- public ------------------------------------------------------------
     def fit(self, samples: list, onsets: list = (), *, L0_init=None, psi_inits=None) -> CalibrationResult:
         fit_s = [s for s in samples if s.kind == "fit"]
@@ -601,12 +618,15 @@ class Calibrator:
             raise RuntimeError("calibration failed from every initialisation")
         sols.sort(key=lambda s: s[0])
         chi2, x, r, J, n_meas, (w_len, w_vis, w_on), slack = sols[0]
+        wts_best = (w_len, w_vis, w_on)
         x[lay.psi.start + 2] = _wrap(x[lay.psi.start + 2])
         alternates, ambiguous = [], False
         for c2, xa, *_ in sols[1:]:
             dyaw = abs(_wrap(xa[lay.psi][2] - x[lay.psi][2]))
             dA = float(np.max(np.abs(xa[:12] - x[:12])))
             if dyaw > 0.05 or dA > 0.02:
+                if dyaw <= 0.05 and self._same_valley(x, xa, chi2, c2, lay, fit_s, onsets, wts_best):
+                    continue        # same marker heading, no barrier: a flat direction of one optimum, not an alignment
                 alternates.append({"chi2": c2, "yaw": float(xa[lay.psi][2]), "max_anchor_diff_m": dA})
                 if c2 - chi2 < self.cc.ambiguity_dchi2:
                     ambiguous = True

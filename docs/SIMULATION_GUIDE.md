@@ -102,7 +102,7 @@ stiffness sets the anchor accuracy.
 | Spool | keep, PETG; or exclude and apply its load at the motor face | |
 | Contact | **No Penetration** between housing rails and frame rails; Bonded elsewhere | slide-in interface |
 | Retention | model the real pin/screw. Use Connectors → **Pin** for a pin, **Bolt** for a screw (housing to frame) | review R3 |
-| Fixture | **Fixed Geometry** on the frame's screw-hole faces (cylindrical faces) + **Roller/Slider** on the frame's back face (it can press the wall but not pass through it). Better: Connectors → Bolt → *Foundation bolt* at each wall screw | wall + stud |
+| Fixture | **Fixed Geometry** on the frame's screw-hole faces (cylindrical faces) + **Roller/Slider** on the frame's back face (it can press the wall but not pass through it). Better: Connectors → Bolt → *Foundation bolt* at each wall screw | wall + stud |  ⚠ *Superseded for the station mount by `docs/simulation/SW_STATIC_STATION_MOUNT.md`: a two-sided Roller/Slider gives a false answer when the line pulls the station away from the wall; use the one-sided Virtual Wall described there.*
 | Line load | **Bearing Load** on the pulley/outlet axle hole (or **Force** on a split-line patch where the line leaves), magnitude below | review R6 |
 | Gravity | Gravity, −Y (or whichever axis is down in your assembly) | |
 

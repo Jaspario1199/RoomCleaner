@@ -193,3 +193,105 @@ def test_screw_hand_column(case, ten, shear):
     sg = SL.screw_group_estimate(Ftot, Mc)
     assert sg["t_top"] == pytest.approx(ten, abs=0.2)
     assert sg["shear"] == pytest.approx(shear, abs=0.2)
+
+
+# ---- repair round 2: the governing-case numbers Jasper compares against ----------------------------
+def _reach_case(cid):
+    t = SL.tension_cases()
+    c = {r[0]: r for r in SL.reachable_cases(t)}[cid]
+    return c[3] * c[2], c[4]          # force (N), load point (mm)
+
+
+@pytest.mark.parametrize("cid,gauge_max,gauge_mean,load_pt", [
+    ("D1", 0.22, 0.13, 0.22), ("D2c", 0.22, 0.12, 0.21), ("D3", 0.41, 0.19, 0.28), ("D4f", 0.54, 0.27, 0.40)])
+def test_s3_gauge_and_load_point_for_reachable_cases(cid, gauge_max, gauge_mean, load_pt):
+    F, p = _reach_case(cid)
+    d = SL.tab_displacement(F, p)
+    assert d["holes_max"] == pytest.approx(gauge_max, abs=0.01)
+    assert d["holes_mean"] == pytest.approx(gauge_mean, abs=0.01)
+    assert d["load_point_total"] == pytest.approx(load_pt, abs=0.01)
+
+
+def test_exit_estimate_uses_components_not_urres_sum():
+    """Manual section 6.1: D4f's gauge is above 0.50 mm, so the exit-estimate branch decides P4. Adding the URES
+    mean to a rotation x lever term (the round 1 recipe) gives a false FAIL (0.53); the component recipe gives 0.38
+    against a true load-point displacement of 0.40."""
+    F, p = _reach_case("D4f")
+    e = SL.tab_exit_estimate(F, p)
+    assert e["lever"] == pytest.approx(15.5)                    # drum plane 18.0 - tab mid-plane 2.5, NOT 18
+    assert e["gauge_max"] > 0.50
+    assert e["load_point_total"] == pytest.approx(0.40, abs=0.01)
+    assert e["total"] == pytest.approx(0.38, abs=0.01)
+    assert e["total"] < 0.50 < e["naive_sum"]
+    assert e["naive_sum"] == pytest.approx(0.53, abs=0.01)
+    # the recipe reads at most ~7 % below the true value on D4f and never above it on these cases
+    assert 0.90 * e["load_point_total"] < e["total"] <= e["load_point_total"] + 1e-6
+    F3, p3 = _reach_case("D3")
+    e3 = SL.tab_exit_estimate(F3, p3)
+    assert e3["total"] == pytest.approx(0.27, abs=0.01)
+    F1, p1 = _reach_case("D1")
+    assert SL.tab_exit_estimate(F1, p1)["total"] == pytest.approx(0.13, abs=0.01)    # under-reads the torsion case (0.22)
+
+
+@pytest.mark.parametrize("cid,ten,shear", [("D2c", 18.8, 8.4), ("D4f", 15.7, 4.8)])
+def test_screw_hand_column_new_reachable_cases(cid, ten, shear):
+    import numpy as np
+    F, p = _reach_case(cid)
+    C = np.array([SL.WALL_X, float(np.mean(SL.SCREW_COLS_Y)), float(np.mean(SL.SCREW_ROWS_Z))])
+    Mc = np.cross(p - C, F) + np.cross(SL.P_MOTOR - C, [0, 0, -(SL.M_MOTOR + 0.01) * SL.G]) \
+        + np.cross(SL.P_SHELL - C, [0, 0, -SL.M_SHELL * SL.G])
+    Ftot = F + np.array([0.0, 0.0, -(SL.REMOTE_WEIGHT_N + SL.SELF_WEIGHT_N)])
+    sg = SL.screw_group_estimate(Ftot, Mc)
+    assert sg["t_top"] == pytest.approx(ten, abs=0.2)
+    assert sg["shear"] == pytest.approx(shear, abs=0.2)
+
+
+def test_p5_reactions_for_the_fleet_limited_cases():
+    assert tuple(SL.expected_reaction(_reach_case("D2c")[0])) == pytest.approx((-19.13, -16.62, 43.62), abs=0.05)
+    assert tuple(SL.expected_reaction(_reach_case("D4f")[0])) == pytest.approx((-33.34, 16.62, 22.18), abs=0.05)
+
+
+# ---- repair round 2: isothermal flange versus uniform flux (the B-2 ranges and the hold-test window) ---
+@pytest.mark.parametrize("eps,t_mm,mode,uni,iso", [
+    (0.9, SL.T_AS_BUILT, "vented", 41.6, 40.2), (0.9, SL.T_AS_BUILT, "sealed", 47.3, 45.1),
+    (0.1, SL.T_AS_BUILT, "vented", 43.2, 42.2), (0.9, SL.T_DESIGN, "vented", 35.1, 34.6)])
+def test_isothermal_flange_motor_temperature_range(eps, t_mm, mode, uni, iso):
+    a = SL.coupled_converged(167.0, t_mm, eps, _rc("paste"), mode)
+    b = SL.coupled_converged(167.0, t_mm, eps, _rc("paste"), mode, isothermal=True)
+    assert a["r"]["T_motor"] == pytest.approx(uni, abs=0.15)
+    assert b["r"]["T_motor"] == pytest.approx(iso, abs=0.15)
+    assert b["r"]["T_motor"] < a["r"]["T_motor"]                 # the isothermal flange is the cooler end
+    assert b["r"]["q_fin"] > a["r"]["q_fin"]
+
+
+def test_b2_prediction_ranges_and_the_finish_test_window():
+    """Section 5 / 8: uniform flux -> isothermal flange. The painted and bare TC2 ranges must stay apart so the
+    8 K / 9.5 K thresholds (undecided between) separate them; the TC2/TC1 ratios are only ~0.06 apart."""
+    pa = SL.coupled_converged(167.0, SL.T_AS_BUILT, 0.9, _rc("paste"), "vented")
+    pb = SL.coupled_converged(167.0, SL.T_AS_BUILT, 0.9, _rc("paste"), "vented", isothermal=True)
+    ba = SL.coupled_converged(167.0, SL.T_AS_BUILT, 0.1, _rc("paste"), "vented")
+    bb = SL.coupled_converged(167.0, SL.T_AS_BUILT, 0.1, _rc("paste"), "vented", isothermal=True)
+    z = lambda c: c["fd"]["at"](100.0)
+    assert (z(pa), z(pb)) == pytest.approx((6.5, 7.4), abs=0.15)
+    assert (z(ba), z(bb)) == pytest.approx((9.9, 10.9), abs=0.15)
+    assert z(pb) < 8.0 < 9.5 < z(ba)                              # thresholds sit in the gap
+    assert (pa["r"]["q_fin"], pb["r"]["q_fin"]) == pytest.approx((0.72, 0.82), abs=0.02)
+    assert (pa["fd"]["base"], pb["fd"]["base"]) == pytest.approx((14.9, 17.0), abs=0.3)
+    assert (pa["fd"]["tip"], pb["fd"]["tip"]) == pytest.approx((1.46, 1.64), abs=0.1)
+    ratio = lambda c: z(c) / c["r"]["rise"]
+    assert (ratio(pa), ratio(pb)) == pytest.approx((0.35, 0.43), abs=0.01)
+    assert (ratio(ba), ratio(bb)) == pytest.approx((0.49, 0.57), abs=0.01)
+    assert ratio(bb) - ratio(pb) < 0.15 and ratio(pb) > 0.42       # a +/-0.07 window around 0.35 would reject the painted fin
+
+
+def test_b1_targets_do_not_depend_on_how_the_heat_enters():
+    """The formula reference (z = 50 mm), z = 42 mm and the tip are identical for a uniform flux and an isothermal
+    patch; only the patch average moves (50.2 K -> about 40 K painted), which the manual says in section 0."""
+    P = SL.motor_heat()
+    u = SL.fin_quasi_1d(167.0, SL.T_AS_BUILT, 9.6, q_total=P)
+    i = SL.fin_quasi_1d(167.0, SL.T_AS_BUILT, 9.6, q_total=P, isothermal=True)
+    assert i["exit"] == pytest.approx(u["exit"], abs=0.05)
+    assert i["tip"] == pytest.approx(u["tip"], abs=0.02)
+    assert i["base"] == pytest.approx(u["base"], abs=0.05)
+    assert i["patch_avg"] == pytest.approx(40.1, abs=0.3)
+    assert u["patch_avg"] == pytest.approx(50.2, abs=0.3)

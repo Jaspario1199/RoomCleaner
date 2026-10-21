@@ -450,6 +450,8 @@ class StartupSequencer:
                                              spread_max_m=st.still_spread_max_m)
         if sp is None:
             raise StartupAbort(state, why, suspended=suspended, paused=True)
+        if suspended and getattr(self.ctx, "board_survey", None) is not None and st.board_survey:
+            self.ctx.board_survey.offer(getattr(self.ctx.vision, "last_still_frames", ()))     # sheets the hanging claw sees now
         return sp
 
     def _measure_mount(self, sp, S):
@@ -492,6 +494,25 @@ class StartupSequencer:
                 f"(+-{math.degrees(off.sigma_rad):.2f}, {off.n} frames); held-out check {math.degrees(resid):.2f} deg "
                 f"(limit {math.degrees(limit):.2f})")
         return held
+
+    def _pretension_watch(self, dw: DragWatch, rw: RockWatch, drag: dict):
+        """Monitor of the pretension move: the claw must neither be dragged (``DragWatch``, translation) nor rock on its jaws
+        (``RockWatch``, tilt change; >= 2 floor tags). ``drag`` carries the frame clock (``next``) and the detail of a trip (``bad``)."""
+        ctx, st = self.ctx, self.cfg.startup
+
+        def watch(tau):
+            if ctx.now_s() < drag["next"]:
+                return None
+            drag["next"] = ctx.now_s() + st.frame_interval_s
+            o = ctx.vision.observe()
+            if o.ok and dw.update(o):
+                drag["bad"] = dw.last_disp_m
+                return "claw dragged while tensioning"
+            if o.ok and rw.update(o):                  # tilt-change channel: the cables tip the claw about a jaw edge
+                drag["bad"] = f"{rw.last_tilt_rad * 1e3:.1f} mrad tilt change > {rw.last_thr_rad * 1e3:.1f} mrad"
+                return "claw rocking on its jaws while tensioning"
+            return None
+        return watch
 
     def _survey_board(self, S):
         """Survey the floor board with the resting claw (``board_startup.FloorBoardSurveyor``; only when the context has one,
@@ -759,20 +780,7 @@ class StartupSequencer:
         drag = {"bad": None, "next": 0.0}
         dw = DragWatch(sp, floor_m=max(3 * st.onset_translation_m, self.DRAG_WATCH_FLOOR_M), k=st.onset_noise_k,
                        n=self.DRAG_WATCH_FRAMES)
-        rw = self._rock_watch(sp, "pretension")
-
-        def watch(tau):
-            if ctx.now_s() < drag["next"]:
-                return None
-            drag["next"] = ctx.now_s() + st.frame_interval_s
-            o = ctx.vision.observe()
-            if o.ok and dw.update(o):
-                drag["bad"] = dw.last_disp_m
-                return "claw dragged while tensioning"
-            if o.ok and rw.update(o):                  # tilt-change channel: the cables tip the claw about a jaw edge
-                drag["bad"] = f"{rw.last_tilt_rad * 1e3:.1f} mrad tilt change > {rw.last_thr_rad * 1e3:.1f} mrad"
-                return "claw rocking on its jaws while tensioning"
-            return None
+        watch = self._pretension_watch(dw, self._rock_watch(sp, "pretension"), drag)
         r = self._execute(plan_cable_move(P, target - P, rate, rate / 0.2, segment_s=cfg.motion.segment_s,
                                           label="pretension"), S, suspended=False, monitor=watch)
         if not r.ok:
@@ -814,7 +822,29 @@ class StartupSequencer:
         ctx = self.ctx
         ctx.wait(self.cfg.startup.settle_s)
         sp = self._still(n=self.cfg.calibration.noise_capture_frames, state=state, suspended=True)
+        self._survey_topup(state)                  # the claw hangs still: sheets seen from this pose may now be surveyed
         return PoseSample(ctx.co.positions().copy(), sp.p, sp.R, sp.cov, kind, ctx.now_s(), att_sigma_rad=sp.att_sigma_rad)
+
+    def _survey_topup(self, state):
+        """Survey top-up while suspended: the still frames offered since the last call (``FloorBoardSurveyor.offer``) are given to the
+        survey; sheets that the resting claw could not see but this pose does, and that now have enough views, are surveyed, the
+        layout file is updated and the excitation design sees them. Nothing moves; the cost is a few PnP solves and, when a
+        sheet is ready, one bundle adjustment (~1 s) -- on hardware that is time during which the keep-alive is not pumped
+        (the stations hold on their own lease; measure it against ``faults.lease_s``)."""
+        ctx = self.ctx
+        sv = getattr(ctx, "board_survey", None)
+        if sv is None or not self.cfg.startup.board_survey:
+            return
+        out = sv.flush()
+        rep = self.rep.measurements.get("board_survey")
+        if out is None or rep is None or not (out["new"] or out["cleared"]):
+            return
+        ctx.floor_board = sv.geometry()
+        rep.update(sv.report())
+        rep.setdefault("topups", []).append({"state": state, "t_s": round(ctx.now_s(), 1), **{k: v for k, v in out.items() if k != "cleared"},
+                                              "cleared": {int(k): v for k, v in out["cleared"].items()}})
+        ctx.log(f"[startup] floor board survey top-up in {state}: sheets {out['new']} surveyed from {out['frames']} frames of the hanging claw"
+                + (f"; cleared {sorted(out['cleared'])}" if out["cleared"] else "") + f" ({len(rep['surveyed_ids'])} of {rep['expected']} known)")
 
     # ------------------------------------------------------------ slack probe
     # Fraction of the measured slack's 1-sigma by which a probed cable is left on the slack side of its onset (so it

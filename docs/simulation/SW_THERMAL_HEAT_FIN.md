@@ -22,6 +22,9 @@ about 1 hour once familiar. Click paths were written for SolidWorks 2023 to 2026
 > 5. **Fin top versus the ceiling.** The fin top is 229 mm above the shaft axis (250 mm plate, axis 21 mm above its bottom edge). The anchor is 0.15 m below the ceiling (`config/robot.sim.json`), so if the shaft is near anchor height the fin reaches about 80 mm into the ceiling.
 >    A ceiling hot-air layer would cut h below the free-vertical-plate value used here. Confirm the station height; the thermocouple at y = 100 mm will show it.
 > 6. **No outlet or pulley is involved in the thermal study**, but the shell shape (vented or sealed) is an input: 26 °C inside air for a vented shell, 32 °C sealed.
+> 7. **How the heat enters the fin is a modelling choice, so the motor and thermocouple predictions are ranges.** A uniform heat flux over the contact square (the simple model) and an isothermal flange (a die-cast aluminium nose on a steel
+>    stator, or the k = 50 W/m·K block of model B-2, is close to this) bracket the truth: motor 41.6 to 40.2 °C, fin heat 0.72 to 0.82 W, TC2 6.5 to 7.4 K painted. The fin curve at the shell exit (z = 50 mm), the tip and
+>    z = 42 mm are identical in both; only the patch average, the motor temperature, the fin heat and the TC2/TC1 ratio move (section 5). Judge the hold test on the absolute TC2 rise, not on the ratio (section 8).
 
 ---
 
@@ -38,7 +41,9 @@ rise at z = 50 mm within about **±20 %**; the rises at the top of the contact p
 | 1/8 in (3.175 mm), black paint | 0.69 | 8.5 K/W | 17.3 K (13.9 to 20.8) | 17.0 K | 17.7 K | 9.6 / 9.4 K | 19.3 K |
 | 1/8 in, bare | 0.80 | 13.4 K/W | 27.3 K (21.8 to 32.8) | 26.5 K | 27.1 K | 19.1 / 18.5 K | 28.7 K |
 
-What the fin does to the **motor** (coupled model B-2 inputs, paste contact, 1.0625 A, room 23 °C):
+The patch-average column is for a **uniform heat flux** over the contact square; for an isothermal patch it is about the z = 42.15 value (40 K painted, 52 K bare, 17.7 K for 1/8 in painted). All other columns do not depend on that choice.
+
+What the fin does to the **motor** (coupled model B-2 inputs, paste contact, 1.0625 A, room 23 °C; **uniform-flux end of the range**, the isothermal-flange limit is given under the table):
 
 | Case | Vented shell | Sealed shell |
 |---|---|---|
@@ -47,15 +52,18 @@ What the fin does to the **motor** (coupled model B-2 inputs, paste contact, 1.0
 | **0.019 in, black paint** | **41.6 °C (rise 18.6 K), 0.72 W through the fin** | **47.3 °C** |
 | 1/8 in, black paint | 35.1 °C (rise 12.1 K), 1.21 W through the fin | 37.7 °C |
 
+**Isothermal-flange limit** (the patch held at one temperature; the vented motor is 0.5 to 1.4 K cooler, up to 2.2 K sealed, and the fin carries 0.05 to 0.10 W more): painted 40.2 °C (rise 17.2 K), 0.82 W vented and 45.1 °C sealed; bare 42.2 °C vented and 48.1 °C sealed;
+1/8 in painted 34.6 °C (rise 11.6 K), 1.26 W vented and 36.9 °C sealed. The truth lies between the two ends; read the table above as the **upper end of a range** about 1.5 K wide for the vented shell (section 5 gives the full prediction ranges).
+
 **Evidence labels.** B-1 (fin only) validates the **fin curve** and is SIMULATED. The motor temperatures in the table above come from the lumped network plus the quasi-1D fin resistance and are
 **CALCULATED** unless you build **B-2 (section 5, required if a slide quotes a motor temperature as SIMULATED)**. The hold test (section 8) is what turns them into MEASURED.
 
-Three findings worth a slide: (1) the thin fin carries only about a third of the motor heat when vented (0.72 of 2.03 W, 35 %; 46 % when sealed) because the motor also sheds
+Three findings worth a slide: (1) the thin fin carries only about a third of the motor heat when vented (0.72 to 0.82 of 2.03 W, 35 to 40 %; 46 to 53 % when sealed) because the motor also sheds
 12 K/W directly to the shell air; (2) paint matters a lot for the *fin* (R_fin 18.3 vs 25.1 K/W) but little for the *motor* (18.6 vs 20.2 K rise);
 (3) the thick fin would cut the motor's rise from 18.6 K to 12.1 K because a 0.483 mm sheet has η = 0.32 (most of its length does almost nothing) against 0.69 for 3.175 mm.
 Alloy uncertainty is minor (section 3.2).
 
-**Cross-check with the presentation sheet.** Fin share of the motor heat: 35 % vented and 46 % sealed here, 38 % and 50 % in `docs/presentation/FUNDAMENTALS.md` topic 3 (single h = 7 W/m²K, 1 K/W contact, no hole).
+**Cross-check with the presentation sheet.** Fin share of the motor heat: 35 % vented and 46 % sealed here (uniform-flux end; 40 % and 53 % at the isothermal end), 38 % and 50 % in `docs/presentation/FUNDAMENTALS.md` topic 3 (single h = 7 W/m²K, 1 K/W contact, no hole).
 The fin path is 26.0 K/W here (quasi-1D, which includes neck, hole and spreading) against 22.6 K/W there; the higher converged h (8.5 to 8.7) and the lower paste contact resistance cancel most of it.
 Motor temperatures here / there: vented as-built 41.6 / 40.7 °C, sealed as-built 47.3 / 46.0 °C, 1/8 in vented 35.1 / 36.3 °C, 1/8 in sealed 37.7 / 39.4 °C. This manual adds the finish split (paint versus bare), the hole and spreading effect in the fin,
 and the thermocouple predictions.
@@ -238,23 +246,26 @@ Add your air temperature (23 °C) to each rise. How to read the comparison:
 
 Without B-2 the motor temperatures of section 0 are CALCULATED (network plus quasi-1D) and only the fin curve is FEA-validated. With it, the motor block temperature and the heat through the fin are model outputs.
 
-1. Same file, same study duplicated as `B2_6061_paint_0p019`. Assign **Alloy Steel** (k about 50 W/m·K) to the block.
+1. Same file, same study duplicated as `B2_6061_paint_0p019`. Assign **Alloy Steel** (k about 50 W/m·K) to the block. That block conducts well enough (internal drop under 0.5 K) to hold the contact square **nearly isothermal**, which is also how a real NEMA 17 flange (aluminium nose on a steel can) behaves, so expect your results at the **upper end of the fin figures** below.
 2. **Heat Power 2.03 W on the block body** (select the solid body), and **delete or suppress** the Heat Power on the patch.
 3. Contact: right-click Connections → **Component Contact** (or Contact Set between the block's front face and the fin's back face): **Bonded**, with a **thermal contact resistance** (K·m²/W; the field may be labelled thermal resistance or contact resistance in your release): paste 1.0·10⁻⁴, dry 3.3·10⁻⁴, bowed 1.36·10⁻³ (section 1.2).
 4. Convection on the **block's five free faces**: **h = 10.1 W/m²K** (vented) or 8.7 (sealed), bulk ambient **26 °C** (vented shell air; 32 °C sealed). This h is the repo's motor-to-air resistance R_ma = 12 K/W spread over the 8,219 mm² of free faces.
 5. Fin convection: use the **converged coupled values 8.5 W/m²K (painted) or 4.2 (bare)** on F3 (the fin carries only about 0.7 W, so it is cooler), 4 W/m²K inside, as before.
-6. Run. Targets (6061, paste, vented, 1.0625 A, air 23 °C):
+6. Run. Targets (6061, paste, vented, 1.0625 A, air 23 °C) as **ranges, "uniform heat flux into the patch" to "isothermal flange"**; the true flange lies between, and the k = 50 W/m·K block gives the isothermal end:
 
 | Output | Painted | Bare |
 |---|---|---|
-| Motor block mean temperature | **41.6 °C** (rise 18.6 K) | 43.2 °C (rise 20.2 K) |
-| Heat through the fin (List Heat Power on the contact face) | **0.72 W** (35 %) | 0.59 W |
-| Fin rise at the patch top | 14.9 K | 17.2 K |
-| Fin rise at y = 100 (TC2) | **6.5 K** | 9.9 K |
-| Fin tip rise | 1.5 K | 4.1 K |
-| TC2 / TC1 rise ratio | **0.35** | **0.49** |
-| Sealed shell, same case | 47.3 °C | 49.7 °C |
+| Motor block mean temperature | **41.6 to 40.2 °C** (rise 18.6 to 17.2 K) | 43.2 to 42.2 °C (rise 20.2 to 19.2 K) |
+| Heat through the fin (List Heat Power on the contact face) | **0.72 to 0.82 W** (35 to 40 %) | 0.59 to 0.67 W |
+| Fin rise at the patch top | 14.9 to 17.0 K | 17.2 to 19.1 K |
+| Fin rise at y = 100 (TC2) | **6.5 to 7.4 K** | 9.9 to 10.9 K |
+| Fin tip rise | 1.5 to 1.6 K | 4.1 to 4.5 K |
+| TC2 / TC1 rise ratio (cross-check only) | **0.35 to 0.43** | **0.49 to 0.57** |
+| Sealed shell, same case (motor block) | 47.3 to 45.1 °C | 49.7 to 48.1 °C |
 | Dry or bowed contact instead of paste | +0.0 to +0.2 K | |
+
+A block of k = 50 W/m·K behaves nearly isothermal, so expect the upper end of the fin figures (and the lower end of the motor temperature). The painted and bare **ratios** are only about 0.06 apart, so use
+the **absolute TC2 rise** to tell the finishes apart, not the ratio (section 8). These ranges come from the script's quasi-1D fin with the patch either as a uniform flux or held at one temperature; they are estimates, not SolidWorks results, and your B-2 run replaces them.
 
 ---
 
@@ -273,6 +284,8 @@ Without B-2 the motor temperatures of section 0 are CALCULATED (network plus qua
 | Motor block rise, vented (K) (B-2) | 18.6 | 12.1 | 0.65 |
 | Heat through the fin (W) (B-2) | 0.72 | 1.21 | 1.7 × |
 | Motor temperature, sealed (°C) | 47.3 | 37.7 | |
+
+The B-2 rows are the uniform-flux end of the range; at the isothermal end they read 17.2 and 11.6 K (rise), 0.82 and 1.26 W, and 45.1 and 36.9 °C sealed.
 
 **Slide line:** "Thickness is the lever: a 0.483 mm sheet is only 32 % efficient, so more than two thirds of its length is nearly wasted; 1/8 in is 69 % efficient and cuts
 the motor's temperature rise by about a third (vented) at the same width and length. The thin sheet was what was on hand and is enough for the vented shell at 1.06 A."
@@ -299,19 +312,21 @@ The model stays a hand calculation until a measurement agrees with it. The hold 
 
 | Thermocouple | Placement | Predicted rise over room air (as built, painted, 6061, vented) | Predicted if the fin is bare |
 |---|---|---|---|
-| **TC1 motor** | on the motor's metal flange rim at the top edge next to the fin, Kapton tape plus a dab of paste | **18.6 K at the motor case mid-length (the lumped motor node, 41.6 °C at 23 °C air, 39.2 °C at 20.6 °C); a thermocouple on the flange rim next to the fin reads between 14.9 K (the fin at the patch top) and 18.6 K** | 20.2 K at mid-length (17.2 to 20.2 K on the rim) |
-| **TC2 fin** | on the fin at **y = 100 mm** from its bottom edge (50 mm above the shell exit), same fixing | **6.5 K** | 9.9 K |
+| **TC1 motor** | on the motor's metal flange rim at the top edge next to the fin, Kapton tape plus a dab of paste | **17.2 to 18.6 K at the motor case mid-length (the lumped motor node: 40.2 to 41.6 °C at 23 °C air, 37.8 to 39.2 °C at 20.6 °C), and about the same on the flange rim next to the fin: the flange is nearly isothermal, so the rim reads close to the motor node; 14.9 to 17.0 K applies only to the fin surface at the patch top** | 19.2 to 20.2 K at the case and the rim |
+| **TC2 fin** | on the fin at **y = 100 mm** from its bottom edge (50 mm above the shell exit), same fixing | **6.5 to 7.4 K** | 9.9 to 10.9 K |
 | Room air (third sensor, optional but needed) | 100 mm away from the fin, shaded | reference | reference |
 
-Reading at 60 minutes (D29's planned length; the presentation sheet assumes 90) is about 94 % of the steady value for a vented shell (95 % at 65 min; a sealed shell takes 104 minutes), so compare the 60-minute reading with 0.94 × the prediction, or run 90 minutes.
+Reading at 60 minutes (D29's planned length; the presentation sheet assumes 90) is about 94 % of the steady value for a vented shell (95 % at 65 min; a sealed shell takes 104 minutes), so compare the 60-minute reading with 0.94 × the prediction (multiply every steady-state figure below by 0.94), or run 90 minutes.
 
-**Pass.** TC1 rise inside the 14.9 to 22.3 K window (±20 % of the 18.6 K motor node; the rim placement lowers the reading, so a reading between 14.9 and 18.6 K is the expected outcome) **and** TC2 / TC1 within ±0.07 of 0.35. Both measure different things: TC1 is dominated by the motor's own path to the shell air (the fin carries only
-0.7 W), so it validates the coupled model and the 2.03 W heat estimate; the **ratio TC2/TC1 depends on h and so on the paint**: 0.35 means painted, 0.49 means bare, which is how you will find out what finish the fin has.
+**Pass.** TC1 within **14.9 to 22.3 K** (the upper limit is +20 % on the 18.6 K motor node; the lower is the fin's patch-top rise, in case the rim reads cool) **and** TC2 within the range **6.5 to 7.4 K painted (9.9 to 10.9 K bare)**.
+**Use the TC2 steady-state rise as the finish test: painted if 8 K or less, bare if 9.5 K or more** (multiply by 0.94 for a 60-minute reading: 7.5 K and 8.9 K), and use the ratio only as a cross-check (painted 0.35 to 0.43, bare 0.49 to 0.57).
+The thresholds sit in the gap between the painted range (6.5 to 7.4 K) and the bare range (9.9 to 10.9 K); they depend on the real h and on air movement, so treat a reading between 8 and 9.5 K as **undecided**, not as a pass. Both thermocouples measure different things: TC1 is dominated by the motor's own path to the shell air (the fin carries only
+0.7 to 0.8 W), so it validates the coupled model and the 2.03 W heat estimate; TC2 depends on h and so on the paint. The ratio is fragile because the painted and bare ranges are only about 0.06 apart and the ratio itself moves with how the flange spreads the heat (uniform flux against isothermal).
 
 **Update the model if it disagrees.**
 
-- TC1 high and ratio as predicted: more heat (check the coil resistance with a meter; heat scales with R) or worse air movement in the shell; adjust P or R_ma.
-- TC1 as predicted, ratio off: h on the fin is different; change the coefficient until the FEA y = 100 rise matches TC2, and report the fitted h (3.9 to 9.6 W/m²K).
+- TC1 high and TC2 as predicted: more heat (check the coil resistance with a meter; heat scales with R) or worse air movement in the shell; adjust P or R_ma.
+- TC1 as predicted, TC2 outside its range: h on the fin is different; change the coefficient until the FEA y = 100 rise matches TC2, and report the fitted h (3.9 to 9.6 W/m²K).
 - TC1 above TC2's implied base by more than 4 K: poor contact; fit R_c (the base temperature is TC2 extrapolated back along the fin profile of section 4).
 - Record the fitted values in `DESIGN_STATE.md`; the plot of the 60-minute run replaces the model on the slide, as review R11 requires.
 
@@ -357,11 +372,11 @@ Energy balance: F3 ____ W (1.94 painted, 1.90 bare), F2 + side strips ____ W (0.
 | y = 42.15 mm (top of patch) | | 39.9 | n/a |
 | y = 100 mm (TC2 line) | | 16.6 | |
 | Tip y = 250 mm | | 3.2 (3.4 formula) | |
-| Patch average | | 50.2 | |
-B-2 only: motor block mean ____ C (41.6 vented painted paste), heat through the fin ____ W (0.72), TC2/TC1 ____ (0.35 painted, 0.49 bare)
+| Patch average | | 50.2 uniform flux (about 40, the z 42.15 value, if the patch is isothermal) | |
+B-2 only: motor block mean ____ C (41.6 to 40.2 vented painted paste), heat through the fin ____ W (0.72 to 0.82), fin rise at the patch top ____ K (14.9 to 17.0), at y = 100 ____ K (6.5 to 7.4), TC2/TC1 ____ (0.35 to 0.43 painted, 0.49 to 0.57 bare; cross-check only)
 Alloy runs (3003 / 5052 / 6061 painted): rise at y = 50 ____ / ____ / ____ (38.2 / 40.9 / 37.3)
-1/8 in repeat: rise at y = 50 ____ (17.3), motor block ____ C (35.1), heat through the fin ____ W (1.21)
-Hold test (60 min, 1.0625 A): TC1 ____ K (window 14.9 to 22.3), TC2 ____ K (6.5 painted, 9.9 bare), TC2/TC1 ____, air ____ C, fitted h ____, fitted R_c ____
+1/8 in repeat: rise at y = 50 ____ (17.3), motor block ____ C (35.1 to 34.6), heat through the fin ____ W (1.21 to 1.26)
+Hold test (60 min, 1.0625 A, readings x 0.94 of steady): TC1 ____ K (window 14.9 to 22.3), TC2 ____ K (6.5 to 7.4 painted, 9.9 to 10.9 bare; painted if <= 8 K steady, bare if >= 9.5 K, 8 to 9.5 undecided), TC2/TC1 ____ (cross-check), air ____ C, fitted h ____, fitted R_c ____
 Saved plots: B_temp_fin_0p019.png, B_temp_fin_1over8.png, B_heatflux_0p019.png
 Findings: ____
 ```

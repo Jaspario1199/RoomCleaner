@@ -133,7 +133,7 @@ endobj
 endobj
 17 0 obj
 <<
-/Length 4298
+/Length 5538
 >>
 stream
 1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
@@ -150,87 +150,99 @@ BT 1 0 0 1 29.33858 673.5118 Tm (3. Put sheet 0 in the middle, directly under wh
 BT /F1 8.2 Tf 9.84 TL ET
 BT 1 0 0 1 29.33858 659.622 Tm (4. Lay the other 8 sheets as drawn below, 250 mm centre to centre \(tag centre to tag centre; never more than) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 645.7323 Tm (   280 mm: the resting claw must see at least TWO tags\). Exact spacing and rotation do not matter - the robot) Tj T* ET
+BT 1 0 0 1 29.33858 645.7323 Tm (   280 mm: the resting claw must see at least TWO tags\). Exact spacing and rotation do not matter: at EVERY startup the) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 631.8425 Tm (   surveys the layout itself - but a closer, tighter grid is better than a wide one.) Tj T* ET
+BT 1 0 0 1 29.33858 631.8425 Tm (   robot SURVEYS the sheets its camera sees from the resting claw \(sheet 0 and usually 2-3 neighbours, from ~30 frames\) and) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 617.9528 Tm (   Letter sheets are 279 mm tall, so at this pitch sheets above/below each other OVERLAP by about 29 mm) Tj T* ET
+BT 1 0 0 1 29.33858 617.9528 Tm (   writes their measured positions into the layout file \(step 7\). Sheets it cannot see from the resting claw are NOT surveyed) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 604.063 Tm (   \(side by side they leave a 34 mm gap\). Overlap only the blank paper margins \(the header with the big number at the) Tj T* ET
+BT 1 0 0 1 29.33858 604.063 Tm (   and are NOT used; a closer, tighter grid puts more of them in view, and the claw may rest at any heading.) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 590.1732 Tm (   top, the scale bar and text at the bottom\); NEVER cover any part of a tag or its white border.) Tj T* ET
+BT 1 0 0 1 29.33858 590.1732 Tm (   Letter sheets are 279 mm tall, so at this pitch sheets above/below each other OVERLAP by about 29 mm) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 576.2835 Tm (5. Every sheet must lie FLAT and fully visible: tape all corners down, no curl, no folds, no objects or cables) Tj T* ET
+BT 1 0 0 1 29.33858 576.2835 Tm (   \(side by side they leave a 34 mm gap\). Overlap only the blank paper margins \(the header with the big number at the) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 562.3937 Tm (   across a tag, avoid glare \(close curtains / matte paper\). Carpet ridges and rugs that slide are not OK.) Tj T* ET
+BT 1 0 0 1 29.33858 562.3937 Tm (   top, the scale bar and text at the bottom\); NEVER cover any part of a tag or its white border.) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 548.5039 Tm (6. Sheet 0 defines the frame: its +X points right as printed. Enter the approximate room heading of) Tj T* ET
+BT 1 0 0 1 29.33858 548.5039 Tm (5. Every sheet must lie FLAT and fully visible: tape all corners down, no curl, no folds, no objects or cables) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 534.6142 Tm (   that +X as marker.heading_prior_rad.) Tj T* ET
+BT 1 0 0 1 29.33858 534.6142 Tm (   across a tag, avoid glare \(close curtains / matte paper\). Carpet ridges and rugs that slide are not OK.) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 520.7244 Tm (7. Do NOT move or bump any sheet once startup begins. If one moves, stop and run the survey again.) Tj T* ET
+BT 1 0 0 1 29.33858 520.7244 Tm (6. Sheet 0 defines the frame: its +X points right as printed. Enter the approximate room heading of) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 506.8346 Tm (   that +X as marker.heading_prior_rad.) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 492.9449 Tm (7. Layout file: set marker.board_layout_file to a layout file that exists \(make the starting one, only sheet 0 known, with) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 479.0551 Tm (   `python -m tools.print_floor_board --layout-json data/floor_board.json --no-pdf`\). The robot rewrites it after a survey and) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 465.1654 Tm (   keeps the previous contents as <file>.bak. Set marker.edge_m to the measured edge of sheet 0 \(step 2\); the layout must agree.) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 451.2756 Tm (8. Do NOT move or bump any sheet during a run: nothing re-surveys it until the next startup. Between startups a sheet that is in) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 437.3858 Tm (   view and moved by about 10 mm or more is found at the next startup and surveyed again; a sheet out of view is trusted as saved.) Tj T* ET
 BT /F2 8.5 Tf 10.2 TL ET
-BT 1 0 0 1 164.2677 494.0787 Tm (Schematic, looking down at the floor \(not to scale; the 0 sheet is the thick one\)) Tj T* ET
+BT 1 0 0 1 164.2677 410.7402 Tm (Schematic, looking down at the floor \(not to scale; the 0 sheet is the thick one\)) Tj T* ET
 .6 w
-n 163.9474 373.2775 85.68 110.88 re S
+n 163.9474 289.9389 85.68 110.88 re S
 .6 w
-n 177.0236 401.315 59.52756 59.52756 re S
+n 177.0236 317.9764 59.52756 59.52756 re S
 BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 200.5512 425.9764 Tm (1) Tj T* ET
+BT 1 0 0 1 200.5512 342.6378 Tm (1) Tj T* ET
 .6 w
-n 263.16 373.2775 85.68 110.88 re S
+n 263.16 289.9389 85.68 110.88 re S
 .6 w
-n 276.2362 401.315 59.52756 59.52756 re S
+n 276.2362 317.9764 59.52756 59.52756 re S
 BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 299.7638 425.9764 Tm (2) Tj T* ET
+BT 1 0 0 1 299.7638 342.6378 Tm (2) Tj T* ET
 .6 w
-n 362.3726 373.2775 85.68 110.88 re S
+n 362.3726 289.9389 85.68 110.88 re S
 .6 w
-n 375.4488 401.315 59.52756 59.52756 re S
+n 375.4488 317.9764 59.52756 59.52756 re S
 BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 398.9764 425.9764 Tm (3) Tj T* ET
+BT 1 0 0 1 398.9764 342.6378 Tm (3) Tj T* ET
 .6 w
-n 362.3726 274.0649 85.68 110.88 re S
+n 362.3726 190.7263 85.68 110.88 re S
 .6 w
-n 375.4488 302.1024 59.52756 59.52756 re S
+n 375.4488 218.7638 59.52756 59.52756 re S
 BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 398.9764 326.7638 Tm (4) Tj T* ET
+BT 1 0 0 1 398.9764 243.4252 Tm (4) Tj T* ET
 .6 w
-n 362.3726 174.8523 85.68 110.88 re S
+n 362.3726 91.5137 85.68 110.88 re S
 .6 w
-n 375.4488 202.8898 59.52756 59.52756 re S
+n 375.4488 119.5512 59.52756 59.52756 re S
 BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 398.9764 227.5512 Tm (5) Tj T* ET
+BT 1 0 0 1 398.9764 144.2126 Tm (5) Tj T* ET
 .6 w
-n 263.16 174.8523 85.68 110.88 re S
+n 263.16 91.5137 85.68 110.88 re S
 .6 w
-n 276.2362 202.8898 59.52756 59.52756 re S
+n 276.2362 119.5512 59.52756 59.52756 re S
 BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 299.7638 227.5512 Tm (6) Tj T* ET
+BT 1 0 0 1 299.7638 144.2126 Tm (6) Tj T* ET
 .6 w
-n 163.9474 174.8523 85.68 110.88 re S
+n 163.9474 91.5137 85.68 110.88 re S
 .6 w
-n 177.0236 202.8898 59.52756 59.52756 re S
+n 177.0236 119.5512 59.52756 59.52756 re S
 BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 200.5512 227.5512 Tm (7) Tj T* ET
+BT 1 0 0 1 200.5512 144.2126 Tm (7) Tj T* ET
 .6 w
-n 163.9474 274.0649 85.68 110.88 re S
+n 163.9474 190.7263 85.68 110.88 re S
 .6 w
-n 177.0236 302.1024 59.52756 59.52756 re S
+n 177.0236 218.7638 59.52756 59.52756 re S
 BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 200.5512 326.7638 Tm (8) Tj T* ET
+BT 1 0 0 1 200.5512 243.4252 Tm (8) Tj T* ET
 1.6 w
-n 263.16 274.0649 85.68 110.88 re S
+n 263.16 190.7263 85.68 110.88 re S
 .6 w
-n 276.2362 302.1024 59.52756 59.52756 re S
+n 276.2362 218.7638 59.52756 59.52756 re S
 BT /F2 15 Tf 18 TL ET
-BT 1 0 0 1 298.063 325.6299 Tm (0) Tj T* ET
+BT 1 0 0 1 298.063 242.2913 Tm (0) Tj T* ET
 .5 w
-n 206.7874 155.0098 m 306 155.0098 l S
-n 206.7874 158.4113 m 206.7874 151.6082 l S
-n 306 158.4113 m 306 151.6082 l S
+n 206.7874 71.67118 m 306 71.67118 l S
+n 206.7874 75.07276 m 206.7874 68.26961 l S
+n 306 75.07276 m 306 68.26961 l S
 BT /F1 8.5 Tf 10.2 TL ET
-BT 1 0 0 1 212.4567 142.2539 Tm (about 250 mm centre to centre \(~0.65 m overall\)) Tj T* ET
+BT 1 0 0 1 212.4567 58.91528 Tm (about 250 mm centre to centre \(~0.65 m overall\)) Tj T* ET
  
 endstream
 endobj
@@ -838,15 +850,15 @@ xref
 0000002345 00000 n 
 0000002669 00000 n 
 0000002788 00000 n 
-0000007138 00000 n 
-0000010298 00000 n 
-0000013147 00000 n 
-0000015918 00000 n 
-0000018767 00000 n 
-0000021587 00000 n 
-0000024441 00000 n 
-0000027289 00000 n 
-0000030045 00000 n 
+0000008378 00000 n 
+0000011538 00000 n 
+0000014387 00000 n 
+0000017158 00000 n 
+0000020007 00000 n 
+0000022827 00000 n 
+0000025681 00000 n 
+0000028529 00000 n 
+0000031285 00000 n 
 trailer
 <<
 /ID 
@@ -858,5 +870,5 @@ trailer
 /Size 27
 >>
 startxref
-32899
+34139
 %%EOF

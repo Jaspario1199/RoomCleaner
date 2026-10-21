@@ -586,3 +586,97 @@ def test_printed_instructions_describe_the_survey_as_it_is_and_the_starting_layo
     assert load_config(_raw(**{"marker.board_layout_file": str(out)})).marker.board_layout_file == str(out)
     pfb.main(["--layout-json", str(tmp_path / "e.json"), "--no-pdf"])
     assert (tmp_path / "e.json").exists() and not (tmp_path / "prints").exists()
+
+
+# ======================================================================= pretension + survey top-up
+def test_pretension_watch_stops_for_a_rocking_claw_not_for_a_still_one_and_a_single_tag_cannot_see_it():
+    from roomcleaner.cdpr.startup import DragWatch
+    cfg = load_config(SIM)
+
+    def run(P, poses, seed):
+        v, ref = _ref_and_frames(P, poses, seed)
+        clock = {"t": 0.0}
+
+        def now_s():
+            clock["t"] += 0.1
+            return clock["t"]
+        ctx = SimpleNamespace(cfg=cfg, now_s=now_s, vision=v)
+        S = StartupSequencer(ctx)
+        drag = {"bad": None, "next": 0.0}
+        dw = DragWatch(ref, floor_m=0.010, k=cfg.startup.onset_noise_k, n=3)
+        watch = S._pretension_watch(dw, _watch(ref), drag)
+        return [watch(0.0) for _ in range(len(poses))], drag
+    board = grid(DEFAULT_PITCH_M)
+    out, drag = run(board, [_claw(0.0, 0.0, 0.5173)] * 20, 20)                              # nothing moves
+    assert not any(out)
+    out, drag = run(board, [_rocked(0.0)] * 6 + [_rocked(0.020)] * 14, 21)                  # tips by 20 mrad (10 mm of origin motion)
+    assert "claw rocking on its jaws while tensioning" in out and "claw dragged while tensioning" not in out
+    assert "mrad tilt change >" in drag["bad"] and 6 <= out.index("claw rocking on its jaws while tensioning") <= 8   # within 3 frames
+    out, drag = run(board, [_claw(0.0, 0.0, 0.5173)] * 6 + [_claw(0.02, 0.0, 0.5173)] * 14, 22)    # dragged 20 mm: the old trip
+    assert "claw dragged while tensioning" in out and "claw rocking on its jaws while tensioning" not in out
+    out, drag = run(tag_corners(0.0, 0.0, EDGE_S), [_rocked(0.0)] * 6 + [_rocked(0.040)] * 14, 23)  # one tag: blind, as before
+    assert not any(o == "claw rocking on its jaws while tensioning" for o in out)
+
+
+def test_survey_top_up_surveys_the_outer_sheets_from_still_windows_of_the_hanging_claw(tmp_path):
+    """The resting claw sees 3 sheets; the poses of the calibration (higher, off to the side) see more. Their still windows are offered
+    (thinned) and flushed: a sheet is accepted once it has >= 8 views with a camera pose from surveyed sheets and is consistent."""
+    from .test_board_attitude import cam_pose
+    truth = _truth(EDGE_B, 1)
+    sv, lay, path = _surveyor(tmp_path)
+    rest = _StillCamera(truth, cam_pose((0.03, -0.02, 0.52)), seed=1)
+    sv.run(rest, lambda s: None, n_frames=30, interval_s=0.1, edge_m=EDGE_B)
+    floor_ids = set(lay.surveyed_ids())
+    assert len(floor_ids) >= 3 and sv.flush() is None
+    assert sv.offer([rest.observe() for _ in range(10)]) == 0                       # nothing new in view: nothing kept
+    poses = [(0.10, 0.05, 0.62), (-0.12, 0.08, 0.80), (0.05, -0.15, 0.95), (-0.05, -0.05, 1.10)]
+    new_total = set()
+    for k, xyz in enumerate(poses):
+        cam = _StillCamera(truth, cam_pose(xyz), seed=10 + k)
+        assert sv.offer([cam.observe() for _ in range(10)]) in (3, 4)               # a 1 s window keeps 3-4 frames (0.3 s gap)
+        out = sv.flush()
+        assert out["frames"] in (3, 4) and not out["cleared"]
+        new_total |= set(out["new"])
+    assert new_total and not (new_total & floor_ids)
+    assert set(lay.surveyed_ids()) == floor_ids | new_total
+    assert max(e[0] for e in _errors(lay, truth).values()) < 1.0e-3
+    assert FloorBoardLayout.load(path).surveyed_ids() == lay.surveyed_ids()            # saved with the top-up
+    rep = sv.report()
+    assert rep["surveyed_ids"] == lay.surveyed_ids() and set(rep["unsurveyed"]) == set(range(9)) - set(lay.surveyed_ids())
+    assert sv.flush() is None
+
+
+def test_survey_top_up_never_keeps_frames_that_show_nothing_new_or_more_than_the_cap(tmp_path):
+    from .test_board_attitude import cam_pose
+    truth = _truth(EDGE_B, 1)
+    sv, lay, path = _surveyor(tmp_path)
+    high = _StillCamera(truth, cam_pose((0.0, 0.0, 1.1)), seed=3)
+    sv.max_pending = 5
+    for _ in range(4):
+        sv.offer([high.observe() for _ in range(10)])
+    assert len(sv._pending) == 5                                                    # capped
+    sv.offer([SimpleNamespace(dets=None, t_us=1e9, duplicate_ids=())])
+    assert len(sv._pending) == 5
+
+
+def test_startup_top_up_extends_the_survey_while_the_claw_hangs_and_updates_the_report_and_the_design(tmp_path):
+    """_sample (every calibration pose) flushes what the still windows offered: here driven by hand on the simulated robot after the
+    floor survey, with the plant's claw lifted to a higher pose where more sheets are in view."""
+    r, truth, path = _survey_robot(tmp_path=tmp_path)
+    S = StartupSequencer(r.ctx)
+    S.self_check()
+    n0 = len(S.rep.measurements["board_survey"]["surveyed_ids"])
+    w = r.world
+    w.on_floor = False
+    w.p = w.p + np.array([0.0, 0.0, 0.35])                                           # hang the claw 35 cm higher, as if lifted
+    w.settle = lambda: None                                                          # (no cables here: hold the pose)
+    for k in range(4):
+        w.p = w.p + np.array([0.05 * (-1) ** k, 0.04 * k, 0.12])
+        S._still(n=10, state="CALIBRATION", suspended=True)
+        S._survey_topup("CALIBRATION")
+    rep = S.rep.measurements["board_survey"]
+    assert len(rep["surveyed_ids"]) > n0 and rep["topups"] and all(t["new"] for t in rep["topups"])
+    assert len(r.ctx.floor_board.corners) == len(rep["surveyed_ids"]) == len(r.board_layout.surveyed_ids())
+    assert max(e[0] for e in _errors(r.board_layout, truth).values()) < 1.0e-3
+    assert any("survey top-up in CALIBRATION" in x for x in r.log_lines)
+    assert FloorBoardLayout.load(path).surveyed_ids() == r.board_layout.surveyed_ids()

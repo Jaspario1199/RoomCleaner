@@ -163,10 +163,29 @@ refuses more). At the old 0.42 m the resting claw (lens ≈ 0.5 m up) saw ONE ta
 exactly where the floor stage needs it; at 0.25 m it sees 3–4. Letter sheets are 279 mm tall, so neighbours above and
 below overlap by ≈ 30 mm at this pitch: the instructions tell the user to overlap the blank paper margins (header, scale bar)
 and never any tag or its white border. The previous 450 mm printout is kept as `prints/floor_board_letter_450mm.pdf`.
-`marker.board_layout_file` (a surveyed `FloorBoardLayout` JSON) makes the service use the `BoardDetector` instead of the
+`marker.board_layout_file` (a `FloorBoardLayout` JSON that **must exist**; `python -m tools.print_floor_board --layout-json PATH`
+writes the starting one, with only sheet 0 known) makes the service use the `BoardDetector` instead of the
 single-tag detector: a frame with ≥ 2 usable tags gets the joint multi-tag pose, a frame with one tag falls back to the
 single-tag pose with its own, honest covariance. Startup (floor stage, mount-offset measurement, every suspended pose) just
-consumes whichever the frame gave; the excitation design uses the same tags (`RobotContext.floor_board`).
+consumes whichever the frame gave; the excitation design uses the same tags (`RobotContext.floor_board`). Without a layout file
+the single tag is used: the board is the validated floor reference (all simulation evidence below is with it), the single-tag
+start is the degraded fallback (tilt 13 mrad per frame, no rocking check).
+
+**Board survey at startup** (`board_startup.FloorBoardSurveyor`, `startup.board_survey`, default on; SELF_CHECK, before the mount
+offset). The printed instructions say the sheets need not be placed exactly because the robot surveys them; this is that survey.
+After a stillness check, `startup.board_survey_frames` (30) frames of the still claw are given to `vision.board.BoardSurvey` (tag 0
+defines the frame; each other tag is placed by its corner rays on the floor plane and refined by a planar bundle adjustment; known
+tag size, 1.2 % size check, duplicate-id and curl/inconsistency rejection), and the layout file is rewritten (atomically; the
+previous contents stay as `<file>.bak`; only for a real change: a sheet added or cleared, or moved by > 1 mm). The detector shares the
+layout object, so the mount offset, the floor pose and every later frame already use what was surveyed, and `ctx.floor_board` (the
+excitation design) is refreshed. What it does **not** do: there is no survey flight, so it surveys only the sheets the *resting*
+claw sees (camera ≈ 0.52 m up: sheet 0 and about 2–3 neighbours of the nine, at any rest heading); the others stay unsurveyed, are not
+used, and are listed in the report (`measurements["board_survey"]`: `surveyed_ids`, `unsurveyed` with reasons, `max_sigma_xy_m`,
+`cleared`, `warnings`) and the log. A sheet surveyed earlier that is in view again is checked: ≥ ~6 mm off (the detector's
+consistency check) it is cleared and surveyed afresh in the same startup (a moved origin sheet clears all the others); less is refined
+away by the bundle adjustment; a sheet out of view is trusted as saved. A sheet that moves *during* a run is not re-surveyed until the
+next startup. The layout's tag size must be the measured `marker.edge_m` (±0.5 %): an unsurveyed template adopts it, a surveyed layout
+that disagrees is refused (service start-up and SELF_CHECK abort). A layout file that cannot be written is reported, not fatal.
 
 **Detector.** `MarkerDetector` polishes each IPPE candidate with Levenberg–Marquardt (`cv2.solvePnPRefineLM`; IPPE alone is
 ~5× noisier in tilt face-on: 55 vs 10 mrad at 0.46 m); when LM maps both candidates to one pose there is one ML solution,
@@ -202,6 +221,22 @@ Absolute poses still feed the calibration samples with their honest covariance, 
 attachment-lever length noise as max(`calibration.attitude_sigma_rad`, its own): the configured 10 mrad is the floor, a poorly seen pose
 (one tag far away) is not credited with more than it delivers.
 
+**Rocking check** (`perception.tilt_change`, `startup.RockWatch`; SLACK_TAKEUP and the INITIAL_LIFT pretension). Because the floor stage
+reads the *reference* tilt, it is blind to a claw that tips about a jaw edge (a tall claw on a ~40 mm half-width footprint pulled at
+~0.5 m tips at ~0.5 N, before it slides at ~1.8 N at μ = 0.3; unverified on hardware): the tags barely move in the camera frame.
+With ≥ 2 board tags in the reference *and* in the frame the claw's measured **tilt change** is watched (the relative rotation of the
+two detector poses minus the turn about the claw's own z axis, which is a take-up's yaw): the mean of the last 3 frames must exceed
+`max(startup.rocking_tilt_min_rad (4 mrad), startup.rocking_tilt_k (5) × σ) + startup.rocking_yaw_coupling (0.08) × |Δyaw|`, σ = the
+frames' own covariance (mean of 3 against the reference's) plus the 1 mrad systematic floor, so a 4.5σ one-frame spike cannot trip
+it and a noisier view raises the threshold (1.5 mrad board tilt noise → ≈ 5–10 mrad ≈ 3–5 mm of body-origin motion). In the take-up it
+counts as the taut **onset** and stops the pull at once (the claw is tipping; the slide direction is then taken from the general
+`cam_displacement`, which uses the measured tilt); in the pretension it aborts with "claw rocking on its jaws while tensioning". With
+**one tag** (tilt noise ≈ 13 mrad per frame) nothing can be seen: the behaviour is the previous one (translation, slide direction,
+the 8° absolute tilt limit), and the log and `measurements["rocking_check"]` / `rocking_blind_at` say so. In the simulator
+(`World(rock=...)`, `SimRobot(world_kw={"rock": {...}})`) the resting claw tips about the jaw edge on the side of the pull until the
+cable moment balances gravity (≈ 2.7 mrad per mm of take-up, tension capped at the tipping moment ≈ 0.5–0.7 N): the board take-up
+stops at ≈ 10 mrad; the same plant with one tag tips to > 50 mrad and fails the slide-direction check.
+
 **Simulator.** `SimCamera.noise_model = "tags"` (default): the pose error of a frame is drawn from the same Cramer–Rao
 covariance for the tags actually in view (corner noise `pixel_sigma`, 0.3 px; `est_pixel_sigma` is what the estimator is told),
 with a covariance on the frame; `"fixed"` is the previous iid 2 mrad per axis (regression). Not modelled: IPPE face-on flips
@@ -211,6 +246,16 @@ with a covariance on the frame; `"fixed"` is the previous iid 2 mrad per axis (r
 the take-up, probe and drag-watch still work (camera-frame displacements) but the calibration samples are an order of magnitude
 noisier than with the board (`tests/cdpr/test_slack_probe.py::test_single_tag_probe_limitation_is_documented`); a startup whose
 floor view has one tag falls back to it and is honest about it.
+
+**Configuration ranges** (`config.ATTITUDE_BOUNDS`, enforced by `load_config`; each with its reason in the error message). "Finite and
+> 0" let through values that quietly make the estimator dishonest; these keys now have physical ranges: `camera.corner_sigma_px`
+0.05–2 px, `camera.pose_cov_inflate` 1–5 (a factor below 1 claims better than the Cramér–Rao bound), `claw.vision_attitude_floor_rad`
+0.2–20 mrad (and ≤ `vision_attitude_sigma_rad`), `tasks.grip_period_margin` 1.2–3 (the compound-pendulum factor; 0.05 collapsed the
+dwell to its floor), `tasks.grip_still_rate_rad_s` 0.005–0.1, `tasks.grip_still_frames` 3–30, `tasks.grip_settle_periods` 3–20,
+`tasks.grip_settle_min_s` 1–10 s, `tasks.grip_settle_timeout_s` 10–120 s (and ≥ periods × margin × 1.5 s, or a loaded release could
+never be approved), `startup.rocking_tilt_k` 3–10, `rocking_tilt_min_rad` 1–20 mrad, `rocking_yaw_coupling` 0–0.5,
+`board_survey_frames` 10–200. `marker.board_layout_file` is `null` or the path of an existing, parseable layout file (relative paths
+from the working directory). The ranges exclude values no camera, pendulum or print can have; they are not product thresholds.
 
 ## 4. Synchronized motion (stations)
 
@@ -327,10 +372,10 @@ abort conditions. Aborts **hold**; they never disable.
 
 | State | Does | Aborts (→ FAULT / PAUSED / RECOVERY_REQUIRED) |
 |---|---|---|
-| SELF_CHECK | config complete for the stage, suspended motion authorised; stations configured (param hash), synced, fault-free, switches closed, armed; claw online, battery ≥ min; camera calibration id recorded; marker visible and still; **camera-to-body tilt offset measured** (30 frames of the board pose when ≥ 2 tags are in view, else the single tag; claw resting upright on its jaws over the printout, D27) and stored, then **checked on a held-out set**: 30 fresh frames read through the corrected mount must agree with body z within 4× the combined standard error (≥ 3 mrad); claw on the floor at the expected height (±3 cm) | any check fails, the measured mount offset > `claw.mount_offset_max_rad`, or the held-out set disagrees ("camera-mount offset not reproducible": claw rocking or disturbed) |
-| SLACK_TAKEUP | one station at a time, a slow continuous retraction (claw on the floor = stations uncoupled), bounded by `max_slack_m`. Each vision frame is checked; claw motion (camera-frame displacement from the still pose taken at the start of this station's take-up, §3.2) ≥ max(onset_translation, k·noise) marks taut onset, noise = the raw camera-frame scatter measured at SELF_CHECK. Pulling continues to `bearing_translation_m` so the **slide direction** is measured, then a hold and a pay-out of `onset_backoff_m` | no onset within max slack (cable unattached, wrong winding direction, station order); marker lost > 1 s; tilt |
+| SELF_CHECK | config complete for the stage, suspended motion authorised; stations configured (param hash), synced, fault-free, switches closed, armed; claw online, battery ≥ min; camera calibration id recorded; marker visible and still; **floor board surveyed** (when `marker.board_layout_file` is set: the sheets in view of the resting claw, §3.2; aborts only on a tag-size mismatch); **camera-to-body tilt offset measured** (30 frames of the board pose when ≥ 2 tags are in view, else the single tag; claw resting upright on its jaws over the printout, D27) and stored, then **checked on a held-out set**: 30 fresh frames read through the corrected mount must agree with body z within 4× the combined standard error (≥ 3 mrad); claw on the floor at the expected height (±3 cm) | any check fails, the measured mount offset > `claw.mount_offset_max_rad`, or the held-out set disagrees ("camera-mount offset not reproducible": claw rocking or disturbed) |
+| SLACK_TAKEUP | one station at a time, a slow continuous retraction (claw on the floor = stations uncoupled), bounded by `max_slack_m`. Each vision frame is checked; claw motion (camera-frame displacement from the still pose taken at the start of this station's take-up, §3.2) ≥ max(onset_translation, k·noise) marks taut onset, noise = the raw camera-frame scatter measured at SELF_CHECK. Pulling continues to `bearing_translation_m` so the **slide direction** is measured (or, with ≥ 2 floor tags, until the **tilt change** of a claw tipping about a jaw edge exceeds the rocking threshold: that is the onset, §3.2), then a hold and a pay-out of `onset_backoff_m` | no onset within max slack (cable unattached, wrong winding direction, station order); marker lost > 1 s; tilt |
 | — after all four | slide bearings vs anchor entries (catches **swapped station wiring**); first fit → L0 per station + marker registration | bearing RMS > limit |
-| INITIAL_LIFT | all cables to just-taut (pretension watched by the filtered camera-frame drag-watch, §3.2), then vertical packets computed from the model's cable directions; vision after each | claw dragged while tensioning, lateral drift > max, tilt > max, commanded − observed lift > budget, no clearance by `max_lift_m` |
+| INITIAL_LIFT | all cables to just-taut (pretension watched by the filtered camera-frame drag-watch, §3.2), then vertical packets computed from the model's cable directions; vision after each | claw dragged or rocking on its jaws while tensioning (§3.2), lateral drift > max, tilt > max, commanded − observed lift > budget, no clearance by `max_lift_m` |
 | VISUAL_INITIALIZATION | still pose while suspended → refit (with `startup.slack_probe`: probed first, §6.1a) | marker lost |
 | CALIBRATION | staged excitation: local box → intermediate → expanded, D-optimal poses + held-out witnesses, refit between stages (with `startup.slack_probe`: every pose probed first, §6.1a) | witness, residual, ambiguity or outlier failure; probe: no taut onset within `probe_max_m`, claw moved > 10 mm without onset |
 | REFERENCE_VERIFICATION | the trust decision (§6.5): margin check `assess_margin_trust`; the bead search per station (§6.4) only if `startup.bead_search` (default off), verified captures refit jointly | bead fault; refit rejected |
@@ -588,7 +633,7 @@ RELEASE → DELIVERY_VERIFICATION.
   camera-observed motion of the floor reference below `tasks.grip_still_rate_rad_s` (corner
   shift / (fx·dt)) for `tasks.grip_still_frames` consecutive frames; with no camera motion
   signal (reference not in view) a dwell of `tasks.grip_settle_periods` pendulum periods
-  `T = 2π√(L/g)` × `tasks.grip_period_margin` (1.25: a rigid claw is a compound pendulum, ~20 % longer),
+  `T = 2π√(L/g)` × `tasks.grip_period_margin` (1.25, allowed 1.2–3: a rigid claw is a compound pendulum, ~20 % longer),
   L = depth of the CoM below the attachment plane (never less than `tasks.grip_settle_min_s`).
   The dwell is counted from the **last observed motion** (a claw seen swinging and then lost is not
   approved early; with no motion ever seen it counts from the start of waiting). It then approves only

@@ -240,8 +240,10 @@ def tab_root_estimate(F: np.ndarray, P: np.ndarray, E: float = PETG["E"]) -> dic
     tau = max(1.5 * abs(F[1]) / A, 1.5 * abs(F[2]) / A) + abs(M[0]) / (0.312 * b * t * t)
     vm = math.sqrt(sig ** 2 + 3 * tau ** 2)
     d = tab_displacement(F, P, E)
+    ex = tab_exit_estimate(F, P, E)
     return dict(sigma_nom=sig, tau_nom=tau, vm_nom=vm, M=M, defl_total=d["load_point_total"],
-                defl_along=d["load_point_along"], holes_max=d["holes_max"], holes_mean=d["holes_mean"])
+                defl_along=d["load_point_along"], holes_max=d["holes_max"], holes_mean=d["holes_mean"],
+                exit_total=ex["total"], exit_along=ex["along"], exit_naive=ex["naive_sum"])
 
 
 def tab_displacement(F: np.ndarray, P: np.ndarray, E: float = PETG["E"], nu: float = PETG["nu"]) -> dict:
@@ -278,11 +280,37 @@ def tab_displacement(F: np.ndarray, P: np.ndarray, E: float = PETG["E"], nu: flo
     u_load = at(a, off[1], off[2])
     along = abs(float(u_load @ F) / float(np.linalg.norm(F)))
     holes = []
+    holes_u = {}
     for xh in (-15.5, 15.5):
         for zh in (-15.5, 15.5):
-            holes.append(float(np.linalg.norm(at(xh - TAB["x_root"], 0.0, zh))))
+            u_h = at(xh - TAB["x_root"], 0.0, zh)
+            holes_u[(xh, zh)] = u_h
+            holes.append(float(np.linalg.norm(u_h)))
     return dict(load_point_total=float(np.linalg.norm(u_load)), load_point_along=along, u_load=u_load,
-                holes_max=max(holes), holes_mean=float(np.mean(holes)))
+                holes_max=max(holes), holes_mean=float(np.mean(holes)), holes_u=holes_u)
+
+
+def tab_exit_estimate(F: np.ndarray, P: np.ndarray, E: float = PETG["E"], nu: float = PETG["nu"]) -> dict:
+    """The manual's section 6.1 recipe for the cable-exit displacement, applied to the hand model (so the manual's
+    numbers can be checked against it). Uses displacement COMPONENTS at the four S3 hole centres, never URES magnitudes:
+      UX, UY, UZ = means over the four holes
+      theta_z = (UY at x=+15.5 - UY at x=-15.5) / 31 ;  theta_x = -(UY at z=+15.5 - UY at z=-15.5) / 31   (rad)
+      exit_x = UX - theta_z * LEVER ; exit_z = UZ + theta_x * LEVER ; exit_y = UY
+    LEVER = 15.5 mm = drum mid-plane y 18.0 minus tab mid-plane y 2.5."""
+    d = tab_displacement(F, P, E, nu)
+    hu = d["holes_u"]
+    ux = float(np.mean([v[0] for v in hu.values()]))
+    uy = float(np.mean([v[1] for v in hu.values()]))
+    uz = float(np.mean([v[2] for v in hu.values()]))
+    th_z = (np.mean([hu[(15.5, zz)][1] for zz in (-15.5, 15.5)]) - np.mean([hu[(-15.5, zz)][1] for zz in (-15.5, 15.5)])) / 31.0
+    th_x = -(np.mean([hu[(xx, 15.5)][1] for xx in (-15.5, 15.5)]) - np.mean([hu[(xx, -15.5)][1] for xx in (-15.5, 15.5)])) / 31.0
+    lever = Y_DRUM - TAB["y_c"]
+    ex = np.array([ux - th_z * lever, uy, uz + th_x * lever])
+    return dict(exit=ex, total=float(np.linalg.norm(ex)), along=abs(float(ex @ F) / float(np.linalg.norm(F))),
+                theta_z=float(th_z), theta_x=float(th_x), lever=lever, load_point_total=d["load_point_total"],
+                gauge_max=d["holes_max"], mean_ures=float(np.mean([np.linalg.norm(v) for v in hu.values()])),
+                # the wrong way (kept to show why it is wrong): mean URES + |rotation| x lever adds orthogonal components
+                naive_sum=float(np.mean([np.linalg.norm(v) for v in hu.values()]) + max(abs(th_z), abs(th_x)) * lever))
 
 
 def screw_group_estimate(F_total: np.ndarray, M_c: np.ndarray) -> dict:
@@ -468,42 +496,73 @@ def width_profile(z_mm: np.ndarray, t_hole: bool = True) -> tuple[np.ndarray, np
 
 
 def fin_quasi_1d(k: float, t_mm: float, h_out: float, q_total: float = 1.0, h_in: float = H_INSIDE,
-                 dT_inside: float = T_INSIDE_VENTED - T_AMB, dz: float = 0.25) -> dict:
+                 dT_inside: float = T_INSIDE_VENTED - T_AMB, dz: float = 0.25, isothermal: bool = False) -> dict:
     """Finite-difference fin along z with the real width profile (hole + bolt
     holes), heat injected over the contact patch, no convection under the
     patch, h_in on the strip inside the shell, h_out above the shell exit.
-    Returns temperature RISE over room air (K) for q_total watts."""
+    Returns temperature RISE over room air (K) for q_total watts.
+    isothermal=False: the heat enters as a uniform flux over the patch (the model B-1 'heat power' load).
+    isothermal=True: the patch is held at ONE temperature (a NEMA 17 aluminium-nosed flange, or a k = 50 W/m.K
+    block, is close to this; the limit that model B-2 approaches) and q_total sets that temperature.
+    The truth lies between the two limits; the isothermal limit gives the lower motor temperature."""
     H = FIN["h"]
     z = np.arange(0.0, H + dz / 2, dz)
     n = len(z)
     w, wc = width_profile(z)
     t = t_mm * 1e-3
-    kk = k
     # conductances between nodes (W/K)
     wm = 0.5 * (w[:-1] + w[1:]) * 1e-3
-    Gc = kk * t * wm / (dz * 1e-3)
-    A = np.zeros((n, n))
-    b = np.zeros(n)
+    Gc = k * t * wm / (dz * 1e-3)
     hz = np.where(z <= FIN["patch_top"], 0.0, np.where(z <= FIN["z_exit"], h_in, h_out))
     thz = np.where((z > FIN["patch_top"]) & (z <= FIN["z_exit"]), dT_inside, 0.0)
-    for i in range(n):
-        if i > 0:
-            A[i, i] += Gc[i - 1]
-            A[i, i - 1] -= Gc[i - 1]
-        if i < n - 1:
-            A[i, i] += Gc[i]
-            A[i, i + 1] -= Gc[i]
-        loss = 2.0 * hz[i] * w[i] * 1e-3 * dz * 1e-3
-        A[i, i] += loss
-        b[i] += loss * thz[i]
-    qprime = wc / np.sum(wc)
-    b += q_total * qprime
-    th = np.linalg.solve(A, b)
-    patch_avg = float(np.sum(th * wc) / np.sum(wc))
+    loss = 2.0 * hz * w * 1e-3 * dz * 1e-3
+    diag = loss.copy()
+    diag[:-1] += Gc
+    diag[1:] += Gc
+    off = -Gc                                            # sub- and super-diagonal (symmetric)
+    b = loss * thz
+
+    def solve(d, off, rhs):
+        """Thomas algorithm for the symmetric tridiagonal system (diagonal d, off-diagonal off) x = rhs; rhs may have several columns."""
+        m_ = len(d)
+        cp = np.empty(m_ - 1)
+        dp = np.empty_like(rhs, dtype=float)
+        cp[0] = off[0] / d[0] if m_ > 1 else 0.0
+        dp[0] = rhs[0] / d[0]
+        for i in range(1, m_):
+            den = d[i] - off[i - 1] * cp[i - 1]
+            if i < m_ - 1:
+                cp[i] = off[i] / den
+            dp[i] = (rhs[i] - off[i - 1] * dp[i - 1]) / den
+        x = np.empty_like(dp)
+        x[-1] = dp[-1]
+        for i in range(m_ - 2, -1, -1):
+            x[i] = dp[i] - cp[i] * x[i + 1]
+        return x
+
+    if isothermal:
+        ip = z <= FIN["patch_top"]
+        i0 = int(np.argmax(~ip))                         # first node above the patch
+        Gint = float(Gc[i0 - 1])                         # the only link between the two blocks (1-D chain)
+        # sub-chain of the nodes above the patch: same tridiagonal, first diagonal term loses the (now fixed) patch link
+        rhs = np.zeros((n - i0, 2))
+        rhs[:, 0] = b[i0:]                               # response to the inside-air offset alone
+        rhs[0, 1] = Gint                                 # unit patch temperature through the interface
+        sol = solve(diag[i0:], off[i0:], rhs)
+        u0, u1 = sol[:, 0], sol[:, 1]
+        th_p = (q_total + Gint * u0[0]) / (Gint * (1.0 - u1[0]))
+        th = np.empty(n)
+        th[ip] = th_p
+        th[i0:] = th_p * u1 + u0
+        patch_avg = float(th_p)
+    else:
+        qprime = wc / np.sum(wc)
+        th = solve(diag, off, b + q_total * qprime)
+        patch_avg = float(np.sum(th * wc) / np.sum(wc))
     return dict(z=z, th=th, patch_avg=patch_avg, base=float(th[np.searchsorted(z, FIN["patch_top"])]),
                 exit=float(th[np.searchsorted(z, FIN["z_exit"])]), tip=float(th[-1]),
                 at=lambda zz: float(np.interp(zz, z, th)),
-                R_patch=patch_avg / q_total, A=A, b=b)
+                R_patch=patch_avg / q_total)
 
 
 def contact_area_mm2() -> float:
@@ -525,13 +584,14 @@ def coupled_motor(P: float, R_fin_total: float | None, mode: str = "vented", T_a
 
 
 def coupled_converged(k: float, t_mm: float, eps: float, R_contact: float, mode: str = "vented",
-                      P: float | None = None) -> dict:
+                      P: float | None = None, isothermal: bool = False) -> dict:
     """Fin + motor-to-air path with the fin's own h (natural convection + radiation)
-    re-converged for the heat the fin ACTUALLY carries (not the all-through-the-fin bound)."""
+    re-converged for the heat the fin ACTUALLY carries (not the all-through-the-fin bound).
+    isothermal=True holds the fin patch at one temperature (see fin_quasi_1d)."""
     P = motor_heat() if P is None else P
     h = 7.0
     for _ in range(80):
-        fd = fin_quasi_1d(k, t_mm, h, q_total=1.0)
+        fd = fin_quasi_1d(k, t_mm, h, q_total=1.0, isothermal=isothermal)
         f = fin_analytic(k, t_mm, h)
         r = coupled_motor(P, R_contact + fd["R_patch"], mode)
         theta_mean = f["eta"] * r["q_fin"] * f["R"]
@@ -539,7 +599,7 @@ def coupled_converged(k: float, t_mm: float, eps: float, R_contact: float, mode:
         if abs(h_new - h) < 1e-4:
             break
         h = h_new
-    fd1 = fin_quasi_1d(k, t_mm, h, q_total=r["q_fin"], dT_inside=r["T_inside"] - T_AMB)
+    fd1 = fin_quasi_1d(k, t_mm, h, q_total=r["q_fin"], dT_inside=r["T_inside"] - T_AMB, isothermal=isothermal)
     return dict(h=h, fd=fd1, f=f, r=r, R_tot=R_contact + fd["R_patch"])
 
 
@@ -673,7 +733,8 @@ def report_static(use_step: bool = True) -> dict:
 
     hr("A6. Hand estimates for the FEA sanity band (hole-only load path, rigid motor, free cantilever tab)")
     print("  tab root: nominal sigma / von Mises (x1.5-2.5 with the root corner); displacement of the load point (total / along the "
-          "line) and the S3 hole gauge (max / mean over the four holes); wall screws: max tension / max shear")
+          "line), the S3 hole gauge (max / mean over the four holes) and the manual's section 6.1 exit estimate from displacement "
+          "components (lever 15.5 mm = drum plane 18.0 - tab mid-plane 2.5); wall screws: max tension / max shear")
     C = np.array([WALL_X, float(np.mean(SCREW_COLS_Y)), float(np.mean(SCREW_ROWS_Z))])
     est_rows = []
     cases6 = [(c[0], c[1], t["slip"] * c[4], c[5]) for c in rows] + \
@@ -688,7 +749,8 @@ def report_static(use_step: bool = True) -> dict:
         est_rows.append((cid, est, sg))
         print(f"  {cid:<4} F = {vec(F)} N | sigma {est['sigma_nom']:.2f} MPa, vM {est['vm_nom']:.2f} MPa "
               f"({1.5*est['vm_nom']:.1f}-{2.5*est['vm_nom']:.1f}) | load point {est['defl_total']:.2f}/{est['defl_along']:.2f} mm, "
-              f"S3 gauge {est['holes_max']:.2f}/{est['holes_mean']:.2f} mm | screws {sg['t_top']:.1f} N / {sg['shear']:.1f} N")
+              f"S3 gauge {est['holes_max']:.2f}/{est['holes_mean']:.2f} mm, exit by components {est['exit_total']:.2f} mm "
+              f"(URES-sum recipe, wrong: {est['exit_naive']:.2f}) | screws {sg['t_top']:.1f} N / {sg['shear']:.1f} N")
     out["est_rows"] = est_rows
     out["w_tot"] = w_tot
 
@@ -868,8 +930,24 @@ def report_thermal() -> dict:
     row("fin rise 50 mm above shell exit (TC2, z=100 mm)", fd1["at"](100.0), "K", "quasi-1D")
     row("fin rise at the tip (z=250 mm)", fd1["tip"], "K", "quasi-1D")
     ratio = fd1["at"](100.0) / r["rise"]
-    row("TC2 rise / TC1 rise", ratio, "", "the model-validation number (h sets it)")
+    row("TC2 rise / TC1 rise", ratio, "", "uniform-flux end; see the isothermal limit below")
     out["tc"] = dict(r=r, fd1=fd1, ratio=ratio)
+    print("   Prediction RANGES, uniform heat flux into the patch -> isothermal flange (a die-cast aluminium nose on a steel can, or the")
+    print("   k = 50 W/m.K block of model B-2, is close to isothermal; the truth lies between). Same inputs, 6061, paste, vented, 23 C:")
+    iso_out = {}
+    for fin_name, e in EPS.items():
+        a = couple[(fin_name, T_AS_BUILT, "thermal paste")][0]
+        b = coupled_converged(ALLOYS["6061-T6"], T_AS_BUILT, e, Rc_paste, "vented", isothermal=True)
+        bs = coupled_converged(ALLOYS["6061-T6"], T_AS_BUILT, e, Rc_paste, "sealed", isothermal=True)
+        iso_out[fin_name] = (a, b, bs)
+        print(f"   {fin_name:<12} motor {a['r']['T_motor']:.1f} -> {b['r']['T_motor']:.1f} C (rise {a['r']['rise']:.1f} -> {b['r']['rise']:.1f} K); "
+              f"fin heat {a['r']['q_fin']:.2f} -> {b['r']['q_fin']:.2f} W; patch top {a['fd']['base']:.1f} -> {b['fd']['base']:.1f} K; "
+              f"y=100 {a['fd']['at'](100.0):.1f} -> {b['fd']['at'](100.0):.1f} K; tip {a['fd']['tip']:.2f} -> {b['fd']['tip']:.2f} K; "
+              f"TC2/TC1 {a['fd']['at'](100.0)/a['r']['rise']:.2f} -> {b['fd']['at'](100.0)/b['r']['rise']:.2f}; sealed motor "
+              f"{couple[(fin_name, T_AS_BUILT, 'thermal paste')][1]['r']['T_motor']:.1f} -> {bs['r']['T_motor']:.1f} C")
+    print("   Hold-test finish test: TC2 steady-state rise painted 6.5-7.4 K, bare 9.9-10.9 K; thresholds painted <= 8 K, bare >= 9.5 K, "
+          "8-9.5 K undecided; x 0.94 at 60 minutes. The ratio is only a cross-check (painted and bare ranges are ~0.06 apart).")
+    out["iso"] = iso_out
     out["tr"] = {}
     for mode, cc in (("vented", cv), ("sealed", cs)):
         tr = transient_motor(P, cc["R_tot"], mode, minutes=120)

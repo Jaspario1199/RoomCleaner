@@ -338,10 +338,13 @@ Simulation tab → Fixtures Advisor → **Fixed Geometry**. Select, for each of 
 **Why fixed hole faces and not bolt connectors.** A screw is far stiffer than PETG, the preload is unknown, and bolt connectors need washer
 and nut faces that are not modelled. Fixed bore and shoulder faces constrain pull-out and shear exactly as a rigid screw would and let you read the load on
 each screw (section 5). Their one weakness is that they hold the plate where the real wall would only press, so run the optional
-*wall-present* variant on the governing case with a **one-sided wall**: Connections → **Virtual Wall** (rigid, *No Penetration*, friction 0.3) on the back face W1 (check that your Simulation tier offers
-it). **Do not use Roller/Slider for this**: it holds the face against moving away from the wall as well as into it, so for the pull-away cases (D2c, D3, D4f) it would carry the pull through the whole back
+*wall-present* variant on the governing case with a **one-sided wall**: Connections → **Virtual Wall** (rigid, *No Penetration*, friction 0.3). The connector needs a wall
+*plane* as well as the faces: select **W1 as the face and as the wall plane** (the plane x = −42.31 mm), **wall side outside** (the part is on the +x side; the field names differ a little between releases, check that your
+Simulation tier offers it). **Do not use Roller/Slider for this**: it holds the face against moving away from the wall as well as into it, so for the pull-away cases (D2c, D3, D4f) it would carry the pull through the whole back
 face and report almost no screw tension, the opposite of what the variant is meant to show. Compare the tab values with the screws-only run (they should agree; if the top-screw tension drops a lot, the
 wall is bearing and prying matters less than the screws-only estimate says).
+**This run is nonlinear** (contact and friction), so the section 7.1 scaling (×0.525, ×2.0) does **not** apply to it: run it **separately at each load you want to quote** (34.0 N first, then D1, D3 and D4f each as its
+own run, and 68.0 N only if you want that number from this model), and compare the 34.0 N result with the screws-only result at 34.0 N.
 
 ### 4.2 Load L1: the cable pull (Remote Load)
 
@@ -428,21 +431,24 @@ Run M2 first.
 Pick the **governing case** (the one with the highest peak so far; expect D4f, otherwise D3). Change only the mesh, never the load.
 
 1. Duplicate the study (right-click the study tab → **Duplicate**), rename `A_D?_M1`, and re-mesh with M1; again for M3 (`A_D?_M3`). Re-run both (M2 already exists).
-2. Record in this table, using the **same probe location** each time: Results → *Probe* → on the tab root front fillet face (R2.5, x −21.15 to −18.65, y 5.0 to 7.5): the **maximum** of von Mises there; and on the four S3 hole faces for displacement.
+2. Record in this table, using the **same probe location** each time: Results → *Probe* → on the tab root front fillet face (R2.5, x −21.15 to −18.65, y 5.0 to 7.5): the **maximum** of von Mises there; the von Mises **2 mm from the sharp back-side corner** (rule below); and on the four S3 hole faces for displacement.
 
-| Mesh | Elements | Peak vM at tab-root fillet (MPa) | Δ vs previous | S3 max URES (mm) | Δ vs previous | Unfiltered global max (MPa) and where |
-|---|---|---|---|---|---|---|
-| M1 | | | , | | , | |
-| M2 | | | | | | |
-| M3 | | | | | | |
+| Mesh | Elements | Peak vM at tab-root fillet (MPa) | Δ vs previous | vM 2 mm from the back-side corner (MPa) | S3 max URES (mm) | Δ vs previous | Unfiltered global max (MPa) and where |
+|---|---|---|---|---|---|---|---|
+| M1 | | | , | | | , | |
+| M2 | | | | | | | |
+| M3 | | | | | | | |
 
 3. **Pass (P6):** the M2 → M3 change is below 10 % at the fillet probe.
 
 **Rule for P1 and P3 (what to quote when the global maximum is singular).** With this loading the global maximum will be singular: the pull is a remote load on the walls of four Ø3.5 holes, the screws are fixed
 bore-and-shoulder faces, and the tab has a sharp back-side root corner.
-- Do **not** quote a stress within **2 mm** (about two C1 elements at M3) of (i) the edge of a fixed face (W2 bore or shoulder), (ii) the edge of a loaded face (the S3 holes) or (iii) the sharp back-side root corner (y = 0, x = −21.15).
-- The value used for P1 and P3 is the **larger of (a) the fillet-probe maximum of the convergence table and (b) the stress probed 1 mm inside the sharp corner** (probe the nodes on the back face of the tab 1 mm above the deck).
-  Report it from the finest mesh that has converged to < 10 %.
+- Do **not** quote a stress within **2 mm** (about two C1 elements at M3) of (i) the edge of a fixed face (W2 bore or shoulder), (ii) the edge of a loaded face (the S3 holes) or (iii) the sharp back-side root corner (y = 0, x = −21.15). Quote nothing closer than 2 mm to it.
+  Report separately the stress **2 mm from the corner on the tab back face (x = −19.15)**: add a split line there while the slide-in is open for editing (section 3.3), or pick the node with Probe → At location.
+- **P1 passes if, in `A_vm_<case>` (legend maximum 8.33 MPa), no red region lies outside the exclusion bands; P3 the same with `A_p1_<case>` (legend maximum 7.5 MPa). Quote the largest value in any remaining red patch.** The "value used"
+  in the results table is therefore the largest stress **anywhere outside the exclusion bands**, not only at the fillet: also look at the tab faces away from the fillet (in D1 the torsion shear peaks mid-edge, not at the fillet), the deck, the dovetail rib roots and the J-lip roots, and if nothing is red
+  take the largest value you can probe there (Probe → On selected entities on those faces). The **fillet probe (convergence table) and the 2 mm corner probe are the two places you must always report, separately.**
+  Report from the finest mesh that has converged to < 10 %.
 - Also record the unfiltered global maximum and its location, and label it **"singular, not used"** if it sits on a fixed or loaded edge and changes by more than 10 % between M2 and M3 while the fillet probe changes by less.
 - Hole-bearing stress for comparison: the average is (34 / 4) / (3.5 × 5) = 0.5 MPa, about 1.5 MPa with the moments; any W2 or S3 hole-edge von Mises of tens of MPa is an artefact. Per-screw loads are 10 to 20 N.
 - In the factor-of-safety plot (section 8) red patches smaller than about 2 mm at a fixed or loaded edge are singular; red on the tab root fillet or on the deck away from edges is real.
@@ -452,19 +458,24 @@ bore-and-shoulder faces, and the tab has a sharp back-side root corner.
 
 The spool and motor are excluded, so the load point (13 to 18 mm in front of the tab) has no mesh node. Read P4 as follows.
 - **Gauge = the maximum URES on the four S3 hole faces.** If the gauge is **≤ 0.50 mm, P4 passes** (the gauge over-reads the drum point: the far holes at x = +15.5 mm move more than the load point; the hand estimate is 1.0 to 1.5 times the load-point value).
-- If the gauge exceeds 0.50 mm, estimate the exit before calling it a failure: **exit ≈ mean URES over the S3 faces + tab rotation × lever**, with the lever 15.5 mm (x or z) or 18 mm (y) from the tab axis. Get the rotation about z from URES-y on the two columns of holes
-  (x = −15.5 and +15.5, 31 mm apart) and the rotation about x from URES-y on the rows (z = ±15.5). Record both numbers.
+- **If the gauge exceeds 0.50 mm, estimate the exit from displacement *components*, not URES magnitudes.** Take the mean UX, UY, UZ over the four S3 faces; get the rotations from UY:
+  θz = (UY at x = +15.5 minus UY at x = −15.5) / 31 and θx = −(UY at z = +15.5 minus UY at z = −15.5) / 31 (station axes, radians); then
+  **exit_x = UX_mean − θz × 15.5, exit_z = UZ_mean + θx × 15.5, exit_y = UY_mean**; take the magnitude (or the component along the line, the P4 quantity). **15.5 mm is the drum point's offset from the tab mid-plane
+  (18 mm minus 2.5 mm)**; the 18 mm of the drum plane is measured from the flange plane and is **not** the lever. Adding the URES magnitude to a rotation × lever term adds two orthogonal components and overstates the exit by up to 1.4 times
+  (hand model, D4f: 0.53 mm that way against 0.40 mm true), a false FAIL. Record θz, θx and the three components.
+- Hand-model check of this recipe (the same cantilever model as the section 0 table): **D4f 0.38 mm (true load-point displacement 0.40), D3 0.27 (0.28)**. It ignores the load point's 1.5 mm x-offset from the hole centroid, so it reads up to about 6 % low on D4f, and it under-reads the torsion cases (D1 0.13 against 0.22),
+  which are far below the limit; treat an estimate between 0.47 and 0.50 mm as marginal. The D4f gauge in the hand model is 0.54 mm, so expect D4f to take this branch.
 - Hand estimates of the load-point displacement and of the gauge are in the section 0 table.
 
 ## 7. The other directions (about 10 minutes)
 
 Right-click the converged study tab → **Duplicate** for each case, keep the mesh, and edit **only** `L1_cable` (location, then three force components) from the slip-limit column of section 2.3. Rename `A_D3_slip`, `A_D4f_slip`, and optionally `A_D2c_slip`. **Run, check the section 5.1 reaction, and record.** For D4f (along the wall) the tab sees a large out-of-plane force. If you chose Option B, re-check the soft-spring reaction.
 
-*Optional bounds on the governing case only:* (i) flange-seat load faces S5 (bound L); (ii) the one-sided wall (Virtual Wall on W1, section 4.1); (iii) D4 and D5, the unreachable pure-sideways bounds, for information only (D5 is the only case that tensions the sharp back-side corner).
+*Optional bounds on the governing case only:* (i) flange-seat load faces S5 (bound L); (ii) the one-sided wall (Virtual Wall on W1, section 4.1; nonlinear, so it is run separately at each load); (iii) D4 and D5, the unreachable pure-sideways bounds, for information only (D5 is the only case that tensions the sharp back-side corner).
 
 ### 7.1 Scale to the other tension levels (no more runs)
 
-For any recorded stress σ and displacement δ at the slip-limit load (34.0 N in-plane share):
+For any recorded stress σ and displacement δ at the slip-limit load (34.0 N in-plane share), **from the linear runs only** (the Virtual Wall variant is nonlinear and is not scaled; run it at each load, section 4.1):
 
 | Level | Multiply by | SF = 25 / σ |
 |---|---|---|
@@ -483,7 +494,7 @@ annotation on and the mesh display off.
 |---|---|
 | `A_vm_<case>.png` | **Stress1 von Mises**, units MPa. Edit Definition → Chart Options → *Defined* maximum **8.33 MPa** (the allowable), minimum 0, so anything red is over the limit. Deformation scale: *true scale*, or 1:1 if "auto" exaggerates; say which on the slide |
 | `A_p1_<case>.png` | **First principal** (Stress2, 1st principal), layer-sensitive spots: tab root, dovetail rib roots, J-lip roots. Chart maximum **7.5 MPa**. Zoom on the tab |
-| `A_ures_<case>.png` | **Displacement URES**, mm, true scale, annotation on the S3 hole faces: the **gauge** of section 6.1 (max over the four S3 faces); if it exceeds 0.50 mm also report the exit estimate (mean plus rotation × lever) |
+| `A_ures_<case>.png` | **Displacement URES**, mm, true scale, annotation on the S3 hole faces: the **gauge** of section 6.1 (max over the four S3 faces); if it exceeds 0.50 mm also report the exit estimate from displacement components (section 6.1) |
 | `A_fos_<case>.png` | Results → **Define Factor of Safety Plot** → criterion *Max von Mises stress* → limit *Yield strength* (25 MPa) → *Factor of safety distribution* and tick **Areas below factor of safety: 3** (those show red; apply the singularity rule of section 6 before reading the red patches) |
 | `A_first_principal_across_layers.png` | optional: same FoS tool with criterion *Max normal stress* and a **user-defined limit 22.5 MPa**, *areas below 3* |
 
@@ -515,7 +526,7 @@ Fill the status column from your numbers (section 11 template). Criteria: SF ≥
 | P1 D4f with bound L (flange seat) | ≤ 8.33 MPa | | |
 | *D4 / D5 bounds (information only)* | *report, not pass/fail* | | |
 | P3 first principal at the tab root (section 6 rule) | ≤ 7.5 MPa | | |
-| P4 displacement gauge (S3 max URES, section 6.1), worst case | ≤ 0.50 mm (else exit estimate ≤ 0.50 mm) | | |
+| P4 displacement gauge (S3 max URES, section 6.1), worst case | ≤ 0.50 mm (else the exit estimate from components, section 6.1, ≤ 0.50 mm) | | |
 | P5 reactions (section 5, with self-weight) | ± 1 % | | |
 | P6 convergence at the fillet probe | < 10 % | | |
 | P7 screw reaction (screw ____, wood ____, rated ____ N) | ≤ rated ÷ 3 | | |
@@ -532,10 +543,10 @@ spool side of the tab (the lug already has one at the other end); (3) print the 
 Study A, station wall mount + housing. Run by: ____  Date: ____  SolidWorks release: ____   Evidence label: SIMULATED
 Geometry: Assem_laundry_v3.STEP (10/19)   Material: PETG FDM (derated) E 1800 MPa, yield 25 MPa
 Motor basis: 36 N.cm @1.5 A, I = 1.0625 A, slip-limit 34.0 N, working 17.85 N, dynamic 68.0 N (unresolved: vector current, nameplate)
-Connection: Option A / B (circle)   Load path bound: U (holes) / L (flange seat)   One-sided wall (Virtual Wall): off / on
+Connection: Option A / B (circle)   Load path bound: U (holes) / L (flange seat)   One-sided wall (Virtual Wall, nonlinear, run per load): off / on
 Mesh used for the table: M__ (global __ mm, __ elements)   Self-weight read from Mass Properties: ____ kg
 
-| Case | Hand vM nominal (MPa) | Peak vM by the section 6 rule (MPa) | Location | Unfiltered global max, where, "singular, not used"? | Peak 1st principal at root (MPa) | Min FoS (plot) | S3 max URES (mm) | Exit estimate (mm) | Hand load-point (mm) | Reaction check (N, expected) | SF at 17.85 N | SF at 68 N | Pass? |
+| Case | Hand vM nominal (MPa) | Value used by the section 6 rule: largest vM outside the exclusion bands (MPa) | Location | Unfiltered global max, where, "singular, not used"? | Peak 1st principal at root (MPa) | Min FoS (plot) | S3 max URES (mm) | Exit estimate (mm) | Hand load-point (mm) | Reaction check (N, expected) | SF at 17.85 N | SF at 68 N | Pass? |
 | D1 | 3.2 | | | | | | | | 0.22 | 0, 0, +49.5 | | | |
 | D2c | 3.4 | | | | | | | | 0.21 | -19.13, -16.62, +43.6 | | | |
 | D3 | 3.4 | | | | | | | | 0.28 | -33.34, 0, +22.2 | | | |
@@ -544,7 +555,9 @@ Mesh used for the table: M__ (global __ mm, __ elements)   Self-weight read from
 | D4 / D5 (info) | 5.6 | | | | | | | | 0.43 | | | | |
 
 Convergence (governing case ___): M1 ___ / M2 ___ / M3 ___ MPa at the R2.5 root fillet probe; change M2->M3 ___ %.
-Stress 1 mm inside the sharp back-side corner: ___ MPa (used if larger than the fillet probe).
+Stress 2 mm from the sharp back-side corner (tab back face, x = −19.15): ___ MPa (reported separately; nothing is quoted closer than 2 mm).
+Largest stress outside the exclusion bands (tab faces away from the fillet, deck, dovetail rib roots, J-lip roots): vM ___ MPa at ____ ; first principal ___ MPa at ____ .
+Exit estimate from components (section 6.1), governing case: UX, UY, UZ means ___ / ___ / ___ mm; θz ___ θx ___ rad; exit ___ mm.
 Per-screw reaction: top row ___ N tension (hand estimate D1 11, D2c 19, D3 9, D4f 16), ___ N shear; screw ____, wood ____, rated ____ N, limit rated/3 = ____ N.
 Soft-spring reaction (Option B only): ___ N.   Option A vs Option B tab-root vM change: ___ %.
 Findings to carry into the design: ___

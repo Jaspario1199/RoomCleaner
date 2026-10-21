@@ -190,6 +190,7 @@ class VisionSource:
         # height h, every radian of it moves the claw position by h metres.
         self.imu = imu
         self.tilt_sigma = tilt_sigma
+        self.last_still_frames: list = []            # the frames of the last successful still_pose window (board survey top-up)
 
     @property
     def T_B_C(self) -> np.ndarray:
@@ -288,6 +289,7 @@ class VisionSource:
                     # allowed raw scatter = motion budget + 3x the camera-frame noise of the frames themselves
                     noise = float(np.sqrt(np.trace(sp.cov_cam) * sp.n))
                     if sp.spread_cam_m <= math.hypot(spread_max_m, 3 * noise):
+                        self.last_still_frames = list(good[-n:])
                         return sp, ""
                     good = good[-n + 1:]
             else:

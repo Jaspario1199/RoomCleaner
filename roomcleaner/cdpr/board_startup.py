@@ -76,6 +76,63 @@ class FloorBoardSurveyor:
         self._kw = dict(pixel_sigma=float(corner_sigma_px), min_side_px=min_side_px, border_px=border_px)
         self.survey = BoardSurvey(layout, camera, **self._kw)
         self._backed_up = False
+        self._pending: list = []                 # thinned still frames of suspended poses that show a sheet not surveyed yet
+        self._last_offer_us = None
+        self.max_pending = 60
+        self.min_gap_us = 3.0e5
+
+    # ------------------------------------------------------------ top-up
+    def offer(self, frames) -> int:
+        """Keep (thinned, at most ``max_pending``) the frames of a still window that show a sheet of the layout that is not
+        surveyed yet and not rejected: they are used by :meth:`flush` at a safe moment. Cheap; called for every still window."""
+        lay, kept = self.layout, 0
+        for o in frames or ():
+            dets = getattr(o, "dets", None)
+            if not dets or len(self._pending) >= self.max_pending:
+                continue
+            want = [i for i in dets if i in lay.tags and not lay.is_surveyed(i) and self.survey._stat[i].state != "rejected"]
+            t = getattr(o, "t_us", None)
+            if not want or t is None or (self._last_offer_us is not None and abs(t - self._last_offer_us) < self.min_gap_us):
+                continue
+            self._pending.append((dets, tuple(getattr(o, "duplicate_ids", ()) or ()), t))
+            self._last_offer_us = t
+            kept += 1
+        return kept
+
+    def flush(self) -> dict | None:
+        """Give the offered frames to the survey and accept what now satisfies its criteria (>= 8 views with a camera pose from
+        surveyed tags, consistent, right size, sigma <= 2 mm); returns {"frames", "new", "cleared"} or None when nothing was
+        pending. Runs a bundle adjustment only if a sheet is ready, so it is usually cheap; call it while the claw is held still."""
+        if not self._pending:
+            return None
+        lay = self.layout
+        before = set(lay.surveyed_ids())
+        n = len(self._pending)
+        for dets, dups, t in self._pending:
+            self.survey.add_detections(dets, duplicate_ids=dups, update=False, frame_id=t)
+        self._pending.clear()
+        self.survey.update()
+        new = sorted(set(lay.surveyed_ids()) - before)
+        cleared = {}
+        if new:
+            self.survey.refine()
+        for i, st in self.survey.status().items():
+            if st.state == "suspect" and i != lay.origin_id and lay.is_surveyed(i):
+                cleared[i] = st.reason
+                self.survey.reset_tag(i)
+        if new or cleared:
+            self.save()
+        return {"frames": n, "new": new, "cleared": cleared}
+
+    def report(self) -> dict:
+        """Current state of the layout for the startup report."""
+        lay = self.layout
+        st = self.survey.status()
+        surveyed = lay.surveyed_ids()
+        sig = [lay.tags[i].sigma_xy_m for i in surveyed if i != lay.origin_id]
+        return {"expected": len(lay.expected_ids), "surveyed_ids": surveyed,
+                "unsurveyed": {int(i): (st[i].reason or st[i].state) for i in lay.expected_ids if i not in surveyed},
+                "max_sigma_xy_m": max(sig) if sig else None}
 
     # -------------------------------------------------------------- frames
     def collect(self, vision, wait_s, *, n_frames: int, interval_s: float, max_wait_s: float) -> int:

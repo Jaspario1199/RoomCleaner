@@ -17,3 +17,4 @@ Technical Presentation — v2 draft"). Suggested placement:
 | 12 | laptop + bench bring-up | 12 |
 | 13 | gen-1 station lifting a test weight | 15 (results) |
 | 14 | CNC shield with four A4988 drivers | 10 (before: central) |
+| 15 | finished heat fin: 0.019 in sheet, 7/8 in centre hole + 4 motor holes | 7 (heat fin result; pairs with 01/02/06) |

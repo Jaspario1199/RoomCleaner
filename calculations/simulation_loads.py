@@ -67,7 +67,7 @@ def tension_cases(i_amp: float = I_SET, hold_rated: float = HOLD_36) -> dict:
     slip = hold / R_EMPTY                       # stepper slip limit, empty spool
     run_full = RUN_FRAC * hold / R_FULL         # most the winch can pull while moving
     return dict(hold=hold, slip=slip, work=run_full, work_margin=run_full / SKIP_SF,
-                dyn=DYN_FACTOR * slip)
+                work_core=RUN_FRAC * hold / R_EMPTY, dyn=DYN_FACTOR * slip)
 
 
 # ===========================================================================
@@ -105,6 +105,22 @@ def tangent_point(u: np.ndarray, r_mm: float = R_EMPTY * 1e3) -> np.ndarray:
     p = r_mm * n
     p[1] = Y_DRUM
     return p
+
+
+def fleet_limit_deg() -> float:
+    """Largest fleet angle (line vs the plane normal to the shaft) before the line scrubs a
+    spool flange: drum 16 mm wide between flanges of r = 18 mm [STEP Spoolv3], line leaving
+    from the drum mid-plane (8 mm to each flange), tangent to the r = 7.5 mm core."""
+    s_xy = math.sqrt(18.0 ** 2 - (R_EMPTY * 1e3) ** 2)
+    return math.degrees(math.atan(8.0 / s_xy))
+
+
+def fleet_limited_case(theta_deg: float = THETA_SCAN, sign: int = -1) -> np.ndarray:
+    """Direction D4f: same cone angle as D3/D4/D5 but the along-shaft share capped at the fleet limit."""
+    a = math.radians(fleet_limit_deg())
+    t = math.radians(theta_deg)
+    inplane = np.array([math.sin(t), 0.0, -math.cos(t)]) * math.cos(a)
+    return inplane + np.array([0.0, sign * math.sin(a), 0.0])
 
 
 def real_room_angles() -> dict:
@@ -163,7 +179,7 @@ def deflection_limit(t: dict) -> dict:
 # ===========================================================================
 # 4. STRUCTURAL HAND ESTIMATES (sanity band for the FEA, not requirements)
 # ===========================================================================
-TAB = dict(b=44.8, t=5.0, x_root=-21.15, y_c=2.5, z_c=0.0)     # motor tab root section [STEP]
+TAB = dict(b=42.3, t=5.0, x_root=-21.15, y_c=2.5, z_c=0.0)     # motor tab root section: 5.0 thick x 42.3 wide (z +-21.15) [STEP]
 SCREW_ROWS_Z = (-34.75, 10.25, 55.25)                          # wall screw rows, station z [STEP]
 SCREW_COLS_Y = (-2.78, 34.22)
 WALL_X = -42.31                                                # wall plane (back face) [STEP]
@@ -495,7 +511,9 @@ def report_static(use_step: bool = True) -> dict:
     print("  (check vs repo: 32 N @ 1.0 A, 48 N @ 1.5 A: DESIGN_STATE 'Structural design load per cable')")
     row("working max (moving, full spool, no margin)", t["work"], "N",
         f"0.7 x hold / R_full = {RUN_FRAC}*{t['hold']:.4f}/{R_FULL*1e3:.0f} mm [REPO gen2_payload_limit.py]")
-    row("working, payload-limited (with 1.5 skip margin)", t["work_margin"], "N", "R10 convention; software limit")
+    row("running pull at the empty core (r = 7.5 mm)", t["work_core"], "N",
+        "0.7 x hold / R_empty; = 23.8 N in the 10/21 erratum to D29/D30 (not a demanded tension)")
+    row("working, payload-limited (with 1.5 skip margin)", t["work_margin"], "N", "R10 convention; = 11.9 N design force in the erratum")
     row("slip-limit (stepper pull-out, empty spool)", t["slip"], "N", "hold / R_empty; D30 '~34 N'")
     row("dynamic (abuse bound) = 2 x slip-limit", t["dyn"], "N", "R10 'x2 dynamic'")
     t40 = tension_cases(I_SET, HOLD_40)
@@ -522,6 +540,13 @@ def report_static(use_step: bool = True) -> dict:
         print(f"      force on the station at slip-limit {t['slip']:.2f} N : F = {vec(F)} N")
         print(f"      working {t['work']:.2f} N : {vec(t['work']*u)} ; dynamic {t['dyn']:.2f} N : {vec(t['dyn']*u)}")
     out["rows"] = rows
+    a_fl = fleet_limit_deg()
+    uf = fleet_limited_case()
+    pf = tangent_point(uf)
+    print(f"  D4f (optional, physically reachable bound for the along-wall cases): fleet angle limited to {a_fl:.1f} deg "
+          f"before the line scrubs a spool flange")
+    print(f"      u = {vec(uf)} ; P_station = ({pf[0]:+.2f}, {pf[1]:+.2f}, {pf[2]:+.2f}) ; F(slip-limit) = {vec(t['slip']*uf)} N")
+    out["d4f"] = (uf, pf)
 
     hr("A3. Weights (gravity -z) and remote masses")
     row("motor + spool + line (remote mass 1)", M_MOTOR + 0.01, "kg", "[REPO guide 0.28 kg] + spool ~10 g at 100 % PETG")
@@ -562,10 +587,15 @@ def report_static(use_step: bool = True) -> dict:
         Mc = np.cross(p - C, F) + np.cross(P_MOTOR + 0 - C, np.array([0, 0, -(M_MOTOR + 0.01) * G])) \
             + np.cross(P_SHELL - C, np.array([0, 0, -M_SHELL * G]))
         sg = screw_group_estimate(Ftot, Mc)
+        dtxt = f"{est['defl_y']:.2f}" if est['defl_y'] >= 0.05 else "<0.05 (in-plane)"
         print(f"  {cid}: F+weights = {vec(Ftot)} N | tab root nominal sigma {est['sigma_nom']:.2f} MPa, "
               f"von Mises {est['vm_nom']:.2f} MPa (x1.5..2.5 with the root fillet: {1.5*est['vm_nom']:.1f}-{2.5*est['vm_nom']:.1f}), "
-              f"exit deflection ~{est['defl_y']:.2f} mm | top-row screw tension ~{sg['t_top']:.0f} N, "
+              f"exit deflection ~{dtxt} mm | top-row screw tension ~{sg['t_top']:.0f} N, "
               f"shear/screw ~{sg['shear']:.1f} N")
+    uf, pf = out["d4f"]
+    est = tab_root_estimate(t["slip"] * uf, pf)
+    print(f"  D4f: F = {vec(t['slip']*uf)} N | tab root nominal sigma {est['sigma_nom']:.2f} MPa, von Mises {est['vm_nom']:.2f} MPa "
+          f"(x1.5..2.5: {1.5*est['vm_nom']:.1f}-{2.5*est['vm_nom']:.1f}), exit deflection ~{est['defl_y']:.2f} mm")
     out["w_tot"] = w_tot
 
     hr("A7. Retention check by hand (R3)")

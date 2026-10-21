@@ -288,3 +288,18 @@ for 3 motors, so based on function you can choose"; lead layout).
 - **Software (open):** three-station configs must list the new outer-mouth points:
   - C (0, +0.0450, +0.0342), A (−0.0450, −0.0260, +0.0342), B (+0.0450, −0.0260, +0.0342) m, body frame;
   - the start yaw stays "camera bay toward station C".
+
+D35. **Room map: the user draws the obstacles first, the robot models the room later** (Jasper, 10/21: "in the app
+can you have it to where you can drag and drop squares, rectangles and circles and then input height and diameter or
+LxW? ... I say we start with this and then the robot builds its own model of the room").
+- **Now:** a Map tab in the phone app. The user drags squares, rectangles and circles onto a top view of the room and
+  gives each its size and height (a bottom height for things that hang, like a fan). The planner keeps every cable line
+  and the claw body out of each shape, plus a 0.10 m margin. Exact segment tests replace the 24-point sampling, which a
+  thin pole could slip between. A "Where can it pick?" overlay shows the floor the claw can reach.
+- **Later:** the claw camera builds a 2.5D height map from scans at known poses, and its detections appear as proposed
+  shapes the user accepts. A phone room scan can be imported the same way.
+- **Why this order:** a drawn map works tonight's way (one room, a few big objects) and shows the user exactly what the
+  robot avoids. The camera looks down, so it cannot see tall furniture tops or a fan above the claw: those stay user-drawn
+  even after phase 2. A static map never detects people or pets, so "nobody under the robot" stays.
+- **Spec:** `docs/ROOM_MAP_SPEC.md`. Not built yet. It goes to an implementer after the phone-app verification finishes,
+  because it edits the same files.

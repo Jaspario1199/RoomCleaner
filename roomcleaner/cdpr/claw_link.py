@@ -11,6 +11,7 @@ import json
 import time
 import urllib.error
 import urllib.request
+from dataclasses import dataclass
 
 import cv2
 import numpy as np
@@ -18,6 +19,23 @@ import numpy as np
 
 class ClawError(RuntimeError):
     pass
+
+
+@dataclass(frozen=True)
+class CachedFrame:
+    """The newest claw JPEG the frame thread already fetched, kept for the phone app (service /api/frame.jpg and the MJPEG
+    stream read ONLY this: they never fetch from the claw). ``capture_us`` is in HOST time like every frame time here;
+    ``cached_at`` is ``time.monotonic()`` when it was stored, ``lag_s`` the receive-minus-capture delay at that moment
+    (so age = now - cached_at + lag_s)."""
+    jpeg: bytes
+    capture_us: float
+    frame_id: int
+    mode: str
+    cached_at: float
+    lag_s: float
+
+    def age_s(self, now_monotonic: float | None = None) -> float:
+        return (time.monotonic() if now_monotonic is None else now_monotonic) - self.cached_at + self.lag_s
 
 
 class HttpClawClient:
@@ -30,6 +48,7 @@ class HttpClawClient:
         self.ttl = status_ttl_s
         self._status = None
         self._status_t = -1e18
+        self.last_cached: CachedFrame | None = None   # set by frame() (the frame thread); read by the phone app
 
     def _get(self, path, method="GET"):
         req = urllib.request.Request(self.base + path, method=method)
@@ -81,7 +100,12 @@ class HttpClawClient:
         img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_GRAYSCALE)
         if img is None:
             raise ClawError("undecodable JPEG")
-        return img, self.to_host_us(cap), fid, mode
+        host_cap = self.to_host_us(cap)
+        # phone app: keep the bytes just fetched (one reference assignment, no extra request to the claw). ``lag_s`` is for the
+        # age display only: with no usable clock mapping yet (negative or absurd) it is 0 and the age is the time in the cache.
+        lag = (self.now_us() - host_cap) / 1e6
+        self.last_cached = CachedFrame(data, host_cap, fid, mode, time.monotonic(), lag if 0.0 <= lag <= 5.0 else 0.0)
+        return img, host_cap, fid, mode
 
 
 def frame_bgr(client: "HttpClawClient"):
@@ -120,6 +144,10 @@ class DetectorFrameSource:
             self.prev = obs.T_C_M
         return obs
 
+    def latest_frame(self):
+        """The newest JPEG this source fetched (``CachedFrame``) or None; never fetches."""
+        return self.client.last_cached
+
 
 class ThreadedFrameSource:
     """Runs a (blocking, HTTP) frame source on its own thread so the control
@@ -150,6 +178,12 @@ class ThreadedFrameSource:
 
     def observe(self, now_us):
         return self.latest
+
+    def latest_frame(self):
+        """Newest cached JPEG of the inner source (``CachedFrame``) or None. Reads the cache only: the frame thread is the
+        sole client of the claw's /frame."""
+        fn = getattr(self.inner, "latest_frame", None)
+        return fn() if fn else None
 
     def stop(self):
         self._stop.set()

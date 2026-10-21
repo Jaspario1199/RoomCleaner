@@ -3,3 +3,5 @@
 # Install alongside the vision stack for live camera mode:
 #   pip install -r requirements-vision.txt -r requirements-app.txt
 flask>=3.0
+# Optional, for the cdpr phone app: the service prints a QR code of the phone URL when this is installed
+# (it works without it):  pip install qrcode

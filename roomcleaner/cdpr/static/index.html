@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f6f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f0f0e" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>RoomCleaner</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+
+<header id="top">
+  <span class="brand">RoomCleaner</span>
+  <span id="conn" class="conn" role="status" aria-live="polite"><span class="dot"></span><span id="connText">connecting</span></span>
+  <span id="topState" class="pill">...</span>
+</header>
+<div id="banner" class="banner" role="alert" hidden></div>
+
+<main>
+  <!-- ================================================================= HOME -->
+  <section id="tab-home" class="tab" role="tabpanel" aria-labelledby="t-home">
+    <div class="card statecard">
+      <div class="label">Robot state</div>
+      <div id="state" class="bigstate">...</div>
+      <p id="stateText" class="muted"></p>
+      <div id="busy" class="busy" hidden><span class="spin" aria-hidden="true"></span><span id="busyText"></span></div>
+      <div id="stepLine" class="muted"></div>
+      <div id="lastErr" class="errbox" hidden></div>
+    </div>
+
+    <div class="card" id="trust">
+      <div class="row between"><b>Trust</b><span id="level" class="pill">-</span></div>
+      <p id="trustText" class="muted"></p>
+      <ul id="trustReasons" class="list"></ul>
+    </div>
+
+    <h2>Stations</h2>
+    <div id="stations" class="grid tiles"></div>
+
+    <h2>Claw</h2>
+    <div id="claw" class="card kvs"></div>
+
+    <h2>Recent</h2>
+    <ul id="homeEvents" class="list events"></ul>
+  </section>
+
+  <!-- =============================================================== CAMERA -->
+  <section id="tab-camera" class="tab" role="tabpanel" aria-labelledby="t-camera" hidden>
+    <div class="camwrap">
+      <img id="cam" alt="Live claw camera view" decoding="async">
+      <div id="camOverlay" class="camoverlay">No frame yet</div>
+      <span id="camLive" class="pill camlive">-</span>
+    </div>
+    <div class="card kvs">
+      <div class="kv"><span>Frame age</span><b id="camAge">-</b></div>
+      <div class="kv"><span>Marker / board</span><b id="camDet">-</b></div>
+      <div class="kv"><span>Source</span><b id="camSrc">-</b></div>
+      <div class="kv"><span>Transport</span><b id="camTransport">-</b></div>
+    </div>
+    <p class="muted small">This is the frame the host has already fetched from the claw (the phone is not a second
+      client on the claw), about 5 per second. In the simulator it is the simulated claw view.</p>
+  </section>
+
+  <!-- ================================================================ SETUP -->
+  <section id="tab-setup" class="tab" role="tabpanel" aria-labelledby="t-setup" hidden>
+    <div class="card" id="needs" hidden>
+      <b>What the robot needs from you</b>
+      <p id="needsText" class="muted"></p>
+    </div>
+
+    <div class="card" id="roomcard">
+      <div class="step"><span class="num">a</span><b>Room and anchors (metres)</b></div>
+      <div class="grid3">
+        <label>width X<input id="rw" type="number" step="0.01" inputmode="decimal"></label>
+        <label>depth Y<input id="rd" type="number" step="0.01" inputmode="decimal"></label>
+        <label>height Z<input id="rh" type="number" step="0.01" inputmode="decimal"></label>
+      </div>
+      <div id="anchors" class="anchors"></div>
+      <button id="saveRoom" class="btn">Save room</button>
+      <p id="roomNote" class="muted small"></p>
+    </div>
+
+    <div class="card">
+      <div class="step"><span class="num">b</span><b>Unmeasured configuration</b></div>
+      <ul id="checks" class="list"></ul>
+    </div>
+
+    <div class="card">
+      <div class="step"><span class="num">c</span><b>Before starting: safety checklist</b></div>
+      <p class="muted small">Tick each item yourself. Ticks are not remembered; they clear when the robot starts moving.</p>
+      <div id="checklist"></div>
+      <div class="step"><span class="num">d</span><b>Start</b></div>
+      <button id="start" class="btn primary" disabled>Start calibration</button>
+      <ol id="steps" class="steps"></ol>
+      <ul id="startReasons" class="list bad"></ul>
+      <div id="recovery" class="stack" hidden>
+        <b>Recovery</b>
+        <button id="resume" class="btn" hidden>Resume</button>
+        <button id="ack" class="btn" hidden>Acknowledge fault</button>
+        <button id="recover" class="btn" hidden>Recover (re-reference from camera)</button>
+        <button id="lower" class="btn" hidden>Lower claw to the floor</button>
+        <button id="disarm" class="btn danger" hidden>Disarm (claw must rest on the floor)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step"><span class="num">e</span><b>Calibration result and trust</b></div>
+      <div id="calib" class="kvs"></div>
+    </div>
+  </section>
+
+  <!-- ================================================================= CHAT -->
+  <section id="tab-chat" class="tab chat" role="tabpanel" aria-labelledby="t-chat" hidden>
+    <div id="chatlog" class="chatlog" role="log" aria-live="polite" aria-label="Conversation with the robot"></div>
+    <div id="pendingBar" class="pendingbar" hidden>
+      <span id="pendingText"></span>
+      <span class="row"><button id="yes" class="btn primary">Yes</button><button id="no" class="btn">No</button></span>
+    </div>
+    <div id="chips" class="chips" aria-label="Quick replies"></div>
+    <form id="composer" class="composer" autocomplete="off">
+      <input id="say" type="text" inputmode="text" enterkeyhint="send" maxlength="300" placeholder="Talk to the robot..." aria-label="Message">
+      <button id="mic" type="button" class="btn icon" aria-label="Speak a message" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <button id="send" type="submit" class="btn primary">Send</button>
+    </form>
+    <label id="speakWrap" class="speakwrap" hidden><input id="speak" type="checkbox"> Speak replies</label>
+  </section>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<div id="dock" class="dock">
+  <button id="pause" class="pause" type="button">PAUSE (hold position)</button>
+  <p class="estop">Emergency stop = the switched power strip. It drops the claw: nobody under the robot.</p>
+</div>
+
+<nav id="tabs" class="tabs" role="tablist" aria-label="Screens">
+  <button id="t-home" role="tab" data-tab="home" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+  <button id="t-camera" role="tab" data-tab="camera" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/></svg>Camera</button>
+  <button id="t-setup" role="tab" data-tab="setup" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Setup</button>
+  <button id="t-chat" role="tab" data-tab="chat" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H10l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>Chat</button>
+</nav>
+
+<!-- confirmation sheet: deliberately NOT a modal dialog, so PAUSE (below it) stays pressable while it is open -->
+<div id="dlg" class="sheet" role="alertdialog" aria-labelledby="dlgTitle" aria-describedby="dlgBody" hidden>
+  <form id="dlgForm">
+    <h3 id="dlgTitle"></h3>
+    <p id="dlgBody"></p>
+    <input id="dlgInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" hidden aria-label="Confirmation text">
+    <div class="row end">
+      <button type="button" id="dlgCancel" class="btn">Cancel</button>
+      <button type="submit" id="dlgOk" class="btn primary">OK</button>
+    </div>
+  </form>
+</div>
+
+<div id="connect" class="connect" hidden>
+  <form id="connectForm" class="card">
+    <h3>Connect to the robot</h3>
+    <p id="connectNote" class="muted">Open the address printed in the robot computer's terminal, or paste it (or just the token) here.</p>
+    <input id="connectInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="token or full address" aria-label="Session token">
+    <button class="btn primary" type="submit">Connect</button>
+  </form>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

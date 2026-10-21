@@ -1,3 +1,58 @@
+## Phone app (gen-2)
+
+The phone app is served by the gen-2 operator service (`roomcleaner/cdpr/service.py`), the only program that talks to
+the stations and the claw. The phone never reaches the hardware directly. Specification and safety rules:
+`docs/PHONE_APP_SPEC.md`. Screenshots (390 x 844): `docs/app_screenshots/`. The gen-1 console described below is
+unchanged history.
+
+```bash
+pip install -r requirements-app.txt                 # Flask (qrcode is optional, see below)
+python -m roomcleaner.cdpr.service --sim --host 0.0.0.0 --port 8100                  # simulated robot
+python -m roomcleaner.cdpr.service --config config/robot.json --host 0.0.0.0         # hardware
+# terminal: "RoomCleaner phone app: http://192.168.x.y:8100/?token=..." (+ a QR code if `pip install qrcode`)
+```
+
+Open that address on the phone (same Wi-Fi). The token is read from `?token=` or `#token=`, kept in `sessionStorage`
+and sent as `X-Token`; it changes every time the service starts. If the app is opened without it (home-screen icon), it
+asks for the token or the full address. `--host` defaults to `0.0.0.0`; use `127.0.0.1` to keep it on this computer. For
+access away from home use Tailscale; do not forward ports. The old setup page is at `/v1`. Add to Home Screen gives a
+full-screen app (web manifest + icon).
+
+| Tab | What it does |
+|---|---|
+| Home | State in large text with plain-language detail, trust level and its reasons, stations A-D (online, fault, state, reference), claw (battery V and low flag, grip, camera), busy indicator, last error, recent events |
+| Camera | The frame the host already fetched from the claw, about 5 fps (MJPEG, still-JPEG fallback), frame age, marker/board detection status. `--sim`: the simulator's claw view |
+| Setup | (a) room and anchors, (b) unmeasured configuration per stage, (c) pre-start safety checklist, (d) Start and live startup steps with reasons, recovery buttons only where the supervisor allows them (Resume, Acknowledge, Recover, Lower, Disarm with the typed `claw_supported`), (e) calibration result and trust |
+| Chat | Rule-based "talk to the robot" (no cloud AI, no API key); optional mic and "speak replies" where the browser has speech recognition/synthesis (often only on https or localhost; typing always works) |
+
+PAUSE (hold position) and the line "Emergency stop = the switched power strip. It drops the claw: nobody under the
+robot." are on every screen. PAUSE holds torque (D21); the app never claims to be an emergency stop; losing the phone
+does nothing to the robot, but PAUSE needs the connection and the app says so loudly when it is lost.
+
+**Chat intents** (`roomcleaner/cdpr/chat.py`): `help`, `status`, `why` (trust and reasons), `battery`, `pause`,
+`resume`, `start`, `acknowledge`, `recover`, `lower`, `open grip`, `close grip`; anything else gets "I didn't
+understand" plus the help list. `pause` runs at once and cancels any question waiting. Every motion intent (start,
+resume, recover, lower, open/close grip) is answered with a question and runs only on "yes"/"confirm" within 30 s (the
+question is kept on the server, keyed by the token; any other message drops it; the command is re-checked when "yes"
+arrives). `start` is refused with guidance unless the operator has ticked the checklist on the Setup tab (the chat never
+ticks it). `acknowledge` runs without a question (it re-arms stations, it does not move the cables). Disarm is not
+available from chat. Grip is not a supervisor command: from the phone it is allowed only when the claw is verified on the
+floor (PARKED, or DISARMED with the floor confirmed) and the claw is reporting, and it uses the claw client's `grip()` on the
+command worker.
+
+**Endpoints added to the service** (all need `X-Token`, except the stream which also takes `?token=`):
+`GET /api/events?since=N` (ordered `{id, t, kind, text}` log: state changes, reasons, startup steps, command results),
+`POST /api/say {text, checklist?}` -> `{reply, pending_confirm, command_run, goto, chips}`, `GET /api/frame.jpg` (+
+`X-Frame-Age-S`), `GET /api/stream.mjpg?token=` (~5 fps, at most 4 open), `/api/status` extended with `stations[*].online`,
+`claw`, `camera`, `state_text`, `anchors_m`, `allowed`, `chips`. Pages: `/` (app), `/v1`, `/manifest.webmanifest`,
+`/icon.png`. The camera routes serve the frame thread's cache (`claw_link.ThreadedFrameSource.latest_frame()`): they never
+fetch from the claw and never touch the host loop. Claw telemetry for `/api/status` is polled every 2 s by a background
+thread, not by requests.
+
+Tests: `tests/cdpr/test_phone_app.py` (Flask test client in `--sim`, pure chat tests, claw frame cache against a fake claw).
+
+---
+
 # RoomCleaner console
 
 **One browser app** (`roomcleaner/app`) — mission control and live perception

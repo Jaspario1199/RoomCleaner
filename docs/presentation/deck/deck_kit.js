@@ -44,7 +44,7 @@ const GRID = {
   RX: 6.4, RW: W - M - 6.4,           // right column (rail + fundamentals box)
   TOP: 1.95, BOT: 6.85,               // content band
   PITCH: 0.70,                        // rail row height
-  PLANNED_H: 0.78,                    // height of the PLANNED card when present
+  PLANNED_H: 0.86,                    // height of the PLANNED card when present
 };
 
 const RAIL = ["WANTED", "REALIZED", "DECIDED", "RESULT", "BUT"];
@@ -143,7 +143,7 @@ function createKit(deckTitle) {
         isTextBox: true, objectName: `rail_dot_${i + 1}`,
       });
       slide.addText(label, {
-        x: x + 0.38, y: y - 0.01, w: step - 0.45, h: 0.3, fontSize: 10, bold: true, fontFace: "Arial", charSpacing: 1.2,
+        x: x + 0.38, y: y - 0.01, w: step - 0.45, h: 0.3, fontSize: 11, bold: true, fontFace: "Arial", charSpacing: 1.2,
         color: cur ? C.accent1 : done ? C.text1 : C.text2, margin: 0, valign: "middle", isTextBox: true, objectName: `rail_label_${i + 1}`,
       });
     });
@@ -169,10 +169,10 @@ function createKit(deckTitle) {
         isTextBox: true, objectName: `rail_dot_${i + 1}`,
       });
       slide.addText(RAIL[i], {
-        x: x + 0.42, y: yi, w: 1.15, h: pitch, fontSize: 10, bold: true, fontFace: "Arial", charSpacing: 1.2,
+        x: x + 0.42, y: yi, w: 1.15, h: pitch, fontSize: 11, bold: true, fontFace: "Arial", charSpacing: 1.2,
         color: cur ? C.accent1 : done ? C.text1 : C.text2, margin: 0, valign: "middle", isTextBox: true, objectName: `rail_label_${i + 1}`,
       });
-      slide.addText(txt, {
+      slide.addText(nb(txt), {
         x: x + 1.6, y: yi, w: w - 1.6, h: pitch, fontSize: 15, bold: cur, color: C.text1, margin: 0, valign: "middle",
         isTextBox: true, objectName: `rail_text_${i + 1}`,
       });
@@ -180,14 +180,14 @@ function createKit(deckTitle) {
   }
 
   /** Dimension callout: Signal dot on the feature (fx,fy), leader to a label at (lx,ly). */
-  function callout(slide, fx, fy, lx, ly, label, align = "left") {
+  function callout(slide, fx, fy, lx, ly, label, align = "left", size = 12) {
     const x = Math.min(fx, lx), y = Math.min(fy, ly);
     slide.addShape(pres.shapes.LINE, { x, y, w: Math.abs(lx - fx), h: Math.abs(ly - fy), flipV: (lx < fx) !== (ly < fy), line: { color: C.text1, width: 1 }, objectName: `callout_line_${label}` });
     slide.addShape(pres.shapes.OVAL, { x: fx - 0.06, y: fy - 0.06, w: 0.12, h: 0.12, fill: { color: C.accent1 }, line: { color: C.background1, width: 1 }, objectName: `callout_dot_${label}` });
-    const lw = 0.1 * label.length + 0.3;
+    const lw = (size / 120) * label.length + 0.3;
     slide.addText(label, {
       fill: { color: C.background1 },
-      x: align === "left" ? lx + 0.05 : lx - lw - 0.05, y: ly - 0.16, w: lw, h: 0.32, fontSize: 12, bold: true, fontFace: "Arial",
+      x: align === "left" ? lx + 0.05 : lx - lw - 0.05, y: ly - 0.16, w: lw, h: 0.32, fontSize: size, bold: true, fontFace: "Arial",
       color: C.text1, align: "center", valign: "middle", margin: 0, isTextBox: true, objectName: `callout_label_${label}`,
     });
   }
@@ -203,7 +203,7 @@ function createKit(deckTitle) {
   }
 
   function eyebrowLabel(slide, text, x, y, w, color) {
-    slide.addText(text, { x, y, w, h: 0.22, fontSize: 10, bold: true, fontFace: "Arial", charSpacing: 1.5, color: color || C.text2, margin: 0, isTextBox: true });
+    slide.addText(text, { x, y, w, h: 0.22, fontSize: 11, bold: true, fontFace: "Arial", charSpacing: 1.5, color: color || C.text2, margin: 0, isTextBox: true });
   }
 
   /** Fog mat behind a render. */
@@ -251,6 +251,21 @@ function createKit(deckTitle) {
     };
   }
 
+
+  /** Keep a number and its unit on one line (non-breaking space). */
+  function nb(str) {
+    return String(str).replace(/(\d) (%|°C|°|mm|cm|kg|g|N·m|N|V|A|W|ms|s|m|ft|in|Hz|mrad|K\/W|Ω|mm\/s)(?![A-Za-z])/g, "$1\u00A0$2");
+  }
+
+  /** "R_{s}" markup becomes a subscript run; plain strings pass through. */
+  function richRuns(str, base = {}) {
+    const parts = nb(str).split(/_\{([^}]*)\}/);
+    if (parts.length === 1) return nb(str);
+    const runs = [];
+    parts.forEach((t, i) => { if (t !== "") runs.push({ text: t, options: { ...base, subscript: i % 2 === 1 } }); });
+    return runs;
+  }
+
   /** Fundamentals box: label, equation (Cambria) and the numbers substituted. Optional big number cell. */
   function fundBox(slide, f, x, y, w, h) {
     slide.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: C.background2 }, line: { color: C.background2, width: 0.5 }, objectName: "fund_box" });
@@ -263,15 +278,15 @@ function createKit(deckTitle) {
       ex = x + 0.2 + bw + 0.2; ew = w - (ex - x) - 0.2;
     }
     const eqSize = f.eqSize || (f.eq.length > 44 && !f.big ? 16 : f.big ? 15 : 18);
-    slide.addText(f.eq, { x: ex, y: y + 0.3, w: ew, h: f.big ? 0.42 : 0.4, fontSize: eqSize, fontFace: "Cambria", color: C.text1, margin: 0, valign: "middle", isTextBox: true, objectName: "fund_eq" });
-    slide.addText(f.sub, { x: ex, y: y + (f.big ? 0.74 : 0.72), w: ew, h: h - (f.big ? 0.8 : 0.78), fontSize: 13, fontFace: "Cambria", color: C.text1, margin: 0, valign: "top", isTextBox: true, objectName: "fund_sub" });
+    slide.addText(richRuns(f.eq), { x: ex, y: y + 0.3, w: ew, h: f.big ? 0.42 : 0.4, fontSize: eqSize, fontFace: "Cambria", color: C.text1, margin: 0, valign: "middle", isTextBox: true, objectName: "fund_eq" });
+    slide.addText(richRuns(f.sub), { x: ex, y: y + (f.big ? 0.74 : 0.72), w: ew, h: h - (f.big ? 0.8 : 0.78), fontSize: 13, fontFace: "Cambria", color: C.text1, margin: 0, valign: "top", isTextBox: true, objectName: "fund_sub" });
   }
 
   /** Clearly marked placeholder for a result that does not exist yet. Never holds a number. */
   function plannedCard(slide, line2, x, y, w, h = GRID.PLANNED_H, head = "PLANNED — result after the Oct 22 test") {
     slide.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: C.background2 }, line: { color: C.text2, width: 1, dashType: "dash" }, objectName: "planned_card" });
     slide.addText(head, { x: x + 0.2, y: y + 0.07, w: w - 0.4, h: 0.28, fontSize: 12, bold: true, fontFace: "Arial", color: C.text1, margin: 0, valign: "middle", isTextBox: true, objectName: "planned_head" });
-    slide.addText(line2, { x: x + 0.2, y: y + 0.37, w: w - 0.4, h: h - 0.42, fontSize: 12, color: C.text1, margin: 0, valign: "top", isTextBox: true, objectName: "planned_text" });
+    slide.addText(nb(line2), { x: x + 0.2, y: y + 0.37, w: w - 0.4, h: h - 0.42, fontSize: 12, color: C.text1, margin: 0, valign: "top", isTextBox: true, objectName: "planned_text" });
   }
 
   /**
@@ -280,7 +295,8 @@ function createKit(deckTitle) {
    */
   function limitLine(slide, plot, axisMax, value, label, o = {}) {
     const y = plot.y + plot.h * (1 - value / axisMax);
-    slide.addShape(pres.shapes.LINE, { x: plot.x, y, w: plot.w, h: 0, line: { color: o.color || C.text1, width: 1.25, dashType: "dash" }, objectName: `limit_${label}` });
+    slide.addShape(pres.shapes.LINE, { x: plot.x, y, w: plot.w, h: 0, line: { color: o.color || C.text1, width: 1.25, dashType: "dash" }, objectName: `limit_${label || "line"}_${value}` });
+    if (!label) return;
     const lw = o.labelW || (0.085 * label.length + 0.3);
     slide.addText(label, {
       x: o.align === "left" ? plot.x + 0.05 : plot.x + plot.w - lw - 0.03, y: o.below ? y + 0.03 : y - 0.27, w: lw, h: 0.24,
@@ -307,7 +323,7 @@ function createKit(deckTitle) {
     return { x: box.x + layout.x * box.w, y: box.y + layout.y * box.h, w: layout.w * box.w, h: layout.h * box.h };
   }
 
-  return { pres, C, tag, tags, rail, railV, callout, body, caption, eyebrowLabel, mat, render, renderFit, photo, fundBox, plannedCard, limitLine, chartOpts, plotRect };
+  return { pres, C, nb, richRuns, tag, tags, rail, railV, callout, body, caption, eyebrowLabel, mat, render, renderFit, photo, fundBox, plannedCard, limitLine, chartOpts, plotRect };
 }
 
 module.exports = { createKit, THEME, HEX, W, H, M, ROOT, P, PHOTO, RENDER, RAIL, GRID };

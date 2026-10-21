@@ -1,0 +1,6760 @@
+{
+ "script": "calculations/presentation_fundamentals.py",
+ "note": "Every number recomputed from the repository's inputs; see per-input 'source'. basis = supplied | assumed.",
+ "topics": [
+  {
+   "id": 1,
+   "topic": "Cable statics: tension vs elevation angle",
+   "equation": "T = W / (4 sin phi);  sin phi = d / sqrt(d^2 + Dh^2);  W_dyn = W (1 + a/g)",
+   "evidence": "CALCULATED",
+   "decision": "A ceiling margin (0.4 m below the anchors) and a software ceiling: near the anchors the cables are almost horizontal, tension blows up as 1/sin(phi), and the motor cannot supply it.",
+   "limits": "Point claw, massless straight cables, equal vertical share (the system is statically indeterminate, the best split is found by LP); ignores the 84 mm attachment spread, sag, pulley friction and swing.",
+   "inputs": [
+    {
+     "key": "t01_g",
+     "name": "gravity",
+     "value": 9.81,
+     "unit": "m/s^2",
+     "basis": "supplied",
+     "source": "calculations/gen2_screening.py:G"
+    },
+    {
+     "key": "t01_room_l",
+     "name": "room length (11 ft)",
+     "value": 3.3528,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "calculations/gen2_payload_limit.py:ROOM_L"
+    },
+    {
+     "key": "t01_room_w",
+     "name": "room width (9 ft)",
+     "value": 2.7432,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "calculations/gen2_payload_limit.py:ROOM_W"
+    },
+    {
+     "key": "t01_room_h",
+     "name": "room height (9 ft)",
+     "value": 2.7432,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "calculations/gen2_payload_limit.py:ROOM_H"
+    },
+    {
+     "key": "t01_anchor_drop",
+     "name": "anchor drop below ceiling",
+     "value": 0.15,
+     "unit": "m",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gen2_payload_limit.py:ANCHOR_DROP"
+    },
+    {
+     "key": "t01_accel",
+     "name": "design vertical acceleration",
+     "value": 2.0,
+     "unit": "m/s^2",
+     "basis": "supplied",
+     "source": "calculations/gen2_payload_limit.py:ACCEL"
+    },
+    {
+     "key": "t01_m_claw",
+     "name": "claw mass (budget, unweighed)",
+     "value": 0.45,
+     "unit": "kg",
+     "basis": "assumed",
+     "source": "ASSUMED; REQUIREMENTS.md R7; calculations/gen2_screening.py:CLAW_MASS"
+    },
+    {
+     "key": "t01_m_test",
+     "name": "test load, 1 lb",
+     "value": 0.45359237,
+     "unit": "kg",
+     "basis": "supplied",
+     "source": "calculations/gen2_screening.py:TEST_WEIGHT (Outline v1, first target)"
+    },
+    {
+     "key": "t01_vref",
+     "name": "A4988 Vref at the carrier maximum (measured)",
+     "value": 0.85,
+     "unit": "V",
+     "basis": "supplied",
+     "source": "DECISIONS.md D30"
+    },
+    {
+     "key": "t01_ceil_margin",
+     "name": "ceiling margin used by the planner",
+     "value": 0.4,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "config/robot.sim.json motion.ceiling_margin_m; DECISIONS.md D26"
+    },
+    {
+     "key": "t01_task_h",
+     "name": "highest task height allowed",
+     "value": 1.6,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "config/robot.sim.json motion.task_max_height_m"
+    }
+   ],
+   "results": [
+    {
+     "key": "t01_dh",
+     "name": "horizontal distance, room centre to each anchor",
+     "value": 2.1660109695,
+     "unit": "m",
+     "note": ""
+    },
+    {
+     "key": "t01_w",
+     "name": "supported weight W (1 lb + 0.45 kg)",
+     "value": 8.8642411497,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t01_w_dyn",
+     "name": "W x (1 + a/g)",
+     "value": 10.6714258897,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t01_phi_0.15",
+     "name": "elevation angle at 0.15 m",
+     "value": 3.96150688371,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t01_T_0.15",
+     "name": "tension per cable at 0.15 m below anchors (static)",
+     "value": 32.0767138327,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t01_Tdyn_0.15",
+     "name": "tension per cable at 0.15 m, +2 m/s^2",
+     "value": 38.6163089056,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t01_phi_0.30",
+     "name": "elevation angle at 0.3 m",
+     "value": 7.88549569307,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t01_T_0.30",
+     "name": "tension per cable at 0.3 m below anchors (static)",
+     "value": 16.1527732905,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t01_Tdyn_0.30",
+     "name": "tension per cable at 0.3 m, +2 m/s^2",
+     "value": 19.4458973048,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t01_phi_0.60",
+     "name": "elevation angle at 0.6 m",
+     "value": 15.4830990999,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t01_T_0.60",
+     "name": "tension per cable at 0.6 m below anchors (static)",
+     "value": 8.30127783185,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t01_Tdyn_0.60",
+     "name": "tension per cable at 0.6 m, +2 m/s^2",
+     "value": 9.99368921449,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t01_phi_1.20",
+     "name": "elevation angle at 1.2 m",
+     "value": 28.9870584629,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t01_T_1.20",
+     "name": "tension per cable at 1.2 m below anchors (static)",
+     "value": 4.57285422997,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t01_Tdyn_1.20",
+     "name": "tension per cable at 1.2 m, +2 m/s^2",
+     "value": 5.50513847665,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t01_f_full",
+     "name": "line force available, full spool (running)",
+     "value": 17.85,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t01_f_use",
+     "name": "line force used for design (full spool / 1.5)",
+     "value": 11.9,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t01_dmin_no_margin",
+     "name": "shallowest centred depth the motor can hold (no_margin)",
+     "value": 0.327408969503,
+     "unit": "m",
+     "note": ""
+    },
+    {
+     "key": "t01_dmin_sf15",
+     "name": "shallowest centred depth the motor can hold (sf15)",
+     "value": 0.498280638466,
+     "unit": "m",
+     "note": ""
+    },
+    {
+     "key": "t01_d_task",
+     "name": "depth below the anchors of the highest task pose",
+     "value": 0.9932,
+     "unit": "m",
+     "note": ""
+    },
+    {
+     "key": "t01_dmin_static_nomargin",
+     "name": "shallowest centred depth, static weight, no margin, full spool",
+     "value": 0.271004779349,
+     "unit": "m",
+     "note": ""
+    },
+    {
+     "key": "t01_lp_k_0.4",
+     "name": "worst max-tension / weight, ceiling limit 0.400 m",
+     "value": 2.42058344519,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t01_lp_lb_0.4",
+     "name": "max total weight at 1.0625 A, SF 1.5, ceiling 0.400 m",
+     "value": 1.10482158474,
+     "unit": "lb",
+     "note": ""
+    },
+    {
+     "key": "t01_lp_kg_0.4",
+     "name": "same, in kg",
+     "value": 0.501138646017,
+     "unit": "kg",
+     "note": ""
+    },
+    {
+     "key": "t01_lp_k_0.6",
+     "name": "worst max-tension / weight, ceiling limit 0.600 m",
+     "value": 1.66646671428,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t01_lp_lb_0.6",
+     "name": "max total weight at 1.0625 A, SF 1.5, ceiling 0.600 m",
+     "value": 1.60478023054,
+     "unit": "lb",
+     "note": ""
+    },
+    {
+     "key": "t01_lp_kg_0.6",
+     "name": "same, in kg",
+     "value": 0.727916075312,
+     "unit": "kg",
+     "note": ""
+    },
+    {
+     "key": "t01_lp_k_1.0",
+     "name": "worst max-tension / weight, ceiling limit 1.000 m",
+     "value": 1.09502032048,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t01_lp_lb_1.0",
+     "name": "max total weight at 1.0625 A, SF 1.5, ceiling 1.000 m",
+     "value": 2.44224950707,
+     "unit": "lb",
+     "note": ""
+    },
+    {
+     "key": "t01_lp_kg_1.0",
+     "name": "same, in kg",
+     "value": 1.10778575302,
+     "unit": "kg",
+     "note": ""
+    },
+    {
+     "key": "t01_lp_k_task",
+     "name": "worst max-tension / weight, ceiling limit 0.993 m",
+     "value": 1.10057520537,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t01_lp_lb_task",
+     "name": "max total weight at 1.0625 A, SF 1.5, ceiling 0.993 m",
+     "value": 2.4299228484,
+     "unit": "lb",
+     "note": ""
+    },
+    {
+     "key": "t01_lp_kg_task",
+     "name": "same, in kg",
+     "value": 1.10219447465,
+     "unit": "kg",
+     "note": ""
+    },
+    {
+     "key": "t01_need_kg",
+     "name": "claw (0.45) + 0.9 kg jeans",
+     "value": 1.35,
+     "unit": "kg",
+     "note": ""
+    },
+    {
+     "key": "t01_need_ratio",
+     "name": "required / available at the task ceiling (\u00d815 core, SF 1.5)",
+     "value": 1.22482922121,
+     "unit": "x",
+     "note": ""
+    },
+    {
+     "key": "t01_d29_claw_design",
+     "name": "claw mass for 1 lb payload at 1.35 A, ceiling 0.4 m: full spool, SF 1.5",
+     "value": 183.148497881,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t01_d29_claw_nosf",
+     "name": "same, no safety factor",
+     "value": 501.518931821,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t01_d29_claw_core",
+     "name": "same, core radius, no safety factor",
+     "value": 819.889365761,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t01_d29_claw_hold",
+     "name": "same, using the HOLD torque at the empty-spool radius / 1.5 as the line force",
+     "value": 759.247378344,
+     "unit": "g",
+     "note": "this is how ~750 g (D29) and ~650 g at 1.25 A (DESIGN_STATE) can be reached"
+    }
+   ],
+   "tables": {
+    "equal_share": {
+     "columns": [
+      "depth_m",
+      "phi_deg",
+      "T_static_N",
+      "T_dynamic_N",
+      "repo_R6_N"
+     ],
+     "rows": [
+      [
+       0.15,
+       3.96150688371,
+       32.0767138327,
+       38.6163089056,
+       32.1
+      ],
+      [
+       0.3,
+       7.88549569307,
+       16.1527732905,
+       19.4458973048,
+       16.1
+      ],
+      [
+       0.6,
+       15.4830990999,
+       8.30127783185,
+       9.99368921449,
+       8.3
+      ],
+      [
+       1.2,
+       28.9870584629,
+       4.57285422997,
+       5.50513847665,
+       4.6
+      ]
+     ]
+    },
+    "lp": {
+     "columns": [
+      "ceiling_limit_m",
+      "worst_T_over_W",
+      "x_m",
+      "y_m",
+      "z_m",
+      "lb_at_1.0A",
+      "lb_at_1.0625A"
+     ],
+     "rows": [
+      [
+       0.4,
+       2.42058344519,
+       1.6764,
+       2.5432,
+       2.1932,
+       1.03983207976,
+       1.10482158474
+      ],
+      [
+       0.6,
+       1.66646671428,
+       1.6764,
+       2.5432,
+       1.9932,
+       1.51038139345,
+       1.60478023054
+      ],
+      [
+       1.0,
+       1.09502032048,
+       1.6764,
+       0.2,
+       1.5932,
+       2.29858777136,
+       2.44224950707
+      ],
+      [
+       0.9932,
+       1.10057520537,
+       1.6764,
+       0.2,
+       1.6,
+       2.28698621026,
+       2.4299228484
+      ]
+     ]
+    }
+   },
+   "comparisons": [
+    {
+     "claim": "equal-share tension at 0.15 m",
+     "repo": 32.1,
+     "mine": 32.0767138327,
+     "unit": "N",
+     "source": "verification/design_review_gen2.md R6",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "equal-share tension at 0.3 m",
+     "repo": 16.1,
+     "mine": 16.1527732905,
+     "unit": "N",
+     "source": "verification/design_review_gen2.md R6",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "equal-share tension at 0.6 m",
+     "repo": 8.3,
+     "mine": 8.30127783185,
+     "unit": "N",
+     "source": "verification/design_review_gen2.md R6",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "equal-share tension at 1.2 m",
+     "repo": 4.6,
+     "mine": 4.57285422997,
+     "unit": "N",
+     "source": "verification/design_review_gen2.md R6",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "R6: 'above ~0.3 m below the anchors the claw cannot be lifted'",
+     "repo": 0.3,
+     "mine": "0.27 (static) .. 0.33 (+2 m/s^2)",
+     "unit": "m",
+     "source": "verification/design_review_gen2.md R6",
+     "status": "AGREE",
+     "note": "Centred pose, full spool, no margin; with the 1.5 margin the shallowest centred depth is 0.50 m."
+    },
+    {
+     "claim": "best-split total weight at 1.0 A, ceiling 0.4 m",
+     "repo": 1.04,
+     "mine": 1.03983207976,
+     "unit": "lb",
+     "source": "verification/design_review_gen2.md R10",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "best-split total weight at 1.0 A, ceiling 0.6 m",
+     "repo": 1.51,
+     "mine": 1.51038139345,
+     "unit": "lb",
+     "source": "verification/design_review_gen2.md R10",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "best-split total weight at 1.0 A, ceiling 1.0 m",
+     "repo": 2.3,
+     "mine": 2.29858777136,
+     "unit": "lb",
+     "source": "verification/design_review_gen2.md R10",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "D29: 'claw mass budget rises to ~750 g with a 1 lb payload at the 0.4 m ceiling margin' (1.35 A)",
+     "repo": 750,
+     "mine": "183 / 502 / 820",
+     "unit": "g",
+     "source": "DECISIONS.md D29 (superseded by D30)",
+     "status": "DISAGREE",
+     "note": "Not reproducible with the repository's own capacity method (full spool, running torque): 1.5 margin gives about 180 g, no margin 500 g, core radius and no margin 820 g.  The ~750 g appears only if the HOLD torque at the empty-spool radius (43 N) is used as the line force with the 1.5 margin (759 g).  D30 withdrew 1.35 A; do not quote the 750 g."
+    },
+    {
+     "claim": "claw at the room centre needs the ceiling margin",
+     "repo": 0.4,
+     "mine": 0.498280638466,
+     "unit": "m",
+     "source": "config/robot.sim.json motion.ceiling_margin_m",
+     "status": "CONTEXT",
+     "note": "Centred pose with 1 lb + 0.45 kg needs about 0.5 m at SF 1.5 (0.33 m with no margin); poses near a wall are worse (LP), so 0.4 m is a floor, not a comfortable margin."
+    }
+   ],
+   "headline": [
+    "t01_T_0.15",
+    "t01_T_0.30",
+    "t01_T_0.60",
+    "t01_T_1.20",
+    "t01_dmin_sf15",
+    "t01_lp_lb_0.4",
+    "t01_lp_lb_task",
+    "t01_need_ratio"
+   ]
+  },
+  {
+   "id": 2,
+   "topic": "Motor torque to line tension, current cap, spool core",
+   "equation": "I = Vref / (8 Rs);  tau_hold = tau_rated I / I_rated;  tau_run = 0.7 tau_hold;  F = tau / r",
+   "evidence": "CALCULATED (inputs: MEASURED Vref and spool; PLANNED pull test for the 0.7 running fraction)",
+   "decision": "Winch current is capped by the driver board (about 1.06 A), so lift capacity has to come from a smaller spool core, a lighter claw, or a larger ceiling margin; a \u00d810 mm core is the largest that still lifts a 0.45 kg claw plus 0.9 kg jeans with a 1.5 margin at the highest task pose.",
+   "limits": "Torque is taken linear in current with a flat 0.7 running fraction (no speed dependence); the 85 % packing rule ignores cross-overs; line bend life is a rule of thumb, not a test.",
+   "inputs": [
+    {
+     "key": "t02_vref",
+     "name": "A4988 Vref at the carrier maximum",
+     "value": 0.85,
+     "unit": "V",
+     "basis": "supplied",
+     "source": "DECISIONS.md D30 (measured on the red R100 carrier)"
+    },
+    {
+     "key": "t02_vref_old",
+     "name": "earlier measurement of the same cap",
+     "value": 0.79,
+     "unit": "V",
+     "basis": "supplied",
+     "source": "DESIGN_STATE.md (10/21 measured entry)"
+    },
+    {
+     "key": "t02_rs",
+     "name": "sense resistor, marking R100",
+     "value": 0.1,
+     "unit": "ohm",
+     "basis": "supplied",
+     "source": "DECISIONS.md D29 (R100 -> 1.08 V for 1.35 A)"
+    },
+    {
+     "key": "t02_hold",
+     "name": "rated holding torque, SIMAX 42-38",
+     "value": 0.36,
+     "unit": "N m",
+     "basis": "supplied",
+     "source": "calculations/gen2_payload_limit.py:HOLD_RATED"
+    },
+    {
+     "key": "t02_i_rated",
+     "name": "rated phase current",
+     "value": 1.5,
+     "unit": "A",
+     "basis": "supplied",
+     "source": "calculations/gen2_payload_limit.py:I_RATED"
+    },
+    {
+     "key": "t02_run_frac",
+     "name": "running / holding torque",
+     "value": 0.7,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gen2_payload_limit.py:RUN_FRAC"
+    },
+    {
+     "key": "t02_run_frac_old",
+     "name": "running fraction in the R4/R6 tables",
+     "value": 0.5,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gen2_screening.py:RUN_FRAC"
+    },
+    {
+     "key": "t02_sf",
+     "name": "skip margin on line force",
+     "value": 1.5,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gen2_payload_limit.py:SKIP_SF"
+    },
+    {
+     "key": "t02_r_core",
+     "name": "spool core radius (Spoolv3, measured)",
+     "value": 0.0075,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "config/robot.sim.json stations[0].spool; verification/design_review_gen2.md R4"
+    },
+    {
+     "key": "t02_line_d",
+     "name": "line effective diameter",
+     "value": 0.0005,
+     "unit": "m",
+     "basis": "assumed",
+     "source": "ASSUMED; config/robot.sim.json stations[0].spool; calculations/gen2_screening.py:LINE_D"
+    },
+    {
+     "key": "t02_packing",
+     "name": "winding packing",
+     "value": 0.85,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED; config/robot.sim.json stations[0].spool; calculations/gen2_screening.py:PACKING"
+    },
+    {
+     "key": "t02_width",
+     "name": "drum width (Spoolv3, measured)",
+     "value": 0.016,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "config/robot.sim.json stations[0].spool; design_review_gen2.md R4"
+    },
+    {
+     "key": "t02_flange_r",
+     "name": "flange radius (measured)",
+     "value": 0.018,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "config/robot.sim.json stations[0].spool"
+    },
+    {
+     "key": "t02_line_total",
+     "name": "stored line, 20 ft",
+     "value": 6.096,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "config/robot.sim.json stations[0].spool"
+    },
+    {
+     "key": "t02_usteps",
+     "name": "microsteps per rev (200 x 16)",
+     "value": 3200,
+     "unit": "1/rev",
+     "basis": "supplied",
+     "source": "config/robot.sim.json stations[0].drive"
+    },
+    {
+     "key": "t02_f_cap",
+     "name": "step-rate cap in the simulation profile (hardware example: null, 1 microstep)",
+     "value": 4000.0,
+     "unit": "Hz",
+     "basis": "assumed",
+     "source": "ASSUMED; config/robot.sim.json stations[0].drive.max_step_rate_hz; config/robot.example.json has null"
+    },
+    {
+     "key": "t02_v_max",
+     "name": "max cable speed",
+     "value": 0.05,
+     "unit": "m/s",
+     "basis": "supplied",
+     "source": "config/robot.sim.json motion.max_cable_speed_m_s"
+    },
+    {
+     "key": "t02_enc",
+     "name": "encoder counts per spool rev",
+     "value": 4096,
+     "unit": "1/rev",
+     "basis": "supplied",
+     "source": "config/robot.sim.json stations[0].encoder"
+    },
+    {
+     "key": "t02_bore_d",
+     "name": "bore diameter as printed design (v3)",
+     "value": 5.45,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/design_review_gen2.md R4"
+    },
+    {
+     "key": "t02_flat",
+     "name": "D-flat depth",
+     "value": 0.5,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/design_review_gen2.md R4; cad/params.py:MOTOR_SHAFT_FLAT"
+    },
+    {
+     "key": "t02_shaft_d",
+     "name": "NEMA 17 shaft",
+     "value": 5.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:MOTOR_SHAFT_DIA"
+    },
+    {
+     "key": "t02_tie_d",
+     "name": "tie-off hole diameter",
+     "value": 1.4,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/design_review_gen2.md R4 (offset 6 mm from the axis)"
+    },
+    {
+     "key": "t02_tie_wall",
+     "name": "outer wall left by the drawn tie-off hole",
+     "value": 0.8,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "derived from R4: core R7.5, hole at 6 mm, R0.7"
+    },
+    {
+     "key": "t02_m3",
+     "name": "M3 thread-forming engagement wanted (1 x D)",
+     "value": 3.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "ASSUMED rule of thumb for a thread-forming screw in plastic"
+    },
+    {
+     "key": "t02_bend_min",
+     "name": "line bend ratio, core diameter / line diameter, preferred minimum",
+     "value": 20.0,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED rule of thumb for braided HMPE (8-10 absolute minimum)"
+    }
+   ],
+   "results": [
+    {
+     "key": "t02_current",
+     "name": "driver current at Vref 0.85 V",
+     "value": 1.0625,
+     "unit": "A",
+     "note": ""
+    },
+    {
+     "key": "t02_current_old",
+     "name": "driver current at Vref 0.79 V",
+     "value": 0.9875,
+     "unit": "A",
+     "note": ""
+    },
+    {
+     "key": "t02_hold",
+     "name": "holding torque at that current",
+     "value": 0.255,
+     "unit": "N m",
+     "note": ""
+    },
+    {
+     "key": "t02_run",
+     "name": "running torque (x 0.7)",
+     "value": 0.1785,
+     "unit": "N m",
+     "note": ""
+    },
+    {
+     "key": "t02_r_full",
+     "name": "full-spool radius, \u00d815 core (recomputed winding)",
+     "value": 10.0,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_layers",
+     "name": "layers on the \u00d815 core",
+     "value": 5,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t02_f_core",
+     "name": "line force, core radius 7.5 mm (running)",
+     "value": 23.8,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_f_full",
+     "name": "line force, full spool (running)",
+     "value": 17.85,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_f_use_core",
+     "name": "design line force at the core (/1.5)",
+     "value": 15.8666666667,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_f_use_full",
+     "name": "design line force at full spool (/1.5)",
+     "value": 11.9,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_f_snag",
+     "name": "snag / structural worst case (hold torque / core radius)",
+     "value": 34.0,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_f_old_core",
+     "name": "R4/R6 convention (0.36 x 0.5 / r), core",
+     "value": 24.0,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_f_old_full",
+     "name": "R4/R6 convention, full spool",
+     "value": 18.0,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_cap",
+     "name": "\u00d815: total weight the winches hold at the task ceiling (SF 1.5, worst place)",
+     "value": 1.10219447465,
+     "unit": "kg",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_maxclaw",
+     "name": "\u00d815: largest claw mass that still lifts 0.9 kg jeans",
+     "value": 202.194474647,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_layers",
+     "name": "\u00d815: layers",
+     "value": 5,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_rfull",
+     "name": "\u00d815: full-spool radius",
+     "value": 10.0,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_ffull",
+     "name": "\u00d815: running force, full spool",
+     "value": 17.85,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_fcore",
+     "name": "\u00d815: running force, core",
+     "value": 23.8,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_fuse",
+     "name": "\u00d815: design force, full spool (/1.5)",
+     "value": 11.9,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_dlen",
+     "name": "\u00d815: length per rev change core to full",
+     "value": 15.7079632679,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_lcore",
+     "name": "\u00d815: line paid out per spool rev, core layer",
+     "value": 47.1238898038,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_lfull",
+     "name": "\u00d815: line paid out per spool rev, full spool",
+     "value": 62.8318530718,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_vcore",
+     "name": "\u00d815: line speed at the step-rate cap, core",
+     "value": 58.9048622548,
+     "unit": "mm/s",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_fneed",
+     "name": "\u00d815: step rate for 50 mm/s on the core layer",
+     "value": 3395.30545263,
+     "unit": "Hz",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_bend",
+     "name": "\u00d815: bend ratio",
+     "value": 30.0,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_wall_round",
+     "name": "\u00d815: wall, round side of the \u00d85.45 bore",
+     "value": 4.775,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c15_wall_flat",
+     "name": "\u00d815: wall, flat side (set-screw engagement)",
+     "value": 5.275,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_cap",
+     "name": "\u00d812: total weight the winches hold at the task ceiling (SF 1.5, worst place)",
+     "value": 1.29669938194,
+     "unit": "kg",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_maxclaw",
+     "name": "\u00d812: largest claw mass that still lifts 0.9 kg jeans",
+     "value": 396.699381938,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_layers",
+     "name": "\u00d812: layers",
+     "value": 5,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_rfull",
+     "name": "\u00d812: full-spool radius",
+     "value": 8.5,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_ffull",
+     "name": "\u00d812: running force, full spool",
+     "value": 21.0,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_fcore",
+     "name": "\u00d812: running force, core",
+     "value": 29.75,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_fuse",
+     "name": "\u00d812: design force, full spool (/1.5)",
+     "value": 14.0,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_dlen",
+     "name": "\u00d812: length per rev change core to full",
+     "value": 15.7079632679,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_lcore",
+     "name": "\u00d812: line paid out per spool rev, core layer",
+     "value": 37.6991118431,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_lfull",
+     "name": "\u00d812: line paid out per spool rev, full spool",
+     "value": 53.407075111,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_vcore",
+     "name": "\u00d812: line speed at the step-rate cap, core",
+     "value": 47.1238898038,
+     "unit": "mm/s",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_fneed",
+     "name": "\u00d812: step rate for 50 mm/s on the core layer",
+     "value": 4244.13181578,
+     "unit": "Hz",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_bend",
+     "name": "\u00d812: bend ratio",
+     "value": 24.0,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_wall_round",
+     "name": "\u00d812: wall, round side of the \u00d85.45 bore",
+     "value": 3.275,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_wall_flat",
+     "name": "\u00d812: wall, flat side (set-screw engagement)",
+     "value": 3.775,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_cap",
+     "name": "\u00d810: total weight the winches hold at the task ceiling (SF 1.5, worst place)",
+     "value": 1.37774309331,
+     "unit": "kg",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_maxclaw",
+     "name": "\u00d810: largest claw mass that still lifts 0.9 kg jeans",
+     "value": 477.743093309,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_layers",
+     "name": "\u00d810: layers",
+     "value": 6,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_rfull",
+     "name": "\u00d810: full-spool radius",
+     "value": 8.0,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_ffull",
+     "name": "\u00d810: running force, full spool",
+     "value": 22.3125,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_fcore",
+     "name": "\u00d810: running force, core",
+     "value": 35.7,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_fuse",
+     "name": "\u00d810: design force, full spool (/1.5)",
+     "value": 14.875,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_dlen",
+     "name": "\u00d810: length per rev change core to full",
+     "value": 18.8495559215,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_lcore",
+     "name": "\u00d810: line paid out per spool rev, core layer",
+     "value": 31.4159265359,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_lfull",
+     "name": "\u00d810: line paid out per spool rev, full spool",
+     "value": 50.2654824574,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_vcore",
+     "name": "\u00d810: line speed at the step-rate cap, core",
+     "value": 39.2699081699,
+     "unit": "mm/s",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_fneed",
+     "name": "\u00d810: step rate for 50 mm/s on the core layer",
+     "value": 5092.95817894,
+     "unit": "Hz",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_bend",
+     "name": "\u00d810: bend ratio",
+     "value": 20.0,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_wall_round",
+     "name": "\u00d810: wall, round side of the \u00d85.45 bore",
+     "value": 2.275,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_wall_flat",
+     "name": "\u00d810: wall, flat side (set-screw engagement)",
+     "value": 2.775,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_cap",
+     "name": "\u00d88: total weight the winches hold at the task ceiling (SF 1.5, worst place)",
+     "value": 1.46959263286,
+     "unit": "kg",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_maxclaw",
+     "name": "\u00d88: largest claw mass that still lifts 0.9 kg jeans",
+     "value": 569.592632863,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_layers",
+     "name": "\u00d88: layers",
+     "value": 7,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_rfull",
+     "name": "\u00d88: full-spool radius",
+     "value": 7.5,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_ffull",
+     "name": "\u00d88: running force, full spool",
+     "value": 23.8,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_fcore",
+     "name": "\u00d88: running force, core",
+     "value": 44.625,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_fuse",
+     "name": "\u00d88: design force, full spool (/1.5)",
+     "value": 15.8666666667,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_dlen",
+     "name": "\u00d88: length per rev change core to full",
+     "value": 21.9911485751,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_lcore",
+     "name": "\u00d88: line paid out per spool rev, core layer",
+     "value": 25.1327412287,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_lfull",
+     "name": "\u00d88: line paid out per spool rev, full spool",
+     "value": 47.1238898038,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_vcore",
+     "name": "\u00d88: line speed at the step-rate cap, core",
+     "value": 31.4159265359,
+     "unit": "mm/s",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_fneed",
+     "name": "\u00d88: step rate for 50 mm/s on the core layer",
+     "value": 6366.19772368,
+     "unit": "Hz",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_bend",
+     "name": "\u00d88: bend ratio",
+     "value": 16.0,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_wall_round",
+     "name": "\u00d88: wall, round side of the \u00d85.45 bore",
+     "value": 1.275,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_wall_flat",
+     "name": "\u00d88: wall, flat side (set-screw engagement)",
+     "value": 1.775,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_c12_gain",
+     "name": "\u00d812: design-force gain over \u00d815 (full spool)",
+     "value": 17.6470588235,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t02_c10_gain",
+     "name": "\u00d810: design-force gain over \u00d815 (full spool)",
+     "value": 25.0,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t02_c8_gain",
+     "name": "\u00d88: design-force gain over \u00d815 (full spool)",
+     "value": 33.3333333333,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t02_hex_dev",
+     "name": "largest change of full radius with hexagonal layer pitch",
+     "value": 0.469,
+     "unit": "mm",
+     "note": "convention sensitivity: small"
+    },
+    {
+     "key": "t02_bend_min_core",
+     "name": "smallest core meeting the 20:1 bend ratio",
+     "value": 10.0,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t02_rec_core",
+     "name": "recommended core diameter",
+     "value": 10,
+     "unit": "mm",
+     "note": "largest core that keeps bend ratio >= 20 and lifts 0.45 kg claw + 0.9 kg jeans with SF 1.5 at the task ceiling; \u00d88 would add only 8 more points of force"
+    },
+    {
+     "key": "t02_pts8",
+     "name": "extra design-force gain of \u00d88 over \u00d810",
+     "value": 8.33333333333,
+     "unit": "points",
+     "note": ""
+    }
+   ],
+   "tables": {
+    "core_study": {
+     "columns": [
+      "core_mm",
+      "layers",
+      "r_full_mm",
+      "r_full_hex_mm",
+      "ratio",
+      "F_core",
+      "F_full",
+      "F_use_full",
+      "F_snag",
+      "dlen_rev_mm",
+      "v_core_mm_s",
+      "v_full_mm_s",
+      "f_need_hz",
+      "um_per_ustep",
+      "um_per_count",
+      "bend_ratio",
+      "wall_round_mm",
+      "wall_flat_mm",
+      "tie_axial_ok",
+      "setscrew_ok",
+      "cap_total_kg",
+      "max_claw_for_jeans_g"
+     ],
+     "rows": [
+      [
+       15,
+       5,
+       10.0,
+       9.665,
+       1.33333333333,
+       23.8,
+       17.85,
+       11.9,
+       34.0,
+       15.7079632679,
+       58.9048622548,
+       78.5398163397,
+       3395.30545263,
+       14.7262155637,
+       11.5048559091,
+       30.0,
+       4.775,
+       5.275,
+       true,
+       true,
+       1.10219447465,
+       202.194474647
+      ],
+      [
+       12,
+       5,
+       8.5,
+       8.598,
+       1.41666666667,
+       29.75,
+       21.0,
+       14.0,
+       42.5,
+       15.7079632679,
+       47.1238898038,
+       66.7588438888,
+       4244.13181578,
+       11.780972451,
+       9.20388472731,
+       24.0,
+       3.275,
+       3.775,
+       true,
+       true,
+       1.29669938194,
+       396.699381938
+      ],
+      [
+       10,
+       6,
+       8.0,
+       7.598,
+       1.6,
+       35.7,
+       22.3125,
+       14.875,
+       51.0,
+       18.8495559215,
+       39.2699081699,
+       62.8318530718,
+       5092.95817894,
+       9.81747704247,
+       7.66990393943,
+       20.0,
+       2.275,
+       2.775,
+       false,
+       false,
+       1.37774309331,
+       477.743093309
+      ],
+      [
+       8,
+       7,
+       7.5,
+       7.031,
+       1.875,
+       44.625,
+       23.8,
+       15.8666666667,
+       63.75,
+       21.9911485751,
+       31.4159265359,
+       58.9048622548,
+       6366.19772368,
+       7.85398163397,
+       6.13592315154,
+       16.0,
+       1.275,
+       1.775,
+       false,
+       false,
+       1.46959263286,
+       569.592632863
+      ]
+     ]
+    }
+   },
+   "comparisons": [
+    {
+     "claim": "R6 line force at the 7.5 mm core",
+     "repo": 24.0,
+     "mine": 24.0,
+     "unit": "N",
+     "source": "verification/design_review_gen2.md R6",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "R4 line force at full spool (\u00d815 core)",
+     "repo": 18.0,
+     "mine": 18.0,
+     "unit": "N",
+     "source": "verification/design_review_gen2.md R4",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "R4 full radius, 16 mm drum",
+     "repo": 10.0,
+     "mine": 10.0,
+     "unit": "mm",
+     "source": "verification/design_review_gen2.md R4",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "D30 cable tension 'returns to ~34 N'",
+     "repo": 34.0,
+     "mine": 34.0,
+     "unit": "N",
+     "source": "DECISIONS.md D30",
+     "status": "AGREE",
+     "note": "34 N is hold torque / empty-spool radius (a snag worst case), NOT the running pull (23.8 N at the core, 17.9 N full spool, 11.9 N usable)."
+    },
+    {
+     "claim": "D29 cable tension at 1.35 A",
+     "repo": 43.0,
+     "mine": 43.2,
+     "unit": "N",
+     "source": "DECISIONS.md D29",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "'<= 40 N per cable (motor limit)' in the load case",
+     "repo": 40.0,
+     "mine": 23.8,
+     "unit": "N",
+     "source": "CLAUDE.md known loads; docs/SHOPPING_LIST.md (driver note)",
+     "status": "DISAGREE",
+     "note": "At 1.06 A the running line force never reaches 40 N (23.8 N at the core); even the hold-torque snag load is 34 N.  The shopping list already says 40 N is not a measured actuator limit."
+    },
+    {
+     "claim": "planner max_tension_n",
+     "repo": 15.0,
+     "mine": 11.9,
+     "unit": "N",
+     "source": "config/robot.sim.json motion.max_tension_n",
+     "status": "CONTEXT",
+     "note": "The planning cap (15 N) sits above the 1.5-margin design force at full spool (11.9 N) and below the unmargined running force (17.9 N)."
+    },
+    {
+     "claim": "D30 'Vref ~0.85 V' vs 10/21 entry 'tops out ~0.79 V'",
+     "repo": 0.79,
+     "mine": 0.85,
+     "unit": "V",
+     "source": "DESIGN_STATE.md vs DECISIONS.md D30",
+     "status": "CONTEXT",
+     "note": "Two measurements of the same cap: 0.79 V gives 0.99 A, 0.85 V gives 1.06 A.  The 7 % spread is the uncertainty on every tension quoted here."
+    },
+    {
+     "claim": "20 ft fits the \u00d815 core in 5 layers (R4)",
+     "repo": 5,
+     "mine": 5,
+     "unit": "layers",
+     "source": "verification/design_review_gen2.md R4",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "\u00d810 core study",
+     "repo": "pending",
+     "mine": "+25 % design force",
+     "unit": "-",
+     "source": "DECISIONS.md D30 / DESIGN_STATE.md (study pending)",
+     "status": "CONTEXT",
+     "note": "Needs: set-screw boss (flat-side wall 2.8 mm), tie-off moved to the flange (hub annulus 2.3 mm < 3.0 mm needed), and a step rate of 5.1 kHz at 16 microsteps (or a 39 mm/s speed derate) for 50 mm/s near the core."
+    }
+   ],
+   "headline": [
+    "t02_current",
+    "t02_f_core",
+    "t02_f_full",
+    "t02_f_snag",
+    "t02_c15_cap",
+    "t02_c10_cap",
+    "t02_c10_gain",
+    "t02_bend_min_core",
+    "t02_rec_core"
+   ]
+  },
+  {
+   "id": 3,
+   "topic": "Joule heating and the heat fin",
+   "equation": "P = I^2 R;  m = sqrt(2h/(k t));  eta = tanh(mL)/(mL);  R_fin = 1/(eta h A_fin);  two-node network + fin in parallel",
+   "evidence": "CALCULATED (fin as-built dimensions MEASURED; temperatures PLANNED: 90 min hold test)",
+   "decision": "A printed (PETG) mount cannot sink motor heat, so a 44 x 250 mm aluminium fin carries it into room air; the as-built 0.019 in sheet works, at about half the thermal effectiveness of the 1/8 in design.",
+   "limits": "Lumped two-node model with assumed R_phase, film coefficient and shell resistances; the fin is a 1-D adiabatic-tip fin in still air.  A thermometer test replaces it.",
+   "inputs": [
+    {
+     "key": "t03_r_phase",
+     "name": "coil resistance per phase",
+     "value": 1.8,
+     "unit": "ohm",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gen2_motor_thermal.py:R_PHASE"
+    },
+    {
+     "key": "t03_t_amb",
+     "name": "ambient near the ceiling",
+     "value": 23.0,
+     "unit": "C",
+     "basis": "assumed",
+     "source": "ASSUMED; DESIGN_STATE.md (room 20.6 C measured, ~23 C near the ceiling assumed); task brief"
+    },
+    {
+     "key": "t03_c_m",
+     "name": "motor heat capacity",
+     "value": 130.0,
+     "unit": "J/K",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gen2_motor_thermal.py:C_M"
+    },
+    {
+     "key": "t03_c_s",
+     "name": "shell + air heat capacity",
+     "value": 600.0,
+     "unit": "J/K",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gen2_motor_thermal.py:C_S"
+    },
+    {
+     "key": "t03_p_e",
+     "name": "electronics inside the shell",
+     "value": 1.5,
+     "unit": "W",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gen2_motor_thermal.py:P_E"
+    },
+    {
+     "key": "t03_vref",
+     "name": "Vref at the cap",
+     "value": 0.85,
+     "unit": "V",
+     "basis": "supplied",
+     "source": "DECISIONS.md D30"
+    },
+    {
+     "key": "t03_rs",
+     "name": "sense resistor",
+     "value": 0.1,
+     "unit": "ohm",
+     "basis": "supplied",
+     "source": "DECISIONS.md D29"
+    },
+    {
+     "key": "t03_k_al",
+     "name": "aluminium sheet conductivity (3003 ~159, 6061 ~167, 5052 ~138)",
+     "value": 160.0,
+     "unit": "W/m K",
+     "basis": "assumed",
+     "source": "ASSUMED; task brief; DESIGN_STATE.md used 167"
+    },
+    {
+     "key": "t03_k_petg",
+     "name": "PETG conductivity",
+     "value": 0.2,
+     "unit": "W/m K",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gen2_motor_thermal.py docstring; design_review_gen2.md R11"
+    },
+    {
+     "key": "t03_t_as",
+     "name": "as-built sheet thickness 0.019 in (measured)",
+     "value": 0.4826,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "DESIGN_STATE.md (Jasper, 10/20: heat fin sheet)"
+    },
+    {
+     "key": "t03_t_des",
+     "name": "designed plate 1/8 in",
+     "value": 3.175,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/parts/motor_heat_plate.py:T"
+    },
+    {
+     "key": "t03_w_fin",
+     "name": "fin width",
+     "value": 44.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/parts/motor_heat_plate.py:W"
+    },
+    {
+     "key": "t03_l_fin",
+     "name": "fin length in room air",
+     "value": 200.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/parts/motor_heat_plate.py (H 250, ~200 mm exposed); DESIGN_STATE.md"
+    },
+    {
+     "key": "t03_h_lo",
+     "name": "film coefficient, low",
+     "value": 5.0,
+     "unit": "W/m^2 K",
+     "basis": "assumed",
+     "source": "ASSUMED; DESIGN_STATE.md hand calc (still air + radiation, black)"
+    },
+    {
+     "key": "t03_h_mid",
+     "name": "film coefficient, mid",
+     "value": 7.0,
+     "unit": "W/m^2 K",
+     "basis": "assumed",
+     "source": "ASSUMED; midpoint of 5-9"
+    },
+    {
+     "key": "t03_h_hi",
+     "name": "film coefficient, high",
+     "value": 9.0,
+     "unit": "W/m^2 K",
+     "basis": "assumed",
+     "source": "ASSUMED; DESIGN_STATE.md hand calc"
+    },
+    {
+     "key": "t03_r_contact",
+     "name": "motor flange to fin contact",
+     "value": 1.0,
+     "unit": "K/W",
+     "basis": "assumed",
+     "source": "ASSUMED; DESIGN_STATE.md (+~1 K/W contact)"
+    }
+   ],
+   "results": [
+    {
+     "key": "t03_current",
+     "name": "phase current",
+     "value": 1.0625,
+     "unit": "A",
+     "note": ""
+    },
+    {
+     "key": "t03_p_m",
+     "name": "Joule heat in the motor, I^2 R",
+     "value": 2.03203125,
+     "unit": "W",
+     "note": ""
+    },
+    {
+     "key": "t03_a_fin",
+     "name": "fin area, both faces",
+     "value": 0.0176,
+     "unit": "m^2",
+     "note": ""
+    },
+    {
+     "key": "t03_as_built_m",
+     "name": "as_built: m",
+     "value": 13.4651243271,
+     "unit": "1/m",
+     "note": ""
+    },
+    {
+     "key": "t03_as_built_ml",
+     "name": "as_built: mL",
+     "value": 2.69302486543,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t03_as_built_eta",
+     "name": "as_built: fin efficiency (h = 7)",
+     "value": 36.7943762718,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_as_built_eta_h9",
+     "name": "as_built: fin efficiency at h = 9",
+     "value": 32.6026766706,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_as_built_eta_h5",
+     "name": "as_built: fin efficiency at h = 5",
+     "value": 43.0193148223,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_as_built_rfin",
+     "name": "as_built: R_fin (h = 7)",
+     "value": 22.0601187989,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_as_built_rfin_h9",
+     "name": "as_built: R_fin at h = 9",
+     "value": 19.3638435792,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_as_built_rfin_h5",
+     "name": "as_built: R_fin at h = 5",
+     "value": 26.4151960824,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_as_built_rtot",
+     "name": "as_built: R_fin + contact",
+     "value": 23.0601187989,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_design_m",
+     "name": "design: m",
+     "value": 5.24967190576,
+     "unit": "1/m",
+     "note": ""
+    },
+    {
+     "key": "t03_design_ml",
+     "name": "design: mL",
+     "value": 1.04993438115,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t03_design_eta",
+     "name": "design: fin efficiency (h = 7)",
+     "value": 74.4599718912,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_design_eta_h9",
+     "name": "design: fin efficiency at h = 9",
+     "value": 69.7798038436,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_design_eta_h5",
+     "name": "design: fin efficiency at h = 5",
+     "value": 80.0225836178,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_design_rfin",
+     "name": "design: R_fin (h = 7)",
+     "value": 10.9010021233,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_design_rfin_h9",
+     "name": "design: R_fin at h = 9",
+     "value": 9.04721848642,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_design_rfin_h5",
+     "name": "design: R_fin at h = 5",
+     "value": 14.2005367109,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_design_rtot",
+     "name": "design: R_fin + contact",
+     "value": 11.9010021233,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_T_open_no",
+     "name": "motor case, open air, no shell, no fin",
+     "value": 47.384375,
+     "unit": "C",
+     "note": ""
+    },
+    {
+     "key": "t03_T_open_asbuilt",
+     "name": "motor case, open air, no shell, as-built 0.019 in",
+     "value": 39.0383536508,
+     "unit": "C",
+     "note": ""
+    },
+    {
+     "key": "t03_share_open_asbuilt",
+     "name": "fin heat share, open air, no shell, as-built 0.019 in",
+     "value": 34.226923385,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_T_open_design",
+     "name": "motor case, open air, no shell, design 1/8 in",
+     "value": 35.1416874972,
+     "unit": "C",
+     "note": ""
+    },
+    {
+     "key": "t03_share_open_design",
+     "name": "fin heat share, open air, no shell, design 1/8 in",
+     "value": 50.207099845,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_T_vented_no",
+     "name": "motor case, vented shell (low inlet, high outlet), no fin",
+     "value": 50.91640625,
+     "unit": "C",
+     "note": ""
+    },
+    {
+     "key": "t03_T_vented_asbuilt",
+     "name": "motor case, vented shell (low inlet, high outlet), as-built 0.019 in",
+     "value": 40.8522885117,
+     "unit": "C",
+     "note": ""
+    },
+    {
+     "key": "t03_share_vented_asbuilt",
+     "name": "fin heat share, vented shell (low inlet, high outlet), as-built 0.019 in",
+     "value": 38.097982152,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_T_vented_design",
+     "name": "motor case, vented shell (low inlet, high outlet), design 1/8 in",
+     "value": 36.3421622315,
+     "unit": "C",
+     "note": ""
+    },
+    {
+     "key": "t03_share_vented_design",
+     "name": "fin heat share, vented shell (low inlet, high outlet), design 1/8 in",
+     "value": 55.1711836976,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_T_sealed_no",
+     "name": "motor case, sealed shell, stagnant air, no fin",
+     "value": 63.810546875,
+     "unit": "C",
+     "note": ""
+    },
+    {
+     "key": "t03_T_sealed_asbuilt",
+     "name": "motor case, sealed shell, stagnant air, as-built 0.019 in",
+     "value": 46.2024976024,
+     "unit": "C",
+     "note": ""
+    },
+    {
+     "key": "t03_share_sealed_asbuilt",
+     "name": "fin heat share, sealed shell, stagnant air, as-built 0.019 in",
+     "value": 49.5156875243,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_T_sealed_design",
+     "name": "motor case, sealed shell, stagnant air, design 1/8 in",
+     "value": 39.5193826719,
+     "unit": "C",
+     "note": ""
+    },
+    {
+     "key": "t03_share_sealed_design",
+     "name": "fin heat share, sealed shell, stagnant air, design 1/8 in",
+     "value": 68.3093100015,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_dT_fin_sealed",
+     "name": "sealed shell: temperature drop bought by the as-built fin",
+     "value": 17.6080492726,
+     "unit": "K",
+     "note": ""
+    },
+    {
+     "key": "t03_sealed_asbuilt_min",
+     "name": "sealed, as-built fin: motor case, best of k/h sweep",
+     "value": 44.7480018344,
+     "unit": "C",
+     "note": ""
+    },
+    {
+     "key": "t03_sealed_asbuilt_max",
+     "name": "sealed, as-built fin: motor case, worst of k/h sweep",
+     "value": 48.5392761148,
+     "unit": "C",
+     "note": ""
+    },
+    {
+     "key": "t03_share_min",
+     "name": "sealed, as-built: fin heat share, low",
+     "value": 42.9444204383,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_share_max",
+     "name": "sealed, as-built: fin heat share, high",
+     "value": 53.6058826869,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_tau_shell",
+     "name": "sealed shell time constant C_S R_sa",
+     "value": 35.0,
+     "unit": "min",
+     "note": ""
+    },
+    {
+     "key": "t03_hold_frac",
+     "name": "fraction of the final rise reached in a 90 min hold",
+     "value": 92.3573713009,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t03_slab_petg",
+     "name": "conduction resistance through a 5 mm petg plate under the motor flange",
+     "value": 13.9720224223,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_slab_al",
+     "name": "conduction resistance through a 3.17 mm al plate under the motor flange",
+     "value": 0.0110902927977,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_slab_ratio",
+     "name": "slab resistance ratio, PETG 5 mm / Al 1/8 in",
+     "value": 1259.84251969,
+     "unit": "x",
+     "note": ""
+    },
+    {
+     "key": "t03_lc_al",
+     "name": "al: heat-spreading length 1/m (t = 0.483 mm)",
+     "value": 74.2659314318,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t03_ginf_al",
+     "name": "al: long-fin conductance sqrt(h P k Ac)",
+     "value": 0.04599801474,
+     "unit": "W/K",
+     "note": ""
+    },
+    {
+     "key": "t03_rinf_al",
+     "name": "al: long-fin resistance",
+     "value": 21.7400686889,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_lc_petg",
+     "name": "petg: heat-spreading length 1/m (t = 0.483 mm)",
+     "value": 2.62569718633,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t03_ginf_petg",
+     "name": "petg: long-fin conductance sqrt(h P k Ac)",
+     "value": 0.00162627540719,
+     "unit": "W/K",
+     "note": ""
+    },
+    {
+     "key": "t03_rinf_petg",
+     "name": "petg: long-fin resistance",
+     "value": 614.901999734,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_lc_petg5",
+     "name": "petg5: heat-spreading length 1/m (t = 5 mm)",
+     "value": 8.45154254729,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t03_ginf_petg5",
+     "name": "petg5: long-fin conductance sqrt(h P k Ac)",
+     "value": 0.0054939967237,
+     "unit": "W/K",
+     "note": ""
+    },
+    {
+     "key": "t03_rinf_petg5",
+     "name": "petg5: long-fin resistance",
+     "value": 182.016854085,
+     "unit": "K/W",
+     "note": ""
+    },
+    {
+     "key": "t03_fin_ratio",
+     "name": "same-geometry fin: Al / PETG conductance",
+     "value": 28.2842712474,
+     "unit": "x",
+     "note": ""
+    }
+   ],
+   "tables": {
+    "network_1p06A_23C": {
+     "columns": [
+      "scenario",
+      "fin",
+      "T_motor_C",
+      "T_shell_C",
+      "Q_fin_W",
+      "fin_share_pct"
+     ],
+     "rows": [
+      [
+       "open air, no shell",
+       "no fin",
+       47.384375,
+       23.0,
+       0.0,
+       0.0
+      ],
+      [
+       "open air, no shell",
+       "as-built 0.019 in",
+       39.0383536508,
+       23.0,
+       0.695501779097,
+       34.226923385
+      ],
+      [
+       "open air, no shell",
+       "design 1/8 in",
+       35.1416874972,
+       23.0,
+       1.02022395857,
+       50.207099845
+      ],
+      [
+       "vented shell (low inlet, high outlet)",
+       "no fin",
+       50.91640625,
+       26.53203125,
+       0.0,
+       0.0
+      ],
+      [
+       "vented shell (low inlet, high outlet)",
+       "as-built 0.019 in",
+       40.8522885117,
+       25.7578683471,
+       0.774162902948,
+       38.097982152
+      ],
+      [
+       "vented shell (low inlet, high outlet)",
+       "design 1/8 in",
+       36.3421622315,
+       25.4109355563,
+       1.12109569373,
+       55.1711836976
+      ],
+      [
+       "sealed shell, stagnant air",
+       "no fin",
+       63.810546875,
+       35.362109375,
+       0.0,
+       0.0
+      ],
+      [
+       "sealed shell, stagnant air",
+       "as-built 0.019 in",
+       46.2024976024,
+       31.8404995205,
+       1.00617424415,
+       49.5156875243
+      ],
+      [
+       "sealed shell, stagnant air",
+       "design 1/8 in",
+       39.5193826719,
+       30.5038765344,
+       1.38806652589,
+       68.3093100015
+      ]
+     ]
+    }
+   },
+   "comparisons": [
+    {
+     "claim": "fin efficiency, 0.019 in (k 167, h 5-9)",
+     "repo": "33-44 %",
+     "mine": "33-44 %",
+     "unit": "%",
+     "source": "DESIGN_STATE.md (heat fin correction)",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "fin efficiency, 1/8 in (k 167, h 5-9)",
+     "repo": "71-81 %",
+     "mine": "71-81 %",
+     "unit": "%",
+     "source": "DESIGN_STATE.md (heat fin correction)",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "R_fin 0.019 in (k 167, h 5-9)",
+     "repo": "19-26 K/W",
+     "mine": "19-26 K/W",
+     "unit": "K/W",
+     "source": "DESIGN_STATE.md (heat fin correction)",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "sealed, 1.0 A, 0.019 in fin, ambient 30 C",
+     "repo": "50-53",
+     "mine": "50-52",
+     "unit": "C",
+     "source": "DESIGN_STATE.md (heat fin correction)",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "sealed, 1.25 A, 0.019 in fin, ambient 30 C",
+     "repo": "59-64",
+     "mine": "59-63",
+     "unit": "C",
+     "source": "DESIGN_STATE.md (heat fin correction)",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "sealed, 1.5 A, 0.019 in fin, ambient 30 C",
+     "repo": "71-78",
+     "mine": "71-76",
+     "unit": "C",
+     "source": "DESIGN_STATE.md (heat fin correction)",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "sealed, 1.25 A, ambient 23 C",
+     "repo": "53-56",
+     "mine": "52-56",
+     "unit": "C",
+     "source": "DESIGN_STATE.md",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "vented, 1.25 A, ambient 23 C",
+     "repo": "47-49",
+     "mine": "46-49",
+     "unit": "C",
+     "source": "DESIGN_STATE.md",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "sealed, 1.5 A, ambient 23 C",
+     "repo": "65-69",
+     "mine": "64-69",
+     "unit": "C",
+     "source": "DESIGN_STATE.md",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "no fin, sealed, 1.0 A, ambient 30 C",
+     "repo": "67 C",
+     "mine": 66.75,
+     "unit": "C",
+     "source": "verification/design_review_gen2.md R11",
+     "status": "AGREE",
+     "note": ""
+    }
+   ],
+   "headline": [
+    "t03_p_m",
+    "t03_as_built_eta",
+    "t03_as_built_rfin",
+    "t03_design_eta",
+    "t03_design_rfin",
+    "t03_T_sealed_asbuilt",
+    "t03_share_sealed_asbuilt",
+    "t03_dT_fin_sealed",
+    "t03_slab_ratio",
+    "t03_fin_ratio"
+   ]
+  },
+  {
+   "id": 4,
+   "topic": "Gear tooth bending (Lewis) and gear ratio",
+   "equation": "sigma = Ft / (b m Y);  Ft = 2 tau / (m z);  SF = sigma_allow / sigma;  tau_jaw = N tau eta^2 / 2",
+   "evidence": "CALCULATED (jaw force: SIMULATED from CAD kinematics; no printed gear has been stalled)",
+   "decision": "Module 1 / 6 mm face fails at servo stall; the gearbox moved to module 1.5 with 16 mm and 20 mm faces. Stall is the design case because a clamp stalls on every cloth grip.",
+   "limits": "Static Lewis bending only: no dynamic or stress-concentration factor, form factors from the textbook table, PETG allowable is a 50 % rule of thumb; printed teeth have never been stall-tested.",
+   "inputs": [
+    {
+     "key": "t04_stall48",
+     "name": "MG996R stall, 4.8 V (9.4 kg cm)",
+     "value": 0.92214,
+     "unit": "N m",
+     "basis": "supplied",
+     "source": "calculations/gen2_screening.py:SERVO_STALL"
+    },
+    {
+     "key": "t04_stall60",
+     "name": "MG996R stall, 6.0 V (11.0 kg cm)",
+     "value": 1.0791,
+     "unit": "N m",
+     "basis": "supplied",
+     "source": "calculations/gen2_screening.py:SERVO_STALL_6V"
+    },
+    {
+     "key": "t04_eta",
+     "name": "efficiency per printed mesh",
+     "value": 0.95,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gen2_screening.py:ETA_MESH"
+    },
+    {
+     "key": "t04_allow",
+     "name": "PETG allowable (50 % of 45 MPa tensile)",
+     "value": 22500000.0,
+     "unit": "Pa",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gen2_screening.py:PETG_ALLOW"
+    },
+    {
+     "key": "t04_y18",
+     "name": "Lewis Y, 18T (20 deg full depth)",
+     "value": 0.309,
+     "unit": "-",
+     "basis": "supplied",
+     "source": "calculations/gripper_v7_screening.py:LEWIS_Y (textbook table)"
+    },
+    {
+     "key": "t04_y24",
+     "name": "Lewis Y, 24T",
+     "value": 0.337,
+     "unit": "-",
+     "basis": "supplied",
+     "source": "calculations/gripper_v7_screening.py:LEWIS_Y"
+    },
+    {
+     "key": "t04_y36",
+     "name": "Lewis Y, 36T (interpolated)",
+     "value": 0.3775,
+     "unit": "-",
+     "basis": "supplied",
+     "source": "calculations/gripper_v7_screening.py:LEWIS_Y"
+    },
+    {
+     "key": "t04_y54",
+     "name": "Lewis Y, 54T",
+     "value": 0.416,
+     "unit": "-",
+     "basis": "supplied",
+     "source": "calculations/gripper_v7_screening.py:LEWIS_Y"
+    },
+    {
+     "key": "t04_mod7",
+     "name": "v7 module",
+     "value": 1.5,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV7_MODULE"
+    },
+    {
+     "key": "t04_zp",
+     "name": "pinion teeth",
+     "value": 18.0,
+     "unit": "-",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV7_Z_PINION"
+    },
+    {
+     "key": "t04_zm",
+     "name": "v7 big gear teeth",
+     "value": 36.0,
+     "unit": "-",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV7_Z_MAIN"
+    },
+    {
+     "key": "t04_zs",
+     "name": "sync gear teeth",
+     "value": 24.0,
+     "unit": "-",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV7_Z_SYNC"
+    },
+    {
+     "key": "t04_face_main",
+     "name": "pinion / big gear face",
+     "value": 16.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV7_FACE_MAIN"
+    },
+    {
+     "key": "t04_relief",
+     "name": "axial relief on the 36T layer",
+     "value": 0.3,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV7_AXIAL_RELIEF"
+    },
+    {
+     "key": "t04_face_sync",
+     "name": "sync pair face",
+     "value": 20.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV7_FACE_SYNC"
+    }
+   ],
+   "results": [
+    {
+     "key": "t04_m1_ft60",
+     "name": "module 1: pinion tangential force, 6.0 V stall",
+     "value": 119.9,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t04_m1_sig60",
+     "name": "module 1: root stress, 6.0 V",
+     "value": 64.6709816613,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t04_m1_ft48",
+     "name": "module 1: pinion tangential force, 4.8 V stall",
+     "value": 102.46,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t04_m1_sig48",
+     "name": "module 1: root stress, 4.8 V",
+     "value": 55.2642934196,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t04_m15b8_sf48",
+     "name": "module 1.5, b8: SF at 4.8 V",
+     "value": 1.22140347453,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_m2b10_sf48",
+     "name": "module 2, b10: SF at 4.8 V",
+     "value": 2.71422994339,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_m1_sf48",
+     "name": "module 1: SF at 4.8 V stall",
+     "value": 0.407134491509,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_m1_sf60",
+     "name": "module 1: SF at 6.0 V stall",
+     "value": 0.347914929108,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_m15b8_sf60",
+     "name": "module 1.5, b8: SF at 6.0 V",
+     "value": 1.04374478732,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_m2b10_sf60",
+     "name": "module 2, b10: SF at 6.0 V",
+     "value": 2.31943286072,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_v7_ft48",
+     "name": "v7: pinion tangential force, 4.8 V",
+     "value": 68.3066666667,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t04_v7_ft60",
+     "name": "v7: pinion tangential force, 6.0 V",
+     "value": 79.9333333333,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t04_v7_sig48",
+     "name": "v7: pinion root stress, 4.8 V",
+     "value": 9.3867165044,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t04_v7_sig60",
+     "name": "v7: pinion root stress, 6.0 V",
+     "value": 10.9844554839,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t04_v7_sf_pin48",
+     "name": "v7 pinion SF, 4.8 V",
+     "value": 2.39700431876,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_v7_sf_pin60",
+     "name": "v7 pinion SF, 6.0 V",
+     "value": 2.04834914512,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_v7_sf_big48",
+     "name": "v7 36T SF, 4.8 V",
+     "value": 2.92837906256,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_v7_sf_big60",
+     "name": "v7 36T SF, 6.0 V",
+     "value": 2.5024330171,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_v7_sf_sync60",
+     "name": "v7 sync 24T SF, one jaw takes all, 6.0 V",
+     "value": 1.99705895264,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_v7_sf_sync48",
+     "name": "v7 sync 24T SF, one jaw takes all, 4.8 V",
+     "value": 2.33698388074,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_v6_sf_sync60",
+     "name": "v6 sync 24T SF, one jaw, 6.0 V (N = 3)",
+     "value": 1.33137263509,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_v6_sf_pin60",
+     "name": "v6 pinion SF, 6.0 V",
+     "value": 2.08748957465,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_tauj_n2",
+     "name": "jaw torque, N = 2, 4.8 V",
+     "value": 0.83223135,
+     "unit": "N m",
+     "note": ""
+    },
+    {
+     "key": "t04_tauj_n3",
+     "name": "jaw torque, N = 3, 4.8 V",
+     "value": 1.248347025,
+     "unit": "N m",
+     "note": ""
+    },
+    {
+     "key": "t04_stroke_n2",
+     "name": "jaw stroke, N = 2 (153 deg servo)",
+     "value": 76.5,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t04_stroke_n3",
+     "name": "jaw stroke, N = 3",
+     "value": 51.0,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t04_sync_sf_n3",
+     "name": "sync SF (one jaw), N = 3, 4.8 V, module 1.5",
+     "value": 1.55798925383,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t04_reff_10",
+     "name": "effective jaw lever arm at tip gap 10 mm (tau_jaw / F)",
+     "value": 58.9605379764,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t04_reff_40",
+     "name": "effective jaw lever arm at tip gap 40 mm (tau_jaw / F)",
+     "value": 48.4934268838,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t04_reff_70",
+     "name": "effective jaw lever arm at tip gap 70 mm (tau_jaw / F)",
+     "value": 33.2583261153,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t04_tauj_v7_48",
+     "name": "v7 jaw torque, 4.8 V",
+     "value": 0.83223135,
+     "unit": "N m",
+     "note": ""
+    }
+   ],
+   "tables": {
+    "lewis": {
+     "columns": [
+      "train",
+      "servo",
+      "Ft_pinion_N",
+      "sigma_pinion_MPa",
+      "SF_pinion",
+      "SF_big",
+      "SF_sync_one_jaw"
+     ],
+     "rows": [
+      [
+       "R5 screening (assumed m1, b6, 18:54)",
+       "4.8 V",
+       102.46,
+       55.2642934196,
+       0.407134491509,
+       0.548116338083,
+       null
+      ],
+      [
+       "R5 screening (assumed m1, b6, 18:54)",
+       "6.0 V",
+       119.9,
+       64.6709816613,
+       0.347914929108,
+       0.468390325271,
+       null
+      ],
+      [
+       "m1.5, b8 (R5 option)",
+       "4.8 V",
+       68.3066666667,
+       18.4214311399,
+       1.22140347453,
+       1.64434901425,
+       null
+      ],
+      [
+       "m1.5, b8 (R5 option)",
+       "6.0 V",
+       79.9333333333,
+       21.5569938871,
+       1.04374478732,
+       1.40517097581,
+       null
+      ],
+      [
+       "m2, b10 (R5 option)",
+       "4.8 V",
+       51.23,
+       8.28964401294,
+       2.71422994339,
+       3.65410892055,
+       null
+      ],
+      [
+       "m2, b10 (R5 option)",
+       "6.0 V",
+       59.95,
+       9.70064724919,
+       2.31943286072,
+       3.12260216847,
+       null
+      ],
+      [
+       "v6 as measured (m1.5, b16/20, 18:54)",
+       "4.8 V",
+       68.3066666667,
+       9.21071556994,
+       2.44280694905,
+       3.2886980285,
+       1.55798925383
+      ],
+      [
+       "v6 as measured (m1.5, b16/20, 18:54)",
+       "6.0 V",
+       79.9333333333,
+       10.7784969435,
+       2.08748957465,
+       2.81034195163,
+       1.33137263509
+      ],
+      [
+       "v7 (m1.5, b15.7/20, 18:36)",
+       "4.8 V",
+       68.3066666667,
+       9.3867165044,
+       2.39700431876,
+       2.92837906256,
+       2.33698388074
+      ],
+      [
+       "v7 (m1.5, b15.7/20, 18:36)",
+       "6.0 V",
+       79.9333333333,
+       10.9844554839,
+       2.04834914512,
+       2.5024330171,
+       1.99705895264
+      ]
+     ]
+    },
+    "ratio": {
+     "columns": [
+      "N",
+      "servo",
+      "tau_per_jaw_Nm",
+      "jaw_stroke_deg_(153 deg servo)",
+      "Ft_sync_one_jaw_N",
+      "SF_sync_one_jaw"
+     ],
+     "rows": [
+      [
+       1.5,
+       "4.8 V",
+       0.6241735125,
+       102.0,
+       73.00275,
+       3.11597850766
+      ],
+      [
+       1.5,
+       "6.0 V",
+       0.7304158125,
+       102.0,
+       85.42875,
+       2.66274527018
+      ],
+      [
+       2.0,
+       "4.8 V",
+       0.83223135,
+       76.5,
+       97.337,
+       2.33698388074
+      ],
+      [
+       2.0,
+       "6.0 V",
+       0.97388775,
+       76.5,
+       113.905,
+       1.99705895264
+      ],
+      [
+       3.0,
+       "4.8 V",
+       1.248347025,
+       51.0,
+       146.0055,
+       1.55798925383
+      ],
+      [
+       3.0,
+       "6.0 V",
+       1.460831625,
+       51.0,
+       170.8575,
+       1.33137263509
+      ]
+     ]
+    }
+   },
+   "comparisons": [
+    {
+     "claim": "R5 module 1 SF at 4.8 V",
+     "repo": 0.41,
+     "mine": 0.407134491509,
+     "unit": "-",
+     "source": "verification/design_review_gen2.md R5",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "R5 module 1 SF at 6.0 V",
+     "repo": 0.35,
+     "mine": 0.347914929108,
+     "unit": "-",
+     "source": "verification/design_review_gen2.md R5",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "R5 module 1.5, b8, 6 V",
+     "repo": 1.04,
+     "mine": 1.04374478732,
+     "unit": "-",
+     "source": "verification/design_review_gen2.md R5",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "R5 module 2, b10, 6 V",
+     "repo": 2.32,
+     "mine": 2.31943286072,
+     "unit": "-",
+     "source": "verification/design_review_gen2.md R5",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "v7 pinion SF 6 V",
+     "repo": 2.04834914512,
+     "mine": 2.04834914512,
+     "unit": "-",
+     "source": "verification/gripper_v7_numbers.json",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "v7 36T SF 6 V",
+     "repo": 2.5024330171,
+     "mine": 2.5024330171,
+     "unit": "-",
+     "source": "verification/gripper_v7_numbers.json",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "v7 sync SF one jaw 6 V",
+     "repo": 1.997,
+     "mine": 1.99705895264,
+     "unit": "-",
+     "source": "verification/gripper_v7_verification.md (accepted, below 2.0)",
+     "status": "AGREE",
+     "note": "1.997 is under the 2.0 target by 0.15 %, accepted by the lead; without the 0.95 mesh efficiency it is 1.90."
+    },
+    {
+     "claim": "v6 sync SF under one-jaw load",
+     "repo": 1.33,
+     "mine": 1.33137263509,
+     "unit": "-",
+     "source": "docs/presentation/DECISION_STORIES.md T34",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "v7 'SF about 2.0-2.5' at stall",
+     "repo": "2.0-2.5",
+     "mine": "6 V: 2.00 (sync) / 2.05 (pinion) / 2.50 (36T)",
+     "unit": "-",
+     "source": "task brief; verification/gripper_v7_verification.md",
+     "status": "AGREE",
+     "note": "At 4.8 V the same three are 2.34 / 2.40 / 2.93; the claw servo runs at 5 V (DECISION_STORIES T34), between the two."
+    }
+   ],
+   "headline": [
+    "t04_m1_sf48",
+    "t04_m1_sf60",
+    "t04_v7_sf_pin48",
+    "t04_v7_sf_pin60",
+    "t04_v7_sf_big60",
+    "t04_v7_sf_sync60",
+    "t04_tauj_n2"
+   ]
+  },
+  {
+   "id": 5,
+   "topic": "Grip by friction",
+   "equation": "2 mu N >= m (g + a)   ->   N >= m (g + a) / (2 mu)  per jaw",
+   "evidence": "CALCULATED vs SIMULATED jaw force (CAD four-bar); hardware pull test PLANNED",
+   "decision": "The jaws must deliver more than 9 N (1 lb, mu 0.3) up to 18 N (0.9 kg jeans, mu 0.3) per jaw; the v7 gearbox gives 13-25 N, so 1 lb is covered everywhere and jeans need a wide enough grab or higher friction.",
+   "limits": "Coulomb friction between two flat pads and a rigid object; cloth squeezes, bunches and interlocks, so real holding is better than mu alone says, but mu of the cloth on the pad is unmeasured.",
+   "inputs": [
+    {
+     "key": "t05_g",
+     "name": "gravity",
+     "value": 9.81,
+     "unit": "m/s^2",
+     "basis": "supplied",
+     "source": "calculations/gen2_screening.py:G"
+    },
+    {
+     "key": "t05_a",
+     "name": "design acceleration",
+     "value": 2.0,
+     "unit": "m/s^2",
+     "basis": "supplied",
+     "source": "CLAUDE.md load case; calculations/gen2_payload_limit.py:ACCEL"
+    },
+    {
+     "key": "t05_m_lb",
+     "name": "1 lb test weight",
+     "value": 0.45359237,
+     "unit": "kg",
+     "basis": "supplied",
+     "source": "calculations/gen2_screening.py:TEST_WEIGHT"
+    },
+    {
+     "key": "t05_m_jeans",
+     "name": "jeans payload",
+     "value": 0.9,
+     "unit": "kg",
+     "basis": "supplied",
+     "source": "REQUIREMENTS.md R1 / CR6 (provisional screening reference)"
+    },
+    {
+     "key": "t05_mu_lo",
+     "name": "cloth on printed pad, low",
+     "value": 0.3,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gen2_screening.py:MU_CLOTH"
+    },
+    {
+     "key": "t05_mu_hi",
+     "name": "cloth on pad, high (TPU pads)",
+     "value": 0.6,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED; task brief"
+    },
+    {
+     "key": "t05_fmin",
+     "name": "minimum jaw force, 4.8 V, gap 0.6 mm",
+     "value": 13.34,
+     "unit": "N",
+     "basis": "supplied",
+     "source": "verification/gripper_v7_verification.md claim 6 (independent four-bar)"
+    },
+    {
+     "key": "t05_gaps",
+     "name": "tabulated gaps 10..80 mm",
+     "value": [
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80
+     ],
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/gripper_v7_numbers.json force_table_N"
+    }
+   ],
+   "results": [
+    {
+     "key": "t05_fmax70",
+     "name": "jaw force at 70 mm gap, 4.8 V",
+     "value": 25.0232482271,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t05_fmin",
+     "name": "jaw force range low (gap 0.6 mm)",
+     "value": 13.34,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t05_Ns_lb_mu03",
+     "name": "required normal force per jaw, static, 1 lb, mu 0.3",
+     "value": 7.4162352495,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t05_N_lb_mu03",
+     "name": "required normal force per jaw, 1 lb, mu 0.3",
+     "value": 8.92820981617,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t05_sf_lb_mu03",
+     "name": "margin at the weakest point (13.34 N), 1 lb, mu 0.3",
+     "value": 1.49414051357,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t05_gap48_lb_mu03",
+     "name": "smallest grab width where 4.8 V force suffices, 1 lb, mu 0.3",
+     "value": 0.0,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t05_gap60_lb_mu03",
+     "name": "same at 6.0 V (scaled)",
+     "value": 0.0,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t05_Ns_lb_mu06",
+     "name": "required normal force per jaw, static, 1 lb, mu 0.6",
+     "value": 3.70811762475,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t05_N_lb_mu06",
+     "name": "required normal force per jaw, 1 lb, mu 0.6",
+     "value": 4.46410490808,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t05_sf_lb_mu06",
+     "name": "margin at the weakest point (13.34 N), 1 lb, mu 0.6",
+     "value": 2.98828102714,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t05_gap48_lb_mu06",
+     "name": "smallest grab width where 4.8 V force suffices, 1 lb, mu 0.6",
+     "value": 0.0,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t05_gap60_lb_mu06",
+     "name": "same at 6.0 V (scaled)",
+     "value": 0.0,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t05_Ns_jeans_mu03",
+     "name": "required normal force per jaw, static, 0.9 kg jeans, mu 0.3",
+     "value": 14.715,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t05_N_jeans_mu03",
+     "name": "required normal force per jaw, 0.9 kg jeans, mu 0.3",
+     "value": 17.715,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t05_sf_jeans_mu03",
+     "name": "margin at the weakest point (13.34 N), 0.9 kg jeans, mu 0.3",
+     "value": 0.753034151849,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t05_gap48_jeans_mu03",
+     "name": "smallest grab width where 4.8 V force suffices, 0.9 kg jeans, mu 0.3",
+     "value": 43.4321236316,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t05_gap60_jeans_mu03",
+     "name": "same at 6.0 V (scaled)",
+     "value": 21.6738405166,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t05_Ns_jeans_mu06",
+     "name": "required normal force per jaw, static, 0.9 kg jeans, mu 0.6",
+     "value": 7.3575,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t05_N_jeans_mu06",
+     "name": "required normal force per jaw, 0.9 kg jeans, mu 0.6",
+     "value": 8.8575,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t05_sf_jeans_mu06",
+     "name": "margin at the weakest point (13.34 N), 0.9 kg jeans, mu 0.6",
+     "value": 1.5060683037,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t05_gap48_jeans_mu06",
+     "name": "smallest grab width where 4.8 V force suffices, 0.9 kg jeans, mu 0.6",
+     "value": 0.0,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t05_gap60_jeans_mu06",
+     "name": "same at 6.0 V (scaled)",
+     "value": 0.0,
+     "unit": "mm",
+     "note": ""
+    }
+   ],
+   "tables": {
+    "friction": {
+     "columns": [
+      "load",
+      "mu",
+      "N_static_N",
+      "N_dynamic_N",
+      "SF_at_13.34N",
+      "SF_at_70mm_4.8V",
+      "gap_ok_4.8V_mm",
+      "gap_ok_6.0V_mm"
+     ],
+     "rows": [
+      [
+       "1 lb",
+       0.3,
+       7.4162352495,
+       8.92820981617,
+       1.49414051357,
+       2.80271731314,
+       0.0,
+       0.0
+      ],
+      [
+       "1 lb",
+       0.6,
+       3.70811762475,
+       4.46410490808,
+       2.98828102714,
+       5.60543462627,
+       0.0,
+       0.0
+      ],
+      [
+       "0.9 kg jeans",
+       0.3,
+       14.715,
+       17.715,
+       0.753034151849,
+       1.41254576501,
+       43.4321236316,
+       21.6738405166
+      ],
+      [
+       "0.9 kg jeans",
+       0.6,
+       7.3575,
+       8.8575,
+       1.5060683037,
+       2.82509153001,
+       0.0,
+       0.0
+      ]
+     ]
+    }
+   },
+   "comparisons": [
+    {
+     "claim": "1 lb at mu 0.3 needs 7.4 N per jaw",
+     "repo": 7.4,
+     "mine": 7.4162352495,
+     "unit": "N",
+     "source": "calculations/gripper_v7_screening.py:NEED_PER_JAW",
+     "status": "AGREE",
+     "note": "Static only.  Adding +2 m/s^2 gives 8.9 N; the repo number omits the dynamic term."
+    },
+    {
+     "claim": "v7 jaw force range",
+     "repo": "13.3-25 N",
+     "mine": "13.3-25.0 N",
+     "unit": "N",
+     "source": "verification/gripper_v7_verification.md; gripper_v7_numbers.json",
+     "status": "AGREE",
+     "note": "'Measured' here means independently computed from the CAD four-bar, not a force gauge: SIMULATED."
+    },
+    {
+     "claim": "R5 'train delivers ~20.8 N per jaw at a 60 mm arm'",
+     "repo": 20.8,
+     "mine": "14.1-25.0",
+     "unit": "N",
+     "source": "verification/design_review_gen2.md R5",
+     "status": "CONTEXT",
+     "note": "That was the V5 estimate at a fixed 60 mm arm; the v7 four-bar gives 14-25 N depending on the grab width."
+    },
+    {
+     "claim": "design review 'grip margin ~2.8x for 1 lb'",
+     "repo": 2.8,
+     "mine": 1.79875631654,
+     "unit": "x",
+     "source": "verification/design_review_gen2.md verdict",
+     "status": "DISAGREE",
+     "note": "Like for like (static, 13.3 N weakest point) the v7 margin is 1.8x; with +2 m/s^2 it is 1.5x.  The 2.8x came from the V5 estimate (20.8 N / 7.4 N)."
+    }
+   ],
+   "headline": [
+    "t05_fmin",
+    "t05_N_lb_mu03",
+    "t05_N_jeans_mu03"
+   ]
+  },
+  {
+   "id": 6,
+   "topic": "Beam bending and creep: why an aluminium tube",
+   "equation": "I = pi (D^4 - d^4)/64;  delta = F L^3 / (3 E I);  sigma = M c / I;  bearing: sigma_b = F / (2 d t)",
+   "evidence": "CALCULATED (as-built tube wall UNMEASURED; creep factor ILLUSTRATIVE; no creep test)",
+   "decision": "The claw arm is a long tube that must keep the camera-to-jaw geometry; aluminium is 33 x stiffer than printed PETG at the same size and does not creep at room temperature.",
+   "limits": "Linear-elastic cantilever with an assumed 10 N side load; E for printed PETG and the alloy are assumed; thin-wall dent and local buckling are not modelled; the creep exponent is illustrative.",
+   "inputs": [
+    {
+     "key": "t06_od",
+     "name": "tube OD (CAD)",
+     "value": 28.54,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV7_TUBE_OD"
+    },
+    {
+     "key": "t06_id",
+     "name": "tube ID (CAD, 3 mm wall)",
+     "value": 22.54,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV7_TUBE_ID"
+    },
+    {
+     "key": "t06_len",
+     "name": "tube length after the 50 mm cut (D28)",
+     "value": 254.8,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV7_TUBE_LEN"
+    },
+    {
+     "key": "t06_free",
+     "name": "free tube, head to hub bottom (c = 50)",
+     "value": 156.2,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/claw_tube_length_view_study.json tube[50]"
+    },
+    {
+     "key": "t06_e_al",
+     "name": "aluminium modulus (6061; alloy unknown)",
+     "value": 69000000000.0,
+     "unit": "Pa",
+     "basis": "assumed",
+     "source": "ASSUMED; DESIGN_STATE.md hand calc; alloy VERIFY"
+    },
+    {
+     "key": "t06_e_pg",
+     "name": "printed PETG modulus, in plane",
+     "value": 2100000000.0,
+     "unit": "Pa",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gripper_v7_screening.py:E_PETG"
+    },
+    {
+     "key": "t06_f_side",
+     "name": "side load at the tube tip",
+     "value": 10.0,
+     "unit": "N",
+     "basis": "assumed",
+     "source": "ASSUMED; DESIGN_STATE.md hand calc (10 N at 250 mm)"
+    },
+    {
+     "key": "t06_rho",
+     "name": "aluminium density",
+     "value": 2.7,
+     "unit": "g/cm^3",
+     "basis": "assumed",
+     "source": "ASSUMED; verification/claw_tube_length_view_study.md (2.70 g/cc)"
+    },
+    {
+     "key": "t06_f_bolt",
+     "name": "cross-bolt design load",
+     "value": 100.0,
+     "unit": "N",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gripper_v7_screening.py:socket_tension_check"
+    },
+    {
+     "key": "t06_d_bolt",
+     "name": "M3 shank",
+     "value": 3.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "calculations/gripper_v7_screening.py:socket_tension_check"
+    },
+    {
+     "key": "t06_bolt_hole",
+     "name": "cross-hole diameter",
+     "value": 3.4,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV7_XBOLT_HOLE_D"
+    },
+    {
+     "key": "t06_m_head",
+     "name": "v7 head mass (CAD)",
+     "value": 0.4812410293,
+     "unit": "kg",
+     "basis": "supplied",
+     "source": "verification/gripper_v7_numbers.json"
+    },
+    {
+     "key": "t06_al_bear",
+     "name": "bearing allowable, 1.5 x 240 MPa yield",
+     "value": 360000000.0,
+     "unit": "Pa",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gripper_v7_screening.py (6061-T6 assumed)"
+    },
+    {
+     "key": "t06_n_exp",
+     "name": "creep-modulus exponent, E(t) = E1 t^-n",
+     "value": 0.07,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED, illustrative only (no creep test in the repository)"
+    }
+   ],
+   "results": [
+    {
+     "key": "t06_w3.0_defl",
+     "name": "Al tube, 3.0 mm wall: tip deflection, 10 N at 254.8 mm",
+     "value": 0.0401636233846,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t06_w3.0_stress",
+     "name": "Al tube, 3.0 mm wall: bending stress",
+     "value": 1.82737785353,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t06_w3.0_mass",
+     "name": "Al tube, 3.0 mm wall: mass",
+     "value": 165.59804608,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t06_w3.0_i",
+     "name": "Al tube, 3.0 mm wall: I",
+     "value": 19897.3408427,
+     "unit": "mm^4",
+     "note": ""
+    },
+    {
+     "key": "t06_w1.0_defl",
+     "name": "Al tube, 1.0 mm wall: tip deflection, 10 N at 254.8 mm",
+     "value": 0.0972980199935,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t06_w1.0_stress",
+     "name": "Al tube, 1.0 mm wall: bending stress",
+     "value": 4.42689757409,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t06_w1.0_mass",
+     "name": "Al tube, 1.0 mm wall: mass",
+     "value": 59.5219288573,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t06_w1.0_i",
+     "name": "Al tube, 1.0 mm wall: I",
+     "value": 8213.41795049,
+     "unit": "mm^4",
+     "note": ""
+    },
+    {
+     "key": "t06_w0.48_defl",
+     "name": "Al tube, 0.48 mm wall: tip deflection, 10 N at 254.8 mm",
+     "value": 0.191838927066,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t06_w0.48_stress",
+     "name": "Al tube, 0.48 mm wall: bending stress",
+     "value": 8.72835111033,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t06_w0.48_mass",
+     "name": "Al tube, 0.48 mm wall: mass",
+     "value": 29.109983856,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t06_w0.48_i",
+     "name": "Al tube, 0.48 mm wall: I",
+     "value": 4165.7306793,
+     "unit": "mm^4",
+     "note": ""
+    },
+    {
+     "key": "t06_d_al_free",
+     "name": "aluminium tube (3 mm wall) tip deflection with the 156.2 mm free length",
+     "value": 0.00925289648625,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t06_s_al_free",
+     "name": "same, bending stress",
+     "value": 1.12023712999,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t06_i3",
+     "name": "I of the 3 mm-wall tube",
+     "value": 19897.3408427,
+     "unit": "mm^4",
+     "note": ""
+    },
+    {
+     "key": "t06_d_al",
+     "name": "aluminium tube tip deflection, 10 N at 254.8 mm",
+     "value": 0.0401636233846,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t06_s_al",
+     "name": "aluminium tube bending stress",
+     "value": 1.82737785353,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t06_d_pg",
+     "name": "PETG tube (same size) tip deflection",
+     "value": 1.31966191121,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t06_s_pg",
+     "name": "PETG tube bending stress (same as Al: geometry only)",
+     "value": 1.82737785353,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t06_ei_ratio",
+     "name": "stiffness ratio Al / PETG at equal geometry",
+     "value": 32.8571428571,
+     "unit": "x",
+     "note": ""
+    },
+    {
+     "key": "t06_strain_pg",
+     "name": "PETG bending strain at the outer fibre",
+     "value": 0.087017993025,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t06_i1_ratio",
+     "name": "1 mm wall vs 3 mm wall, bending stiffness",
+     "value": 41.2789729815,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t06_al1_vs_pg3",
+     "name": "1 mm Al wall vs 3 mm PETG wall, stiffness",
+     "value": 13.5630911225,
+     "unit": "x",
+     "note": ""
+    },
+    {
+     "key": "t06_m3",
+     "name": "tube mass, 3 mm wall, 254.8 mm",
+     "value": 165.59804608,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t06_m1",
+     "name": "tube mass, 1 mm wall, 254.8 mm",
+     "value": 59.5219288573,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t06_m1_frac",
+     "name": "1 mm wall mass as a fraction of the 3 mm wall",
+     "value": 35.9436178543,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t06_ret_1",
+     "name": "modulus retained after 1 h at constant stress (illustrative)",
+     "value": 100.0,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t06_ret_100",
+     "name": "modulus retained after 100 h at constant stress (illustrative)",
+     "value": 72.4435960075,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t06_ret_1000",
+     "name": "modulus retained after 1000 h at constant stress (illustrative)",
+     "value": 61.6595001861,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t06_ret_8760",
+     "name": "modulus retained after 8760 h at constant stress (illustrative)",
+     "value": 52.9693584078,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t06_d_pg_1000",
+     "name": "PETG tube tip deflection after 1000 h under the same 10 N (illustrative)",
+     "value": 2.1402410127,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t06_al_sigma_yield",
+     "name": "aluminium: working bending stress / yield (240 MPa, 6061-T6 assumed)",
+     "value": 0.761407438969,
+     "unit": "%",
+     "note": "far too low for measurable metal creep at room temperature"
+    },
+    {
+     "key": "t06_pg_sigma_tens",
+     "name": "PETG: working bending stress / tensile strength (45 MPa)",
+     "value": 4.0608396745,
+     "unit": "%",
+     "note": "low stress does not stop polymer creep; room temperature is about 57 K below the ~80 C softening point"
+    },
+    {
+     "key": "t06_sb_3.0",
+     "name": "bearing stress at the cross-bolt, 3.0 mm wall, 100 N",
+     "value": 5.55555555556,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t06_sb_1.0",
+     "name": "bearing stress at the cross-bolt, 1.0 mm wall, 100 N",
+     "value": 16.6666666667,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t06_sb_0.48",
+     "name": "bearing stress at the cross-bolt, 0.48 mm wall, 100 N",
+     "value": 34.7222222222,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t06_sf_bear",
+     "name": "bearing safety factor, 3 mm wall",
+     "value": 64.8,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t06_cap_bear",
+     "name": "tube bearing capacity, 3 mm wall (2 d t sigma_allow)",
+     "value": 6480.0,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t06_load_real",
+     "name": "actual axial load on the bolt: (head + 0.9 kg)(g + 2)",
+     "value": 16.312456556,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t06_sf_design",
+     "name": "design load / actual load",
+     "value": 6.1302845256,
+     "unit": "x",
+     "note": ""
+    }
+   ],
+   "tables": {
+    "al_tube": {
+     "columns": [
+      "wall_mm",
+      "free_length",
+      "I_mm4",
+      "tip_deflection_mm",
+      "bending_stress_MPa",
+      "mass_g"
+     ],
+     "rows": [
+      [
+       3.0,
+       "254.8 mm",
+       19897.3408427,
+       0.0401636233846,
+       1.82737785353,
+       165.59804608
+      ],
+      [
+       3.0,
+       "156.2 mm",
+       19897.3408427,
+       0.00925289648625,
+       1.12023712999,
+       165.59804608
+      ],
+      [
+       1.5,
+       "254.8 mm",
+       11681.6881077,
+       0.0684104297763,
+       3.11256041633,
+       87.6619257244
+      ],
+      [
+       1.5,
+       "156.2 mm",
+       11681.6881077,
+       0.0157603963975,
+       1.90809237453,
+       87.6619257244
+      ],
+      [
+       1.0,
+       "254.8 mm",
+       8213.41795049,
+       0.0972980199935,
+       4.42689757409,
+       59.5219288573
+      ],
+      [
+       1.0,
+       "156.2 mm",
+       8213.41795049,
+       0.0224155201012,
+       2.71382025539,
+       59.5219288573
+      ],
+      [
+       0.48,
+       "254.8 mm",
+       4165.7306793,
+       0.191838927066,
+       8.72835111033,
+       29.109983856
+      ],
+      [
+       0.48,
+       "156.2 mm",
+       4165.7306793,
+       0.0441958564638,
+       5.35073957392,
+       29.109983856
+      ]
+     ]
+    }
+   },
+   "comparisons": [
+    {
+     "claim": "hand calc 'I 4,200 mm^4; 10 N at 250 mm -> 0.18 mm, 8.5 MPa'",
+     "repo": "4200 / 0.18 / 8.5",
+     "mine": "4166 / 0.18 / 8.6",
+     "unit": "mm^4 / mm / MPa",
+     "source": "DESIGN_STATE.md (tube wall entry, later corrected)",
+     "status": "AGREE",
+     "note": "Arithmetic is right, but the 0.48 mm wall was the heat fin's thickness; for the CAD wall (3 mm) the numbers are 0.04 mm and 1.8 MPa.  The real wall is unmeasured."
+    },
+    {
+     "claim": "'1 mm wall ~71 g, 41 % of stiffness, ~14x stiffer than 3 mm PETG'",
+     "repo": "71 g / 41 % / 14x",
+     "mine": "60 g / 41 % / 13.6x",
+     "unit": "-",
+     "source": "docs/presentation/DECISION_STORIES.md section 5",
+     "status": "AGREE",
+     "note": "The 71 g is for the 304.8 mm tube; at 254.8 mm it is 59 g."
+    },
+    {
+     "claim": "bearing capacity at the cross-bolt (3 mm wall)",
+     "repo": 6480.0,
+     "mine": 6480.0,
+     "unit": "N",
+     "source": "calculations/gripper_v7_screening.py (tube_bearing)",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "'M3 bearing ~35 MPa on two 0.48 mm walls'",
+     "repo": 35.0,
+     "mine": 34.7222222222,
+     "unit": "MPa",
+     "source": "DESIGN_STATE.md",
+     "status": "AGREE",
+     "note": "Retired scenario (see above)."
+    }
+   ],
+   "headline": [
+    "t06_d_al",
+    "t06_s_al",
+    "t06_d_pg",
+    "t06_ei_ratio",
+    "t06_sb_3.0"
+   ]
+  },
+  {
+   "id": 7,
+   "topic": "Pendulum dynamics and tilt",
+   "equation": "T = 2 pi sqrt(L/g);  compound: T = 2 pi sqrt((k^2 + L^2)/(g L));  tilt: sum (r_i - r_c) x T_i u_i = 0  ->  theta ~ M_v / (W L)",
+   "evidence": "CALCULATED; statics tilt reproduced from the cable model (SIMULATED in the repository); damping UNMEASURED",
+   "decision": "Grips are approved only after a settle dwell (5 periods x 1.25) and a tilt check; a shorter CoM depth means a shorter period but a larger tilt for the same cable moment.",
+   "limits": "Small-angle rigid pendulum with no damping model; the CoM depth is a CAD-solid estimate of the old v6 head and is stale; the tilt model assumes no pretension and straight lines.",
+   "inputs": [
+    {
+     "key": "t07_g",
+     "name": "gravity",
+     "value": 9.81,
+     "unit": "m/s^2",
+     "basis": "supplied",
+     "source": "calculations/gen2_screening.py:G"
+    },
+    {
+     "key": "t07_l_stale",
+     "name": "CoM depth below the attachment plane (v6 head, 2065 g CAD)",
+     "value": 0.196381220358,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "verification/claw_body_frame.json com_body_m; config/robot.sim.json claw.com_body_m"
+    },
+    {
+     "key": "t07_k_g",
+     "name": "radius of gyration about the CoM",
+     "value": 0.13,
+     "unit": "m",
+     "basis": "assumed",
+     "source": "ASSUMED; verification/imu_removal_review.md F8c (assumed)"
+    },
+    {
+     "key": "t07_margin",
+     "name": "period margin used by the gate",
+     "value": 1.25,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED; roomcleaner/cdpr/attitude.py settle_dwell_s; board_attitude_results.md"
+    },
+    {
+     "key": "t07_periods",
+     "name": "settle periods",
+     "value": 5,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED; verification/board_attitude_results.md (grip_settle_periods)"
+    },
+    {
+     "key": "t07_l_low",
+     "name": "jaw tips below the attachment plane",
+     "value": 0.517298335291,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "verification/claw_body_frame.json lowest_point_body_m"
+    },
+    {
+     "key": "t07_m_claw_cfg",
+     "name": "claw mass in the config",
+     "value": 0.6,
+     "unit": "kg",
+     "basis": "assumed",
+     "source": "ASSUMED; config/robot.sim.json claw.mass_kg (matches neither 0.45 nor 1.05-1.25; multi_attachment_review.md)"
+    },
+    {
+     "key": "t07_payload",
+     "name": "release payload",
+     "value": 0.9,
+     "unit": "kg",
+     "basis": "supplied",
+     "source": "REQUIREMENTS.md R1"
+    },
+    {
+     "key": "t07_m_box",
+     "name": "electrical box, CAD solid",
+     "value": 519.2,
+     "unit": "g",
+     "basis": "supplied",
+     "source": "verification/claw_body_frame.json com_mass_rows_g"
+    },
+    {
+     "key": "t07_m_cyl",
+     "name": "Griper Cylinder, CAD solid",
+     "value": 320.7,
+     "unit": "g",
+     "basis": "supplied",
+     "source": "verification/claw_body_frame.json com_mass_rows_g"
+    },
+    {
+     "key": "t07_m_tube",
+     "name": "tube 254.8 mm",
+     "value": 165.6,
+     "unit": "g",
+     "basis": "supplied",
+     "source": "verification/claw_tube_length_view_study.json tube[50]"
+    },
+    {
+     "key": "t07_m_head",
+     "name": "v7 head, CAD (printed + purchased)",
+     "value": 481.2410293,
+     "unit": "g",
+     "basis": "supplied",
+     "source": "verification/gripper_v7_numbers.json"
+    },
+    {
+     "key": "t07_d_box",
+     "name": "box centroid depth below the attachment plane (negative = above)",
+     "value": -31.0,
+     "unit": "mm",
+     "basis": "assumed",
+     "source": "ASSUMED from box heights in claw_tube_length_view_study.md (box spans -7.5..+73.7 mm)"
+    },
+    {
+     "key": "t07_d_head",
+     "name": "v7 head CoM depth below the attachment plane",
+     "value": 320.724117916,
+     "unit": "mm",
+     "basis": "assumed",
+     "source": "ASSUMED: head CoM at world y 728 (jaw tips 581, plate top 830)"
+    },
+    {
+     "key": "t07_zeta",
+     "name": "damping ratio of the hanging claw",
+     "value": "unknown",
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED (measure the free decay; repository: 'measure real damping')"
+    },
+    {
+     "key": "t07_anchors",
+     "name": "anchor positions (simulation profile)",
+     "value": [
+      [
+       0.05,
+       0.05,
+       2.5932
+      ],
+      [
+       3.3028,
+       0.05,
+       2.5932
+      ],
+      [
+       3.3028,
+       2.6932,
+       2.5932
+      ],
+      [
+       0.05,
+       2.6932,
+       2.5932
+      ]
+     ],
+     "unit": "m",
+     "basis": "supplied",
+     "source": "config/robot.sim.json stations[*].anchor_room_m (NOT surveyed)"
+    },
+    {
+     "key": "t07_attach",
+     "name": "attachment points, +-42.07 mm square",
+     "value": [
+      [
+       -0.0420710674944,
+       -0.042071068129,
+       7.50333128963e-15
+      ],
+      [
+       0.0420710681294,
+       -0.042071067494,
+       -1.1823431123e-14
+      ],
+      [
+       0.0420710674944,
+       0.0420710681297,
+       7.73070496507e-15
+      ],
+      [
+       -0.0420710681294,
+       0.0420710674947,
+       -3.18323145621e-15
+      ]
+     ],
+     "unit": "m",
+     "basis": "supplied",
+     "source": "verification/claw_body_frame.json attachment_points_body_m"
+    }
+   ],
+   "results": [
+    {
+     "key": "t07_d_cyl",
+     "name": "hub centroid depth",
+     "value": 35.0331179164,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t07_d_tube",
+     "name": "tube centroid depth",
+     "value": 134.934117916,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t07_l_est",
+     "name": "lumped CoM depth, v7 head with the 50 mm cut (no electronics, CAD solids)",
+     "value": 0.115575350437,
+     "unit": "m",
+     "note": ""
+    },
+    {
+     "key": "t07_l_est_lo",
+     "name": "bracket, low",
+     "value": 0.0921512029319,
+     "unit": "m",
+     "note": ""
+    },
+    {
+     "key": "t07_l_est_hi",
+     "name": "bracket, high",
+     "value": 0.138999497942,
+     "unit": "m",
+     "note": ""
+    },
+    {
+     "key": "t07_m_total",
+     "name": "lumped mass (CAD solids)",
+     "value": 1486.7410293,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t07_T_stale",
+     "name": "period, L = 0.196 m",
+     "value": 0.888986860314,
+     "unit": "s",
+     "note": ""
+    },
+    {
+     "key": "t07_Tc_stale",
+     "name": "compound-pendulum period, L = 0.196, k = 0.13",
+     "value": 1.06612267745,
+     "unit": "s",
+     "note": ""
+    },
+    {
+     "key": "t07_T_est",
+     "name": "period, lumped v7 estimate",
+     "value": 0.681989948936,
+     "unit": "s",
+     "note": ""
+    },
+    {
+     "key": "t07_dwell_stale",
+     "name": "settle dwell, L = 0.196 (5 x 1.25 x T)",
+     "value": 5.55616787696,
+     "unit": "s",
+     "note": ""
+    },
+    {
+     "key": "t07_l_loaded",
+     "name": "loaded CoM depth (0.9 kg at the jaw tips)",
+     "value": 0.388931489318,
+     "unit": "m",
+     "note": ""
+    },
+    {
+     "key": "t07_T_loaded",
+     "name": "loaded period",
+     "value": 1.25107088704,
+     "unit": "s",
+     "note": ""
+    },
+    {
+     "key": "t07_dwell_loaded",
+     "name": "loaded dwell",
+     "value": 7.819193044,
+     "unit": "s",
+     "note": ""
+    },
+    {
+     "key": "t07_comp_pct",
+     "name": "compound vs simple period at L = 0.196",
+     "value": 19.9255832722,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t07_left_01",
+     "name": "amplitude left after 5 periods, zeta = 0.01",
+     "value": 73.0402691049,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t07_left_02",
+     "name": "amplitude left after 5 periods, zeta = 0.02",
+     "value": 53.3488091091,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t07_left_05",
+     "name": "amplitude left after 5 periods, zeta = 0.05",
+     "value": 20.7879576351,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t07_zeta_need",
+     "name": "damping ratio for a 90 % reduction in 5 periods",
+     "value": 0.0732935598879,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t07_tilt_stale_min",
+     "name": "statics tilt, 9x7 grid, L = 0.196: min",
+     "value": 0.0,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t07_tilt_stale_med",
+     "name": "statics tilt: median",
+     "value": 8.73836734414,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t07_tilt_stale_max",
+     "name": "statics tilt: max (corners)",
+     "value": 12.881708259096547,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t07_tilt_stale_frac",
+     "name": "fraction of the grid above 5 deg",
+     "value": 82.5396825397,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t07_tilt_est_min",
+     "name": "statics tilt, 9x7 grid, L = 0.116: min",
+     "value": 0.0,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t07_tilt_est_med",
+     "name": "statics tilt: median",
+     "value": 13.8007400447,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t07_tilt_est_max",
+     "name": "statics tilt: max (corners)",
+     "value": 20.72543415476637,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t07_tilt_est_frac",
+     "name": "fraction of the grid above 5 deg",
+     "value": 92.0634920635,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t07_tilt_centre",
+     "name": "statics tilt at the room centre, L = 0.196",
+     "value": 0.0,
+     "unit": "deg",
+     "note": ""
+    },
+    {
+     "key": "t07_tilt_scale",
+     "name": "corner tilt ratio, L 0.196 -> lumped estimate",
+     "value": 1.6089041715512302,
+     "unit": "x",
+     "note": ""
+    },
+    {
+     "key": "t07_tilt_scale_1overL",
+     "name": "1/L ratio",
+     "value": 1.69916179891,
+     "unit": "x",
+     "note": "first-order law: tilt ~ 1/L"
+    },
+    {
+     "key": "t07_xcheck",
+     "name": "largest difference between this tilt solver and the repository's own predictor, 5 poses",
+     "value": 2.84217094304e-14,
+     "unit": "deg",
+     "note": "roomcleaner/cdpr/kinematics.py Geometry.R_at (imported read-only)"
+    }
+   ],
+   "tables": {
+    "pendulum": {
+     "columns": [
+      "case",
+      "L_m",
+      "T_simple_s",
+      "T_compound_s",
+      "dwell_s"
+     ],
+     "rows": [
+      [
+       "v6 head (stale, in config)",
+       0.196381220358,
+       0.888986860314,
+       1.06612267745,
+       5.55616787696
+      ],
+      [
+       "review F8d: D28 shortens L",
+       0.16,
+       0.802426672284,
+       1.03390310208,
+       5.01516670178
+      ],
+      [
+       "lumped v7 estimate",
+       0.115575350437,
+       0.681989948936,
+       1.02643259796,
+       4.26243718085
+      ],
+      [
+       "loaded release (0.6 kg claw + 0.9 kg at the tips)",
+       0.388931489318,
+       1.25107088704,
+       1.31910725198,
+       7.819193044
+      ]
+     ]
+    }
+   },
+   "comparisons": [
+    {
+     "claim": "T = 0.8887 s, dwell 4.44 s (5 T)",
+     "repo": 0.8887,
+     "mine": 0.888986860314,
+     "unit": "s",
+     "source": "verification/imu_removal_review.md section 7",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "dwell 5 x 1.25 x T",
+     "repo": 5.55,
+     "mine": 5.55616787696,
+     "unit": "s",
+     "source": "verification/imu_removal_review.md R2.1",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "loaded release L = 0.389 m, T = 1.251 s, dwell 7.82 s",
+     "repo": 7.82,
+     "mine": 7.819193044,
+     "unit": "s",
+     "source": "verification/imu_removal_review.md R2.1",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "compound period 1.06 s",
+     "repo": 1.06,
+     "mine": 1.06612267745,
+     "unit": "s",
+     "source": "verification/imu_removal_review.md F8c",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "CoM depth 0.196 m is current",
+     "repo": 0.196,
+     "mine": 0.115575350437,
+     "unit": "m",
+     "source": "verification/claw_body_frame.json (v6 head 2065 g)",
+     "status": "STALE",
+     "note": "0.196 m comes from the old 1044 g v6 head on the 304.8 mm tube.  A lumped estimate for the v7 head with the D28 cut is 0.10-0.14 m (review F8d guessed 0.16 m).  Re-extract from the CAD before quoting."
+    },
+    {
+     "claim": "R_at tilt at the corners 13 deg, 81 % of the grid above 5 deg",
+     "repo": "13 deg, 81 %",
+     "mine": "12.9 deg, 83 %",
+     "unit": "-",
+     "source": "verification/imu_removal_review.md R2.4",
+     "status": "AGREE",
+     "note": "Independent minimum-norm-tension solve; the 1.5 % difference is one grid point of 63."
+    },
+    {
+     "claim": "R_at tilt at the room centre",
+     "repo": 0.4,
+     "mine": 0.0,
+     "unit": "deg",
+     "source": "verification/imu_removal_review.md R2.4",
+     "status": "CONTEXT",
+     "note": "At the exact centre the geometry is symmetric and the tilt is zero; the repository's 0.4 deg probably comes from an off-centre grid point."
+    },
+    {
+     "claim": "tilt scales as 1/L (7, 9.8, 13 deg at L 0.196, 0.146, 0.10)",
+     "repo": "1/L",
+     "mine": "x1.70 predicted, x1.61 computed",
+     "unit": "-",
+     "source": "verification/multi_attachment_review.md row 4",
+     "status": "AGREE",
+     "note": ""
+    }
+   ],
+   "headline": [
+    "t07_l_est",
+    "t07_T_stale",
+    "t07_T_est",
+    "t07_dwell_stale",
+    "t07_dwell_loaded",
+    "t07_tilt_stale_max",
+    "t07_tilt_stale_frac",
+    "t07_tilt_est_max",
+    "t07_tilt_est_frac"
+   ]
+  },
+  {
+   "id": 8,
+   "topic": "Measurement uncertainty: lever arm, averaging, least squares",
+   "equation": "dx = sigma_theta L;  sigma_N = sigma/sqrt(N);  sigma_theta = 2 sigma_px z^2 /(f a^2) (one square tag);  C = sigma^2 (J^T J)^-1;  chi^2_red = r^T W r /(m - n)",
+   "evidence": "CALCULATED (Cramer-Rao); the repository's matching Monte Carlo is SIMULATED; real corner noise UNMEASURED",
+   "decision": "A floor board of several tags replaces the single 6-inch tag, and a fit is accepted only if it is identifiable and its held-out witnesses agree, not because the optimiser converged.",
+   "limits": "Independent Gaussian pixel noise (static JPEG bias does not average); fronto-parallel tags; the toy fit is one cable in 2-D, not the full 4-cable estimator.",
+   "inputs": [
+    {
+     "key": "t08_f_px",
+     "name": "focal length in pixels (OV2640 guess)",
+     "value": 520.0,
+     "unit": "px",
+     "basis": "assumed",
+     "source": "ASSUMED; config/camera.sim.json (simulation guess)"
+    },
+    {
+     "key": "t08_sig_px",
+     "name": "corner noise",
+     "value": 0.3,
+     "unit": "px",
+     "basis": "assumed",
+     "source": "ASSUMED; verification/board_attitude_results.md (simulator value)"
+    },
+    {
+     "key": "t08_a_tag",
+     "name": "single tag edge (6 in)",
+     "value": 0.1524,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "config/robot.sim.json marker.edge_m"
+    },
+    {
+     "key": "t08_a_brd",
+     "name": "board tag edge (D26)",
+     "value": 0.15,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "verification/board_attitude_results.md"
+    },
+    {
+     "key": "t08_pitch",
+     "name": "board pitch",
+     "value": 0.25,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "verification/board_attitude_results.md (DEFAULT_PITCH_M)"
+    },
+    {
+     "key": "t08_z",
+     "name": "lens height at rest on the floor",
+     "value": 0.51,
+     "unit": "m",
+     "basis": "supplied",
+     "source": "verification/imu_removal_review.md section 1 (~0.51 m)"
+    },
+    {
+     "key": "t08_lever",
+     "name": "marker-to-claw lever arm",
+     "value": 0.51,
+     "unit": "m",
+     "basis": "assumed",
+     "source": "ASSUMED; verification/imu_removal_review.md (|p|, same order as the range)"
+    },
+    {
+     "key": "t08_ls_sigma",
+     "name": "vision position noise per axis in the toy",
+     "value": 6.0,
+     "unit": "mm",
+     "basis": "assumed",
+     "source": "ASSUMED; verification/imu_removal_review.md (6 mm per frame)"
+    }
+   ],
+   "results": [
+    {
+     "key": "t08_sig_closed",
+     "name": "single tag tilt noise, closed form",
+     "value": 12.9216604587,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_sig_num",
+     "name": "single tag tilt noise, numerical bound",
+     "value": 12.921660463,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_dx_single",
+     "name": "lever error dx = sigma_theta L, one frame, one tag",
+     "value": 6.59004683612,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t08_t_sig",
+     "name": "translation noise of the same pose estimate",
+     "value": 0.29423076923,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t08_sig_46",
+     "name": "single tag tilt noise at 0.46 m",
+     "value": 10.5122005142,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_sig_60",
+     "name": "single tag tilt noise at 0.6 m",
+     "value": 17.8846511514,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_sig_80",
+     "name": "single tag tilt noise at 0.8 m",
+     "value": 31.7949353983,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_sig_100",
+     "name": "single tag tilt noise at 1.0 m",
+     "value": 49.6795864896,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_sig_4",
+     "name": "board, 4 tags in view (pitch 0.25 m), tilt noise",
+     "value": 1.32375221376,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_sig_2",
+     "name": "board, 2 tags in view (side by side), roll / pitch worst",
+     "value": 4.85257815811,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_dx_board",
+     "name": "lever error with 4 tags",
+     "value": 0.675113629015,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t08_ratio_board",
+     "name": "single tag / 4 tags",
+     "value": 9.76138912457,
+     "unit": "x",
+     "note": ""
+    },
+    {
+     "key": "t08_avg_1",
+     "name": "one tag, mean of 1 frames: tilt",
+     "value": 12.921660463,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_avg_4",
+     "name": "one tag, mean of 4 frames: tilt",
+     "value": 6.46083023149,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_avg_10",
+     "name": "one tag, mean of 10 frames: tilt",
+     "value": 4.08618782144,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_avg_30",
+     "name": "one tag, mean of 30 frames: tilt",
+     "value": 2.35916163867,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_bias_floor",
+     "name": "a 1 mrad static bias is not averaged: lever error stays",
+     "value": 0.51,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t08_mc_avg_30",
+     "name": "Monte Carlo check, mean of 30 frames",
+     "value": 2.36019145729,
+     "unit": "mrad",
+     "note": ""
+    },
+    {
+     "key": "t08_ls_rms_small",
+     "name": "toy fit, 0.6 m excitation box: whitened residual RMS (what 'converged' sees)",
+     "value": 0.995343512762,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t08_ls_weak_small",
+     "name": "toy fit, 0.6 m box: predicted sigma along the weak direction",
+     "value": 351.331969987,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t08_ls_act_small",
+     "name": "toy fit, 0.6 m box: actual error along it (RMS over 300 fits)",
+     "value": 392.069153279,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t08_ls_wit_small",
+     "name": "toy fit, 0.6 m box: error at a held-out far pose",
+     "value": 13.9115991711,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t08_ls_rms_large",
+     "name": "toy fit, 1.8 m excitation box: whitened residual RMS (what 'converged' sees)",
+     "value": 0.994283247181,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t08_ls_weak_large",
+     "name": "toy fit, 1.8 m box: predicted sigma along the weak direction",
+     "value": 39.0190950422,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t08_ls_act_large",
+     "name": "toy fit, 1.8 m box: actual error along it (RMS over 300 fits)",
+     "value": 38.9662860081,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t08_ls_wit_large",
+     "name": "toy fit, 1.8 m box: error at a held-out far pose",
+     "value": 1.85683781682,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t08_ls_ratio",
+     "name": "weak-direction sigma, small box / large box",
+     "value": 9.00410349363,
+     "unit": "x",
+     "note": ""
+    }
+   ],
+   "tables": {
+    "averaging": {
+     "columns": [
+      "N_frames",
+      "sigma_mrad",
+      "dx_mm"
+     ],
+     "rows": [
+      [
+       1,
+       12.921660463,
+       6.59004683612
+      ],
+      [
+       4,
+       6.46083023149,
+       3.29502341806
+      ],
+      [
+       10,
+       4.08618782144,
+       2.08395578893
+      ],
+      [
+       30,
+       2.35916163867,
+       1.20317243572
+      ]
+     ]
+    }
+   },
+   "comparisons": [
+    {
+     "claim": "single-tag tilt noise at 0.46/0.60/0.80/1.0 m",
+     "repo": "10.5 / 17.9 / 31.8 / 49.6 mrad",
+     "mine": "10.5 / 17.9 / 31.8 / 49.7 mrad",
+     "unit": "mrad",
+     "source": "verification/imu_removal_review.md section 2",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "lever error ~6 mm per frame at 0.6 m",
+     "repo": 6.0,
+     "mine": 6.0,
+     "unit": "mm",
+     "source": "verification/imu_removal_review.md section 2",
+     "status": "AGREE",
+     "note": "10 mrad x 0.6 m = 6.0 mm; the bound at 0.51 m is 12.9 mrad x 0.51 m = 6.6 mm."
+    },
+    {
+     "claim": "10 mrad as a constant is 'right only at ~0.46 m on axis'",
+     "repo": "10.5 mrad at 0.46 m",
+     "mine": 10.5122005142,
+     "unit": "mrad",
+     "source": "verification/imu_removal_review.md F1",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "board p0.25 tilt noise",
+     "repo": "1.0-2.0 mrad (3-4 tags)",
+     "mine": "1.3 mrad (4 tags)",
+     "unit": "mrad",
+     "source": "verification/imu_removal_review.md section 4",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "acceptance is never 'the optimiser converged'",
+     "repo": "5 conditions",
+     "mine": "toy: RMS ~1 while sigma_weak differs by 9x",
+     "unit": "-",
+     "source": "docs/CONTROL_SYSTEM_V1.md section 6.2",
+     "status": "AGREE",
+     "note": "A residual near 1 only says the data agree with the model; the information matrix says whether the model is determined."
+    }
+   ],
+   "headline": [
+    "t08_sig_num",
+    "t08_dx_single",
+    "t08_sig_4",
+    "t08_dx_board",
+    "t08_ls_rms_small",
+    "t08_ls_weak_small",
+    "t08_ls_weak_large",
+    "t08_ls_ratio"
+   ]
+  },
+  {
+   "id": 9,
+   "topic": "Synchronisation error to cable force",
+   "equation": "d_l = v dt;  F = k d_l;  k = E A / L",
+   "evidence": "CALCULATED; four-node sync test PLANNED",
+   "decision": "Four Wi-Fi nodes need time-stamped trajectories on a shared clock (or one coordinator): 50 ms of skew at 50 mm/s is already a Newton-scale spike on a stiff line.",
+   "limits": "Linear spring cable; the effective modulus of the braid is assumed; one cable lags while the others do not, so the real spike redistributes over the cables.",
+   "inputs": [
+    {
+     "key": "t09_v",
+     "name": "max cable speed",
+     "value": 50.0,
+     "unit": "mm/s",
+     "basis": "supplied",
+     "source": "config/robot.sim.json motion.max_cable_speed_m_s"
+    },
+    {
+     "key": "t09_dt",
+     "name": "Wi-Fi latency skew",
+     "value": 50.0,
+     "unit": "ms",
+     "basis": "assumed",
+     "source": "ASSUMED; verification/design_review_gen2.md R1 (jitter tens of ms)"
+    },
+    {
+     "key": "t09_k",
+     "name": "line stiffness, 0.5 mm line over 3 m",
+     "value": 3.0,
+     "unit": "N/mm",
+     "basis": "assumed",
+     "source": "ASSUMED; verification/design_review_gen2.md R1"
+    },
+    {
+     "key": "t09_d",
+     "name": "line diameter",
+     "value": 0.5,
+     "unit": "mm",
+     "basis": "assumed",
+     "source": "ASSUMED; config/robot.sim.json stations[0].spool.line_diameter_m"
+    },
+    {
+     "key": "t09_L",
+     "name": "free line length",
+     "value": 3.0,
+     "unit": "m",
+     "basis": "assumed",
+     "source": "ASSUMED; verification/design_review_gen2.md R1"
+    },
+    {
+     "key": "t09_e_eff",
+     "name": "plausible braid modulus (fibre ~100 GPa, braid 30-60 %)",
+     "value": "30-60 GPa",
+     "unit": "GPa",
+     "basis": "assumed",
+     "source": "ASSUMED"
+    }
+   ],
+   "results": [
+    {
+     "key": "t09_dl",
+     "name": "length mismatch v dt",
+     "value": 2.5,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t09_F",
+     "name": "force spike with k = 3 N/mm",
+     "value": 7.5,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t09_area",
+     "name": "line cross-section",
+     "value": 0.196349540849,
+     "unit": "mm^2",
+     "note": ""
+    },
+    {
+     "key": "t09_e_need",
+     "name": "effective modulus implied by 3 N/mm over 3 m",
+     "value": 45.8366236105,
+     "unit": "GPa",
+     "note": ""
+    },
+    {
+     "key": "t09_k_30_1.5",
+     "name": "k at E = 30 GPa, L = 1.5 m",
+     "value": 3.92699081699,
+     "unit": "N/mm",
+     "note": ""
+    },
+    {
+     "key": "t09_k_30_3.0",
+     "name": "k at E = 30 GPa, L = 3.0 m",
+     "value": 1.96349540849,
+     "unit": "N/mm",
+     "note": ""
+    },
+    {
+     "key": "t09_k_30_4.5",
+     "name": "k at E = 30 GPa, L = 4.5 m",
+     "value": 1.308996939,
+     "unit": "N/mm",
+     "note": ""
+    },
+    {
+     "key": "t09_k_45_1.5",
+     "name": "k at E = 45 GPa, L = 1.5 m",
+     "value": 5.89048622548,
+     "unit": "N/mm",
+     "note": ""
+    },
+    {
+     "key": "t09_k_45_3.0",
+     "name": "k at E = 45 GPa, L = 3.0 m",
+     "value": 2.94524311274,
+     "unit": "N/mm",
+     "note": ""
+    },
+    {
+     "key": "t09_k_45_4.5",
+     "name": "k at E = 45 GPa, L = 4.5 m",
+     "value": 1.96349540849,
+     "unit": "N/mm",
+     "note": ""
+    },
+    {
+     "key": "t09_k_60_1.5",
+     "name": "k at E = 60 GPa, L = 1.5 m",
+     "value": 7.85398163397,
+     "unit": "N/mm",
+     "note": ""
+    },
+    {
+     "key": "t09_k_60_3.0",
+     "name": "k at E = 60 GPa, L = 3.0 m",
+     "value": 3.92699081699,
+     "unit": "N/mm",
+     "note": ""
+    },
+    {
+     "key": "t09_k_60_4.5",
+     "name": "k at E = 60 GPa, L = 4.5 m",
+     "value": 2.61799387799,
+     "unit": "N/mm",
+     "note": ""
+    },
+    {
+     "key": "t09_F_2mm",
+     "name": "force for the 2 mm pass criterion",
+     "value": 6.0,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t09_dt_for_2mm",
+     "name": "skew that equals 2 mm at 50 mm/s",
+     "value": 40.0,
+     "unit": "ms",
+     "note": ""
+    },
+    {
+     "key": "t09_share_T06",
+     "name": "spike as a fraction of the 0.6 m static tension (8.3 N)",
+     "value": 90.3614457831,
+     "unit": "%",
+     "note": ""
+    }
+   ],
+   "tables": {},
+   "comparisons": [
+    {
+     "claim": "2.5 mm and 'about 8 N'",
+     "repo": "2.5 mm / ~8 N",
+     "mine": "2.5 mm / 7.5 N",
+     "unit": "-",
+     "source": "verification/design_review_gen2.md R1",
+     "status": "AGREE",
+     "note": "3 N/mm x 2.5 mm is 7.5 N; the repository rounds it to 8."
+    }
+   ],
+   "headline": [
+    "t09_dl",
+    "t09_F"
+   ]
+  },
+  {
+   "id": 10,
+   "topic": "Wire voltage drop",
+   "equation": "R = rho (2 L) / A;  V_drop = I R;  P_loss = I^2 R",
+   "evidence": "CALCULATED; the wiring is not electrically qualified (PLANNED)",
+   "decision": "16 AWG instead of 18 AWG on the 32 ft longest branch: lower drop and less wire heating at 2 A.",
+   "limits": "DC resistance at 20 C and at an assumed 50 C; ignores connector and fuse resistance and the stranding lay factor (about +2 %).",
+   "inputs": [
+    {
+     "key": "t10_rho",
+     "name": "copper resistivity at 20 C (100 % IACS)",
+     "value": 1.724e-08,
+     "unit": "ohm m",
+     "basis": "assumed",
+     "source": "ASSUMED; standard annealed copper"
+    },
+    {
+     "key": "t10_alpha",
+     "name": "temperature coefficient of copper",
+     "value": 0.00393,
+     "unit": "1/K",
+     "basis": "assumed",
+     "source": "ASSUMED; standard value"
+    },
+    {
+     "key": "t10_t_hot",
+     "name": "conductor temperature, warm ceiling run",
+     "value": 50.0,
+     "unit": "C",
+     "basis": "assumed",
+     "source": "ASSUMED"
+    },
+    {
+     "key": "t10_L",
+     "name": "longest branch, one way",
+     "value": 32.0,
+     "unit": "ft",
+     "basis": "supplied",
+     "source": "docs/POWER_WIRE_SELECTION_20261014.md (routing update; ROOM_LAYOUT_20261014.md)"
+    },
+    {
+     "key": "t10_v_sup",
+     "name": "supply label",
+     "value": 12.0,
+     "unit": "V",
+     "basis": "supplied",
+     "source": "docs/presentation/DECISION_STORIES.md T15 (12 V on the label; 18 V on the meter)"
+    },
+    {
+     "key": "t10_d18",
+     "name": "18 AWG diameter",
+     "value": 1.02368734283,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "ASTM B258 formula 0.127 mm x 92^((36-n)/39)"
+    },
+    {
+     "key": "t10_d16",
+     "name": "16 AWG diameter",
+     "value": 1.29084590583,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "ASTM B258 formula 0.127 mm x 92^((36-n)/39)"
+    }
+   ],
+   "results": [
+    {
+     "key": "t10_a18",
+     "name": "18 AWG area",
+     "value": 0.823046833731,
+     "unit": "mm^2",
+     "note": ""
+    },
+    {
+     "key": "t10_r18",
+     "name": "18 AWG loop resistance, 32 ft out and back, 20 C",
+     "value": 0.408608737944,
+     "unit": "ohm",
+     "note": ""
+    },
+    {
+     "key": "t10_vd18_1",
+     "name": "18 AWG drop at 1 A",
+     "value": 0.408608737944,
+     "unit": "V",
+     "note": ""
+    },
+    {
+     "key": "t10_vd50_18_1",
+     "name": "18 AWG drop at 1 A, 50 C",
+     "value": 0.456783708148,
+     "unit": "V",
+     "note": ""
+    },
+    {
+     "key": "t10_pct18_1",
+     "name": "18 AWG drop at 1 A, % of 12 V",
+     "value": 3.4050728162,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t10_pl18_1",
+     "name": "18 AWG wire loss at 1 A",
+     "value": 0.408608737944,
+     "unit": "W",
+     "note": ""
+    },
+    {
+     "key": "t10_vd18_2",
+     "name": "18 AWG drop at 2 A",
+     "value": 0.817217475889,
+     "unit": "V",
+     "note": ""
+    },
+    {
+     "key": "t10_vd50_18_2",
+     "name": "18 AWG drop at 2 A, 50 C",
+     "value": 0.913567416296,
+     "unit": "V",
+     "note": ""
+    },
+    {
+     "key": "t10_pct18_2",
+     "name": "18 AWG drop at 2 A, % of 12 V",
+     "value": 6.8101456324,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t10_pl18_2",
+     "name": "18 AWG wire loss at 2 A",
+     "value": 1.63443495178,
+     "unit": "W",
+     "note": ""
+    },
+    {
+     "key": "t10_a16",
+     "name": "16 AWG area",
+     "value": 1.30869572776,
+     "unit": "mm^2",
+     "note": ""
+    },
+    {
+     "key": "t10_r16",
+     "name": "16 AWG loop resistance, 32 ft out and back, 20 C",
+     "value": 0.256976561371,
+     "unit": "ohm",
+     "note": ""
+    },
+    {
+     "key": "t10_vd16_1",
+     "name": "16 AWG drop at 1 A",
+     "value": 0.256976561371,
+     "unit": "V",
+     "note": ""
+    },
+    {
+     "key": "t10_vd50_16_1",
+     "name": "16 AWG drop at 1 A, 50 C",
+     "value": 0.287274097957,
+     "unit": "V",
+     "note": ""
+    },
+    {
+     "key": "t10_pct16_1",
+     "name": "16 AWG drop at 1 A, % of 12 V",
+     "value": 2.14147134476,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t10_pl16_1",
+     "name": "16 AWG wire loss at 1 A",
+     "value": 0.256976561371,
+     "unit": "W",
+     "note": ""
+    },
+    {
+     "key": "t10_vd16_2",
+     "name": "16 AWG drop at 2 A",
+     "value": 0.513953122743,
+     "unit": "V",
+     "note": ""
+    },
+    {
+     "key": "t10_vd50_16_2",
+     "name": "16 AWG drop at 2 A, 50 C",
+     "value": 0.574548195914,
+     "unit": "V",
+     "note": ""
+    },
+    {
+     "key": "t10_pct16_2",
+     "name": "16 AWG drop at 2 A, % of 12 V",
+     "value": 4.28294268952,
+     "unit": "%",
+     "note": ""
+    },
+    {
+     "key": "t10_pl16_2",
+     "name": "16 AWG wire loss at 2 A",
+     "value": 1.02790624549,
+     "unit": "W",
+     "note": ""
+    },
+    {
+     "key": "t10_ratio",
+     "name": "18 AWG / 16 AWG drop",
+     "value": 1.59006228336,
+     "unit": "x",
+     "note": ""
+    }
+   ],
+   "tables": {
+    "drop": {
+     "columns": [
+      "AWG",
+      "I_A",
+      "R_ohm",
+      "drop_V",
+      "drop_pct_of_12V",
+      "drop_V_at_50C",
+      "loss_W"
+     ],
+     "rows": [
+      [
+       18,
+       1.0,
+       0.408608737944,
+       0.408608737944,
+       3.4050728162,
+       0.456783708148,
+       0.408608737944
+      ],
+      [
+       18,
+       2.0,
+       0.408608737944,
+       0.817217475889,
+       6.8101456324,
+       0.913567416296,
+       1.63443495178
+      ],
+      [
+       16,
+       1.0,
+       0.256976561371,
+       0.256976561371,
+       2.14147134476,
+       0.287274097957,
+       0.256976561371
+      ],
+      [
+       16,
+       2.0,
+       0.256976561371,
+       0.513953122743,
+       4.28294268952,
+       0.574548195914,
+       1.02790624549
+      ]
+     ]
+    }
+   },
+   "comparisons": [
+    {
+     "claim": "18 AWG resistance per 1000 ft (standard table 6.385 ohm)",
+     "repo": 6.385,
+     "mine": 6.38451153038,
+     "unit": "ohm",
+     "source": "AWG tables",
+     "status": "AGREE",
+     "note": ""
+    }
+   ],
+   "headline": [
+    "t10_vd18_1",
+    "t10_vd18_2",
+    "t10_vd16_1",
+    "t10_vd16_2"
+   ]
+  },
+  {
+   "id": 11,
+   "topic": "Camera view vs tube length (similar triangles)",
+   "equation": "k = 1 - a/b;  D* = (k (H0 - c) - e) / (1 - k)",
+   "evidence": "CALCULATED closed form; the ray-cast study is SIMULATED",
+   "decision": "D28: cut the claw tube by 50 mm, to 254.8 mm: the grasp zone is fully visible from a hover of about 140 mm instead of 172 mm, and 32 g is saved.",
+   "limits": "Straight rays from a point lens, a flat bare floor, a fixed lens height; no pile of laundry, swing or focus; the 95 % criterion is on the CAD solids only.",
+   "inputs": [
+    {
+     "key": "t11_cam_r",
+     "name": "lens offset from the tube axis",
+     "value": 90.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:CAMBAY_CAM_R"
+    },
+    {
+     "key": "t11_plate_z",
+     "name": "lower plate camera-side face",
+     "value": 30.5,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/claw_tube_length_view_study.md section Answer"
+    },
+    {
+     "key": "t11_zone_z",
+     "name": "far edge of the grasp zone",
+     "value": 7.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/claw_tube_length_view_study.json conventions.grasp_zone"
+    },
+    {
+     "key": "t11_edge",
+     "name": "bottom edge of the plate above the closed jaw tips",
+     "value": 93.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/claw_tube_length_view_study.md section Answer"
+    },
+    {
+     "key": "t11_h0",
+     "name": "lens height at D = 0, c = 0",
+     "value": 512.06,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/claw_tube_length_view_study.json tube[0]"
+    }
+   ],
+   "results": [
+    {
+     "key": "t11_a",
+     "name": "lens to plate face (lateral)",
+     "value": 59.5,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_b",
+     "name": "lens to far edge of the zone (lateral)",
+     "value": 97.0,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_k",
+     "name": "k = 1 - a/b",
+     "value": 0.386597938144,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t11_1mk",
+     "name": "1 - k",
+     "value": 0.613402061856,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t11_saved_0",
+     "name": "tube mass saved by a 0 mm cut (2.70 g/cc)",
+     "value": 0.0,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t11_dstar_0",
+     "name": "D* at c = 0 mm",
+     "value": 171.113445378,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_dstar_r_0",
+     "name": "D* at c = 0 (brief's rounded constants 0.387 / 0.613)",
+     "value": 171.52365416,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_lens_0",
+     "name": "lens height at D* for c = 0",
+     "value": 683.173445378,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_saved_50",
+     "name": "tube mass saved by a 50 mm cut (2.70 g/cc)",
+     "value": 32.4956919309,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t11_dstar_50",
+     "name": "D* at c = 50 mm",
+     "value": 139.600840336,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_dstar_r_50",
+     "name": "D* at c = 50 (brief's rounded constants 0.387 / 0.613)",
+     "value": 139.957585644,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_lens_50",
+     "name": "lens height at D* for c = 50",
+     "value": 601.660840336,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_saved_100",
+     "name": "tube mass saved by a 100 mm cut (2.70 g/cc)",
+     "value": 64.9913838619,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t11_dstar_100",
+     "name": "D* at c = 100 mm",
+     "value": 108.088235294,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_dstar_r_100",
+     "name": "D* at c = 100 (brief's rounded constants 0.387 / 0.613)",
+     "value": 108.391517129,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_lens_100",
+     "name": "lens height at D* for c = 100",
+     "value": 520.148235294,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_saved_150",
+     "name": "tube mass saved by a 150 mm cut (2.70 g/cc)",
+     "value": 97.4870757928,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t11_dstar_150",
+     "name": "D* at c = 150 mm",
+     "value": 76.5756302521,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_dstar_r_150",
+     "name": "D* at c = 150 (brief's rounded constants 0.387 / 0.613)",
+     "value": 76.8254486134,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_lens_150",
+     "name": "lens height at D* for c = 150",
+     "value": 438.635630252,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_saved_200",
+     "name": "tube mass saved by a 200 mm cut (2.70 g/cc)",
+     "value": 129.982767724,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t11_dstar_200",
+     "name": "D* at c = 200 mm",
+     "value": 45.0630252101,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_dstar_r_200",
+     "name": "D* at c = 200 (brief's rounded constants 0.387 / 0.613)",
+     "value": 45.2593800979,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_lens_200",
+     "name": "lens height at D* for c = 200",
+     "value": 357.12302521,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t11_slope",
+     "name": "dD*/dc = -k/(1-k)",
+     "value": -0.63025210084,
+     "unit": "mm/mm",
+     "note": ""
+    },
+    {
+     "key": "t11_g_per_mm",
+     "name": "tube mass per mm (2.70 g/cc)",
+     "value": 0.649913838619,
+     "unit": "g/mm",
+     "note": ""
+    },
+    {
+     "key": "t11_saved_50",
+     "name": "mass saved by a 50 mm cut",
+     "value": 32.4956919309,
+     "unit": "g",
+     "note": ""
+    },
+    {
+     "key": "t11_cmax",
+     "name": "longest possible cut before the hub meets the head plates",
+     "value": 206.204,
+     "unit": "mm",
+     "note": ""
+    }
+   ],
+   "tables": {
+    "dstar": {
+     "columns": [
+      "c_mm",
+      "D_star_closed_mm",
+      "D_star_rounded_mm",
+      "ray_cast_mm",
+      "diff_mm",
+      "lens_height_at_Dstar_mm",
+      "mass_saved_g"
+     ],
+     "rows": [
+      [
+       0,
+       171.113445378,
+       171.52365416,
+       172.0,
+       -0.886554621849,
+       683.173445378,
+       0.0
+      ],
+      [
+       50,
+       139.600840336,
+       139.957585644,
+       140.0,
+       -0.399159663866,
+       601.660840336,
+       32.4956919309
+      ],
+      [
+       100,
+       108.088235294,
+       108.391517129,
+       109.0,
+       -0.911764705882,
+       520.148235294,
+       64.9913838619
+      ],
+      [
+       150,
+       76.5756302521,
+       76.8254486134,
+       77.0,
+       -0.424369747899,
+       438.635630252,
+       97.4870757928
+      ],
+      [
+       200,
+       45.0630252101,
+       45.2593800979,
+       46.0,
+       -0.936974789916,
+       357.12302521,
+       129.982767724
+      ]
+     ]
+    }
+   },
+   "comparisons": [
+    {
+     "claim": "D* = 172 / 140 mm for c = 0 / 50",
+     "repo": "172 / 140",
+     "mine": "171.1 / 139.6",
+     "unit": "mm",
+     "source": "verification/claw_tube_length_view_study.md",
+     "status": "AGREE",
+     "note": "The closed form sits 0.4-0.9 mm under the 1 mm ray-cast scan (the scan reports the first whole mm)."
+    },
+    {
+     "claim": "each 10 mm cut lowers D* by ~6.3 mm",
+     "repo": 6.3,
+     "mine": 6.3025210084,
+     "unit": "mm",
+     "source": "verification/claw_tube_length_view_study.md",
+     "status": "AGREE",
+     "note": ""
+    },
+    {
+     "claim": "32 g saved by the 50 mm cut (D28)",
+     "repo": 32.5,
+     "mine": 32.4956919309,
+     "unit": "g",
+     "source": "DECISIONS.md D28; study tube[50]",
+     "status": "AGREE",
+     "note": ""
+    }
+   ],
+   "headline": [
+    "t11_dstar_0",
+    "t11_dstar_50",
+    "t11_saved_50"
+   ]
+  },
+  {
+   "id": 12,
+   "topic": "Press fits and printed holes",
+   "equation": "interference u = D_brg - D_hole;  p = (u/2) E / (b [ (c^2 + b^2)/(c^2 - b^2) + nu ]);  sigma_hoop = p (c^2 + b^2)/(c^2 - b^2);  F_insert = mu p pi D l",
+   "evidence": "CALCULATED; fit-coupon results PLANNED (none recorded)",
+   "decision": "The bearing pockets are drawn a hair over size (pocket 14.075, line-to-line lip 14.000) because printed holes come out small; a fit coupon measures the printer's offset before the gears are printed.",
+   "limits": "Thick-ring (Lame) elastic fit with a rigid bearing; PETG modulus is assumed and relaxes with time; the printer offset values are illustrative until a coupon is measured.",
+   "inputs": [
+    {
+     "key": "t12_brg",
+     "name": "687 bearing outer diameter (nominal)",
+     "value": 14.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV6R_BRG_OD"
+    },
+    {
+     "key": "t12_pocket",
+     "name": "pocket diameter (Jasper's v6 drawing)",
+     "value": 14.075,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV6R_POCKET_R; verification/gripper_v6r_gears_verification.md 3.2"
+    },
+    {
+     "key": "t12_lip",
+     "name": "entry-lip diameter",
+     "value": 14.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/gripper_v6r_gears_verification.md 3.2"
+    },
+    {
+     "key": "t12_lip_l",
+     "name": "lip length",
+     "value": 1.95,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/gripper_v6r_gears_verification.md 3.2"
+    },
+    {
+     "key": "t12_core_r",
+     "name": "solid kept around the pocket, outer radius",
+     "value": 8.5,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:GRIPV6R_CORE_R"
+    },
+    {
+     "key": "t12_e_pg",
+     "name": "printed PETG modulus",
+     "value": 2100.0,
+     "unit": "MPa",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gripper_v7_screening.py:E_PETG"
+    },
+    {
+     "key": "t12_nu",
+     "name": "Poisson ratio of PETG",
+     "value": 0.38,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED typical value"
+    },
+    {
+     "key": "t12_mu",
+     "name": "PETG on steel friction",
+     "value": 0.3,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED"
+    },
+    {
+     "key": "t12_allow",
+     "name": "PETG allowable (22.5 MPa)",
+     "value": 22.5,
+     "unit": "MPa",
+     "basis": "assumed",
+     "source": "ASSUMED; calculations/gripper_v7_screening.py:PETG_ALLOW"
+    },
+    {
+     "key": "t12_brg_tol",
+     "name": "bearing OD tolerance (0 / -0.008)",
+     "value": 0.008,
+     "unit": "mm",
+     "basis": "assumed",
+     "source": "ASSUMED standard small-bearing tolerance"
+    },
+    {
+     "key": "t12_v3_bore",
+     "name": "spool bore, v3",
+     "value": 5.45,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/design_review_gen2.md R4"
+    },
+    {
+     "key": "t12_v2_bore",
+     "name": "spool bore, v2 (printed too tight)",
+     "value": 5.2,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "verification/design_review_gen2.md R4; DECISION_STORIES.md T24 (Jasper, confirmed)"
+    },
+    {
+     "key": "t12_shaft",
+     "name": "NEMA 17 shaft",
+     "value": 5.0,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "cad/params.py:MOTOR_SHAFT_DIA"
+    },
+    {
+     "key": "t12_stl_tol",
+     "name": "STL chord tolerance, v6 gear parts",
+     "value": 0.02,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "scripts/build_gripper_v6r_gears.py (tolerance 0.02, angular 0.1)"
+    },
+    {
+     "key": "t12_stl_ang",
+     "name": "STL angular tolerance, v6 gear parts",
+     "value": 0.1,
+     "unit": "rad",
+     "basis": "supplied",
+     "source": "scripts/build_gripper_v6r_gears.py"
+    },
+    {
+     "key": "t12_stl_tol7",
+     "name": "STL chord tolerance, v7 plates",
+     "value": 0.05,
+     "unit": "mm",
+     "basis": "supplied",
+     "source": "scripts/build_gripper_v7.py (tolerance 0.05, angular 0.2)"
+    },
+    {
+     "key": "t12_stl_ang7",
+     "name": "STL angular tolerance, v7 plates",
+     "value": 0.2,
+     "unit": "rad",
+     "basis": "supplied",
+     "source": "scripts/build_gripper_v7.py"
+    },
+    {
+     "key": "t12_shrink",
+     "name": "PETG cooling shrinkage (example)",
+     "value": 0.004,
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED illustrative 0.4 %"
+    },
+    {
+     "key": "t12_coupon",
+     "name": "coupon design",
+     "value": "nominal -0.10 .. +0.30 mm in 0.05 steps at \u00d85, \u00d87, \u00d814; vertical and horizontal axis",
+     "unit": "-",
+     "basis": "assumed",
+     "source": "ASSUMED plan (no coupon data in the record)"
+    }
+   ],
+   "results": [
+    {
+     "key": "t12_shrink_loss",
+     "name": "diametral loss of a \u00d814 hole from that shrinkage",
+     "value": 0.056,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_clr_pocket",
+     "name": "nominal diametral clearance in the pocket",
+     "value": 0.075,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_clr_lip",
+     "name": "nominal interference at the lip",
+     "value": 0.0,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_clr_pocket_worst",
+     "name": "pocket clearance with the bearing at its +0 tolerance",
+     "value": 0.075,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_clr_pocket_min",
+     "name": "pocket clearance with the bearing at its -0.008 tolerance",
+     "value": 0.083,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_sag_n_v6r",
+     "name": "v6r STL: segments in a \u00d814 hole",
+     "value": 63,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t12_sag_v6r",
+     "name": "v6r STL: across-flats loss of the \u00d814 hole",
+     "value": 0.0174031029351,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_sag_n_v7",
+     "name": "v7 STL: segments in a \u00d814 hole",
+     "value": 32,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t12_sag_v7",
+     "name": "v7 STL: across-flats loss of the \u00d814 hole",
+     "value": 0.0674138265892,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_k_ring",
+     "name": "ring factor (c^2 + b^2)/(c^2 - b^2)",
+     "value": 5.21505376344,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t12_p_30",
+     "name": "lip contact pressure at 0.03 mm undersize",
+     "value": 0.804281815736,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_hoop_30",
+     "name": "lip hoop stress at 0.03 mm undersize",
+     "value": 4.19437291002,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_sf_30",
+     "name": "lip SF vs 22.5 MPa at 0.03 mm",
+     "value": 5.36432989691,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t12_ins_30",
+     "name": "insertion force at 0.03 mm",
+     "value": 20.6938846602,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t12_pk_30",
+     "name": "pocket interference at 0.03 mm undersize (negative = clearance)",
+     "value": -0.045,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_p_50",
+     "name": "lip contact pressure at 0.05 mm undersize",
+     "value": 1.34046969289,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_hoop_50",
+     "name": "lip hoop stress at 0.05 mm undersize",
+     "value": 6.9906215167,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_sf_50",
+     "name": "lip SF vs 22.5 MPa at 0.05 mm",
+     "value": 3.21859793814,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t12_ins_50",
+     "name": "insertion force at 0.05 mm",
+     "value": 34.4898077669,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t12_pk_50",
+     "name": "pocket interference at 0.05 mm undersize (negative = clearance)",
+     "value": -0.025,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_p_75",
+     "name": "lip contact pressure at 0.075 mm undersize",
+     "value": 2.01070453934,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_hoop_75",
+     "name": "lip hoop stress at 0.075 mm undersize",
+     "value": 10.4859322751,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_sf_75",
+     "name": "lip SF vs 22.5 MPa at 0.075 mm",
+     "value": 2.14573195876,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t12_ins_75",
+     "name": "insertion force at 0.075 mm",
+     "value": 51.7347116504,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t12_pk_75",
+     "name": "pocket interference at 0.075 mm undersize (negative = clearance)",
+     "value": 0.0,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_p_100",
+     "name": "lip contact pressure at 0.1 mm undersize",
+     "value": 2.68093938579,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_hoop_100",
+     "name": "lip hoop stress at 0.1 mm undersize",
+     "value": 13.9812430334,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_sf_100",
+     "name": "lip SF vs 22.5 MPa at 0.1 mm",
+     "value": 1.60929896907,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t12_ins_100",
+     "name": "insertion force at 0.1 mm",
+     "value": 68.9796155339,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t12_pk_100",
+     "name": "pocket interference at 0.1 mm undersize (negative = clearance)",
+     "value": 0.025,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_p_150",
+     "name": "lip contact pressure at 0.15 mm undersize",
+     "value": 4.02140907868,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_hoop_150",
+     "name": "lip hoop stress at 0.15 mm undersize",
+     "value": 20.9718645501,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_sf_150",
+     "name": "lip SF vs 22.5 MPa at 0.15 mm",
+     "value": 1.07286597938,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t12_ins_150",
+     "name": "insertion force at 0.15 mm",
+     "value": 103.469423301,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t12_pk_150",
+     "name": "pocket interference at 0.15 mm undersize (negative = clearance)",
+     "value": 0.075,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_p_200",
+     "name": "lip contact pressure at 0.2 mm undersize",
+     "value": 5.36187877157,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_hoop_200",
+     "name": "lip hoop stress at 0.2 mm undersize",
+     "value": 27.9624860668,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_sf_200",
+     "name": "lip SF vs 22.5 MPa at 0.2 mm",
+     "value": 0.804649484536,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t12_ins_200",
+     "name": "insertion force at 0.2 mm",
+     "value": 137.959231068,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t12_pk_200",
+     "name": "pocket interference at 0.2 mm undersize (negative = clearance)",
+     "value": 0.125,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_p_300",
+     "name": "lip contact pressure at 0.3 mm undersize",
+     "value": 8.04281815736,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_hoop_300",
+     "name": "lip hoop stress at 0.3 mm undersize",
+     "value": 41.9437291002,
+     "unit": "MPa",
+     "note": ""
+    },
+    {
+     "key": "t12_sf_300",
+     "name": "lip SF vs 22.5 MPa at 0.3 mm",
+     "value": 0.536432989691,
+     "unit": "-",
+     "note": ""
+    },
+    {
+     "key": "t12_ins_300",
+     "name": "insertion force at 0.3 mm",
+     "value": 206.938846602,
+     "unit": "N",
+     "note": ""
+    },
+    {
+     "key": "t12_pk_300",
+     "name": "pocket interference at 0.3 mm undersize (negative = clearance)",
+     "value": 0.225,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_u_hoop_limit",
+     "name": "undersize at which the lip hoop stress reaches 22.5 MPa",
+     "value": 0.161,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_u_pocket_free",
+     "name": "undersize at which the \u00d814.075 pocket starts to squeeze the bearing",
+     "value": 0.075,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_window",
+     "name": "printer undersize window: lip holds, pocket free, hoop < allowable",
+     "value": "0 .. 0.075 mm (pocket free); lip stress limit 0.161 mm",
+     "unit": "",
+     "note": ""
+    },
+    {
+     "key": "t12_u_v2",
+     "name": "v2 bore \u00d85.2 too tight on \u00d85.0 implies printed undersize of at least",
+     "value": 0.2,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_v3_clr_2",
+     "name": "v3 \u00d85.45 bore with 0.2 mm undersize: clearance on the shaft",
+     "value": 0.25,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_v3_clr_3",
+     "name": "v3 \u00d85.45 bore with 0.3 mm undersize: clearance on the shaft",
+     "value": 0.15,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_v3_clr_0",
+     "name": "v3 \u00d85.45 bore printed true: clearance on the shaft",
+     "value": 0.45,
+     "unit": "mm",
+     "note": ""
+    },
+    {
+     "key": "t12_coupon_n",
+     "name": "coupon plan: sizes (step 0.05 mm) x diameters (5, 7, 14) x orientations (vertical, flat)",
+     "value": 54,
+     "unit": "holes",
+     "note": ""
+    }
+   ],
+   "tables": {
+    "fit_vs_offset": {
+     "columns": [
+      "printer_undersize_mm",
+      "lip_interference_mm",
+      "p_MPa",
+      "hoop_MPa",
+      "SF_vs_22.5",
+      "insert_force_N",
+      "pocket_interference_mm"
+     ],
+     "rows": [
+      [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       "inf",
+       0.0,
+       -0.075
+      ],
+      [
+       0.03,
+       0.03,
+       0.804281815736,
+       4.19437291002,
+       5.36432989691,
+       20.6938846602,
+       -0.045
+      ],
+      [
+       0.05,
+       0.05,
+       1.34046969289,
+       6.9906215167,
+       3.21859793814,
+       34.4898077669,
+       -0.025
+      ],
+      [
+       0.075,
+       0.075,
+       2.01070453934,
+       10.4859322751,
+       2.14573195876,
+       51.7347116504,
+       0.0
+      ],
+      [
+       0.1,
+       0.1,
+       2.68093938579,
+       13.9812430334,
+       1.60929896907,
+       68.9796155339,
+       0.025
+      ],
+      [
+       0.15,
+       0.15,
+       4.02140907868,
+       20.9718645501,
+       1.07286597938,
+       103.469423301,
+       0.075
+      ],
+      [
+       0.2,
+       0.2,
+       5.36187877157,
+       27.9624860668,
+       0.804649484536,
+       137.959231068,
+       0.125
+      ],
+      [
+       0.3,
+       0.3,
+       8.04281815736,
+       41.9437291002,
+       0.536432989691,
+       206.938846602,
+       0.225
+      ]
+     ]
+    }
+   },
+   "comparisons": [
+    {
+     "claim": "coupon measured insertion results (outline slide 8)",
+     "repo": "claimed",
+     "mine": "none in the record",
+     "unit": "-",
+     "source": "docs/presentation/DECISION_STORIES.md section 4 item 10",
+     "status": "GAP",
+     "note": "No coupon photo or numbers exist; the slide must say PLANNED."
+    },
+    {
+     "claim": "v3 bore \u00d85.45 'loose unless the printer prints holes ~0.3 mm small'",
+     "repo": 0.45,
+     "mine": 0.45,
+     "unit": "mm",
+     "source": "verification/design_review_gen2.md R4",
+     "status": "AGREE",
+     "note": "Clearance 0.45 mm on paper; 0.15-0.25 mm once a 0.2-0.3 mm undersize is taken off."
+    }
+   ],
+   "headline": [
+    "t12_clr_pocket",
+    "t12_clr_lip",
+    "t12_sag_v6r",
+    "t12_hoop_150",
+    "t12_u_hoop_limit",
+    "t12_u_v2"
+   ]
+  }
+ ],
+ "values": {
+  "t01_g": 9.81,
+  "t01_room_l": 3.3528,
+  "t01_room_w": 2.7432,
+  "t01_room_h": 2.7432,
+  "t01_anchor_drop": 0.15,
+  "t01_accel": 2.0,
+  "t01_m_claw": 0.45,
+  "t01_m_test": 0.45359237,
+  "t01_dh": 2.1660109695,
+  "t01_w": 8.8642411497,
+  "t01_w_dyn": 10.6714258897,
+  "t01_phi_0.15": 3.96150688371,
+  "t01_T_0.15": 32.0767138327,
+  "t01_Tdyn_0.15": 38.6163089056,
+  "t01_phi_0.30": 7.88549569307,
+  "t01_T_0.30": 16.1527732905,
+  "t01_Tdyn_0.30": 19.4458973048,
+  "t01_phi_0.60": 15.4830990999,
+  "t01_T_0.60": 8.30127783185,
+  "t01_Tdyn_0.60": 9.99368921449,
+  "t01_phi_1.20": 28.9870584629,
+  "t01_T_1.20": 4.57285422997,
+  "t01_Tdyn_1.20": 5.50513847665,
+  "t01_vref": 0.85,
+  "t01_f_full": 17.85,
+  "t01_f_use": 11.9,
+  "t01_dmin_no_margin": 0.327408969503,
+  "t01_dmin_sf15": 0.498280638466,
+  "t01_ceil_margin": 0.4,
+  "t01_task_h": 1.6,
+  "t01_d_task": 0.9932,
+  "t01_dmin_static_nomargin": 0.271004779349,
+  "t01_lp_k_0.4": 2.42058344519,
+  "t01_lp_lb_0.4": 1.10482158474,
+  "t01_lp_kg_0.4": 0.501138646017,
+  "t01_lp_k_0.6": 1.66646671428,
+  "t01_lp_lb_0.6": 1.60478023054,
+  "t01_lp_kg_0.6": 0.727916075312,
+  "t01_lp_k_1.0": 1.09502032048,
+  "t01_lp_lb_1.0": 2.44224950707,
+  "t01_lp_kg_1.0": 1.10778575302,
+  "t01_lp_k_task": 1.10057520537,
+  "t01_lp_lb_task": 2.4299228484,
+  "t01_lp_kg_task": 1.10219447465,
+  "t01_need_kg": 1.35,
+  "t01_need_ratio": 1.22482922121,
+  "t01_d29_claw_design": 183.148497881,
+  "t01_d29_claw_nosf": 501.518931821,
+  "t01_d29_claw_core": 819.889365761,
+  "t01_d29_claw_hold": 759.247378344,
+  "t02_vref": 0.85,
+  "t02_vref_old": 0.79,
+  "t02_rs": 0.1,
+  "t02_hold": 0.255,
+  "t02_i_rated": 1.5,
+  "t02_run_frac": 0.7,
+  "t02_run_frac_old": 0.5,
+  "t02_sf": 1.5,
+  "t02_r_core": 0.0075,
+  "t02_line_d": 0.0005,
+  "t02_packing": 0.85,
+  "t02_width": 0.016,
+  "t02_flange_r": 0.018,
+  "t02_line_total": 6.096,
+  "t02_usteps": 3200,
+  "t02_f_cap": 4000.0,
+  "t02_v_max": 0.05,
+  "t02_enc": 4096,
+  "t02_bore_d": 5.45,
+  "t02_flat": 0.5,
+  "t02_shaft_d": 5.0,
+  "t02_tie_d": 1.4,
+  "t02_tie_wall": 0.8,
+  "t02_m3": 3.0,
+  "t02_bend_min": 20.0,
+  "t02_current": 1.0625,
+  "t02_current_old": 0.9875,
+  "t02_run": 0.1785,
+  "t02_r_full": 10.0,
+  "t02_layers": 5,
+  "t02_f_core": 23.8,
+  "t02_f_full": 17.85,
+  "t02_f_use_core": 15.8666666667,
+  "t02_f_use_full": 11.9,
+  "t02_f_snag": 34.0,
+  "t02_f_old_core": 24.0,
+  "t02_f_old_full": 18.0,
+  "t02_c15_cap": 1.10219447465,
+  "t02_c15_maxclaw": 202.194474647,
+  "t02_c15_layers": 5,
+  "t02_c15_rfull": 10.0,
+  "t02_c15_ffull": 17.85,
+  "t02_c15_fcore": 23.8,
+  "t02_c15_fuse": 11.9,
+  "t02_c15_dlen": 15.7079632679,
+  "t02_c15_lcore": 47.1238898038,
+  "t02_c15_lfull": 62.8318530718,
+  "t02_c15_vcore": 58.9048622548,
+  "t02_c15_fneed": 3395.30545263,
+  "t02_c15_bend": 30.0,
+  "t02_c15_wall_round": 4.775,
+  "t02_c15_wall_flat": 5.275,
+  "t02_c12_cap": 1.29669938194,
+  "t02_c12_maxclaw": 396.699381938,
+  "t02_c12_layers": 5,
+  "t02_c12_rfull": 8.5,
+  "t02_c12_ffull": 21.0,
+  "t02_c12_fcore": 29.75,
+  "t02_c12_fuse": 14.0,
+  "t02_c12_dlen": 15.7079632679,
+  "t02_c12_lcore": 37.6991118431,
+  "t02_c12_lfull": 53.407075111,
+  "t02_c12_vcore": 47.1238898038,
+  "t02_c12_fneed": 4244.13181578,
+  "t02_c12_bend": 24.0,
+  "t02_c12_wall_round": 3.275,
+  "t02_c12_wall_flat": 3.775,
+  "t02_c10_cap": 1.37774309331,
+  "t02_c10_maxclaw": 477.743093309,
+  "t02_c10_layers": 6,
+  "t02_c10_rfull": 8.0,
+  "t02_c10_ffull": 22.3125,
+  "t02_c10_fcore": 35.7,
+  "t02_c10_fuse": 14.875,
+  "t02_c10_dlen": 18.8495559215,
+  "t02_c10_lcore": 31.4159265359,
+  "t02_c10_lfull": 50.2654824574,
+  "t02_c10_vcore": 39.2699081699,
+  "t02_c10_fneed": 5092.95817894,
+  "t02_c10_bend": 20.0,
+  "t02_c10_wall_round": 2.275,
+  "t02_c10_wall_flat": 2.775,
+  "t02_c8_cap": 1.46959263286,
+  "t02_c8_maxclaw": 569.592632863,
+  "t02_c8_layers": 7,
+  "t02_c8_rfull": 7.5,
+  "t02_c8_ffull": 23.8,
+  "t02_c8_fcore": 44.625,
+  "t02_c8_fuse": 15.8666666667,
+  "t02_c8_dlen": 21.9911485751,
+  "t02_c8_lcore": 25.1327412287,
+  "t02_c8_lfull": 47.1238898038,
+  "t02_c8_vcore": 31.4159265359,
+  "t02_c8_fneed": 6366.19772368,
+  "t02_c8_bend": 16.0,
+  "t02_c8_wall_round": 1.275,
+  "t02_c8_wall_flat": 1.775,
+  "t02_c12_gain": 17.6470588235,
+  "t02_c10_gain": 25.0,
+  "t02_c8_gain": 33.3333333333,
+  "t02_hex_dev": 0.469,
+  "t02_bend_min_core": 10.0,
+  "t02_rec_core": 10,
+  "t02_pts8": 8.33333333333,
+  "t03_r_phase": 1.8,
+  "t03_t_amb": 23.0,
+  "t03_c_m": 130.0,
+  "t03_c_s": 600.0,
+  "t03_p_e": 1.5,
+  "t03_vref": 0.85,
+  "t03_rs": 0.1,
+  "t03_k_al": 160.0,
+  "t03_k_petg": 0.2,
+  "t03_t_as": 0.4826,
+  "t03_t_des": 3.175,
+  "t03_w_fin": 44.0,
+  "t03_l_fin": 200.0,
+  "t03_h_lo": 5.0,
+  "t03_h_mid": 7.0,
+  "t03_h_hi": 9.0,
+  "t03_r_contact": 1.0,
+  "t03_current": 1.0625,
+  "t03_p_m": 2.03203125,
+  "t03_a_fin": 0.0176,
+  "t03_as_built_m": 13.4651243271,
+  "t03_as_built_ml": 2.69302486543,
+  "t03_as_built_eta": 36.7943762718,
+  "t03_as_built_eta_h9": 32.6026766706,
+  "t03_as_built_eta_h5": 43.0193148223,
+  "t03_as_built_rfin": 22.0601187989,
+  "t03_as_built_rfin_h9": 19.3638435792,
+  "t03_as_built_rfin_h5": 26.4151960824,
+  "t03_as_built_rtot": 23.0601187989,
+  "t03_design_m": 5.24967190576,
+  "t03_design_ml": 1.04993438115,
+  "t03_design_eta": 74.4599718912,
+  "t03_design_eta_h9": 69.7798038436,
+  "t03_design_eta_h5": 80.0225836178,
+  "t03_design_rfin": 10.9010021233,
+  "t03_design_rfin_h9": 9.04721848642,
+  "t03_design_rfin_h5": 14.2005367109,
+  "t03_design_rtot": 11.9010021233,
+  "t03_T_open_no": 47.384375,
+  "t03_T_open_asbuilt": 39.0383536508,
+  "t03_share_open_asbuilt": 34.226923385,
+  "t03_T_open_design": 35.1416874972,
+  "t03_share_open_design": 50.207099845,
+  "t03_T_vented_no": 50.91640625,
+  "t03_T_vented_asbuilt": 40.8522885117,
+  "t03_share_vented_asbuilt": 38.097982152,
+  "t03_T_vented_design": 36.3421622315,
+  "t03_share_vented_design": 55.1711836976,
+  "t03_T_sealed_no": 63.810546875,
+  "t03_T_sealed_asbuilt": 46.2024976024,
+  "t03_share_sealed_asbuilt": 49.5156875243,
+  "t03_T_sealed_design": 39.5193826719,
+  "t03_share_sealed_design": 68.3093100015,
+  "t03_dT_fin_sealed": 17.6080492726,
+  "t03_sealed_asbuilt_min": 44.7480018344,
+  "t03_sealed_asbuilt_max": 48.5392761148,
+  "t03_share_min": 42.9444204383,
+  "t03_share_max": 53.6058826869,
+  "t03_tau_shell": 35.0,
+  "t03_hold_frac": 92.3573713009,
+  "t03_slab_petg": 13.9720224223,
+  "t03_slab_al": 0.0110902927977,
+  "t03_slab_ratio": 1259.84251969,
+  "t03_lc_al": 74.2659314318,
+  "t03_ginf_al": 0.04599801474,
+  "t03_rinf_al": 21.7400686889,
+  "t03_lc_petg": 2.62569718633,
+  "t03_ginf_petg": 0.00162627540719,
+  "t03_rinf_petg": 614.901999734,
+  "t03_lc_petg5": 8.45154254729,
+  "t03_ginf_petg5": 0.0054939967237,
+  "t03_rinf_petg5": 182.016854085,
+  "t03_fin_ratio": 28.2842712474,
+  "t04_stall48": 0.92214,
+  "t04_stall60": 1.0791,
+  "t04_eta": 0.95,
+  "t04_allow": 22500000.0,
+  "t04_y18": 0.309,
+  "t04_y24": 0.337,
+  "t04_y36": 0.3775,
+  "t04_y54": 0.416,
+  "t04_mod7": 1.5,
+  "t04_zp": 18.0,
+  "t04_zm": 36.0,
+  "t04_zs": 24.0,
+  "t04_face_main": 16.0,
+  "t04_relief": 0.3,
+  "t04_face_sync": 20.0,
+  "t04_m1_ft60": 119.9,
+  "t04_m1_sig60": 64.6709816613,
+  "t04_m1_ft48": 102.46,
+  "t04_m1_sig48": 55.2642934196,
+  "t04_m15b8_sf48": 1.22140347453,
+  "t04_m2b10_sf48": 2.71422994339,
+  "t04_m1_sf48": 0.407134491509,
+  "t04_m1_sf60": 0.347914929108,
+  "t04_m15b8_sf60": 1.04374478732,
+  "t04_m2b10_sf60": 2.31943286072,
+  "t04_v7_ft48": 68.3066666667,
+  "t04_v7_ft60": 79.9333333333,
+  "t04_v7_sig48": 9.3867165044,
+  "t04_v7_sig60": 10.9844554839,
+  "t04_v7_sf_pin48": 2.39700431876,
+  "t04_v7_sf_pin60": 2.04834914512,
+  "t04_v7_sf_big48": 2.92837906256,
+  "t04_v7_sf_big60": 2.5024330171,
+  "t04_v7_sf_sync60": 1.99705895264,
+  "t04_v7_sf_sync48": 2.33698388074,
+  "t04_v6_sf_sync60": 1.33137263509,
+  "t04_v6_sf_pin60": 2.08748957465,
+  "t04_tauj_n2": 0.83223135,
+  "t04_tauj_n3": 1.248347025,
+  "t04_stroke_n2": 76.5,
+  "t04_stroke_n3": 51.0,
+  "t04_sync_sf_n3": 1.55798925383,
+  "t04_reff_10": 58.9605379764,
+  "t04_reff_40": 48.4934268838,
+  "t04_reff_70": 33.2583261153,
+  "t04_tauj_v7_48": 0.83223135,
+  "t05_g": 9.81,
+  "t05_a": 2.0,
+  "t05_m_lb": 0.45359237,
+  "t05_m_jeans": 0.9,
+  "t05_mu_lo": 0.3,
+  "t05_mu_hi": 0.6,
+  "t05_fmin": 13.34,
+  "t05_gaps": [
+   10,
+   20,
+   30,
+   40,
+   50,
+   60,
+   70,
+   80
+  ],
+  "t05_fmax70": 25.0232482271,
+  "t05_Ns_lb_mu03": 7.4162352495,
+  "t05_N_lb_mu03": 8.92820981617,
+  "t05_sf_lb_mu03": 1.49414051357,
+  "t05_gap48_lb_mu03": 0.0,
+  "t05_gap60_lb_mu03": 0.0,
+  "t05_Ns_lb_mu06": 3.70811762475,
+  "t05_N_lb_mu06": 4.46410490808,
+  "t05_sf_lb_mu06": 2.98828102714,
+  "t05_gap48_lb_mu06": 0.0,
+  "t05_gap60_lb_mu06": 0.0,
+  "t05_Ns_jeans_mu03": 14.715,
+  "t05_N_jeans_mu03": 17.715,
+  "t05_sf_jeans_mu03": 0.753034151849,
+  "t05_gap48_jeans_mu03": 43.4321236316,
+  "t05_gap60_jeans_mu03": 21.6738405166,
+  "t05_Ns_jeans_mu06": 7.3575,
+  "t05_N_jeans_mu06": 8.8575,
+  "t05_sf_jeans_mu06": 1.5060683037,
+  "t05_gap48_jeans_mu06": 0.0,
+  "t05_gap60_jeans_mu06": 0.0,
+  "t06_od": 28.54,
+  "t06_id": 22.54,
+  "t06_len": 254.8,
+  "t06_free": 156.2,
+  "t06_e_al": 69000000000.0,
+  "t06_e_pg": 2100000000.0,
+  "t06_f_side": 10.0,
+  "t06_rho": 2.7,
+  "t06_f_bolt": 100.0,
+  "t06_d_bolt": 3.0,
+  "t06_bolt_hole": 3.4,
+  "t06_m_head": 0.4812410293,
+  "t06_al_bear": 360000000.0,
+  "t06_w3.0_defl": 0.0401636233846,
+  "t06_w3.0_stress": 1.82737785353,
+  "t06_w3.0_mass": 165.59804608,
+  "t06_w3.0_i": 19897.3408427,
+  "t06_w1.0_defl": 0.0972980199935,
+  "t06_w1.0_stress": 4.42689757409,
+  "t06_w1.0_mass": 59.5219288573,
+  "t06_w1.0_i": 8213.41795049,
+  "t06_w0.48_defl": 0.191838927066,
+  "t06_w0.48_stress": 8.72835111033,
+  "t06_w0.48_mass": 29.109983856,
+  "t06_w0.48_i": 4165.7306793,
+  "t06_d_al_free": 0.00925289648625,
+  "t06_s_al_free": 1.12023712999,
+  "t06_i3": 19897.3408427,
+  "t06_d_al": 0.0401636233846,
+  "t06_s_al": 1.82737785353,
+  "t06_d_pg": 1.31966191121,
+  "t06_s_pg": 1.82737785353,
+  "t06_ei_ratio": 32.8571428571,
+  "t06_strain_pg": 0.087017993025,
+  "t06_i1_ratio": 41.2789729815,
+  "t06_al1_vs_pg3": 13.5630911225,
+  "t06_m3": 165.59804608,
+  "t06_m1": 59.5219288573,
+  "t06_m1_frac": 35.9436178543,
+  "t06_n_exp": 0.07,
+  "t06_ret_1": 100.0,
+  "t06_ret_100": 72.4435960075,
+  "t06_ret_1000": 61.6595001861,
+  "t06_ret_8760": 52.9693584078,
+  "t06_d_pg_1000": 2.1402410127,
+  "t06_al_sigma_yield": 0.761407438969,
+  "t06_pg_sigma_tens": 4.0608396745,
+  "t06_sb_3.0": 5.55555555556,
+  "t06_sb_1.0": 16.6666666667,
+  "t06_sb_0.48": 34.7222222222,
+  "t06_sf_bear": 64.8,
+  "t06_cap_bear": 6480.0,
+  "t06_load_real": 16.312456556,
+  "t06_sf_design": 6.1302845256,
+  "t07_g": 9.81,
+  "t07_l_stale": 0.196381220358,
+  "t07_k_g": 0.13,
+  "t07_margin": 1.25,
+  "t07_periods": 5,
+  "t07_l_low": 0.517298335291,
+  "t07_m_claw_cfg": 0.6,
+  "t07_payload": 0.9,
+  "t07_m_box": 519.2,
+  "t07_m_cyl": 320.7,
+  "t07_m_tube": 165.6,
+  "t07_m_head": 481.2410293,
+  "t07_d_box": -31.0,
+  "t07_d_head": 320.724117916,
+  "t07_d_cyl": 35.0331179164,
+  "t07_d_tube": 134.934117916,
+  "t07_l_est": 0.115575350437,
+  "t07_l_est_lo": 0.0921512029319,
+  "t07_l_est_hi": 0.138999497942,
+  "t07_m_total": 1486.7410293,
+  "t07_T_stale": 0.888986860314,
+  "t07_Tc_stale": 1.06612267745,
+  "t07_T_est": 0.681989948936,
+  "t07_dwell_stale": 5.55616787696,
+  "t07_l_loaded": 0.388931489318,
+  "t07_T_loaded": 1.25107088704,
+  "t07_dwell_loaded": 7.819193044,
+  "t07_comp_pct": 19.9255832722,
+  "t07_left_01": 73.0402691049,
+  "t07_left_02": 53.3488091091,
+  "t07_left_05": 20.7879576351,
+  "t07_zeta_need": 0.0732935598879,
+  "t07_zeta": "unknown",
+  "t07_anchors": [
+   [
+    0.05,
+    0.05,
+    2.5932
+   ],
+   [
+    3.3028,
+    0.05,
+    2.5932
+   ],
+   [
+    3.3028,
+    2.6932,
+    2.5932
+   ],
+   [
+    0.05,
+    2.6932,
+    2.5932
+   ]
+  ],
+  "t07_attach": [
+   [
+    -0.0420710674944,
+    -0.042071068129,
+    7.50333128963e-15
+   ],
+   [
+    0.0420710681294,
+    -0.042071067494,
+    -1.1823431123e-14
+   ],
+   [
+    0.0420710674944,
+    0.0420710681297,
+    7.73070496507e-15
+   ],
+   [
+    -0.0420710681294,
+    0.0420710674947,
+    -3.18323145621e-15
+   ]
+  ],
+  "t07_tilt_stale_min": 0.0,
+  "t07_tilt_stale_med": 8.73836734414,
+  "t07_tilt_stale_max": 12.881708259096547,
+  "t07_tilt_stale_frac": 82.5396825397,
+  "t07_tilt_est_min": 0.0,
+  "t07_tilt_est_med": 13.8007400447,
+  "t07_tilt_est_max": 20.72543415476637,
+  "t07_tilt_est_frac": 92.0634920635,
+  "t07_tilt_centre": 0.0,
+  "t07_tilt_scale": 1.6089041715512302,
+  "t07_tilt_scale_1overL": 1.69916179891,
+  "t07_xcheck": 2.84217094304e-14,
+  "t08_f_px": 520.0,
+  "t08_sig_px": 0.3,
+  "t08_a_tag": 0.1524,
+  "t08_a_brd": 0.15,
+  "t08_pitch": 0.25,
+  "t08_z": 0.51,
+  "t08_lever": 0.51,
+  "t08_sig_closed": 12.9216604587,
+  "t08_sig_num": 12.921660463,
+  "t08_dx_single": 6.59004683612,
+  "t08_t_sig": 0.29423076923,
+  "t08_sig_46": 10.5122005142,
+  "t08_sig_60": 17.8846511514,
+  "t08_sig_80": 31.7949353983,
+  "t08_sig_100": 49.6795864896,
+  "t08_sig_4": 1.32375221376,
+  "t08_sig_2": 4.85257815811,
+  "t08_dx_board": 0.675113629015,
+  "t08_ratio_board": 9.76138912457,
+  "t08_avg_1": 12.921660463,
+  "t08_avg_4": 6.46083023149,
+  "t08_avg_10": 4.08618782144,
+  "t08_avg_30": 2.35916163867,
+  "t08_bias_floor": 0.51,
+  "t08_mc_avg_30": 2.36019145729,
+  "t08_ls_rms_small": 0.995343512762,
+  "t08_ls_weak_small": 351.331969987,
+  "t08_ls_act_small": 392.069153279,
+  "t08_ls_wit_small": 13.9115991711,
+  "t08_ls_rms_large": 0.994283247181,
+  "t08_ls_weak_large": 39.0190950422,
+  "t08_ls_act_large": 38.9662860081,
+  "t08_ls_wit_large": 1.85683781682,
+  "t08_ls_ratio": 9.00410349363,
+  "t08_ls_sigma": 6.0,
+  "t09_v": 50.0,
+  "t09_dt": 50.0,
+  "t09_k": 3.0,
+  "t09_d": 0.5,
+  "t09_L": 3.0,
+  "t09_dl": 2.5,
+  "t09_F": 7.5,
+  "t09_area": 0.196349540849,
+  "t09_e_need": 45.8366236105,
+  "t09_e_eff": "30-60 GPa",
+  "t09_k_30_1.5": 3.92699081699,
+  "t09_k_30_3.0": 1.96349540849,
+  "t09_k_30_4.5": 1.308996939,
+  "t09_k_45_1.5": 5.89048622548,
+  "t09_k_45_3.0": 2.94524311274,
+  "t09_k_45_4.5": 1.96349540849,
+  "t09_k_60_1.5": 7.85398163397,
+  "t09_k_60_3.0": 3.92699081699,
+  "t09_k_60_4.5": 2.61799387799,
+  "t09_F_2mm": 6.0,
+  "t09_dt_for_2mm": 40.0,
+  "t09_share_T06": 90.3614457831,
+  "t10_rho": 1.724e-08,
+  "t10_alpha": 0.00393,
+  "t10_t_hot": 50.0,
+  "t10_L": 32.0,
+  "t10_v_sup": 12.0,
+  "t10_d18": 1.02368734283,
+  "t10_a18": 0.823046833731,
+  "t10_r18": 0.408608737944,
+  "t10_vd18_1": 0.408608737944,
+  "t10_vd50_18_1": 0.456783708148,
+  "t10_pct18_1": 3.4050728162,
+  "t10_pl18_1": 0.408608737944,
+  "t10_vd18_2": 0.817217475889,
+  "t10_vd50_18_2": 0.913567416296,
+  "t10_pct18_2": 6.8101456324,
+  "t10_pl18_2": 1.63443495178,
+  "t10_d16": 1.29084590583,
+  "t10_a16": 1.30869572776,
+  "t10_r16": 0.256976561371,
+  "t10_vd16_1": 0.256976561371,
+  "t10_vd50_16_1": 0.287274097957,
+  "t10_pct16_1": 2.14147134476,
+  "t10_pl16_1": 0.256976561371,
+  "t10_vd16_2": 0.513953122743,
+  "t10_vd50_16_2": 0.574548195914,
+  "t10_pct16_2": 4.28294268952,
+  "t10_pl16_2": 1.02790624549,
+  "t10_ratio": 1.59006228336,
+  "t11_cam_r": 90.0,
+  "t11_plate_z": 30.5,
+  "t11_zone_z": 7.0,
+  "t11_edge": 93.0,
+  "t11_h0": 512.06,
+  "t11_a": 59.5,
+  "t11_b": 97.0,
+  "t11_k": 0.386597938144,
+  "t11_1mk": 0.613402061856,
+  "t11_saved_0": 0.0,
+  "t11_dstar_0": 171.113445378,
+  "t11_dstar_r_0": 171.52365416,
+  "t11_lens_0": 683.173445378,
+  "t11_saved_50": 32.4956919309,
+  "t11_dstar_50": 139.600840336,
+  "t11_dstar_r_50": 139.957585644,
+  "t11_lens_50": 601.660840336,
+  "t11_saved_100": 64.9913838619,
+  "t11_dstar_100": 108.088235294,
+  "t11_dstar_r_100": 108.391517129,
+  "t11_lens_100": 520.148235294,
+  "t11_saved_150": 97.4870757928,
+  "t11_dstar_150": 76.5756302521,
+  "t11_dstar_r_150": 76.8254486134,
+  "t11_lens_150": 438.635630252,
+  "t11_saved_200": 129.982767724,
+  "t11_dstar_200": 45.0630252101,
+  "t11_dstar_r_200": 45.2593800979,
+  "t11_lens_200": 357.12302521,
+  "t11_slope": -0.63025210084,
+  "t11_g_per_mm": 0.649913838619,
+  "t11_cmax": 206.204,
+  "t12_brg": 14.0,
+  "t12_pocket": 14.075,
+  "t12_lip": 14.0,
+  "t12_lip_l": 1.95,
+  "t12_core_r": 8.5,
+  "t12_e_pg": 2100.0,
+  "t12_nu": 0.38,
+  "t12_mu": 0.3,
+  "t12_allow": 22.5,
+  "t12_brg_tol": 0.008,
+  "t12_v3_bore": 5.45,
+  "t12_v2_bore": 5.2,
+  "t12_shaft": 5.0,
+  "t12_stl_tol": 0.02,
+  "t12_stl_ang": 0.1,
+  "t12_stl_tol7": 0.05,
+  "t12_stl_ang7": 0.2,
+  "t12_shrink": 0.004,
+  "t12_shrink_loss": 0.056,
+  "t12_clr_pocket": 0.075,
+  "t12_clr_lip": 0.0,
+  "t12_clr_pocket_worst": 0.075,
+  "t12_clr_pocket_min": 0.083,
+  "t12_sag_n_v6r": 63,
+  "t12_sag_v6r": 0.0174031029351,
+  "t12_sag_n_v7": 32,
+  "t12_sag_v7": 0.0674138265892,
+  "t12_k_ring": 5.21505376344,
+  "t12_p_30": 0.804281815736,
+  "t12_hoop_30": 4.19437291002,
+  "t12_sf_30": 5.36432989691,
+  "t12_ins_30": 20.6938846602,
+  "t12_pk_30": -0.045,
+  "t12_p_50": 1.34046969289,
+  "t12_hoop_50": 6.9906215167,
+  "t12_sf_50": 3.21859793814,
+  "t12_ins_50": 34.4898077669,
+  "t12_pk_50": -0.025,
+  "t12_p_75": 2.01070453934,
+  "t12_hoop_75": 10.4859322751,
+  "t12_sf_75": 2.14573195876,
+  "t12_ins_75": 51.7347116504,
+  "t12_pk_75": 0.0,
+  "t12_p_100": 2.68093938579,
+  "t12_hoop_100": 13.9812430334,
+  "t12_sf_100": 1.60929896907,
+  "t12_ins_100": 68.9796155339,
+  "t12_pk_100": 0.025,
+  "t12_p_150": 4.02140907868,
+  "t12_hoop_150": 20.9718645501,
+  "t12_sf_150": 1.07286597938,
+  "t12_ins_150": 103.469423301,
+  "t12_pk_150": 0.075,
+  "t12_p_200": 5.36187877157,
+  "t12_hoop_200": 27.9624860668,
+  "t12_sf_200": 0.804649484536,
+  "t12_ins_200": 137.959231068,
+  "t12_pk_200": 0.125,
+  "t12_p_300": 8.04281815736,
+  "t12_hoop_300": 41.9437291002,
+  "t12_sf_300": 0.536432989691,
+  "t12_ins_300": 206.938846602,
+  "t12_pk_300": 0.225,
+  "t12_u_hoop_limit": 0.161,
+  "t12_u_pocket_free": 0.075,
+  "t12_window": "0 .. 0.075 mm (pocket free); lip stress limit 0.161 mm",
+  "t12_u_v2": 0.2,
+  "t12_v3_clr_2": 0.25,
+  "t12_v3_clr_3": 0.15,
+  "t12_v3_clr_0": 0.45,
+  "t12_coupon_n": 54,
+  "t12_coupon": "nominal -0.10 .. +0.30 mm in 0.05 steps at \u00d85, \u00d87, \u00d814; vertical and horizontal axis"
+ }
+}

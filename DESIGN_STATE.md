@@ -452,3 +452,15 @@ Adafruit 3886 MPU-6050 as selected, "not recorded ordered").
   Vref); then decide (run at max ~1.0 A and rebalance claw mass / ceiling
   margin / spool radius, or rework the carrier's Vref divider). Do not raise
   VDD to 5 V: 3.3 V GPIO does not meet the A4988 HIGH threshold at 5 V.
+
+## Winch capacity re-check (10/21, lead) — OPEN, needs decision
+- Running pull at 1.06 A: 23.8 N core / 17.9 N full spool (design 11.9 N);
+  worst-case total lift anywhere ≈ 1.1 kg (walls/corners bind, not the
+  ceiling). Claw (~1.05–1.25 kg est.) + jeans (0.9 kg) does not fit; Ø10 core
+  gives +25 %, a 3:1 winch reduction gives ~2.7×. Memo:
+  docs/decisions/WINCH_CAPACITY_20261021.md. First action: one-station
+  luggage-scale pull test at 1.06 A (empty and full spool).
+- Presentation numbers: calculations/presentation_fundamentals.py →
+  docs/presentation/FUNDAMENTALS.md (12 topics, sources per input).
+- CoM depth 0.196 m (v6) is stale; v7 head + 50 mm cut ≈ 0.116 m, which
+  raises predicted corner tilt from ~13° to ~21° (tilt-gate decision pending).

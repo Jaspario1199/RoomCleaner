@@ -210,3 +210,13 @@ reachable without board rework (rejected); VDD stays 3.3 V. Cable tension
 returns to ~34 N (32 N at 1.0 A, scaled). Shells stay vented; thermal margin
 is now large. Lift capacity must come from claw mass, ceiling margin, or a
 smaller spool drum (Ø10 core study pending).
+
+**Erratum to D29/D30 (2026-10-21, lead).** The "~43 N" (1.35 A) and "~34 N"
+(1.06 A) per-cable figures and the "~650–750 g claw budget" were based on
+holding torque at the empty-spool radius (the snag/slip load), not the running
+pull. At 1.06 A the running pull is ~23.8 N at the core and ~17.9 N at a full
+spool (11.9 N design force with the 1.5 margin), so the worst-case lift
+anywhere in the working area is ~1.1 kg total (claw + payload). D30 (Vref at
+the board maximum) stands; the capacity consequence is open — see
+`docs/decisions/WINCH_CAPACITY_20261021.md` (pull test first; 3:1 winch
+reduction recommended).

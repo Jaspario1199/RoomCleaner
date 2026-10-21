@@ -17,8 +17,11 @@ part keeps its nominal value; yaw is held/measured elsewhere, never predicted.
 
 Grip gating (``tasks.GRIP``): the claw's own tilt gate is gone. The host waits until the claw is still, then approves.
 "Still" = camera-observed image motion of the floor reference below a rate for N consecutive frames; with no camera
-motion signal (reference not in view) = a dwell of k pendulum periods, T = 2 pi sqrt(L / g), L = depth of the centre of
-mass below the attachment plane. The predicted tilt at the grip pose (``R_at``) must also be within ``grip_tilt_max``.
+motion signal (reference not in view) = a dwell of k pendulum periods, T = 1.25 x 2 pi sqrt(L / g) (the margin covers the
+compound pendulum), L = depth of the centre of mass below the attachment plane, counted from the LAST OBSERVED motion. At a
+release the loaded pendulum (payload at the jaw tips) and its full dwell apply. The predicted tilt at the grip pose (``R_at``)
+must also be within ``grip_tilt_max``. The per-frame attitude sigma of a vision pose comes from the tag geometry
+(``vision/marker.py``); see docs/CONTROL_SYSTEM_V1.md 3.2.
 """
 from __future__ import annotations
 

@@ -13,6 +13,11 @@ status, witness RMS and wall time.
     /usr/bin/python3 scripts/sim_floor_reference_study.py --suite main --only "1 baseline,3c sparse" --seeds 5 \
         --probe --no-whatif --tag probe --out probe.json
 
+# D27 follow-up (verification/board_attitude_results.md): the printed layout is case "3i" (3x3, 0.25 m pitch, 150 mm tags);
+    OMP_NUM_THREADS=1 /usr/bin/python3 scripts/sim_floor_reference_study.py --suite main --only "3c,3i" --seeds 3 --probe --no-whatif \
+        [--pix 0.5 [--est-pix 0.3]] [--noise-model fixed]
+# (--pix: corner noise of the plant and of the estimator; --est-pix: what the estimator is told; --noise-model fixed: old iid attitude noise)
+
 SIMULATION ONLY. The multi-tag board is the STUDY HOOK ``sim.world.FloorBoard``
 (plus ``StartupSequencer.study_board``); neither is active by default.
 """

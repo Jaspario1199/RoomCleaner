@@ -65,6 +65,7 @@ from __future__ import annotations
 
 import json
 import math
+import sys
 from concurrent.futures import ThreadPoolExecutor, wait as futures_wait
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -423,10 +424,17 @@ class StartupSequencer:
     MOUNT_RECHECK_K = 4.0
     MOUNT_RECHECK_FLOOR_RAD = 0.003
     # Keep-alive grid while a long computation runs on a worker thread (_pumped): Coordinator.pump pings every
-    # min(faults.lease_s / 4, 20 ms), so ctx.wait is called in steps of one ping period; between two steps the command thread sleeps
-    # on the worker for at most as long, so the worst gap between two pumps is ~21 ms (against the 300 ms lease of robot.sim.json)
-    # and, in the simulator (where ctx.wait is CPU work, not a sleep), the worker is not starved of the GIL.
+    # min(faults.lease_s / 4, 20 ms), so ctx.wait is called in steps of one ping period (PUMP_STEP_S); after each step the command
+    # thread sleeps on the worker for PUMP_YIELD_S at most (it wakes the moment the worker is done), so that in the simulator, where
+    # ctx.wait is CPU work and not a sleep, the worker is not starved of the GIL by it. That sleep is the NOMINAL gap between two pumps
+    # (on a real runtime ctx.wait itself pumps every ms). The measured gap is larger: a worker whose numpy/scipy calls release and
+    # re-take the GIL thousands of times a second re-takes it before the sleeping command thread has woken, and at CPython's default
+    # 5 ms switch interval every GIL release of one pump (socket, sleep) costs the command thread up to 5 ms to win it back: 0.10-0.30 s
+    # between two pumps across a 2-16 s Calibrator.fit (review N2). ``_pumped`` therefore lowers the interpreter's switch interval to
+    # PUMP_SWITCH_INTERVAL_S for the duration of the call (largest gap 27-43 ms measured, verification/keepalive_fix_results.md).
     PUMP_STEP_S = 0.02
+    PUMP_YIELD_S = 0.005
+    PUMP_SWITCH_INTERVAL_S = 5e-4
 
     def __init__(self, ctx: RobotContext):
         self.ctx = ctx
@@ -445,22 +453,30 @@ class StartupSequencer:
         return self.study_board if self.study_board is not None else getattr(self.ctx, "floor_board", None)
 
     def _pumped(self, fn, *args, **kwargs):
-        """Run the long computation ``fn(*args, **kwargs)`` (a ``Calibrator.fit``, the survey top-up's ``flush``) on a one-worker
-        thread while this (the command) thread keeps the station keep-alive going with ``ctx.wait`` on the 20 ms grid. While a
-        command owns the robot the idle host loop does not pump (``Service.idle_tick``), so a computation of seconds on this
-        thread would outlast ``faults.lease_s`` and latch Fault.LEASE on all four armed stations (review H1). ``fn`` must touch
-        only its own objects (the calibrator, the survey and its layout), never the coordinator; its result is returned and an
+        """Run the long computation ``fn(*args, **kwargs)`` (a ``Calibrator.fit``, the survey top-up's ``flush``, the excitation-candidate
+        filter, a planned move's path check, ...) on a one-worker thread while this (the command) thread keeps the station keep-alive
+        going with ``ctx.wait`` on the 20 ms grid. While a command owns the robot the idle host loop does not pump
+        (``Service.idle_tick``), so a computation of more than a fraction of ``faults.lease_s`` on this thread would outlast the
+        lease and latch Fault.LEASE on all four armed stations (reviews H1, N1). ``fn`` must touch only its own inputs (the
+        calibrator, the survey and its layout, the cable model, the workspace, the camera), never the coordinator: whatever it needs
+        from the coordinator (``co.positions()``) is read on the command thread and passed in. Its result is returned and an
         exception it raises is re-raised unchanged. An exception of ``ctx.wait`` (abort, e-stop) propagates at once: the worker
-        is not waited for (it cannot be interrupted and its result is dropped)."""
+        is not waited for (it cannot be interrupted and its result is dropped).
+
+        The interpreter's switch interval is lowered to ``PUMP_SWITCH_INTERVAL_S`` while the worker runs, so that the command thread
+        wins the GIL back within ~1 ms after each of its own GIL releases instead of ~5 ms (review N2); restored in ``finally``."""
         pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="startup-pumped")
         fut = None
+        old_switch = sys.getswitchinterval()
         try:
+            sys.setswitchinterval(min(old_switch, self.PUMP_SWITCH_INTERVAL_S))
             fut = pool.submit(fn, *args, **kwargs)
             while not fut.done():
                 self.ctx.wait(self.PUMP_STEP_S)
-                futures_wait((fut,), timeout=self.PUMP_STEP_S)      # sleeps on the worker (wakes the moment it is done), not on the clock
+                futures_wait((fut,), timeout=self.PUMP_YIELD_S)     # sleeps on the worker (wakes the moment it is done), not on the clock
             return fut.result()
         finally:
+            sys.setswitchinterval(old_switch)
             pool.shutdown(wait=fut is not None and fut.done(), cancel_futures=True)
 
     def _enter(self, state, msg=""):
@@ -1119,9 +1135,18 @@ class StartupSequencer:
         t = self.VISIBILITY_TILT_RAD
         return [R0] + [rot(sg * t) @ R0 for rot in (rot_x, rot_y) for sg in (1, -1)]
 
+    def _candidates(self, center_R, half, grid, R_M, min_z):
+        """The feasible, visible poses of a calibration box (room frame): one tension LP, a workspace check and the visibility of the
+        marker over the tilt cone for each of the 75-196 grid poses (0.7-2.3 s in a full startup). Pure (reads the cable model, the
+        workspace, the calibrator, the board and the camera; never the coordinator): runs on the ``_pumped`` worker."""
+        return [q for q in box_candidates(center_R, half, grid) if self._feasible(q, R_M, min_z)]
+
     def _stage(self, name, center_R, half, n_fit, n_wit, R_M, min_z, grid):
         ctx, cfg = self.ctx, self.cfg
-        cands = [q for q in box_candidates(center_R, half, grid) if self._feasible(q, R_M, min_z)]
+        # Everything of a stage that costs more than a few tens of ms runs through _pumped (review N1): the candidate filter, the
+        # pose the claw is at, the D-optimal design and every planned move (a tension LP at each point of the path, both ways).
+        # The coordinator is only read here, on the command thread (co.positions()), and the values are passed in.
+        cands = self._pumped(self._candidates, center_R, half, grid, R_M, min_z)
         if len(cands) < n_fit + n_wit:
             raise StartupAbort("CALIBRATION", f"{name}: only {len(cands)} feasible visible poses "
                                               f"(need {n_fit + n_wit})", suspended=True)
@@ -1137,15 +1162,15 @@ class StartupSequencer:
                                         pixel_sigma=cfg.camera.corner_sigma_px, inflate=cfg.camera.pose_cov_inflate,
                                         floor_rad=cfg.claw.vision_attitude_floor_rad)
         candM = [to_marker(ctx.T_R_M, q) for q in cands]
-        here = to_marker(ctx.T_R_M, ctx.model.pose_from_positions(ctx.co.positions())[0])
-        fitM, witM = design_excitation(ctx.cal, ctx.result, candM, n_fit, cov_fn=cov_fn,
-                                       existing_M=[s.p for s in ctx.samples], start_M=here, n_witness=n_wit)
+        here = to_marker(ctx.T_R_M, self._pumped(ctx.model.pose_from_positions, ctx.co.positions())[0])
+        fitM, witM = self._pumped(design_excitation, ctx.cal, ctx.result, candM, n_fit, cov_fn=cov_fn,
+                                  existing_M=[s.p for s in ctx.samples], start_M=here, n_witness=n_wit)
         for kind, pts in (("fit", fitM), ("witness", witM)):
             for qM in pts:
                 q = to_room(ctx.T_R_M, qM)
                 try:
-                    plan = plan_line_from(ctx.model, ctx.co.positions(), q, ctx.lim, ws=ctx.ws,
-                                          label=f"{name} {kind}")
+                    plan = self._pumped(plan_line_from, ctx.model, ctx.co.positions(), q, ctx.lim, ws=ctx.ws,
+                                        label=f"{name} {kind}")
                 except PlanError as e:
                     raise StartupAbort("CALIBRATION", f"{name}: {e}", suspended=True)
                 r = self._execute(plan, "CALIBRATION", suspended=True)
@@ -1160,7 +1185,7 @@ class StartupSequencer:
         zf = -float(cfg.claw.lowest_point_body_m[2])
         min_z = zf + st.target_clearance_m
         R_M = ctx.samples[-1].R
-        here = ctx.model.pose_from_positions(ctx.co.positions())[0]
+        here = self._pumped(ctx.model.pose_from_positions, ctx.co.positions())[0]
         lb = np.asarray(cc.local_box_m)
         c_local = np.array([here[0], here[1], max(here[2], min_z + lb[2] + 0.01)])
         self._stage("local", c_local, lb, max(8, cc.min_samples // 2), max(2, cc.witness_samples // 2),
@@ -1168,7 +1193,7 @@ class StartupSequencer:
         res = self._pumped(ctx.cal.fit, [s for s in ctx.samples if s.kind == "fit"], ctx.onsets, L0_init=ctx.result.L0,
                           psi_inits=[ctx.result.psi])
         wit = [s for s in ctx.samples if s.kind == "witness"]
-        rep_local = ctx.cal.validate(res, wit)
+        rep_local = self._pumped(ctx.cal.validate, res, wit)
         hard = [r for r in rep_local["reasons"] if not r.startswith(("prior-dominated", "only"))]
         if hard:
             raise StartupAbort(S, "local calibration rejected: " + "; ".join(hard), suspended=True)
@@ -1192,8 +1217,7 @@ class StartupSequencer:
         fit = [s for s in ctx.samples if s.kind == "fit"]
         wit = [s for s in ctx.samples if s.kind == "witness"]
         res = self._pumped(ctx.cal.fit, fit, ctx.onsets, L0_init=ctx.result.L0, psi_inits=[ctx.result.psi])
-        vol = self._work_volume(res)
-        report = ctx.cal.validate(res, wit, [to_marker(res.T_R_M, q) for q in vol])
+        vol, report = self._pumped(self._accept, res, wit)
         self.cal_report = report
         self.rep.measurements["calibration"] = {k: v for k, v in report.items()}
         ctx.save("calibration.json", {"result": res.to_jsonable(), "validation": report, "slack_probe": self.probe_log})
@@ -1203,8 +1227,8 @@ class StartupSequencer:
         if hard:
             raise StartupAbort(S, "calibration rejected: " + "; ".join(hard), suspended=True)
         ctx.apply_result(res, "visual")
-        self.rep.measurements["absolute_sigma_m"] = ctx.cal.absolute_sigma(res).tolist()
-        ok_pts = [q for q in vol if np.max(ctx.cal.length_sigma(res, to_marker(res.T_R_M, q))) <= cc.length_sigma_max_m]
+        sigma_abs, ok_pts = self._pumped(self._validated_points, res, vol)
+        self.rep.measurements["absolute_sigma_m"] = sigma_abs
         ctx.validated_volume = np.array(ok_pts)
         ctx.save_model()
         if report["accepted"]:
@@ -1213,6 +1237,21 @@ class StartupSequencer:
             ctx.ledger.set_level("LOCAL_ONLY", reasons=report["reasons"])
             self.rep.reasons.extend(report["reasons"])
         self.rep.measurements["validated_points"] = f"{len(ok_pts)}/{len(vol)}"
+
+    def _accept(self, res, wit):
+        """The commanded work volume under the fitted model and the acceptance report over it (``Calibrator.validate``: witnesses,
+        identifiability, residuals, uniqueness, predicted length sigma at every volume point). Pure (touches the calibrator, the
+        workspace and the config, never the coordinator): runs on the ``_pumped`` worker (0.2-0.4 s in a full startup)."""
+        vol = self._work_volume(res)
+        return vol, self.ctx.cal.validate(res, wit, [to_marker(res.T_R_M, q) for q in vol])
+
+    def _validated_points(self, res, vol):
+        """Absolute sigma of the station references, and the points of ``vol`` whose predicted length sigma is within
+        ``calibration.length_sigma_max_m``. Pure (see ``_accept``): runs on the ``_pumped`` worker."""
+        cal, cc = self.ctx.cal, self.cfg.calibration
+        sigma_abs = cal.absolute_sigma(res).tolist()
+        ok_pts = [q for q in vol if np.max(cal.length_sigma(res, to_marker(res.T_R_M, q))) <= cc.length_sigma_max_m]
+        return sigma_abs, ok_pts
 
     def _probe_summary(self):
         L = self.probe_log
@@ -1244,6 +1283,30 @@ class StartupSequencer:
         geo = geometry_from_config(cfg, res.anchors_room, ctx.claw_yaw_room)
         return [q for q in pts if tension_distribution(geo, q, cfg.claw.mass_kg, t_min=cfg.motion.min_tension_n,
                                                        t_max=cfg.motion.max_tension_n).feasible]
+
+    def _margin_scan(self, res, smp):
+        """The scan of ``assess_margin_trust`` (c): over the commanded-workspace poses (405 tension LPs and one ``boundary_sigma`` each,
+        1-2.6 s in a full startup) the worst ceiling and wall sigma. Pure (touches the calibrator, the workspace and the config, never
+        the coordinator): runs on the ``_pumped`` worker. Returns ``(poses, worst)``."""
+        ctx, cfg = self.ctx, self.cfg
+        cc = cfg.calibration
+        fit = [x for x in smp if x.kind == "fit"]
+        geo = geometry_from_config(cfg, res.anchors_M, ctx.cal.hold_yaw_M)
+        Ls = np.array([geo.lengths(x.p, x.R) for x in fit]) if fit else None
+        pts = self._margin_volume(res)
+        worst = {"ceiling": (-1.0, None, ""), "wall": (-1.0, None, "")}
+        for q in pts:
+            qM = to_marker(res.T_R_M, q)
+            extra = None
+            if Ls is not None:
+                extra = cc.payout_scale_sigma * np.min(np.abs(Ls - geo.lengths(qM, ctx.cal.predicted_R(res.anchors_M, qM))[None, :]), axis=0)
+            b = ctx.cal.boundary_sigma(res, qM, extra_len_sigma=extra)
+            comps = {"ceiling": (("vertical", b["ceiling_z"]), ("distance", b["ceiling_dist"])),
+                     "wall": (("x", b["wall_x"]), ("y", b["wall_y"]))}
+            for key in worst:
+                if b[key] > worst[key][0]:
+                    worst[key] = (b[key], np.asarray(q, float), max(comps[key], key=lambda c: c[1])[0])
+        return pts, worst
 
     def assess_margin_trust(self, res=None) -> dict:
         """Decision D26: may the robot use the whole workspace without beads? Evaluated at every startup.
@@ -1299,22 +1362,7 @@ class StartupSequencer:
                        "errors at held-out poses exceed their predicted sigma")
         # (c)
         if res is not None and ctx.ws is not None:
-            fit = [x for x in smp if x.kind == "fit"]
-            geo = geometry_from_config(cfg, res.anchors_M, ctx.cal.hold_yaw_M)
-            Ls = np.array([geo.lengths(x.p, x.R) for x in fit]) if fit else None
-            pts = self._margin_volume(res)
-            worst = {"ceiling": (-1.0, None, ""), "wall": (-1.0, None, "")}
-            for q in pts:
-                qM = to_marker(res.T_R_M, q)
-                extra = None
-                if Ls is not None:
-                    extra = cc.payout_scale_sigma * np.min(np.abs(Ls - geo.lengths(qM, ctx.cal.predicted_R(res.anchors_M, qM))[None, :]), axis=0)
-                b = ctx.cal.boundary_sigma(res, qM, extra_len_sigma=extra)
-                comps = {"ceiling": (("vertical", b["ceiling_z"]), ("distance", b["ceiling_dist"])),
-                         "wall": (("x", b["wall_x"]), ("y", b["wall_y"]))}
-                for key in worst:
-                    if b[key] > worst[key][0]:
-                        worst[key] = (b[key], np.asarray(q, float), max(comps[key], key=lambda c: c[1])[0])
+            pts, worst = self._pumped(self._margin_scan, res, smp)
             out["n_poses"] = len(pts)
             for key, margin in (("ceiling", mo.ceiling_margin_m), ("wall", mo.workspace_margin_m)):
                 sg, q, comp = worst[key]
@@ -1341,7 +1389,7 @@ class StartupSequencer:
         ctx, S = self.ctx, "REFERENCE_VERIFICATION"
         cal_reasons = list(self.rep.reasons)                 # why the calibration itself was not accepted
         outcomes, bead_notes = {}, []
-        home = ctx.model.pose_from_positions(ctx.co.positions())[0]
+        home = self._pumped(ctx.model.pose_from_positions, ctx.co.positions())[0]
         missing = self.cfg.missing("bead_verification") if self.cfg.startup.bead_search else []
         if not self.cfg.startup.bead_search:
             bead_notes.append("bead search off (startup.bead_search): beads are end-of-travel switches only")
@@ -1371,7 +1419,7 @@ class StartupSequencer:
             if ctx.cal.beads:
                 fit = [s for s in ctx.samples if s.kind == "fit"]
                 res = self._pumped(ctx.cal.fit, fit, ctx.onsets, L0_init=ctx.result.L0, psi_inits=[ctx.result.psi])
-                rep = ctx.cal.validate(res, [s for s in ctx.samples if s.kind == "witness"])
+                rep = self._pumped(ctx.cal.validate, res, [s for s in ctx.samples if s.kind == "witness"])
                 hard = [r for r in rep["reasons"] if not r.startswith("prior-dominated")]
                 if hard or res.norm_rms > self.cfg.calibration.norm_rms_max:
                     raise StartupAbort(S, "refit with bead references rejected: " + "; ".join(hard), suspended=True)

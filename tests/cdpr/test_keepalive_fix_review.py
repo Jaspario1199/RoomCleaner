@@ -12,6 +12,9 @@ N2  The pump gap across a large ``Calibrator.fit`` is not ~21 ms: with a sleepin
     against a 0.3 s lease); at 0.5 ms the same fit leaves 0.04 s.
 N3  ``load_config``'s noise-floor cross-check assumes startup.frame_interval_s = 0.1 s whatever the configured value is.
 
+Repair round 2 (verification/keepalive_fix_results.md): N1, N2 and N3 are fixed and their tests converted below (renamed ``_fixed``, each with
+``# converted after fix: <id>``); N4 (the simulator is no longer bit-reproducible) is a note, not a defect with a test.
+
 Timings are CPU dependent (this sandbox, ``OMP_NUM_THREADS=1``): the assertions are ratios or call counts; the times are printed.
 Everything is simulation.
 """
@@ -57,50 +60,72 @@ def _armed_with_model():
     return r, cfg
 
 
-def test_n1_the_candidate_filter_of_a_calibration_stage_runs_unpumped_while_the_stations_are_armed(monkeypatch):
+def test_n1_the_candidate_filter_of_a_calibration_stage_is_pumped_while_the_stations_are_armed_fixed(monkeypatch):
+    # converted after fix: N1
     """``_stage`` filters its excitation candidates with ``_feasible`` (one tension LP, a workspace check and visibility per pose): 75
-    poses in the local stage, 196 in the expanded ones, on the command thread with the stations armed. Not one ``Coordinator.pump`` runs
-    during the filter (here the stage stops right after it: asking for more poses than exist). 0.3 s here for 75 cheap rejections; the
-    full startup measured 0.7-2.3 s for the feasible ones (stack samples at ``_stage > _feasible > tension_distribution`` /
-    ``BoardGeometry.visible``), 2.3-7.7x the 0.3 s lease."""
+    poses in the local stage, 196 in the expanded ones (0.7-2.3 s in a full startup, 2.3-7.7x the 0.3 s lease). The reviewer's version of
+    this test showed 75 LPs and not one ``Coordinator.pump`` during the filter; the filter now runs on the ``_pumped`` worker
+    (``StartupSequencer._candidates``) and the keep-alive goes on at the 20 ms grid: many pumps, none more than a third of the lease apart."""
     r, cfg = _armed_with_model()
     co, ctx = r.co, r.ctx
     S = StartupSequencer(ctx)
-    n = {"lp": 0, "pump": 0}
+    n = {"lp": 0, "pump": 0, "gap": 0.0, "t": time.perf_counter(), "main_only": True}
     lp = ST.tension_distribution
     monkeypatch.setattr(ST, "tension_distribution", lambda *a, **k: (n.__setitem__("lp", n["lp"] + 1), lp(*a, **k))[1])
     pump = co.pump
-    co.pump = lambda: (n.__setitem__("pump", n["pump"] + 1), pump())[1]
+
+    def counted():
+        t = time.perf_counter()
+        n["gap"], n["t"] = max(n["gap"], t - n["t"]), t
+        n["pump"] += 1
+        n["main_only"] &= threading.current_thread() is threading.main_thread()
+        return pump()
+    co.pump = counted
     zf = -float(cfg.claw.lowest_point_body_m[2])
     min_z = zf + cfg.startup.target_clearance_m
     lb = np.asarray(cfg.calibration.local_box_m)
     W, D, _H = cfg.room_m
     centre = np.array([W / 2, D / 2, max(1.2, min_z + lb[2] + 0.01)])
-    t0 = time.perf_counter()
+    n["t"] = t0 = time.perf_counter()
     with pytest.raises(StartupAbort, match="feasible visible poses"):
         S._stage("local", centre, lb, 10 ** 6, 0, np.eye(3), min_z, (5, 5, 3))
     dt = time.perf_counter() - t0
     co.pump = pump
-    print(f"\n[n1] _stage candidate filter: {dt:.2f} s, {n['lp']} tension LPs, {n['pump']} pumps (lease 0.3 s)")
-    assert n["lp"] >= 75 and n["pump"] == 0                                 # 75 LP solves in a row, the keep-alive never runs
+    print(f"\n[n1] _stage candidate filter: {dt:.2f} s, {n['lp']} tension LPs, {n['pump']} pumps, largest gap between pumps {n['gap'] * 1e3:.0f} ms (lease 300 ms)")
+    assert n["lp"] >= 75 and n["pump"] >= 10 and n["main_only"]            # 75 LP solves on the worker, the keep-alive on the command thread
+    assert n["gap"] < cfg.faults.lease_s / 3
 
 
-def test_n1_plan_line_has_no_way_to_pump_and_solves_hundreds_of_lps_per_move(monkeypatch):
+def test_n1_plan_line_still_solves_hundreds_of_lps_per_move_and_the_stage_runs_it_through_the_pumped_helper_fixed(monkeypatch):
+    # converted after fix: N1
     """``plan_line`` -> ``_check_path`` checks the tension of every point of the path both ways (2 LPs per point) and is a module function
-    that knows nothing of the runtime: no parameter to wait or pump. A 1.3 m calibration move is 188 LPs, 0.6 s here (the full startup
-    measured 0.2-1.2 s per planned move, ``_stage > plan_line_from > plan_line > _check_path``)."""
+    that knows nothing of the runtime: no parameter to wait or pump (unchanged, 188 LPs / 0.6 s for a 1.3 m calibration move; 0.2-1.2 s per
+    planned move in a full startup). The defect was that ``_stage`` called it on the command thread; it now calls ``plan_line_from`` through
+    ``_pumped`` (static guard in test_keepalive_pumping.py), and a 1.3 m move planned that way leaves the pump gap at the keep-alive step."""
     import inspect
     r, cfg = _armed_with_model()
     sig = inspect.signature(TJ.plan_line)
-    assert not [p for p in sig.parameters if "wait" in p or "pump" in p or "ctx" in p or "yield" in p]
-    n = {"lp": 0}
+    assert not [p for p in sig.parameters if "wait" in p or "pump" in p or "ctx" in p or "yield" in p]      # still a pure function
+    n = {"lp": 0, "pump": 0, "gap": 0.0, "t": time.perf_counter()}
     lp = TJ.tension_distribution
     monkeypatch.setattr(TJ, "tension_distribution", lambda *a, **k: (n.__setitem__("lp", n["lp"] + 1), lp(*a, **k))[1])
-    t0 = time.perf_counter()
-    plan = TJ.plan_line(r.ctx.model, np.array([1.2, 1.0, 1.0]), np.array([2.2, 1.7, 1.5]), TJ.limits_from_config(cfg), ws=r.ctx.ws)
+    pump = r.co.pump
+
+    def counted():
+        t = time.perf_counter()
+        n["gap"], n["t"] = max(n["gap"], t - n["t"]), t
+        n["pump"] += 1
+        return pump()
+    r.co.pump = counted
+    S = StartupSequencer(r.ctx)
+    n["t"] = t0 = time.perf_counter()
+    plan = S._pumped(TJ.plan_line, r.ctx.model, np.array([1.2, 1.0, 1.0]), np.array([2.2, 1.7, 1.5]), TJ.limits_from_config(cfg), ws=r.ctx.ws)
     dt = time.perf_counter() - t0
-    print(f"\n[n1] plan_line 1.3 m: {dt:.2f} s, {n['lp']} tension LPs, {len(plan.cart)} path points (lease 0.3 s)")
-    assert n["lp"] >= 150 and len(plan.cart) >= 75
+    r.co.pump = pump
+    print(f"\n[n1] plan_line 1.3 m through _pumped: {dt:.2f} s, {n['lp']} tension LPs, {len(plan.cart)} path points, {n['pump']} pumps, "
+          f"largest gap between pumps {n['gap'] * 1e3:.0f} ms (lease 300 ms)")
+    assert n["lp"] >= 150 and len(plan.cart) >= 75 and n["pump"] >= 10
+    assert n["gap"] < cfg.faults.lease_s / 3
 
 
 # ===================================================================== N2: the pump gap across a large calibrator fit
@@ -144,17 +169,20 @@ def _max_pump_gap(cfg, maps, samples, switch_interval_s):
     return float(np.diff(np.array([t0] + p.t + [t0 + wall])).max()), wall
 
 
-def test_n2_the_pump_gap_across_a_large_fit_is_a_large_share_of_the_lease_at_the_default_gil_switch_interval():
-    """A real 60-sample fit (4-5 s) run through ``_pumped`` with a sleeping ``ctx.wait``: 0.2-0.3 s between two pumps at the default 5 ms
-    switch interval (0.7-1.0x the lease), 0.04 s at 0.5 ms. (A 25-sample 1.8 s fit: 0.11-0.15 s against 0.035 s.) The 20 ms in the
-    comment of ``PUMP_STEP_S`` is the sleep between steps, not the worst gap."""
+def test_n2_the_pump_gap_across_a_large_fit_is_a_small_share_of_the_lease_at_the_default_gil_switch_interval_fixed(monkeypatch):
+    # converted after fix: N2
+    """A real 60-sample fit (4-5 s) run through ``_pumped`` with a sleeping ``ctx.wait`` at the interpreter's default 5 ms switch interval:
+    the reviewer measured 0.2-0.3 s between two pumps (0.7-1.0x the lease) with ``_pumped`` leaving the interval alone, 0.04 s at 0.5 ms.
+    ``_pumped`` now lowers the interval itself (``PUMP_SWITCH_INTERVAL_S``) for the call: the gap is under a third of the lease, and 'before'
+    (emulated by setting the class constant to 1.0 s, which ``min`` ignores) is several times larger."""
     cfg, maps, samples = _synthetic_fit_problem(60)
-    default_gap, default_wall = _max_pump_gap(cfg, maps, samples, sys.getswitchinterval())
-    fast_gap, fast_wall = _max_pump_gap(cfg, maps, samples, 0.0005)
-    print(f"\n[n2] 60-sample fit: max pump gap {default_gap * 1e3:.0f} ms at the default switch interval ({default_wall:.1f} s wall), "
-          f"{fast_gap * 1e3:.0f} ms at 0.5 ms ({fast_wall:.1f} s wall); lease 300 ms")
-    assert default_gap > 0.10                                               # a third of the lease or more
-    assert default_gap > 2.0 * fast_gap                                     # and it is the GIL hand-off: 4-7x smaller at 0.5 ms
+    fixed_gap, fixed_wall = _max_pump_gap(cfg, maps, samples, 0.005)
+    monkeypatch.setattr(StartupSequencer, "PUMP_SWITCH_INTERVAL_S", 1.0)
+    before_gap, before_wall = _max_pump_gap(cfg, maps, samples, 0.005)
+    print(f"\n[n2] 60-sample fit at the default 5 ms switch interval: max pump gap {before_gap * 1e3:.0f} ms before the fix ({before_wall:.1f} s wall), "
+          f"{fixed_gap * 1e3:.0f} ms with _pumped lowering it to 0.5 ms ({fixed_wall:.1f} s wall); lease 300 ms")
+    assert fixed_gap < cfg.faults.lease_s / 3                               # 0.1 s
+    assert before_gap > 1.5 * fixed_gap                                     # it is the GIL hand-off: 4-7x smaller with the lowered interval
     assert not [t for t in threading.enumerate() if t.name.startswith("startup-pumped")]
 
 
@@ -183,16 +211,21 @@ def _noise_only_gate(cfg0, sigma, limit, dt, seed, n_tags=4):
     return wait_until_still(ctx).ok
 
 
-def test_n3_the_noise_floor_cross_check_assumes_a_frame_interval_of_0_1_s_whatever_is_configured():
-    """sigma 0.5 px with a still-rate limit of 0.025 passes the cross-check (1.4 x 0.0170 = 0.0239 <= 0.025), and with frame_interval_s =
-    0.1 the settle gate opens. With frame_interval_s = 0.05 (in the config, unbounded) the noise-only rate doubles to 0.034 rad/s, the
-    limit is 0.73x of it, load_config still accepts and the gate never opens on a claw that does not move."""
-    ok = load_config(_raw(**{"camera.corner_sigma_px": 0.5, "tasks.grip_still_rate_rad_s": 0.025, "startup.frame_interval_s": 0.05}))
-    assert ok.startup.frame_interval_s == 0.05                              # accepted: the check uses 0.1 s, not this
+def test_n3_the_noise_floor_cross_check_uses_the_configured_frame_interval_fixed():
+    # converted after fix: N3
+    """sigma 0.5 px with a still-rate limit of 0.025 passes the cross-check at frame_interval_s = 0.1 (1.4 x 0.0170 = 0.0239 <= 0.025) and
+    the settle gate opens. With frame_interval_s = 0.05 the noise-only rate doubles to 0.034 rad/s (the limit is 0.73x of it and the gate never
+    opens on a claw that does not move: 0 of 40, 4 tags): load_config used to accept that, it now refuses it, names the interval, and the limit
+    it asks for (0.048) opens the gate at that interval."""
+    with pytest.raises(ConfigError, match="startup.frame_interval_s = 0.05 s"):
+        load_config(_raw(**{"camera.corner_sigma_px": 0.5, "tasks.grip_still_rate_rad_s": 0.025, "startup.frame_interval_s": 0.05}))
+    ok = load_config(_raw(**{"camera.corner_sigma_px": 0.5, "tasks.grip_still_rate_rad_s": 0.048, "startup.frame_interval_s": 0.05}))
+    assert ok.startup.frame_interval_s == 0.05
     cfg0 = load_config(SIM)
     at_0_1 = [_noise_only_gate(cfg0, 0.5, 0.025, 0.1, s) for s in range(40)]
-    at_0_05 = [_noise_only_gate(cfg0, 0.5, 0.025, 0.05, s) for s in range(40)]
-    assert all(at_0_1)                                                      # the interval the check models: opens every time
-    assert not any(at_0_05)                                                 # the accepted configuration: never (0 of 40, 4 tags)
-    with pytest.raises(ConfigError, match="grip_still_rate_rad_s"):                 # sanity: the check itself works at 0.1 s
+    at_0_05 = [_noise_only_gate(cfg0, 0.5, 0.048, 0.05, s) for s in range(40)]
+    assert all(at_0_1)                                                      # the interval the old check modelled: opens every time
+    assert all(at_0_05)                                                     # the configuration the check now accepts at 0.05 s: opens every time
+    assert not any(_noise_only_gate(cfg0, 0.5, 0.025, 0.05, s) for s in range(40))      # the configuration it used to accept: never
+    with pytest.raises(ConfigError, match="grip_still_rate_rad_s"):                 # sanity: the check itself still works at 0.1 s
         load_config(_raw(**{"camera.corner_sigma_px": 0.5, "tasks.grip_still_rate_rad_s": 0.02}))

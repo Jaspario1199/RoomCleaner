@@ -4,7 +4,8 @@ Build, export and check the Gripper 1021 parts (hands first, then housing + came
 
 Run:  /usr/bin/python3 scripts/build_gripper1021.py hands      # hands: exports, sweep, clearances, renders (~5 min)
       /usr/bin/python3 scripts/build_gripper1021.py hands-renders   # renders only
-      /usr/bin/python3 scripts/build_gripper1021.py housing    # housing + bay + cover
+      /usr/bin/python3 scripts/build_gripper1021.py housing    # housing + bay + cover: exports, measurements, cable lines, renders (~6 min)
+      /usr/bin/python3 scripts/build_gripper1021.py housing-renders
       /usr/bin/python3 scripts/build_gripper1021.py all
 
 Reads (read-only): cad/reference/gripper_1021/parts/*.step (Jasper's parts, assembly world frame).
@@ -13,7 +14,9 @@ Writes:
   exports/step/gripper1021_hand_left.step    left hand, mirrored pose (follower rotated -6 deg into mesh)
   exports/stl/gripper1021_hand_{right,left}.stl   print orientation (bed face z = 1090 down, z min = 0)
   renders/gripper1021/...                    standard views + closed / open pose images on the mechanism
-  verification/gripper1021_sweep.json        sweep overlap table (machine readable)
+  exports/step/gripper1021_housing_cambay.step, ..._cover.step   housing + bay and its cover, assembly world frame
+  exports/stl/gripper1021_housing_cambay.stl, ..._cover.stl      print orientation (housing bottom plane on the bed; cover on its flat outer face)
+  (all numbers are printed; the human-readable record is verification/gripper1021_build_notes.md)
 """
 
 from __future__ import annotations
@@ -587,6 +590,216 @@ def assembly_interference():
     return rows
 
 
+# --------------------------------------------------------------------------------------------------------------------
+# cable lines: do the four cables leaving the corner holes clear the bay?  (port of
+# scripts/analyze_cable_lines_claw_camera_bay.py to the 1021 housing; same model and sampling)
+# --------------------------------------------------------------------------------------------------------------------
+CABLE_MAPPING = {(1, 1): "B", (1, -1): "C", (-1, -1): "D", (-1, 1): "A"}     # (sx, sz) -> station, fixed at yaw 0 (as v6)
+
+
+def cable_line_analysis(step_deg=15.0, verbose=True, yaws_deg=None):
+    """Model (identical to the v6 analysis, only the geometry changed):
+      * corner hole k leaves the housing at its outer mouth (sx*43.22, 9.95, sz*43.22) in the bay frame; the line runs from
+        that mouth straight to its station anchor;
+      * room frame: x east, y north, z up; claw yaw psi rotates the bay frame about the vertical (bay +X -> (cos, sin),
+        bay +Z -> (sin, -cos)); at psi = 0 the bay faces room +y;
+      * claw reference (mouth-plane centre on the tube axis) sampled over the workspace; the lowest claw point is the closed
+        fingertip (y = 575.0), i.e. (world mouth height - 575.0) below the mouth plane;
+      * lines that pass through the housing body are physically impossible and are excluded;
+      * clearance = min distance from the line segment (mouth -> anchor) to the exposed bay surface (bay body + cover)."""
+    import numpy as np
+    from cad.mesh_tools import tessellate, ray_mesh_first_hit
+    G, orig, housing, cover = housing_load()
+    cfg = json.load(open(os.path.join(REPO, "config", "robot.sim.json")))
+    room = cfg["room"]
+    W, D, Hh = room["width_m"], room["depth_m"], room["height_m"]
+    mg, cm = cfg["motion"]["workspace_margin_m"], cfg["motion"]["ceiling_margin_m"]
+    anchors = {st["id"]: np.array(st["anchor_room_m"]) for st in cfg["stations"]}
+    mouth, mouth_y = P.CAMBAY1021_CORNER_HOLE_EXIT_XZ, P.CAMBAY1021_CORNER_HOLE_EXIT_Y
+    jaw_below = (P.CAMBAY1021_BAY_ORIGIN_WORLD[1] + mouth_y - P.GRIP1021_TIP_Y) / 1000.0
+
+    Vbox, Fbox = tessellate(orig, 0.3, 0.3)
+    added = housing.val().cut(orig.val())
+    Va, Fa = tessellate(added, 0.05, 0.2)
+    Vc, Fc = tessellate(cover, 0.05, 0.2)
+    V = np.concatenate([Va, Vc])
+    F = np.concatenate([Fa, Fc + len(Va)])
+    tri = V[F]
+    area = 0.5 * np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)
+    rng = np.random.default_rng(0)
+    pts = [V]
+    n = np.maximum(1, np.ceil(area / 0.6).astype(int))
+    for k in range(1, int(n.max()) + 1):
+        sel = np.where(n >= k)[0]
+        w = rng.dirichlet([1, 1, 1], size=len(sel))
+        pts.append(np.einsum("ij,ijk->ik", w, tri[sel]))
+    samples = np.concatenate(pts)
+
+    xs = np.linspace(mg, W - mg, 8)
+    ys = np.linspace(mg, D - mg, 7)
+    zs = np.linspace(jaw_below, Hh - cm, 6)
+    yaws = np.radians(np.arange(0, 360, step_deg) if yaws_deg is None else np.array(yaws_deg, float))
+    corners = [(sx, sz) for sx in (1, -1) for sz in (1, -1)]
+    mouth_bay = {c: np.array([c[0] * mouth, mouth_y, c[1] * mouth]) for c in corners}
+    results = {}
+    hit_el, hit_z, hit_pts = [], [], []
+    for psi in yaws:
+        ex = np.array([math.cos(psi), math.sin(psi)])
+        ez = np.array([math.sin(psi), -math.cos(psi)])
+        dirs, meta = [], []
+        for (sx, sz) in corners:
+            anc = anchors[CABLE_MAPPING[(sx, sz)]]
+            for px in xs:
+                for py in ys:
+                    for pz in zs:
+                        m_h = np.array([px, py]) + (sx * mouth / 1000.0) * ex + (sz * mouth / 1000.0) * ez
+                        d = np.array([anc[0] - m_h[0], anc[1] - m_h[1], anc[2] - pz])
+                        L = np.linalg.norm(d)
+                        db = np.array([d[:2] @ ex, d[2], d[:2] @ ez])
+                        dirs.append(db / L)
+                        meta.append((sx, sz, px, py, pz, L * 1000.0, math.degrees(math.asin(d[2] / L))))
+        dirs, meta = np.array(dirs), np.array(meta)
+        hits = np.zeros(len(dirs), bool)
+        mind = np.full(len(dirs), 1e9)
+        feasible = np.ones(len(dirs), bool)
+        for (sx, sz) in corners:
+            sel = np.where((meta[:, 0] == sx) & (meta[:, 1] == sz))[0]
+            o = mouth_bay[(sx, sz)]
+            tb = np.array([ray_mesh_first_hit(o + d * 0.6, d[None, :], Vbox, Fbox)[0] for d in dirs[sel]])
+            feasible[sel] = ~(tb < meta[sel, 5])
+            t = ray_mesh_first_hit(o, dirs[sel], V, F)
+            hits[sel] = t < meta[sel, 5]
+            for kk, tt_ in zip(sel, t):
+                if tt_ < meta[kk, 5]:
+                    q = o + dirs[kk] * tt_
+                    hit_pts.append((round(math.degrees(psi)), int(sx), int(sz), round(float(meta[kk, 6]), 1), round(float(q[0]), 1), round(float(q[1]), 1), round(float(-q[2]), 1)))
+            rel = samples - o
+            for k0 in range(0, len(sel), 256):
+                ss = sel[k0:k0 + 256]
+                dd = dirs[ss]
+                tt = np.minimum(np.clip(rel @ dd.T, 0, None), meta[ss, 5][None, :])
+                r2 = (rel ** 2).sum(1)[:, None]
+                dist2 = r2 - 2 * tt * (rel @ dd.T) + tt ** 2
+                mind[ss] = np.sqrt(np.maximum(dist2.min(axis=0), 0))
+        mind_f = np.where(feasible, mind, 1e9)
+        hits_f = hits & feasible
+        h_el = [float(meta[ii, 6]) for ii in np.where(hits_f)[0]]
+        h_z = [float(meta[ii, 4]) for ii in np.where(hits_f)[0]]
+        hit_el += h_el
+        hit_z += h_z
+        i = int(mind_f.argmin())
+        results[round(math.degrees(psi))] = {
+            "min_clearance_mm": round(float(mind_f.min()), 2), "lines_hitting_bay": int(hits_f.sum()),
+            "lines_feasible": int(feasible.sum()), "lines": len(dirs),
+            "worst_elevation_deg": round(float(meta[i, 6]), 1), "worst_claw_z_m": round(float(meta[i, 4]), 2),
+            "hit_elevation_deg": [round(min(h_el), 1), round(max(h_el), 1)] if h_el else None,
+            "hit_claw_z_m": [round(min(h_z), 2), round(max(h_z), 2)] if h_z else None}
+        if verbose:
+            print(f"yaw {math.degrees(psi):5.0f}: min clearance {mind_f.min():7.2f} mm, hits {int(hits_f.sum())}/{int(feasible.sum())}")
+    allc = {k: v["min_clearance_mm"] for k, v in results.items()}
+    near = [k for k in allc if k <= 15 or k >= 345]
+    return {
+        "mouth_xz": mouth, "mouth_y": mouth_y, "jaw_below_mouth_m": jaw_below,
+        "workspace_z_m": [jaw_below, Hh - cm],
+        "nominal_yaw0_min_clearance_mm": allc[0],
+        "yaw_pm15_min_clearance_mm": min(allc[k] for k in near),
+        "all_yaw_min_clearance_mm": min(allc.values()), "worst_yaw_deg": min(allc, key=allc.get),
+        "total_lines_hitting_bay": int(sum(v["lines_hitting_bay"] for v in results.values())),
+        "hits_pm15deg": int(sum(results[k]["lines_hitting_bay"] for k in results if k <= 15 or k >= 345)),
+        "hits_pm30deg": int(sum(results[k]["lines_hitting_bay"] for k in results if k <= 30 or k >= 330)),
+        "hit_max_elevation_deg": round(max(hit_el), 1) if hit_el else None,
+        "hit_min_claw_height_m": round(min(hit_z), 2) if hit_z else None,
+        "per_yaw": results, "hit_points": hit_pts,
+    }
+
+
+def housing_renders(hr=None, hl=None):
+    """Standard views of housing + bay and of the cover (print frame, z up), bay close-ups, and the assembly with Jasper's
+    parts and both hands at the closed pose."""
+    from cad.mesh_tools import tessellate, render
+    G, orig, housing, cover = housing_load()
+    os.makedirs(REND_DIR, exist_ok=True)
+    BLUE = (0.25, 0.55, 0.88)
+    hp = G.housing_to_print(housing).val()
+    cp = G.cover_to_print(cover).val()
+    standard_views(hp, "gripper1021_housing_cambay", BLUE, tol=0.1)
+    standard_views(cp, "gripper1021_housing_cambay_cover", ORANGE, tol=0.05)
+    # close-ups in the bay frame (+Y up; camera azimuth 90 = the bay (-Z) side)
+    crop = cq.Workplane("XY").box(110, 70, 90, centered=False).translate((-55, -1, -115))
+    near = housing.intersect(crop)
+    nm, cm_ = tessellate(near, 0.15, 0.25), tessellate(cover, 0.15, 0.25)
+    cb = ((-60, -2, -118), (60, 62, -22))
+    render([nm + (BLUE, 1.0), cm_ + (ORANGE, 1.0)], os.path.join(REND_DIR, "bay_iso.png"), 28, 62,
+           "Camera bay on Jasper's housing (cover fitted)", bounds=cb, up="y", dpi=150)
+    render([nm + (BLUE, 1.0)], os.path.join(REND_DIR, "bay_iso_no_cover.png"), 42, 70,
+           "Camera bay, cover removed", bounds=cb, up="y", dpi=150)
+    render([nm + (BLUE, 1.0)], os.path.join(REND_DIR, "bay_underside_lens.png"), -70, 80,
+           "Underside: lens window with 1 mm chamfer", bounds=cb, up="y", dpi=150)
+    half = cq.Workplane("XY").box(60, 70, 90, centered=False).translate((G.LENS_X, -1, -115))
+    sec = housing.intersect(half)
+    csec = cover.intersect(cq.Workplane("XY").box(60, 70, 90, centered=False).translate((G.LENS_X, -1, -115)))
+    render([tessellate(sec, 0.12, 0.25) + (BLUE, 1.0), tessellate(csec, 0.12, 0.25) + (ORANGE, 1.0)],
+           os.path.join(REND_DIR, "bay_section_front.png"), 12, 180,
+           f"Section through the lens centre (x = {G.LENS_X:+.2f}), seen from -X",
+           bounds=((G.LENS_X - 5, -2, -118), (G.LENS_X + 55, 62, -22)), up="y", dpi=150)
+    # assembly (world frame): Jasper's parts, new housing + bay + cover, both hands closed
+    ox, oy, oz = G.BAY_ORIGIN_WORLD
+    parts = load_jasper()
+    fp = file_pose_angles(parts)
+    moved = jasper_at(parts, fp, P.GRIP1021_THETA_CLOSED_DEG)
+    meshes = []
+    for k, shp in moved.items():
+        if k != "elec_housing":
+            meshes.append(tessellate(shp, 1.0, 0.5) + (GREY, 1.0))
+    meshes.append(tessellate(G.to_world(housing.val()), 0.5, 0.4) + (BLUE, 1.0))
+    meshes.append(tessellate(G.to_world(cover.val()), 0.2, 0.3) + (ORANGE, 1.0))
+    hr = hr or H.make_hand_right()
+    hl = hl or H.make_hand_left()
+    meshes.append(tessellate(H.place_hand(hr, "R", P.GRIP1021_THETA_CLOSED_DEG).val(), 0.1, 0.3) + (HAND_BLUE, 1.0))
+    meshes.append(tessellate(H.place_hand(hl, "L", P.GRIP1021_THETA_CLOSED_DEG).val(), 0.1, 0.3) + (HAND_GREEN, 1.0))
+    render(meshes, os.path.join(REND_DIR, "assembly_iso.png"), 22, 55, "Gripper 1021: housing + camera bay + hands (closed)",
+           bounds=((ox - 300, 560, oz - 300), (ox + 300, 1180, oz + 300)), up="y")
+    render(meshes, os.path.join(REND_DIR, "assembly_bay_side.png"), 0, 90, "Gripper 1021 from the camera-bay (-Z) side",
+           bounds=((ox - 330, 560, oz - 330), (ox + 330, 1200, oz + 330)), up="y")
+
+
+def build_housing(renders=True, cables=True):
+    rep = housing_report()
+    rep["reimport"] = reimport_housing()
+    rep["assembly"] = assembly_interference()
+    if cables:
+        rep["cables"] = cable_line_analysis(verbose=False)
+    if renders:
+        housing_renders()
+    return rep
+
+
+def print_housing_report(rep):
+    f = lambda L: "[" + ", ".join(f"{v:.3f}" for v in L) + "]"
+    print(f"valid={rep['valid']} solids housing/cover={rep['solids']}")
+    print(f"volumes mm3: {', '.join(f'{k}={v:.0f}' for k, v in rep['vol'].items())}")
+    print(f"mass g (PETG solid): {', '.join(f'{k}={v:.1f}' for k, v in rep['mass_g'].items())}")
+    print(f"bbox housing+bay (bay frame) {f(rep['bbox'])}; cover {f(rep['cover_bbox'])}")
+    print(f"removed from Jasper's housing: {rep['removed_vol']:.3f} mm3 (outside the window cutter {rep['removed_outside_window']:.6f}, "
+          f"in pocket {rep['removed_in_pocket']:.6f}); added {rep['added_vol']:.0f} mm3 (inside the pocket {rep['added_in_pocket']:.6f})")
+    print(f"bottom faces on y=0: areas {[round(a, 1) for a in rep['bottom_faces']]} (orig {rep['bottom_area_orig']:.1f})")
+    print(f"lens centre world {tuple(round(v, 4) for v in rep['lens_world'])} (v6 {tuple(round(v, 4) for v in rep['lens_world_v6'])})")
+    print(f"bay head vs v6 symmetric difference {rep['head_vs_v6_symdiff']:.6f} mm3 of {rep['head_vol']:.0f}; cover vs v6 (r>=65) {rep['cover_vs_v6_symdiff']:.6f}")
+    print("distance bay (body+cover) to the four corner-hole cylinders:", f(rep["dist_bay_to_holes"]), "cover alone", f(rep["dist_cover_to_holes"]))
+    print("cover vs housing overlap", rep["cover_vs_housing_overlap"])
+    print("thin spots (<1.9 mm) in sections:", {k: v for k, v in rep["thin"].items() if v} or "none at all 18 levels")
+    for k, d in rep["reimport"].items():
+        print(f"[reimport {k}] solids={d['solids']} valid={d['valid']} vol {d['vol_ref']:.1f}->{d['vol_reimport']:.1f} "
+              f"(rel {d['vol_rel_diff']:.1e}) bbox diff {d['bbox_max_diff_mm']:.5f}")
+    print("assembly overlap (housing, cover) vs Jasper parts at the file pose:",
+          {k: (round(a, 4), round(b, 4)) for k, (a, b) in rep["assembly"].items()})
+    if "cables" in rep:
+        c = rep["cables"]
+        print(f"cable lines: yaw0 min clearance {c['nominal_yaw0_min_clearance_mm']} mm, within +-15 deg {c['yaw_pm15_min_clearance_mm']} mm "
+              f"(hits {c['hits_pm15deg']}), +-30 deg hits {c['hits_pm30deg']}, all yaws min {c['all_yaw_min_clearance_mm']} mm at yaw {c['worst_yaw_deg']}, "
+              f"total hits {c['total_lines_hitting_bay']}, hit elevation max {c['hit_max_elevation_deg']} deg, min claw height {c['hit_min_claw_height_m']} m")
+
+
 def main(argv):
     what = argv[1] if len(argv) > 1 else "hands"
     if what == "hands-renders":
@@ -597,8 +810,10 @@ def main(argv):
             standard_views(wp.val(), "gripper1021_" + nm, col)
     if what in ("hands", "all"):
         print_hands_report(build_hands(dense=True))
+    if what == "housing-renders":
+        housing_renders()
     if what in ("housing", "all"):
-        raise SystemExit("housing build is added in the housing step")
+        print_housing_report(build_housing())
 
 
 if __name__ == "__main__":

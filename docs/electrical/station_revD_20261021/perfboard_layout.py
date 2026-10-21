@@ -48,8 +48,9 @@ pin("X01", "12V", "+12"); pin("X03", "PGND", "GND")                         # J1
 for r, n in zip((5, 6, 7, 8), ("M2B", "M2A", "M1A", "M1B")): pin(f"X{r:02d}", n, n[1:])   # J2 motor
 pin("C17", "3V3", "3V3"); pin("D17", "GND", "GND"); pin("E17", "SDA", "SDA"); pin("F17", "SCL", "SCL")  # J5 encoder
 pin("H17", "HOME", "NC"); pin("I17", "GND", "COM")                           # J3 switch
-# U1 DROK buck mounted flat, bottom right, on 4 short wire legs at its corner pads
-pin("Q13", "12V", "IN+"); pin("Q17", "PGND", "IN-"); pin("X13", "5VB", "OUT+"); pin("X17", "nc", "OUT-")
+# U1 DROK buck: 5-pin single-row header (OUT+, OUT-, IN-, IN+, EN), standing upright in row 15
+pin("X15", "5VB", "OUT+"); pin("W15", "PGND", "OUT-"); pin("V15", "PGND", "IN-"); pin("U15", "12V", "IN+")
+pin("T15", "nc", "EN")
 pin("X11", "5VB", "A"); pin("T11", "5VD", "K")                              # D1 1N5819 lying, stripe (K) at T11
 pin("S11", "5VD", "JP1"); pin("R11", "5V", "JP1")                            # JP1 link
 pin("T02", "12V", "C1 +"); pin("T03", "PGND", "C1 -")                        # C1 100uF/50V
@@ -64,7 +65,7 @@ def run(a, b, net):                 # straight run along a row or column
     (ca, ra), (cb, rb) = h(a), h(b)
     assert ca == cb or ra == rb, (a, b)
     BARE.append((a, b, net))
-run("B02", "B03", "5V"); run("S11", "T11", "5VD"); run("X11", "X13", "5VB")
+run("B02", "B03", "5V"); run("S11", "T11", "5VD"); run("X11", "X15", "5VB"); run("V15", "W15", "PGND")
 run("Q01", "X01", "12V"); run("Q01", "Q03", "12V"); run("T01", "T02", "12V")
 run("Q04", "R04", "PGND"); run("R03", "R04", "PGND"); run("R03", "X03", "PGND")
 for r in (5, 6, 7, 8): run(f"Q{r:02d}", f"X{r:02d}", ["M2B", "M2A", "M1A", "M1B"][r - 5])
@@ -78,7 +79,7 @@ WIRES = [  # insulated: (from, to, net, colour)
     ("C03", "B11", "GND", "#222222"), ("D03", "B13", "3V3", "#1f77b4"), ("Q09", "P13", "3V3", "#1f77b4"),
     ("Q10", "P11", "GND", "#222222"), ("L08", "L13", "3V3", "#1f77b4"), ("L06", "K11", "GND", "#222222"),
     ("D17", "D11", "GND", "#222222"), ("I17", "I11", "GND", "#222222"), ("S03", "O11", "GND", "#222222"),
-    ("B02", "R11", "5V", "#e377c2"), ("S01", "Q13", "12V", "#b30000"), ("U03", "Q17", "GND", "#222222"),
+    ("B02", "R11", "5V", "#e377c2"), ("S01", "U15", "12V", "#b30000"), ("U03", "V15", "GND", "#222222"),
 ]
 
 # ---------------- checks: one net per hole, every net connected
@@ -180,10 +181,9 @@ ax.add_patch(Rectangle((X(ck) + 0.4, Y(rk) - 0.32), X(cA) - X(ck) - 0.8, 0.64, f
 ax.add_patch(Rectangle((X(ck) + 0.4, Y(rk) - 0.32), 0.35, 0.64, fc="#dddddd", ec="black", zorder=5.1))
 ax.text((X(ck) + X(cA)) / 2 + 0.3, Y(rk), "D1 1N5819", color="white", fontsize=8.5, ha="center", va="center", zorder=6)
 ax.text(X(ck) + 0.55, Y(rk) + 0.62, "stripe", color="white", fontsize=8, ha="center", zorder=6)
-ax.add_patch(FancyBboxPatch((X(16) - 0.6, Y(17) - 0.6), X(23) - X(16) + 1.2, Y(13) - Y(17) + 1.2,
-                            boxstyle="round,pad=0.05", fc="#1a5fb4", ec="black", lw=1.5, alpha=0.35, zorder=2))
-ax.text(X(19.5), Y(15), "U1 DROK BUCK\n(flat, pot up)\nset 5.00 V first", ha="center", va="center", fontsize=12,
-        weight="bold", zorder=6)
+ax.add_patch(Rectangle((X(19) - 0.5, Y(15) - 0.35), X(23) - X(19) + 1.0, 0.7, fc="#111", ec="white", lw=1.5, zorder=5.5))
+ax.text(X(21), Y(16.3), "U1 DROK buck, standing on its 5-pin header\n(pins: EN T15 unconnected, IN+ U15, IN- V15, OUT- W15, OUT+ X15)\nbridge the 5V select pad, check 5.00 V first",
+        ha="center", va="center", fontsize=9.5, weight="bold", color="white", zorder=6)
 ax.add_patch(Circle(((X(19)), (Y(2.5))), 0.95, fc="#2b3a8c", ec="black", zorder=5, alpha=0.9))
 ax.text(X(19), Y(2.5), "C1\n100uF", color="white", fontsize=8, ha="center", va="center", zorder=6)
 ax.text(X(19.9), Y(2.0), "+", color="white", fontsize=12, weight="bold", zorder=6)

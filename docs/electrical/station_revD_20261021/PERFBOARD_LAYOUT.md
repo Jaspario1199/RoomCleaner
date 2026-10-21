@@ -15,7 +15,7 @@ the board (A-X, 01-18). Generated and net-checked by `perfboard_layout.py`
 | J2 motor (4-pin) | X05 2B, X06 2A, X07 1A, X08 1B |
 | J5 encoder (4-pin) | C17 3V3, D17 GND, E17 SDA, F17 SCL |
 | J3 switch (2-pin) | H17 NC, I17 COM |
-| U1 DROK buck, flat, pot up, on 4 short wire legs at its corner pads | IN+ Q13, IN- Q17, OUT+ X13, OUT- X17 (mechanical leg only; OUT- = IN- inside the module) |
+| U1 DROK buck (5-pin single-row header OUT+, OUT-, IN-, IN+, EN), standing upright | X15 OUT+, W15 OUT-, V15 IN-, U15 IN+, T15 EN (no connection). Select 5 V by bridging its "5V" pad; check 5.00 V before connecting loads |
 | JP1 link (2-pin + jumper) | R11 (XIAO 5V side), S11 (diode side) |
 | D1 1N5819 (lying) | stripe/cathode T11, anode X11 |
 | C1 100 uF/50 V | + T02, - T03 |
@@ -25,8 +25,7 @@ the board (A-X, 01-18). Generated and net-checked by `perfboard_layout.py`
 | R4 10k (switch pull-up) | H13 - H16 |
 
 ## Bare runs (bottom)
-- 5V: B02-B03. JP1 to diode: S11-T11. Diode anode to buck OUT+: X11-X12-X13.
-- **Keep P13 (3V3 bus end) and Q13 (buck IN+, 12 V) apart: never bridge them.**
+- 5V: B02-B03. JP1 to diode: S11-T11. Diode anode to buck OUT+: X11 down to X15. Buck OUT- and IN-: V15-W15.
 - +12 V: Q01 to X01 along row 01; Q01-Q02-Q03 (VMOT); T01-T02 (C1 +).
 - Motor return GND: R03 to X03 along row 03; R03-R04; Q04-R04.
 - Motor: rows 05-08 from Q to X.
@@ -53,5 +52,5 @@ the board (A-X, 01-18). Generated and net-checked by `perfboard_layout.py`
 | I17 | I11 | switch COM |
 | S03 | O11 | ties motor GND to logic GND |
 | B02 | R11 | XIAO 5V to JP1 |
-| S01 | Q13 | +12 V to buck IN+ |
-| U03 | Q17 | GND to buck IN- |
+| S01 | U15 | +12 V to buck IN+ |
+| U03 | V15 | GND to buck IN-/OUT- |

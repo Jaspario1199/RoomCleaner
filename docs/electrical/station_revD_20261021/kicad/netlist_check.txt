@@ -1,0 +1,27 @@
+perfboard_layout.py: check OK: 132 holes used, 16 nets, each connected
+netlist : RoomCleaner_Station_RevD_netlist.xml
+expected: 16 nets, 55 connected pins, 6 unconnected pins (from perfboard_layout.py)
+found   : 16 nets, 55 connected pins, 6 unconnected pins, 14 components
+
+net     pins  result
++12V       4  ok    C1.1 J1.1 U1.4 U3.8
++3V3       7  ok    J5.1 R1.1 R4.1 U2.12 U3.2 U3.13 U3.14
++5V        2  ok    JP1.2 U2.14
+5VB        2  ok    D1.2 U1.1
+5VD        2  ok    D1.1 JP1.1
+DIR        3  ok    R3.1 U2.3 U3.16
+EN         3  ok    R1.2 U2.4 U3.9
+GND       14  ok    C1.2 J1.2 J3.2 J5.2 R2.2 R3.2 U1.2 U1.3 U2.13 U3.1 U3.7 U3.10 U3.11 U3.12
+HOME       3  ok    J3.1 R4.2 U2.11
+M1A        2  ok    J2.3 U3.4
+M1B        2  ok    J2.4 U3.3
+M2A        2  ok    J2.2 U3.5
+M2B        2  ok    J2.1 U3.6
+SCL        2  ok    J5.4 U2.6
+SDA        2  ok    J5.3 U2.5
+STEP       3  ok    R2.1 U2.2 U3.15
+unconnected pins ok   : U1.5 U2.1 U2.7 U2.8 U2.9 U2.10
+components ok         : C1 D1 J1 J2 J3 J5 JP1 R1 R2 R3 R4 U1 U2 U3
+PCB     : ok   14 footprints, 61 pads, 16 nets equal the perfboard nets; worst pad-to-hole error 0.040 mm (hole A01 at 101.60, 76.20 mm)
+
+PASS

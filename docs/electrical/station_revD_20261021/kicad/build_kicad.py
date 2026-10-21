@@ -605,8 +605,8 @@ def build_sheet(pb):
 
     # ====================== CONTROL ====================================
     sh.text((15.24, 91.44), "CONTROL: XIAO ESP32-C3, A4988 carrier, pull resistors, motor", size=1.8, bold=True)
-    u2 = part(XIAO, "U2", (63.5, 142.24), fields={"Reference": (-6.35, -30.48, "left"),
-                                                   "Value": (-6.35, -27.94, "left")})
+    u2 = part(XIAO, "U2", (63.5, 142.24), fields={"Reference": (-6.35, -34.29, "left"),
+                                                   "Value": (-6.35, -31.75, "left")})
     sh.text((26.67, 97.79), "U2 perfboard: top row B03-H03, bottom row B09-H09,\nUSB-C points LEFT off the board edge.",
             size=1.27)
     # left column D0..D6 = pins 1..7 ; right column pins 14..8
@@ -674,7 +674,7 @@ def build_sheet(pb):
     part(C4, "J2", (279.4, 142.24), fields={"Reference": (0, -5.08, "left"), "Value": (0, 7.62, "left")})
     for n in ("1", "2", "3", "4"):
         sh.route("J2", n, [(-5.08, 0)])
-    sh.text((270.51, 157.48), "J2 MOTOR (X05-X08): pins 1-4 =\n2B 2A 1A 1B.  1A/1B = coil 1,\n2A/2B = coil 2.\n"
+    sh.text((261.62, 157.48), "J2 MOTOR (X05-X08): pins 1-4 =\n2B 2A 1A 1B.  1A/1B = coil 1,\n2A/2B = coil 2.\n"
             "Never plug / unplug the motor\nwith power on.", size=1.27)
 
     # ====================== OFF-BOARD ================================
@@ -703,7 +703,7 @@ def build_sheet(pb):
 
     # ====================== NOTES (right column / lower middle) ===========
     nx = 172.72
-    sh.rect((nx - 2.54, 196.0), (297.18, 252.0), dash=False, width=0.254)
+    sh.rect((nx - 2.54, 196.0), (297.18, 247.0), dash=False, width=0.254)
     sh.text((nx, 197.28),
             "A4988 CURRENT LIMIT - DECISIONS.md D30 (2026-10-21)\n"
             "Vref = 0.85 V  (about 1.06 A, at the carrier's maximum).  Vref = 8 x I x Rsense, R100 = 0.100 ohm.\n"
@@ -712,16 +712,16 @@ def build_sheet(pb):
             "Set Vref with 12 V on, motor DISCONNECTED, logic powered, EN high: black probe on driver GND,\n"
             "red on the trim pot. Read both sense resistors first. Heatsink stays on; 60 min hold test.",
             size=1.27, bold=False)
-    sh.text((nx, 219.0),
+    sh.text((nx, 214.0),
             "MICROSTEP (MS1/MS2/MS3): all three tied LOW (GND) = FULL STEP -> config `microsteps` = 1\n"
             "(config/robot.example.json). If they are moved to +3V3 (1/16 step) set `microsteps` = 16 for\n"
             "that station before the first run. Hardware and config MUST match: mismatch = wrong lengths.",
             size=1.27)
-    sh.text((nx, 232.0),
+    sh.text((nx, 224.0),
             "DO NOT RAISE VDD TO 5 V. A4988 VDD, RESET, SLEEP = 3.3 V from the XIAO 3V3 pin; the ESP32-C3\n"
             "GPIOs (STEP, DIR, EN) are not 5 V tolerant.  Pull-ups to 3.3 V only.",
             size=1.27)
-    sh.text((nx, 240.0),
+    sh.text((nx, 232.0),
             "FUSING IS AT THE SUPPLY END: branch fuses F1-F4 (rating TBD) and F0 7.5 A (existing, recorded,\n"
             "not approved) sit before the long cables. No fuse, reverse-polarity or over-voltage protection\n"
             "on this board. Rev D TP0-TP4 are not parts on the perfboard: probe the module pins / holes.",
@@ -744,15 +744,15 @@ def build_sheet(pb):
             "7. Run only a short, unloaded jog and the switch test. No suspended\n"
             "   load or room operation until bench-checked.",
             size=1.27)
-    sh.text((rx0, 76.2), "USB / EXTERNAL POWER", size=1.8, bold=True)
-    sh.text((rx0, 81.28),
+    sh.text((rx0, 62.0), "USB / EXTERNAL POWER", size=1.8, bold=True)
+    sh.text((rx0, 67.1),
             "USB plugged in: JP1 OPEN.  Standalone from 12 V: USB unplugged,\n"
             "JP1 CLOSED.  Never USB + 12 V with JP1 closed (two sources meet\n"
             "on VBUS).  Change JP1 only with all power off.", size=1.27)
-    sh.text((rx0, 94.0), "PERFBOARD HOLE MAP (generated, component side, A01 top-left)", size=1.8, bold=True)
-    sh.text((rx0, 99.06), hole_map_text(pb), size=1.27)
-    sh.text((rx0, 140.0), "DIFFERENCES FROM THE REV D SCHEMATIC (perfboard wins)", size=1.8, bold=True)
-    sh.text((rx0, 145.0),
+    sh.text((rx0, 82.0), "PERFBOARD HOLE MAP (generated, component side, A01 top-left)", size=1.8, bold=True)
+    sh.text((rx0, 87.1), hole_map_text(pb), size=1.27)
+    sh.text((rx0, 128.0), "DIFFERENCES FROM THE REV D SCHEMATIC (perfboard wins)", size=1.8, bold=True)
+    sh.text((rx0, 133.1),
             "Current limit: Rev D sheet 3 / README show 1.35 A, Vref 1.08 V (D29).\n"
             "  This sheet follows D30: Vref 0.85 V, about 1.06 A.\n"
             "Encoder: Rev D sheet 3 draws DIR to GND and OUT open at the encoder.\n"
@@ -828,10 +828,12 @@ def write_libtables():
     (HERE / "fp-lib-table").write_text(ft, encoding="utf-8")
 
 
-def write_project(sheet_uuid):
-    pro = {
+def project_dict(sheet_uuid):
+    return {
+        # Hand-populated 2.54 mm perfboard: stock courtyards (KLC 0.5 mm connector margin) of parts on
+        # adjacent holes overlap although the bodies do not (JP1/D1, JP1/U3, R4/J3) -> warning, not error.
         "board": {"design_settings": {"rules": {"min_copper_edge_clearance": 0.0},
-                                      "rule_severities": {}}},
+                                      "rule_severities": {"courtyards_overlap": "warning"}}},
         "meta": {"filename": f"{PROJECT}.kicad_pro", "version": 1},
         "net_settings": {"classes": [{"name": "Default", "clearance": 0.2, "track_width": 0.25,
                                       "via_diameter": 0.8, "via_drill": 0.4, "pcb_color": "rgba(0, 0, 0, 0.000)",
@@ -847,7 +849,22 @@ def write_project(sheet_uuid):
         "sheets": [[sheet_uuid, ""]],
         "text_variables": {},
     }
-    (HERE / f"{PROJECT}.kicad_pro").write_text(json.dumps(pro, indent=2) + "\n", encoding="utf-8")
+
+
+def write_project(sheet_uuid):
+    (HERE / f"{PROJECT}.kicad_pro").write_text(json.dumps(project_dict(sheet_uuid), indent=2) + "\n",
+                                               encoding="utf-8")
+
+
+def finalize_project(sheet_uuid):
+    """pcbnew rewrites the .kicad_pro with its own defaults when it saves the board; merge our settings back."""
+    path = HERE / f"{PROJECT}.kicad_pro"
+    base, mine = json.loads(path.read_text(encoding="utf-8")), project_dict(sheet_uuid)
+    base["sheets"] = mine["sheets"]
+    base["schematic"] = {**base.get("schematic", {}), **mine["schematic"]}
+    base.setdefault("board", {}).setdefault("design_settings", {}).setdefault("rule_severities", {})
+    base["board"]["design_settings"]["rule_severities"]["courtyards_overlap"] = "warning"
+    path.write_text(json.dumps(base, indent=2) + "\n", encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -938,6 +955,7 @@ def build_pcb(pb):
         if fp is None:
             raise SystemExit(f"footprint {fpid} not found")
         fp.SetReference(ref)
+        fp.Reference().SetLayer(pcbnew.F_Fab)         # dense perfboard: designators on the fab layer, not silk
         fp.SetValue(comps[ref]["value"])
         fp.SetFPID(pcbnew.LIB_ID(nick, name))
         if comps[ref]["tstamp"]:
@@ -981,12 +999,35 @@ def build_pcb(pb):
     return pcb_path
 
 
-def run_drc(pb, pcb_path):
+def run_drc():
+    """DRC through pcbnew's own engine (kicad-cli 7.0.11 has no `pcb drc`; that arrived in 8.0)."""
+    os.environ.setdefault("KICAD7_FOOTPRINT_DIR", str(FP_DIR))
     import pcbnew
-    board = pcbnew.LoadBoard(str(pcb_path))
+    board = pcbnew.LoadBoard(str(HERE / f"{PROJECT}.kicad_pcb"))
     out = HERE / f"{PROJECT}_drc.rpt"
     ok = pcbnew.WriteDRCReport(board, str(out), pcbnew.EDA_UNITS_MILLIMETRES, True)
     print("DRC report:", out.name, "ok" if ok else "FAILED")
+
+
+def pcb_preview():
+    """Trimmed PNG of the placed board (fab + silk + courtyard + outline); ratsnest is not plotted."""
+    pdf, png = HERE / f"{PROJECT}_pcb.pdf", HERE / f"{PROJECT}_pcb_preview.png"
+    run(["kicad-cli", "pcb", "export", "pdf", "-l", "F.Cu,F.Silkscreen,F.Fab,F.CrtYd,Edge.Cuts", "-o", pdf.name,
+         f"{PROJECT}.kicad_pcb"])
+    run(["pdftoppm", "-r", "300", "-png", "-singlefile", pdf.name, png.stem])
+    if shutil.which("convert"):
+        run(["convert", png.name, "-trim", "+repage", "-bordercolor", "white", "-border", "30", png.name])
+    pdf.unlink()
+
+
+def netlist_check(with_pcb):
+    """Run check_netlist.py and keep its output as netlist_check.txt."""
+    cmd = [sys.executable, str(HERE / "check_netlist.py")] + (["--pcb"] if with_pcb else [])
+    r = subprocess.run(cmd, capture_output=True, text=True, cwd=HERE)
+    (HERE / "netlist_check.txt").write_text(r.stdout, encoding="utf-8")
+    print(r.stdout.strip().splitlines()[-1] if r.stdout.strip() else r.stderr)
+    if r.returncode != 0:
+        raise SystemExit("check_netlist.py FAILED (see netlist_check.txt)")
 
 
 # ---------------------------------------------------------------------------
@@ -995,7 +1036,13 @@ def main():
     ap.add_argument("--no-export", action="store_true")
     ap.add_argument("--no-pcb", action="store_true")
     ap.add_argument("--no-drc", action="store_true")
+    ap.add_argument("--drc-only", action="store_true")
+    ap.add_argument("--erc", action="store_true",
+                    help="also run KiCad's real ERC through eeschema under Xvfb (~1 min; kicad-cli 7.0.11 has no sch erc)")
     a = ap.parse_args()
+    if a.drc_only:
+        run_drc()
+        return
 
     pb = pbd.Perfboard()
     print("perfboard:", pb.check_output, "|", len(pb.nets()), "connected nets,", len(pb.no_connects()), "nc pins")
@@ -1018,8 +1065,15 @@ def main():
         export_all()
     if not a.no_pcb and not a.no_export:
         pcb = build_pcb(pb)
-        if pcb and not a.no_drc:
-            run_drc(pb, pcb)
+        if pcb:
+            finalize_project(sh.root_uuid)
+            if not a.no_drc:
+                run([sys.executable, Path(__file__).resolve(), "--drc-only"])
+            pcb_preview()
+    if not a.no_export:
+        netlist_check(with_pcb=not a.no_pcb)
+    if a.erc:
+        run([sys.executable, HERE / "run_erc_xvfb.py"])
 
 
 if __name__ == "__main__":

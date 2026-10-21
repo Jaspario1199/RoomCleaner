@@ -1,91 +1,27 @@
 ** Drc report for /home/user/RoomCleaner/docs/electrical/station_revD_20261021/kicad/RoomCleaner_Station_RevD.kicad_pcb **
-** Created on 2026-10-21 15:27:55 **
+** Created on 2026-10-21 15:35:48 **
 
-** Found 25 DRC violations **
+** Found 5 DRC violations **
 [silk_overlap]: Silkscreen overlap
     Rule: board setup constraints silk; Severity: warning
-    @(146.0500 mm, 100.2700 mm): Line on F.Silkscreen
     @(143.6400 mm, 100.4600 mm): Line on F.Silkscreen
+    @(146.0500 mm, 100.2700 mm): Line on F.Silkscreen
 [silk_overlap]: Silkscreen overlap
     Rule: board setup constraints silk; Severity: warning
-    @(143.4500 mm, 100.2700 mm): Line on F.Silkscreen
     @(142.2400 mm, 100.4600 mm): Line on F.Silkscreen
-[silk_overlap]: Silkscreen overlap
-    Rule: board setup constraints silk; Severity: warning
-    @(156.2100 mm, 83.8200 mm): Line on F.Silkscreen
-    @(160.0200 mm, 84.0300 mm): Reference 'J2'
-[silk_overlap]: Silkscreen overlap
-    Rule: board setup constraints silk; Severity: warning
-    @(110.8400 mm, 100.9500 mm): Line on F.Silkscreen
-    @(111.1400 mm, 100.3300 mm): Reference 'R3'
-[silk_overlap]: Silkscreen overlap
-    Rule: board setup constraints silk; Severity: warning
-    @(112.6800 mm, 100.9500 mm): Line on F.Silkscreen
-    @(111.1400 mm, 100.3300 mm): Reference 'R3'
-[silk_overlap]: Silkscreen overlap
-    Rule: board setup constraints silk; Severity: warning
-    @(108.6000 mm, 100.3300 mm): Reference 'R2'
-    @(109.2200 mm, 99.0600 mm): Circle on F.Silkscreen
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(149.6500 mm, 101.6000 mm): Reference 'JP1'
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(109.8400 mm, 102.8700 mm): Reference 'R1'
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(108.6000 mm, 100.3300 mm): Reference 'R2'
-[silk_over_copper]: Silkscreen clipped by solder mask
-    Local override; Severity: warning
-    @(111.1400 mm, 100.3300 mm): Reference 'R3'
-[lib_footprint_issues]: Footprint 'PinHeader_1x02_P2.54mm_Vertical' not found in library 'Connector_PinHeader_2.54mm'.
-    Local override; Severity: warning
-    @(147.3200 mm, 101.6000 mm): Footprint JP1
-[lib_footprint_issues]: Footprint 'R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal' not found in library 'Resistor_THT'.
-    Local override; Severity: warning
-    @(119.3800 mm, 106.6800 mm): Footprint R4
-[lib_footprint_issues]: Footprint 'PinHeader_1x02_P2.54mm_Vertical' not found in library 'Connector_PinHeader_2.54mm'.
-    Local override; Severity: warning
-    @(119.3800 mm, 116.8400 mm): Footprint J3
-[lib_footprint_issues]: Footprint 'PinHeader_1x04_P2.54mm_Vertical' not found in library 'Connector_PinHeader_2.54mm'.
-    Local override; Severity: warning
-    @(106.6800 mm, 116.8400 mm): Footprint J5
-[lib_footprint_issues]: Footprint 'CP_Radial_D6.3mm_P2.50mm' not found in library 'Capacitor_THT'.
-    Local override; Severity: warning
-    @(149.8600 mm, 78.7400 mm): Footprint C1
-[lib_footprint_issues]: Footprint 'R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal' not found in library 'Resistor_THT'.
-    Local override; Severity: warning
-    @(111.7600 mm, 106.6800 mm): Footprint R1
-[lib_footprint_issues]: Footprint 'Pololu_Breakout-16_15.2x20.3mm' not found in library 'Module'.
-    Local override; Severity: warning
+    @(143.4500 mm, 100.2700 mm): Line on F.Silkscreen
+[courtyards_overlap]: Courtyards overlap
+    Rule: board setup constraints courtyard; Severity: warning
     @(142.2400 mm, 99.0600 mm): Footprint U3
-[lib_footprint_issues]: Footprint 'R_Axial_DIN0204_L3.6mm_D1.6mm_P2.54mm_Vertical' not found in library 'Resistor_THT'.
-    Local override; Severity: warning
-    @(106.6800 mm, 99.0600 mm): Footprint R2
-[lib_footprint_issues]: Footprint 'TerminalBlock_bornier-2_P5.08mm' not found in library 'TerminalBlock'.
-    Local override; Severity: warning
-    @(160.0200 mm, 76.2000 mm): Footprint J1
-[lib_footprint_issues]: Footprint 'R_Axial_DIN0204_L3.6mm_D1.6mm_P2.54mm_Vertical' not found in library 'Resistor_THT'.
-    Local override; Severity: warning
-    @(109.2200 mm, 99.0600 mm): Footprint R3
-[lib_footprint_issues]: Footprint 'PinHeader_1x04_P2.54mm_Vertical' not found in library 'Connector_PinHeader_2.54mm'.
-    Local override; Severity: warning
-    @(160.0200 mm, 86.3600 mm): Footprint J2
-[lib_footprint_issues]: Footprint 'D_DO-41_SOD81_P10.16mm_Horizontal' not found in library 'Diode_THT'.
-    Local override; Severity: warning
-    @(149.8600 mm, 101.6000 mm): Footprint D1
-[courtyards_overlap]: Courtyards overlap
-    Rule: board setup constraints courtyard; Severity: error
     @(147.3200 mm, 101.6000 mm): Footprint JP1
-    @(142.2400 mm, 99.0600 mm): Footprint U3
 [courtyards_overlap]: Courtyards overlap
-    Rule: board setup constraints courtyard; Severity: error
-    @(147.3200 mm, 101.6000 mm): Footprint JP1
-    @(149.8600 mm, 101.6000 mm): Footprint D1
-[courtyards_overlap]: Courtyards overlap
-    Rule: board setup constraints courtyard; Severity: error
+    Rule: board setup constraints courtyard; Severity: warning
     @(119.3800 mm, 106.6800 mm): Footprint R4
     @(119.3800 mm, 116.8400 mm): Footprint J3
+[courtyards_overlap]: Courtyards overlap
+    Rule: board setup constraints courtyard; Severity: warning
+    @(149.8600 mm, 101.6000 mm): Footprint D1
+    @(147.3200 mm, 101.6000 mm): Footprint JP1
 
 ** Found 39 unconnected pads **
 [unconnected_items]: Missing connection between items

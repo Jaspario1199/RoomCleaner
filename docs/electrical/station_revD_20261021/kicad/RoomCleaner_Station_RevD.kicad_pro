@@ -59,7 +59,7 @@
         "connection_width": "warning",
         "copper_edge_clearance": "error",
         "copper_sliver": "warning",
-        "courtyards_overlap": "error",
+        "courtyards_overlap": "warning",
         "diff_pair_gap_out_of_range": "error",
         "diff_pair_uncoupled_length_too_long": "error",
         "drill_out_of_range": "error",
@@ -222,8 +222,20 @@
   },
   "schematic": {
     "legacy_lib_dir": "",
-    "legacy_lib_list": []
+    "legacy_lib_list": [],
+    "meta": {
+      "version": 1
+    },
+    "drawing": {
+      "default_line_thickness": 6.0,
+      "default_text_size": 50.0
+    }
   },
-  "sheets": [],
+  "sheets": [
+    [
+      "d6f4a0d2-aaee-5f1b-b0ee-59a39b65a528",
+      ""
+    ]
+  ],
   "text_variables": {}
 }

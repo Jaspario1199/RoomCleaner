@@ -352,8 +352,9 @@ def test_02a_only_six_wall_faces_changed_every_other_face_identical():
     assert all(k is not None for k in kinds), f"an unmatched baseline face is not a hole-bearing wall face: {kinds}"
     assert sorted(kinds) == sorted([(k, h) for k in ("outer", "inner") for h in IDS])
     assert len(bf) - len(un_b) == 181
-    # new faces: 91 + the 6 modified
-    assert len(un_p) - 6 == 91 or len(un_p) - 6 > 0
+    # the part has 6 modified wall faces plus the new faces of the holes, chamfers and labels (91 here)
+    note("02.new_faces_total_incl_slivers", len(un_p) - 6)
+    assert len(un_p) - 6 > 0
 
 
 def test_02b_modified_wall_faces_keep_their_outer_boundary_and_only_gain_inner_loops_in_the_zones():
@@ -1895,7 +1896,7 @@ def test_08e_stl_has_the_through_holes_and_the_baseline_stl_does_not(hid):
     for du, dv in ((0.0, 0.0), (0.7, 0.0), (-0.7, 0.0), (0.0, -0.7)):
         p0 = box_to_print(_axis_point(hid, -4.0) + e1 * du + e2 * dv)
         p1 = box_to_print(_axis_point(hid, L + 4.0) + e1 * du + e2 * dv)
-        n34.append(hits(box_to_print(t34.reshape(-1, 3)).reshape(-1, 3, 3) if False else t34, p0, p1))
+        n34.append(hits(t34, p0, p1))                       # the STL is already in print orientation
         nbase.append(hits(tb, p0, p1))
     note(f"08.{hid}.stl_ray_crossings_through_wall_part_vs_baseline", [n34, nbase])
     assert all(n == 0 for n in n34), f"the STL wall is closed along the hole axis (crossings {n34})"

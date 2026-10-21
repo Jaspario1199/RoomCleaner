@@ -33,6 +33,8 @@ class PoseObs:
     n_tags: int = 1
     p_CB: np.ndarray | None = None         # body origin in camera axes (the mount's lever arm)
     R_B_C: np.ndarray | None = None        # camera -> body rotation (mount-corrected): its z row is the body axis a rotation of the claw turns about
+    dets: dict | None = None               # board detector: every tag detected in the frame {id: (4, 2) px} (input of the startup survey)
+    duplicate_ids: tuple = ()              # ids seen twice in the frame (two sheets with one id)
 
     @property
     def p(self):
@@ -131,6 +133,30 @@ def cam_displacement(o, ref, *, tilt_k: float = 5.0, kappa: float = 0.04, sigma0
     return Rh @ v_o - a_r, cov_o, cov_r
 
 
+def tilt_change(o, ref):
+    """Change of the claw's TILT between the reference ``ref`` and the frame ``o``, measured, not assumed zero.
+
+    ``floor_displacement`` treats a claw resting on the floor as unable to tilt (that is what keeps a noise spike from
+    reading as a slide), so it cannot see a claw that ROCKS about a jaw edge: the tags it measures turn about a pivot that is
+    a few cm from them, and the 0.5 m lever to the body origin never enters (verification/imu_removal_review.md R2.2b). This is
+    the other channel: the relative rotation of the two detector poses, with the turn about the claw's own z axis removed
+    (a take-up yaws the claw; the yaw is measured well and is not a tilt), is the tilt change. Returns
+    ``(eps, s_o2, s_r2, psi)``: the tilt-change vector (rad, camera axes, perpendicular to the body z axis), the tilt
+    noise variance per axis of the frame and of the reference (rad^2, from their own covariances, systematic floor
+    excluded: it cancels), and the yaw ``psi`` (rad). ``|eps|`` is compared with the noise by :class:`startup.RockWatch`;
+    it is only meaningful when both poses come from several tags (one tag: s_o2 ~ (13 mrad)^2, nothing to see)."""
+    Rm_o = np.asarray(o.T_C_M, float)[:3, :3].T
+    Rm_r = np.asarray(ref.T_C_M, float)[:3, :3].T
+    R_B_C = np.asarray(o.R_B_C if o.R_B_C is not None else ref.R_B_C, float)
+    a = R_B_C.T @ np.array([0.0, 0.0, 1.0])
+    P0 = np.eye(3) - np.outer(a, a)
+    rv = matrix_to_rotvec(Rm_r.T @ Rm_o)
+    psi = float(rv @ a)
+    eps = rv - psi * a
+    C_o, C_r = np.asarray(o.pose_cov, float)[:3, :3], np.asarray(ref.pose_cov, float)[:3, :3]
+    return eps, float(np.trace(P0 @ C_o)) / 2, float(np.trace(P0 @ C_r)) / 2, psi
+
+
 def floor_displacement(o, ref):
     """:func:`cam_displacement` for a claw RESTING ON THE FLOOR (take-up, pretension): its tilt cannot change, so the tilt is the
     reference's, never the frame's (no Gauss-Markov weight, no fallback): a noise spike of one frame's tilt then cannot read as motion
@@ -185,6 +211,7 @@ class VisionSource:
             return PoseObs(False, obs.reason, t_us=obs.capture_us)
         if obs.capture_us is not None and now - obs.capture_us > self.max_age_us:
             return PoseObs(False, f"frame {(now - obs.capture_us) / 1e3:.0f} ms old", t_us=obs.capture_us)
+        dets, dups = getattr(obs, "dets", None), tuple(getattr(obs, "duplicate_ids", ()) or ())
         if self.imu is not None:
             try:
                 T, cov = self._fused(obs)
@@ -209,7 +236,7 @@ class VisionSource:
                             up_cam=np.asarray(obs.T_C_M)[:3, :3] @ np.array([0.0, 0.0, 1.0]),
                             T_C_M=np.asarray(obs.T_C_M, float), pose_cov=pose_cov, anchor_M=anchor,
                             att_sigma_rad=att, n_tags=n_tags, p_CB=inv_T(self.T_B_C)[:3, 3],
-                            R_B_C=self.T_B_C[:3, :3].copy())
+                            R_B_C=self.T_B_C[:3, :3].copy(), dets=dets, duplicate_ids=dups)
         return self.last
 
     def _legacy_pose_cov(self, obs):

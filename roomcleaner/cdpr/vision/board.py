@@ -303,7 +303,7 @@ class BoardDetector:
                              capture_us=None, exclude=(), duplicate_ids=(), unexpected_ids=()) -> BoardObservation:
         lay = self.layout
         obs = BoardObservation(False, frame_id=frame_id, capture_us=capture_us, duplicate_ids=list(duplicate_ids),
-                               unexpected_ids=list(unexpected_ids))
+                               unexpected_ids=list(unexpected_ids), dets={i: np.asarray(c, float) for i, c in dets.items()})
         exclude = set(exclude)
         obs.unsurveyed_ids = sorted(i for i in dets if not lay.is_surveyed(i))
         known = sorted(i for i in dets if lay.is_surveyed(i) and i not in exclude)

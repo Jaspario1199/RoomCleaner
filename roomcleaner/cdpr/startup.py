@@ -75,7 +75,7 @@ from .calibration import (IDS, BeadObs, Calibrator, OnsetSample, PoseSample, Pri
 from .attitude import mount_offset_from_up
 from .frames import inv_T, make_T, matrix_to_rotvec, planar_T, rotvec_to_matrix, tilt_angle
 from .kinematics import Geometry, geometry_from_config, tension_distribution, workspace_from_config
-from .perception import cam_displacement, floor_displacement, to_marker, to_room
+from .perception import cam_displacement, floor_displacement, tilt_change, to_marker, to_room
 from .spool import CableMap
 from .protocol import State
 from .trajectory import PlanError, limits_from_config, model_from, plan_cable_move, plan_line_from
@@ -202,6 +202,49 @@ class DragWatch:
         self.last_disp_m = float(np.linalg.norm(m))
         self.last_thr_m = max(self.floor_m, self.k * math.sqrt(float(np.linalg.eigvalsh(C)[-1])))
         return self.last_disp_m > self.last_thr_m
+
+
+class RockWatch:
+    """Is the claw rocking on its jaws? The tilt-change channel of the floor stage (take-up, pretension).
+
+    ``perception.floor_displacement`` takes the reference tilt, so a claw that tips about a jaw edge (a tall claw on a small
+    footprint pulled at ~0.5 m tips at ~0.5 N, before it slides at ~1.8 N; verification/imu_removal_review.md R2.2b) reads
+    almost no displacement. With the board in view (>= 2 tags in the reference AND in the frame: tilt noise 1-3 mrad) the
+    tilt change itself is measured (``perception.tilt_change``): the mean of the last ``n`` frames must exceed
+    ``max(min_rad, k x its own sigma)`` plus ``yaw_coupling x |yaw change|`` (a take-up yaws the claw and a little tilt comes
+    with it). The sigma is the frames' covariance (the mean of ``n`` frames against the reference's own noise) plus the
+    systematic floor ``floor_rad`` (a change of the tag set between the two views). A single noise spike cannot trip the
+    3-frame mean (a 5-sigma frame is 2.9 sigma of the mean). With ONE tag in view the tilt noise is ~13 mrad per frame:
+    nothing can be seen, ``can_see`` is False, ``update`` always returns False and the caller says so in the log."""
+
+    def __init__(self, ref, *, k: float, min_rad: float, yaw_coupling: float, floor_rad: float = 0.0, n: int = 3):
+        self.ref, self.k, self.min_rad, self.yaw_coupling, self.floor_rad, self.n = ref, float(k), float(min_rad), \
+            float(yaw_coupling), float(floor_rad), int(n)
+        self.win: list = []
+        self.last_tilt_rad = 0.0
+        self.last_thr_rad = float(min_rad)
+        self.max_tilt_rad = 0.0
+        self.n_tags_ref = int(getattr(ref, "n_tags", 1))
+
+    @property
+    def can_see(self) -> bool:
+        return self.n_tags_ref >= 2 and getattr(self.ref, "pose_cov", None) is not None
+
+    def update(self, o) -> bool:
+        """Feed one good frame (``PoseObs``); True = the claw has rocked."""
+        if not self.can_see or int(getattr(o, "n_tags", 1)) < 2 or o.pose_cov is None:
+            self.win = []                                    # a one-tag frame carries no tilt information
+            return False
+        eps, s_o2, s_r2, psi = tilt_change(o, self.ref)
+        self.win = (self.win + [(eps, s_o2, abs(psi))])[-self.n:]
+        if len(self.win) < self.n:
+            return False
+        m = np.mean([w[0] for w in self.win], axis=0)
+        sig = math.sqrt(float(np.mean([w[1] for w in self.win])) / self.n + s_r2 + self.floor_rad ** 2)
+        self.last_tilt_rad = float(np.linalg.norm(m))
+        self.last_thr_rad = max(self.min_rad, self.k * sig) + self.yaw_coupling * float(np.mean([w[2] for w in self.win]))
+        self.max_tilt_rad = max(self.max_tilt_rad, self.last_tilt_rad)
+        return self.last_tilt_rad > self.last_thr_rad
 
 
 class RobotContext:
@@ -371,6 +414,8 @@ class StartupSequencer:
     # mean's own sigma).
     DRAG_WATCH_FRAMES = 3
     DRAG_WATCH_FLOOR_M = 0.010
+    # The rocking watch (class RockWatch) filters the tilt change over this many frames (take-up and pretension, >= 2 floor tags).
+    ROCK_WATCH_FRAMES = 3
     # Mount-offset hold-out check (SELF_CHECK): the residual tilt of a fresh set of frames against the corrected mount
     # may not exceed MOUNT_RECHECK_K sigma of the two measurements (and at least MOUNT_RECHECK_FLOOR_RAD).
     MOUNT_RECHECK_K = 4.0
@@ -447,6 +492,39 @@ class StartupSequencer:
                 f"(limit {math.degrees(limit):.2f})")
         return held
 
+    def _survey_board(self, S):
+        """Survey the floor board with the resting claw (``board_startup.FloorBoardSurveyor``; only when the context has one,
+        i.e. ``marker.board_layout_file`` is set and ``startup.board_survey`` is on). Needs a still claw, so a stillness check
+        comes first. Never moves anything; aborts only when the layout cannot be the printed board (tag size)."""
+        ctx, st = self.ctx, self.cfg.startup
+        sv = getattr(ctx, "board_survey", None)
+        if sv is None:
+            return
+        if not st.board_survey:
+            self.rep.measurements["board_survey"] = {"ran": False, "why": "startup.board_survey = false"}
+            ctx.log("[startup] floor board survey is switched off (startup.board_survey = false): the layout file is used as it is")
+            return
+        self._still(state=S)                                   # the claw and the sheets must be still before they are surveyed
+        try:
+            out = sv.run(ctx.vision, ctx.wait, n_frames=st.board_survey_frames, interval_s=st.frame_interval_s,
+                         edge_m=self.cfg.marker.edge_m)
+        except ValueError as e:
+            raise StartupAbort(S, str(e))
+        ctx.floor_board = sv.geometry()
+        self.rep.measurements["board_survey"] = {"ran": True, **out}
+        n = len(out["surveyed_ids"])
+        ctx.log(f"[startup] floor board survey: {n} of {out['expected']} sheets surveyed ({out['frames']} frames"
+                + (f", new: {out['newly_surveyed']}" if out["newly_surveyed"] else "")
+                + (f", sigma <= {out['max_sigma_xy_m'] * 1e3:.2f} mm" if out["max_sigma_xy_m"] is not None else "") + ")"
+                + (f"; saved to {out['saved']}" if out["saved"] else ""))
+        for i, why in out["cleared"].items():
+            ctx.log(f"[startup] floor board: sheet {i} was cleared: {why}")
+        if out["unsurveyed"]:
+            ctx.log("[startup] floor board: not surveyed and so not used: "
+                    + "; ".join(f"{i} ({why})" for i, why in sorted(out["unsurveyed"].items())))
+        for w in out["warnings"]:
+            ctx.log(f"[startup] floor board WARNING: {w}")
+
     def _execute(self, plan, state, *, suspended, monitor=None, stop_on_capture=False):
         r = self.ctx.co.execute(plan, monitor=monitor, stop_on_capture=stop_on_capture)
         if not r.ok and r.reason.startswith("paused"):
@@ -456,6 +534,25 @@ class StartupSequencer:
     def _cable_rate(self, speed, i=None):
         ppus = [self.ctx.ppu(j) for j in (range(4) if i is None else [i])]
         return speed / min(ppus)
+
+    def _rock_watch(self, ref, where: str) -> RockWatch:
+        """The tilt-change watch for a floor-stage step whose reference is ``ref``. With one floor tag the tilt of the claw
+        cannot be measured (13 mrad per frame): the watch is inert, the behaviour is the previous one (translation, slide
+        direction, the absolute tilt limit) and the report and the log say that a rocking claw cannot be seen."""
+        st, rep = self.cfg.startup, self.rep.measurements
+        rw = RockWatch(ref, k=st.rocking_tilt_k, min_rad=st.rocking_tilt_min_rad, yaw_coupling=st.rocking_yaw_coupling,
+                       floor_rad=self.cfg.claw.vision_attitude_floor_rad, n=self.ROCK_WATCH_FRAMES)
+        if rw.can_see:
+            rep.setdefault("rocking_check", "active")
+        else:
+            blind = rep.setdefault("rocking_blind_at", [])
+            if not blind:
+                self.ctx.log(f"[startup] {int(getattr(ref, 'n_tags', 1))} floor tag in view ({where}): a claw rocking on its jaws "
+                             "cannot be seen (tilt noise of one tag ~13 mrad per frame); the take-up and the pretension use "
+                             "the reference tilt and the absolute tilt limit only (a board with >= 2 tags in view removes this)")
+            blind.append(where)
+            rep["rocking_check"] = "blind: fewer than 2 floor tags in view"
+        return rw
 
     # -------------------------------------------------------------- run
     def run(self) -> StartupReport:
@@ -497,6 +594,7 @@ class StartupSequencer:
             raise StartupAbort(S, f"claw battery {st['battery_v']:.2f} V < {cfg.startup.battery_min_v} V")
         # 1) the claw must demonstrably rest upright on the floor BEFORE any
         #    station is touched; only then is clearing latched faults safe
+        self._survey_board(S)                      # the sheets in view are surveyed BEFORE the mount offset and the floor poses use them
         sp = self._measure_mount(self._still(state=S, min_frames=MOUNT_FRAMES), S)
         # vision noise for the onset thresholds: the RAW camera-frame scatter of the frames (not the absolute-pose
         # scatter, whose tilt-lever part cancels in every displacement the take-up and the probe use)
@@ -552,7 +650,8 @@ class StartupSequencer:
         ctx.onsets = []
         for i, sid in enumerate(IDS):
             ref = self._still(state=S)
-            mon = {"next": 0.0, "onset": None, "lost": 0.0, "max_disp": 0.0}
+            rw = self._rock_watch(ref, f"station {sid} take-up")
+            mon = {"next": 0.0, "onset": None, "lost": 0.0, "max_disp": 0.0, "rocked": False}
 
             def monitor(tau, i=i, ref=ref, mon=mon):
                 now = ctx.now_s()
@@ -568,8 +667,13 @@ class StartupSequencer:
                 # (one reference tilt: the per-frame tilt-lever noise of the absolute pose cancels)
                 disp = float(np.linalg.norm(floor_displacement(o, ref)[0]))
                 mon["max_disp"] = max(mon["max_disp"], disp)
-                if mon["onset"] is None and disp >= thr:
+                # tilt-change channel (>= 2 floor tags): a claw tipping about a jaw edge reads almost no displacement above
+                rocked = rw.update(o)
+                if mon["onset"] is None and (disp >= thr or rocked):
                     mon["onset"] = float(ctx.co.positions()[i])
+                if rocked:
+                    mon["rocked"] = True
+                    return "onset"                    # the cable is taut and the claw tips: stop pulling at once
                 if disp >= bearing_d:
                     return "onset"
                 if tilt_angle(o.R) > st.max_tilt_rad:
@@ -590,15 +694,20 @@ class StartupSequencer:
                 raise StartupAbort(S, f"station {sid}: {r.reason}")
             ctx.wait(st.settle_s)
             end = self._still(state=S)
-            d = floor_displacement(end, ref)[0]          # slide direction from the camera-frame displacement
+            # slide direction from the camera-frame displacement; a rocking claw moved its body origin by tilt x lever with the
+            # tags (almost) not moving, so its displacement is the general one (the measured tilt change is used: 5-sigma rule)
+            d = (cam_displacement if mon["rocked"] else floor_displacement)(end, ref)[0]
             o = OnsetSample(i, float(ctx.co.positions()[i]), end.p, end.R, end.cov,
                             bearing=math.atan2(d[1], d[0]), bearing_from=ref.p.copy(),
                             bearing_sigma=st.bearing_sigma_rad)
             ctx.onsets.append(o)
             taken = -(o.P - plan.start[i]) * ppu
             self.rep.measurements[f"slack_{sid}_m"] = taken
+            self.rep.measurements[f"rocking_{sid}_max_tilt_rad"] = rw.max_tilt_rad
             ctx.log(f"[startup] {sid} taut after {taken * 1e3:.1f} mm, slide {np.linalg.norm(d) * 1e3:.1f} mm "
-                    f"toward {math.degrees(o.bearing):.0f} deg (marker frame)")
+                    f"toward {math.degrees(o.bearing):.0f} deg (marker frame)"
+                    + (f"; the claw ROCKED {rw.last_tilt_rad * 1e3:.1f} mrad on its jaws (limit {rw.last_thr_rad * 1e3:.1f}), "
+                       "stopped at the tilt onset" if mon["rocked"] else ""))
             back = np.zeros(4)
             back[i] = st.onset_backoff_m / ppu
             rb = self._execute(plan_cable_move(ctx.co.positions(), back, rate * 2, rate * 10,
@@ -649,6 +758,7 @@ class StartupSequencer:
         drag = {"bad": None, "next": 0.0}
         dw = DragWatch(sp, floor_m=max(3 * st.onset_translation_m, self.DRAG_WATCH_FLOOR_M), k=st.onset_noise_k,
                        n=self.DRAG_WATCH_FRAMES)
+        rw = self._rock_watch(sp, "pretension")
 
         def watch(tau):
             if ctx.now_s() < drag["next"]:
@@ -658,6 +768,9 @@ class StartupSequencer:
             if o.ok and dw.update(o):
                 drag["bad"] = dw.last_disp_m
                 return "claw dragged while tensioning"
+            if o.ok and rw.update(o):                  # tilt-change channel: the cables tip the claw about a jaw edge
+                drag["bad"] = f"{rw.last_tilt_rad * 1e3:.1f} mrad tilt change > {rw.last_thr_rad * 1e3:.1f} mrad"
+                return "claw rocking on its jaws while tensioning"
             return None
         r = self._execute(plan_cable_move(P, target - P, rate, rate / 0.2, segment_s=cfg.motion.segment_s,
                                           label="pretension"), S, suspended=False, monitor=watch)

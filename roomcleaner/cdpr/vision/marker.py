@@ -125,6 +125,8 @@ class MarkerObservation:
     pose_cov: np.ndarray | None = None     # 6x6 (dr, dt) covariance of T_C_M in camera axes (see module docstring); None = legacy source
     anchor_M: np.ndarray | None = None     # centroid of the corners used, in M (the point whose camera-frame position is best known)
     n_tags: int = 1                        # tags whose corners entered the pose
+    dets: dict | None = None               # board detector only: EVERY tag detected in the frame, {id: (4, 2) px corners}, surveyed or not
+                                           # (the input of BoardSurvey at startup); None for the single-tag detector
 
     def sigma_cam(self, cam_fx: float, edge_m: float, pixel_sigma=0.3) -> np.ndarray:
         """Rough 1-sigma of the marker position in the camera frame (m):

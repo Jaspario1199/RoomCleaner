@@ -20,6 +20,11 @@ Quasi-static model (the claw is slow and light):
 * On the floor: static friction ``mu * N`` holds it until the horizontal
   cable pull exceeds it, then it slides to the limit. A net upward pull larger
   than its weight lifts it.
+* Optional ``rock`` (off by default): a tall claw on a small jaw footprint tips about the jaw edge on the side of the
+  pull before it slides (tipping at ~0.5 N horizontal for 0.6 kg on a 40 mm half-width at 0.5 m, sliding at ~1.8 N at
+  mu = 0.3; verification/imu_removal_review.md R2.2b). The resting claw then turns about that edge by the angle at which the
+  overturning moment of the cables balances the gravity moment: a take-up beyond the taut point is absorbed by rocking
+  (about 2 mrad per mm of take-up) instead of sliding, and the camera sees the claw tilt with the tags (almost) not moving.
 * Bead switch i is actuated when ``ell_i <= trigger_i`` (bead fixed on the
   cable near the claw; the switch is at the exit).
 
@@ -44,7 +49,7 @@ G = 9.81
 class World:
     def __init__(self, cfg, stations: dict, *, anchors, T_R_M, claw_xy, claw_yaw=0.0, slack_m=(0.08,) * 4,
                  mass_kg=None, EA_n=20000.0, mu=0.4, bead_trigger_m=None, payout_scale=(1.0,) * 4,
-                 line_total_m=None, seed=0, update_s=0.005, suspended_at=None, bead_noise_m=0.0003):
+                 line_total_m=None, seed=0, update_s=0.005, suspended_at=None, bead_noise_m=0.0003, rock=None):
         self.cfg = cfg
         self.stations = stations
         self.ids = list(cfg.ids)
@@ -64,6 +69,14 @@ class World:
         self.rigid = bool(np.max(np.abs(self.attach - self.attach[0])) > 1e-9
                           or np.max(np.abs(self.com_claw - self.attach[0])) > 1e-9)
         self.strict = False                 # True: non-convergence raises instead of being reported
+        # Rocking about a jaw edge (None = off, the claw only slides). Keys: ``half_width_m`` (jaw footprint radius,
+        # 0.04), ``max_rad`` (tipping limit: the angle at which the centre of mass passes the edge is atan(w / h_com),
+        # ~9 deg for the CAD claw; beyond ``max_rad`` the claw is reported tipped), ``slide`` (False: the claw is stuck
+        # by friction and can only rock, to isolate the rocking).
+        self.rock = None if rock is None else {"half_width_m": 0.04, "max_rad": 0.12, "slide": True, **dict(rock)}
+        self._rock = None                   # (pivot, axis, angle) of the rock currently applied to (p, R)
+        self.rock_max_rad = 0.0             # largest rocking angle so far (diagnostic for studies and tests)
+        self._tipped = False
         self.eq_failures = 0
         self.eq_worst_residual = 0.0
         self.eq_iters = 0
@@ -327,19 +340,110 @@ class World:
                 else:
                     self.p, self.R = p, R
         if self.on_floor:
-            T, n, d, k = self._forces(self.p, ell)
-            F = (T[:, None] * n).sum(0)
-            if F[2] > self.mass * G:
-                p, R, ok = self._hang_checked(self.p + [0, 0, 1e-4], self.R, ell)
-                if ok and self.lowest_z(p, R) > 1e-12:
+            self._rock_undo()
+            if self.rock is not None:
+                self._settle_rocking(ell)
+            else:
+                T, n, d, k = self._forces(self.p, ell)
+                F = (T[:, None] * n).sum(0)
+                if F[2] > self.mass * G:
+                    p, R, ok = self._hang_checked(self.p + [0, 0, 1e-4], self.R, ell)
+                    if ok and self.lowest_z(p, R) > 1e-12:
+                        self.on_floor = False
+                        self.p, self.R = p, R
+                        self.events.append(("lifted", self.p.copy()))
+                    elif ok:
+                        self._rest_on_floor(p, R, ell)
+                else:
+                    self._slide(ell)
+        self.tension = self._forces(self.p, ell)[0]
+
+    # ---------------------------------------------------------------- rocking about a jaw edge (option ``rock``)
+    def _rock_undo(self):
+        """Back to the flat resting pose (the rocked pose is recomputed on every settle from the flat one)."""
+        if self._rock is None:
+            return
+        e, n, th = self._rock
+        Q = rotvec_to_matrix(-th * n)
+        self.p, self.R = e + Q @ (self.p - e), Q @ self.R
+        self._rock = None
+
+    @staticmethod
+    def _rock_pose(p, R, e, n, th):
+        Q = rotvec_to_matrix(th * n)
+        return e + Q @ (p - e), Q @ R
+
+    def _rock_moment(self, ell, e, n, th) -> float:
+        """Moment (N m) about the jaw edge (axis ``n`` through ``e``) that tends to turn the claw further toward the pull when
+        it has rocked by ``th``: cable forces at the rocked pose against gravity at the centre of mass. > 0: it rocks on."""
+        p, R = self._rock_pose(self.p, self.R, e, n, th)
+        T, nv, d, k = self._forces(p, ell, R)
+        q = p + self.attach @ R.T
+        M = np.cross(q - e, T[:, None] * nv).sum(0) + np.cross(p + R @ self._com() - e, [0.0, 0.0, -self.mass * G])
+        return float(M @ n)
+
+    def _rock_solve(self, ell):
+        """(angle, pivot, axis) of the rocking equilibrium of the flat pose (self.p, self.R); angle 0 when the gravity moment
+        wins. The pivot is the jaw edge on the side of the horizontal pull, the axis horizontal and perpendicular to it, the
+        positive sense the one that moves the top of the claw toward the pull."""
+        rk = self.rock
+        T, nv, d, k = self._forces(self.p, ell)
+        Fh = (T[:, None] * nv).sum(0)[:2]
+        norm = float(np.linalg.norm(Fh))
+        if norm < 1e-9:
+            return 0.0, None, None
+        u = np.r_[Fh / norm, 0.0]
+        n = np.cross([0.0, 0.0, 1.0], u)
+        e = np.array([self.p[0], self.p[1], 0.0]) + rk["half_width_m"] * u
+        if self._rock_moment(ell, e, n, 0.0) <= 0.0:
+            return 0.0, None, None
+        hi = float(rk["max_rad"])
+        if self._rock_moment(ell, e, n, hi) > 0.0:           # the cables still win at the tipping limit: the claw tips over
+            if not self._tipped:
+                self._tipped = True
+                self.events.append(("tipped", self.p.copy()))
+            return hi, e, n
+        lo = 0.0
+        for _ in range(40):
+            mid = 0.5 * (lo + hi)
+            if self._rock_moment(ell, e, n, mid) > 0.0:
+                lo = mid
+            else:
+                hi = mid
+        return 0.5 * (lo + hi), e, n
+
+    def _settle_rocking(self, ell):
+        """The floor branch of :meth:`settle` with rocking: friction, sliding and lift are judged with the cable forces at the
+        ROCKED pose (rocking relieves the pull), the flat pose slides if friction is exceeded, and the rocked pose is applied."""
+        th, e, n = 0.0, None, None
+        for _ in range(20):
+            th, e, n = self._rock_solve(ell)
+            p, R = self._rock_pose(self.p, self.R, e, n, th) if th > 0.0 else (self.p, self.R)
+            T, nv, d, k = self._forces(p, ell, R)
+            F = (T[:, None] * nv).sum(0)
+            if F[2] > self.mass * G:                                  # net upward pull: the claw lifts off
+                hp, hR, ok = self._hang_checked(self.p + [0, 0, 1e-4], self.R, ell)
+                if ok and self.lowest_z(hp, hR) > 1e-12:
                     self.on_floor = False
-                    self.p, self.R = p, R
+                    self.p, self.R = hp, hR
                     self.events.append(("lifted", self.p.copy()))
                 elif ok:
-                    self._rest_on_floor(p, R, ell)
-            else:
-                self._slide(ell)
-        self.tension = self._forces(self.p, ell)[0]
+                    self._rest_on_floor(hp, hR, ell)
+                return
+            Fh = F[:2]
+            N = self.mass * G - F[2]
+            excess = float(np.linalg.norm(Fh)) - self.mu * max(N, 0.0)
+            if excess <= 1e-6 or not self.rock["slide"]:
+                break
+            kh = sum(k[i] for i in range(4) if T[i] > 0)
+            step = min(excess / max(kh, 1.0), 0.01)
+            self.p[:2] += Fh / np.linalg.norm(Fh) * step
+        if th < self.rock["max_rad"]:
+            self._tipped = False
+        if th > 0.0:
+            self.p, self.R = self._rock_pose(self.p, self.R, e, n, th)
+            self._rock = (e, n, th)
+            self.rock_max_rad = max(self.rock_max_rad, th)
 
     def _slide(self, ell):
         for _ in range(20):

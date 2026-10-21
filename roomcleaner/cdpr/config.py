@@ -56,6 +56,101 @@ def _vec(v, name, n=3, allow_none=True):
 
 
 # ---------------------------------------------------------------------------
+# Physical sanity ranges of the keys that tune the vision attitude path, the settle gate and the rocking check
+# (D27 follow-up; verification/imu_removal_review.md R2.2e / R4). "Finite and > 0" lets through values that quietly make the
+# estimator dishonest (a 0.05 covariance margin, a settle margin that collapses the dwell), so every key has a range and a
+# reason; ``load_config`` refuses a value outside it and the message repeats the reason. Ranges are NOT acceptance thresholds
+# of the product: they only exclude values that no camera, pendulum or print can have.
+ATTITUDE_BOUNDS = {
+    "camera.corner_sigma_px": (0.05, 2.0, "px",
+        "1-sigma of a detected tag corner. cv2's sub-pixel refinement alone is biased by ~0.15 px on a 50 px tag "
+        "(verification/floor_board_detector.md) and every covariance scales with its square, so a value under 0.05 px makes "
+        "the estimator overconfident; 2 px is the detector's own reprojection limit (camera.max_reprojection_px): a frame "
+        "noisier than that is refused anyway"),
+    "camera.pose_cov_inflate": (1.0, 5.0, "x",
+        "margin on the Cramer-Rao standard deviation. The bound is the best any unbiased estimator can reach, so a factor "
+        "below 1 claims the impossible (0.05 would shrink every covariance 400-fold); above 5 the covariance is 25x too "
+        "large and throws away what the board measures (the validated runs use 1.3)"),
+    "claw.vision_attitude_floor_rad": (2e-4, 0.02, "rad",
+        "least attitude sigma added for what the tag model leaves out (lens, JPEG, print flatness). 0.2 mrad (0.01 deg) is "
+        "beyond a printed sheet (0.1 mm of paper curl over a 150 mm tag is 0.7 mrad); 20 mrad is twice the 10 mrad "
+        "constant-sigma model this floor replaced (claw.vision_attitude_sigma_rad)"),
+    "tasks.grip_period_margin": (1.2, 3.0, "x the simple-pendulum period",
+        "a rigid claw is a compound pendulum, T = 2 pi sqrt((k^2 + L^2) / (g L)): 1.2x the simple period for k = 0.13 m about "
+        "the centre of mass and L = 0.196 m (imu_removal_review.md F8c). Below that the dwell is shorter than the number of "
+        "periods it claims (0.05 collapses it to the grip_settle_min_s floor); 3x would need k = 0.55 m, larger than the claw"),
+    "tasks.grip_still_rate_rad_s": (0.005, 0.1, "rad/s",
+        "image-motion rate below which the claw counts as still. A still claw's rate noise is 0.3 px x sqrt(2) / (520 px x "
+        "0.1 s) = 8e-3 rad/s per corner (4e-3 over the 4 corners of a tag), so a limit under 0.005 never opens; 0.1 rad/s "
+        "is a 17 mrad (1 deg) swing at the 5.9 rad/s of the 1.07 s pendulum, a fifth of the 5 deg grip tilt limit"),
+    "tasks.grip_still_frames": (3, 30, "frame pairs",
+        "consecutive quiet frame pairs. The image rate of a swinging claw is zero twice per period, so the quiet window must "
+        "span a quarter period (0.27 s of the 1.07 s pendulum) to be sure to contain moving frames: 3 pairs at 0.1 s. 30 "
+        "pairs (3 s, three periods) is the most a gate that must open within grip_settle_timeout_s can ask for"),
+    "tasks.grip_settle_periods": (3.0, 20.0, "pendulum periods",
+        "dwell without a camera signal. The review judged 3.8 periods too short (F8c) and fewer than 3 cannot show a decay at "
+        "all; 20 periods of the loaded 1.25 s pendulum is 31 s per release, the most an operator should wait"),
+    "tasks.grip_settle_min_s": (1.0, 10.0, "s",
+        "floor of that dwell for a very short pendulum: at least one full period (0.89 s simple, 1.07 s compound); above 10 s "
+        "it exceeds the loaded dwell (5 x 1.25 x 1.25 s = 7.8 s) and the period arithmetic means nothing"),
+    "tasks.grip_settle_timeout_s": (10.0, 120.0, "s",
+        "give-up time. The unloaded dwell is 5.6 s and a loaded release 7.8 s, so under 10 s a normal release can be refused; "
+        "above 2 minutes the operator waits on a claw that is not going to settle"),
+    "startup.board_survey_frames": (10, 200, "frames",
+        "frames of the still claw given to the board survey: a sheet needs >= 8 views with a camera pose (BoardSurvey.min_obs), "
+        "so under 10 leaves no spare for frames that lose it; 200 frames (20 s at 0.1 s) is the longest a hand-placed board "
+        "and a resting claw are worth waiting for"),
+    "startup.rocking_tilt_k": (3.0, 10.0, "sigma",
+        "threshold of the rocking check in sigmas of the tilt change. The norm of a 2-D noise vector exceeds k sigma with "
+        "probability exp(-k^2/2): 1e-2 at k = 3 (several false alarms per take-up), 4e-6 at 5; above 10 a board "
+        "(1.5 mrad) would only trip at 15 mrad = 8 mm of body-origin motion"),
+    "startup.rocking_tilt_min_rad": (0.001, 0.02, "rad",
+        "least tilt change that counts as rocking: 1 mrad is the systematic floor of a tag-set change "
+        "(claw.vision_attitude_floor_rad); 20 mrad is 10 mm of body-origin motion at the 0.52 m lever, 5x the take-up onset"),
+    "startup.rocking_yaw_coupling": (0.0, 0.5, "rad of tilt per rad of yaw",
+        "tilt that comes with a take-up yaw (rigid-body simulator ~0.03-0.04); 0.5 would let a 10 deg yaw hide 5 deg of tilt"),
+}
+_LAYOUT_VERSION = 1            # vision.board.FloorBoardLayout.VERSION (config must not import cv2 / scipy; a test keeps them equal)
+
+
+def _in_range(v, key):
+    lo, hi, unit, why = ATTITUDE_BOUNDS[key]
+    ok = (not isinstance(v, bool) and isinstance(v, (int, float)) and math.isfinite(v) and lo <= v <= hi)
+    if not ok:
+        raise ConfigError(f"{key} = {v!r} is outside the physically sensible range [{lo:g}, {hi:g}] {unit}: {why}")
+    return v
+
+
+def _check_board_layout_file(v):
+    """``marker.board_layout_file``: None, or the path of an existing floor-board layout JSON (relative paths are taken from
+    the working directory, exactly as the service opens them). The file may hold an unsurveyed layout (only the origin tag):
+    the startup surveys the rest (``startup.board_survey``)."""
+    if v is None:
+        return None
+    if not isinstance(v, str) or not v.strip():
+        raise ConfigError(f"marker.board_layout_file must be a path string or null, got {v!r}")
+    p = Path(v)
+    if not p.is_file():
+        raise ConfigError(f"marker.board_layout_file {v!r} does not exist (relative paths are taken from the working directory): "
+                          "create the starting layout with `python -m tools.print_floor_board --layout-json PATH` or leave "
+                          "it null to use the single tag")
+    try:
+        d = json.loads(p.read_text())
+    except (OSError, ValueError) as e:
+        raise ConfigError(f"marker.board_layout_file {v!r} is not readable JSON: {e}")
+    tags = d.get("tags") if isinstance(d, dict) else None
+    ok = (isinstance(d, dict) and d.get("version") == _LAYOUT_VERSION and isinstance(tags, list) and tags
+          and all(isinstance(t, dict) and isinstance(t.get("id"), int) for t in tags)
+          and isinstance(d.get("edge_m"), (int, float)) and not isinstance(d.get("edge_m"), bool)
+          and math.isfinite(d["edge_m"]) and 0.02 <= d["edge_m"] <= 0.5
+          and isinstance(d.get("origin_id"), int) and d["origin_id"] in [t["id"] for t in tags])
+    if not ok:
+        raise ConfigError(f"marker.board_layout_file {v!r} is not a floor board layout (vision/board.py FloorBoardLayout JSON, "
+                          f"version {_LAYOUT_VERSION}: tags, edge_m 0.02..0.5 m, origin_id)")
+    return v
+
+
+# ---------------------------------------------------------------------------
 @dataclass
 class DriveConfig:
     full_steps_per_rev: int = 200
@@ -207,6 +302,17 @@ class StartupConfig:
     battery_min_v: float = 7.0                       # 2S LiPo: refuse to lift below this
     floor_height_tol_m: float = 0.03                 # claw must be resting upright on the floor
     bearing_translation_m: float = 0.006             # keep pulling past onset to see the slide direction
+    # Rocking check (floor take-up and pretension; docs/CONTROL_SYSTEM_V1.md 3.2). floor_displacement uses the reference tilt, so it
+    # cannot see a claw that tips about a jaw edge. With >= 2 floor tags in view (tilt noise ~1-3 mrad) the measured TILT change of
+    # the claw is watched: the mean of the last 3 frames against max(rocking_tilt_min_rad, rocking_tilt_k x the mean's own sigma) plus
+    # rocking_yaw_coupling x |yaw change| (a take-up yaws the claw and a little tilt comes with it). One tag: not watched, logged.
+    rocking_tilt_k: float = 5.0                      # sigma multiple (a one-frame 4-5 sigma noise spike does not pass the 3-frame mean)
+    rocking_tilt_min_rad: float = 0.004              # ~2 mm of body-origin motion over the 0.52 m from the jaw edge (= onset_translation_m)
+    rocking_yaw_coupling: float = 0.08               # tilt allowed per rad of yaw (the rigid-body simulator tilts ~0.03-0.04 per rad of yaw)
+    # Floor board survey (SELF_CHECK, roomcleaner/cdpr/board_startup.py): with marker.board_layout_file set, the sheets the resting claw
+    # sees are surveyed from this many frames and the layout file is updated; sheets already surveyed that are in view are checked.
+    board_survey: bool = True
+    board_survey_frames: int = 30
     bearing_sigma_rad: float = 0.15
     bearing_rms_max: float = 3.0                     # slide directions vs anchor entries (whitened)
     lift_slack_budget_m: float = 0.015               # commanded - observed lift before abort
@@ -523,7 +629,7 @@ def load_config(path_or_dict) -> SystemConfig:
         heading_sigma_rad=_f(md.pop("heading_sigma_rad", math.radians(20)), "marker.heading_sigma_rad", positive=True),
         position_prior_room_m=_vec(md.pop("position_prior_room_m", None), "marker.position_prior_room_m", n=2),
         position_sigma_m=_f(md.pop("position_sigma_m", 0.5), "marker.position_sigma_m", positive=True),
-        board_layout_file=md.pop("board_layout_file", None),
+        board_layout_file=_check_board_layout_file(md.pop("board_layout_file", None)),
     )
     if md:
         raise ConfigError(f"marker: unknown keys {sorted(md)}")
@@ -559,6 +665,10 @@ def load_config(path_or_dict) -> SystemConfig:
         raise ConfigError("startup.slack_probe must be true/false")
     if not isinstance(su.bead_search, bool):
         raise ConfigError("startup.bead_search must be true/false")
+    if not isinstance(su.board_survey, bool):
+        raise ConfigError("startup.board_survey must be true/false")
+    if not isinstance(su.board_survey_frames, int) or isinstance(su.board_survey_frames, bool):
+        raise ConfigError("startup.board_survey_frames must be an integer")
     for k, v in (("motion.workspace_margin_m", cfg.motion.workspace_margin_m),
                  ("motion.ceiling_margin_m", cfg.motion.ceiling_margin_m),
                  ("motion.task_max_height_m", cfg.motion.task_max_height_m)):
@@ -588,6 +698,24 @@ def load_config(path_or_dict) -> SystemConfig:
         raise ConfigError("tasks: need 0 <= grip_settle_min_s <= grip_settle_timeout_s")
     if not isinstance(tk.grip_still_frames, int) or isinstance(tk.grip_still_frames, bool) or tk.grip_still_frames < 2:
         raise ConfigError("tasks.grip_still_frames must be an integer >= 2")
+    # physical ranges (ATTITUDE_BOUNDS): after the plain checks above so their messages stay as they were
+    for key, v in (("camera.corner_sigma_px", cfg.camera.corner_sigma_px), ("camera.pose_cov_inflate", cfg.camera.pose_cov_inflate),
+                   ("claw.vision_attitude_floor_rad", cl.vision_attitude_floor_rad),
+                   ("tasks.grip_period_margin", tk.grip_period_margin), ("tasks.grip_still_rate_rad_s", tk.grip_still_rate_rad_s),
+                   ("tasks.grip_still_frames", tk.grip_still_frames), ("tasks.grip_settle_periods", tk.grip_settle_periods),
+                   ("tasks.grip_settle_min_s", tk.grip_settle_min_s), ("tasks.grip_settle_timeout_s", tk.grip_settle_timeout_s),
+                   ("startup.board_survey_frames", su.board_survey_frames), ("startup.rocking_tilt_k", su.rocking_tilt_k), ("startup.rocking_tilt_min_rad", su.rocking_tilt_min_rad),
+                   ("startup.rocking_yaw_coupling", su.rocking_yaw_coupling)):
+        _in_range(v, key)
+    # the longest dwell (loaded release, pendulum period <= 1.5 s with margin) has to fit in the give-up time, or a release
+    # could never be approved
+    if tk.grip_settle_periods * tk.grip_period_margin * 1.5 > tk.grip_settle_timeout_s:
+        raise ConfigError(f"tasks: grip_settle_periods x grip_period_margin x 1.5 s = "
+                          f"{tk.grip_settle_periods * tk.grip_period_margin * 1.5:.1f} s is longer than grip_settle_timeout_s "
+                          f"({tk.grip_settle_timeout_s:g} s): a loaded release could never be approved")
+    if cfg.claw.vision_attitude_floor_rad > cl.vision_attitude_sigma_rad:
+        raise ConfigError("claw.vision_attitude_floor_rad is above claw.vision_attitude_sigma_rad: the floor added to a "
+                          "frame's own covariance would exceed the constant sigma it replaces")
     k_ = cfg.calibration.bead_k_sigma
     if not isinstance(k_, (int, float)) or isinstance(k_, bool) or not k_ > 0:
         raise ConfigError("calibration.bead_k_sigma must be a positive number")

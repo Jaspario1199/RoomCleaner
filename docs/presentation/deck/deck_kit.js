@@ -114,19 +114,23 @@ function createKit(deckTitle) {
     PLANNED:    () => ({ fill: { color: C.background2 }, line: { color: C.background2, width: 1 }, color: C.text2 }),
   };
 
-  /** Evidence pill. Default position: top-right of a content slide. */
-  function tag(slide, kind, x = W - M - 1.45, y = 0.47, w = 1.45) {
+  /** Evidence pill. Default position: top-right of a content slide. `label` overrides the text (the style follows `kind`). */
+  function tag(slide, kind, x = W - M - 1.45, y = 0.47, w = 1.45, label) {
     const s = TAGS[kind]();
-    slide.addText(kind, {
+    slide.addText(label || kind, {
       shape: pres.shapes.ROUNDED_RECTANGLE, rectRadius: 0.14, x, y, w, h: 0.28,
       fill: s.fill, line: s.line, color: s.color, fontSize: 9, bold: true, fontFace: "Arial",
       charSpacing: 1.2, align: "center", valign: "middle", margin: 0, isTextBox: true, objectName: `tag_${kind}`,
     });
   }
 
-  /** One or two evidence pills stacked at the top-right (kinds: array of tag names). */
+  /** One or two evidence pills stacked at the top-right. Items: "KIND" or { kind, label, w } (wider labelled pill, right-aligned). */
   function tags(slide, kinds) {
-    kinds.forEach((k, i) => tag(slide, k, W - M - 1.45, 0.47 + i * 0.36));
+    kinds.forEach((k, i) => {
+      const o = typeof k === "string" ? { kind: k } : k;
+      const w = o.w || 1.45;
+      tag(slide, o.kind, W - M - w, 0.47 + i * 0.36, w, o.label);
+    });
   }
 
   /** Decision rail across the bottom (original horizontal helper: dots and labels only). */
@@ -283,7 +287,7 @@ function createKit(deckTitle) {
   }
 
   /** Clearly marked placeholder for a result that does not exist yet. Never holds a number. */
-  function plannedCard(slide, line2, x, y, w, h = GRID.PLANNED_H, head = "PLANNED — result after the Oct 22 test") {
+  function plannedCard(slide, line2, x, y, w, h = GRID.PLANNED_H, head = "PLANNED — not yet run") {
     slide.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: C.background2 }, line: { color: C.text2, width: 1, dashType: "dash" }, objectName: "planned_card" });
     slide.addText(head, { x: x + 0.2, y: y + 0.07, w: w - 0.4, h: 0.28, fontSize: 12, bold: true, fontFace: "Arial", color: C.text1, margin: 0, valign: "middle", isTextBox: true, objectName: "planned_head" });
     slide.addText(nb(line2), { x: x + 0.2, y: y + 0.37, w: w - 0.4, h: h - 0.42, fontSize: 12, color: C.text1, margin: 0, valign: "top", isTextBox: true, objectName: "planned_text" });

@@ -10,22 +10,24 @@
 //   h  = hold: enable the driver and keep it energised (feel the shaft resist)
 //   o  = off: disable the driver (shaft turns freely)
 //   s  = print the switch state
+//   1..4 = step rate 100 / 200 / 400 / 800 steps/s (default 200) for the pull test
+//   F  = 10 revolutions forward at the current rate (pull test: reel against the scale)
 
 constexpr int STEP_PIN = 3, DIR_PIN = 4, EN_PIN = 5, HOME_PIN = 10;
 constexpr int STEPS = 200;           // one rev at full step (MS1-3 to GND)
-constexpr int STEP_DELAY_US = 2500;  // 200 steps/s: slow and quiet for a first test
+int stepDelayUs = 5000;              // step period in us: 5000 = 200 steps/s = 1 rev per second at full step
 
-void move(bool forward) {
+void move(bool forward, int revs = 1) {
   digitalWrite(DIR_PIN, forward ? HIGH : LOW);
   digitalWrite(EN_PIN, LOW);                    // enable
   delay(5);
-  for (int i = 0; i < STEPS; i++) {
+  for (long i = 0; i < (long)STEPS * revs; i++) {
     if (digitalRead(HOME_PIN) == HIGH) {        // NC opened = switch pressed or wire open
       Serial.println("STOP: switch open/pressed");
       break;
     }
     digitalWrite(STEP_PIN, HIGH); delayMicroseconds(5);
-    digitalWrite(STEP_PIN, LOW);  delayMicroseconds(STEP_DELAY_US);
+    digitalWrite(STEP_PIN, LOW);  delayMicroseconds(stepDelayUs - 5);
   }
   Serial.println(forward ? "done forward (driver still holding; 'o' to release)"
                          : "done reverse (driver still holding; 'o' to release)");
@@ -48,6 +50,12 @@ void loop() {
   else if (c == 'r') move(false);
   else if (c == 'h') { digitalWrite(EN_PIN, LOW);  Serial.println("holding"); }
   else if (c == 'o') { digitalWrite(EN_PIN, HIGH); Serial.println("off"); }
+  else if (c == 'F') move(true, 10);
+  else if (c >= '1' && c <= '4') {
+    const int rates[4] = {100, 200, 400, 800};
+    stepDelayUs = 1000000 / rates[c - '1'];
+    Serial.print("rate steps/s: "); Serial.println(rates[c - '1']);
+  }
   else if (c == 's') Serial.println(digitalRead(HOME_PIN) == HIGH ? "switch OPEN (pressed / unplugged)"
                                                                     : "switch CLOSED (released)");
 }

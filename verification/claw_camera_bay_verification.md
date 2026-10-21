@@ -1,5 +1,14 @@
 # Claw camera bay: independent geometry verification
 
+# ROUND 3b: re-export check (commit 0eecbc0, module unchanged)
+
+R3-F1 is CLOSED.  Measured on the new exports: regenerated module minus export = 0.0 mm3 both ways (housing, body, cover).  Locating ribs: four, 0.4 proud,
+1.6 mm wide at x = -8.0 and +7.0 (x -8.8..-7.2, 6.2..7.8) on both long walls, backed by the |x| > 4 fences; nothing in the |x| < 4 wire gap, no free-standing fin.
+Wall probe (1,552 bay facets, no exclusions): minimum 1.599 mm (the rib width), everything else >= 1.999; cover 1.999.  New volumes: housing 404,203.44, body 14,988.20,
+cover 3,597.63 mm3; mass 14.56 + 4.57 = 19.13 g (gross 20.46).  Only these constants/markers changed in the suite (volumes, `test_exports_not_stale` and the wall test no longer xfail,
+the stale-rib test replaced by `test_ribs_match_module_and_no_free_standing_fin`).  Suite: 63 passed, 4 xfailed (F5, R3-F2, F6 at +-45 x2).
+R3-F2 (lens window margin, module X-/X+/R short of +-4) stays a documented LOW condition.  Round 3 verdict now PASS WITH CONDITIONS = R3-F2 only.
+
 # ROUND 3 (newest): IMU removal, 23.0 x 18.6 cradle, lens window at the USB-C end, D28 tube cut (commit 769d4e4)
 
 Verifier: geometry-verifier (did not build the part).  Measured the SHIPPED exports (`exports/step/*.step`, `exports/stl/*.stl`) with my own

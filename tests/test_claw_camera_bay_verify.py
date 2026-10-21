@@ -252,8 +252,8 @@ def test_v6_step_unchanged_vs_git_head():
 
 
 @pytest.mark.parametrize("name,expect_vol", [
-    ("gripper_electric_housing_with_camera_bay", 404199.15),    # round 3 (IMU removed, bay ends at r 101.3)
-    ("claw_camera_bay_body", 14984.04),
+    ("gripper_electric_housing_with_camera_bay", 404203.44),    # round 3 (IMU removed, bay ends at r 101.3)
+    ("claw_camera_bay_body", 14988.20),
     ("claw_camera_bay_cover", 3597.63)])
 def test_exports_valid_single_solid(name, expect_vol):
     s = cq.importers.importStep(os.path.join(STEP, name + ".step")).val()
@@ -283,9 +283,7 @@ def test_preview_assembly_step(v6, comb, cover):
     assert sum(s.Volume() for s in sol) == pytest.approx(exp, rel=1e-6)
 
 
-@pytest.mark.xfail(strict=True, reason="R3-F1: shipped body/housing export is stale vs cad/parts/claw_camera_bay.py: the module puts the "
-                                       "1.6 mm locating ribs at x = -8 and +7, the export has 1.2 mm ribs at x = -8 and -1 (the -1 pair stands "
-                                       "free in the wire gap, 0.5 mm thick). Cover export matches. Regenerate + re-export to clear.")
+# round 3b: export regenerated from the module (commit 0eecbc0): regen vs export symmetric difference is 0.0 mm3
 def test_exports_not_stale(box, comb, body, cover):
     from cad.parts import claw_camera_bay as B
     ox, oy, oz = B.BAY_ORIGIN_WORLD
@@ -865,6 +863,11 @@ def thickness_scan(comb):
     return c, t
 
 
+def mesh_of(shape):
+    V, F = tess(shape, 0.005, 0.05)
+    return V - OFF, F
+
+
 def _rib_zone(c):
     """facets of the 0.4 mm locating ribs (r 80.5 .. 81.2 and 98.8 .. 99.4, y 9.9 .. 18, |x| < 9.2)"""
     r = -c[:, 2]
@@ -879,23 +882,20 @@ def test_min_wall_outside_ribs(thickness_scan):
     assert t[keep].min() >= 1.95, (t[keep].min(), c[keep][t[keep].argmin()])
 
 
-@pytest.mark.xfail(strict=True, reason="R3-F1: in the SHIPPED export the second rib pair stands at x = -1.0 inside the |x| < 4 fence gap with no "
-                                       "wall behind it: a free-standing 0.5 mm (x 1.2 mm) fin, 8 mm tall; the other ribs are 1.2 mm wide, not "
-                                       "the 1.6 mm the module builds.  Regenerating the export from the module clears this.")
 def test_min_wall_1p2_everywhere_including_ribs(thickness_scan):
+    """Round 3b: after the re-export every sampled wall of the bay is >= 1.2 mm (ribs included)."""
     c, t = thickness_scan
     assert t.min() >= 1.2 - 0.02, (t.min(), c[t.argmin()])
 
 
-def test_rib_defect_is_confined_to_the_stale_ribs(thickness_scan):
+def test_ribs_match_module_and_no_free_standing_fin(comb, thickness_scan):
+    """Round 3b: four 1.6 mm wide ribs at x = -8.0 and +7.0 (backed by the |x| > 4 fences), 0.4 proud, nothing in the |x| < 4 wire gap."""
     c, t = thickness_scan
-    thin = t < 1.1
-    assert thin.sum() > 0 and _rib_zone(c[thin]).all()                       # every facet under 1.1 mm is on a locating rib
-    assert t[thin].min() == pytest.approx(0.5, abs=0.02)
-    assert np.all(np.abs(c[thin][:, 0] + 1.0) < 0.7)                         # the 0.5 mm fins are the x = -1.0 pair, in the wire gap
-    # the other rib faces (x = -8.0) are only 1.2 mm wide (module: 1.6)
-    rib = _rib_zone(c) & (np.abs(c[:, 0] + 8.0) < 0.7)
-    assert rib.sum() > 0 and t[rib].min() == pytest.approx(1.2, abs=0.02)
+    for r in (80.9, 99.1):                                   # inside the 0.4 proud rib depth on each long wall
+        xs = [v for v in _along((mesh_of(comb)), 0, 12.0, -r) if -11.4 < v < 11.4]
+        assert list(np.round(xs, 2)) == [-8.8, -7.2, 6.2, 7.8], (r, xs)
+    assert t[_rib_zone(c)].min() >= 1.2 - 0.02              # no thin fin: rib faces 1.6 wide, backed
+    assert abs(vol_int(Bx(-3.9, 3.9, 9.9, 18.0, 80.7, 81.2), comb)) < 1e-4 and abs(vol_int(Bx(-3.9, 3.9, 9.9, 18.0, 98.8, 99.3), comb)) < 1e-4
 
 
 def _along_mesh(V, F, axis, a, b):

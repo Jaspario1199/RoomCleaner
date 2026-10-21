@@ -97,7 +97,7 @@ bottom of the slide (rename the rail labels in the style kit):
 ## Act 1 — Physics sets the limits
 
 ### 4 · Cable statics (F, chart)
-**Claim: "Cable angle, not payload, sets the limits — and the walls bind before the ceiling."**
+**Claim (as built in the deck): "Cable angle sets the limits: walls bind at task height, ceiling above."** (Superseded wording: "the walls bind before the ceiling" — FUNDAMENTALS shows the 0.4 m ceiling limit is the harder one, 0.50 kg vs 1.10 kg at task height.)
 - **WANTED:** use the whole room.
 - **REALIZED:** tension explodes as cables flatten.
   - Centred, T ≈ W / (4 sin φ): 32.1 N per cable at 0.15 m below the anchors versus 8.3 N at 0.6 m (1 lb plus a 0.45 kg claw).

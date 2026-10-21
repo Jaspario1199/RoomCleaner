@@ -440,9 +440,9 @@
   "path": "exports/step/gripper_v7_preview.step",
   "n_solids_src": 59,
   "n_solids_reimport": 59,
-  "volume_src": 1028911.9984421051,
-  "volume_reimport": 1028912.0048771845,
-  "volume_rel_diff": 6.254256334270868e-09,
+  "volume_src": 1028916.2836121974,
+  "volume_reimport": 1028916.2900472765,
+  "volume_rel_diff": 6.254230060624248e-09,
   "bbox_src": [
    888.3474965951553,
    1015.347496795161,

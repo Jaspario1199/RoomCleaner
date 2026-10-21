@@ -177,6 +177,22 @@ the camera model draws), not excluded either. Cheapest discriminating experiment
 worker thread) while the command thread pumped, which `_pumped` forbids; with the 5 ms GIL interval the two `rt.wait` loops hardly ever interleaved inside a tick, with 0.5 ms they do and 9 of 12 runs latched
 Fault.TIMING (6) on a station. It now sleeps 0.1 s per slice instead. Revert it if you object; then that test is flaky.
 
-### Test results (final)
+### Test results (final; `OMP_NUM_THREADS=1 /usr/bin/python3 -m pytest -p no:cacheprovider`)
 
-See the last section of this file written after the runs (below).
+| Run | Result |
+|---|---|
+| `test_keepalive_pumping.py` (20 tests, 9 new), `test_keepalive_fix_review.py` (4, all converted `_fixed`), `test_board_followups.py` (44), `test_board_followups_review.py` (16), `test_service.py` (4) | **88 passed** in 321 s (the full-startup test: 49 ms largest stall, 170 s) |
+| full `tests/cdpr` (`timeout 3600`, 30 min 07 s) | **447 passed, 2 failed**: `test_garments.py::test_failed_grip_is_detected_and_retried`, `::test_release_failure_is_not_reported_as_delivered` |
+
+The two `test_garments.py` failures are **not** a pumping fault but are triggered by this change set, and the cause is a latent bug outside the files I may edit. Both fail the same way in every
+unperturbed run on this tree (4 of 4: the full suite and three module runs) and in two runs with read-only instrumentation, and pass 3 of 3 on the round-1 tree (`1411460`); the round-1 tree with only
+my `startup.py` and `config.py` copied in fails too (2 of 2 tests), so it is these two files and not the other agent's `service.py` / `claw_link.py`. The two runs of my debug plugins that changed the
+model's or the noise stream's state (an extra FK solve before planning, an extra rendered frame) passed 8 of 8. The failing test is the second task of the module's robot: `TaskRunner.run` starts every pass with a "scan" move to its own current xy at `scan_height_m`,
+and after the previous task that is a move of a few micrometres (FK rounding: the same move measured 11.4 um in a run where it passed). `plan_line` makes `n = max(2, ceil(T / segment_s))` segments of
+T / n; for a move below ~7.5 um that is under `station_core.MIN_SEG_US` (5 ms) and the station answers `nack("range")` ("scan: station A rejected segment 0: range", 7 ms into the task, supervisor
+FAULT). Whether the micrometre-sized move lands above or below the limit is chaotic (the end state of the startup differs by up to 15 mm between runs of the same code since round 1, N4), so a task chained
+after another task can fail on any tree; I did not measure the failing move itself (measuring it changes it), the `range` nack and the 11.4 um / 12.3 ms / 6.15 ms case that passes are the evidence. Suggested fix, not done (`trajectory.py` / `tasks.py` are not in my list): in `plan_line` treat a move shorter than ~50 um as zero-length (or lift `T` to >= 2 x MIN_SEG), or skip it in
+`TaskRunner._move`.
+
+Runs I did not repeat: the full `tests/cdpr` suite once. Timing-based new tests (`test_n2_..._fixed`, the unpumped-stage meter test, the full-startup test) passed on every run of the final code (the full-startup test
+needed its retry rule on none of the final runs of the five-file group, but on 2 of the 9 runs listed above the first measurement was 128 / 172 ms).

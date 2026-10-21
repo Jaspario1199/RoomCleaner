@@ -360,13 +360,18 @@ def test_02b_modified_wall_faces_keep_their_outer_boundary_and_only_gain_inner_l
         cb = sorted((round(e.Center().x, 4), round(e.Center().y, 4), round(e.Center().z, 4)) for e in fb.outerWire().Edges())
         cp = sorted((round(e.Center().x, 4), round(e.Center().y, 4), round(e.Center().z, 4)) for e in fp.outerWire().Edges())
         assert cb == cp, f"{kind} {hid}: outer boundary edges moved"
-        inner_edges = [e for w in fp.innerWires() for e in w.Edges()]
-        assert len(inner_edges) > 0
-        pts = np.concatenate([np.array([(p.x, p.y, p.z) for p in e.sample(8)[0]]) if hasattr(e, "sample") else np.array([(e.Center().x, e.Center().y, e.Center().z)])
-                              for e in inner_edges])
-        dz = zone_distance(pts).max()
-        worst_loop = max(worst_loop, dz)
-        assert dz <= HOLE_ZONE, f"{kind} {hid}: a new inner loop of the wall face is {dz:.3f} mm from the nearest hole / label"
+        def wire_sig(w):
+            return tuple(sorted((round(e.Center().x, 3), round(e.Center().y, 3), round(e.Center().z, 3), round(e.Length(), 3)) for e in w.Edges()))
+        wb = {wire_sig(w) for w in fb.innerWires()}
+        wp = {wire_sig(w): w for w in fp.innerWires()}
+        assert wb <= set(wp), f"{kind} {hid}: an inner loop of the baseline face disappeared or moved"
+        new_loops = [w for k, w in wp.items() if k not in wb]
+        assert new_loops, f"{kind} {hid}: no new inner loop"
+        for w in new_loops:
+            pts = np.concatenate([np.array([(q.x, q.y, q.z) for q in e.positions([i / 8.0 for i in range(9)])]) for e in w.Edges()])
+            dz = zone_distance(pts).max()
+            worst_loop = max(worst_loop, dz)
+            assert dz <= HOLE_ZONE, f"{kind} {hid}: a new inner loop of the wall face is {dz:.3f} mm from the nearest hole / label"
     note("02.max_zone_distance_of_new_wall_loops_mm", worst_loop)
 
 

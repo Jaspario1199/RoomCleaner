@@ -251,6 +251,12 @@ class Coordinator:
         start = self.positions()
         if np.any(np.abs(start - np.round(plan.start)) > 0.5):
             return MotionResult(False, f"start mismatch: stations at {start.tolist()}, plan {np.round(plan.start).tolist()}")
+        if plan.is_noop:
+            # "already there" (trajectory.NOOP_CABLE_M): the same readiness and start checks as a real motion, but nothing
+            # to send, so no motion id is consumed and no station leaves IDLE. A pause request was already honoured above.
+            self._log(f"motion '{plan.label}': already at the target, nothing sent")
+            return MotionResult(True, "completed: already at the target (no motion)",
+                                final_pos={s: self.links[s].pos for s in self.ids})
         self.motion_id += 1
         mid = self.motion_id
         lead = self.cfg.motion.start_lead_s * 1e6

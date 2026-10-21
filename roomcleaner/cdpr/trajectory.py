@@ -19,6 +19,23 @@ import numpy as np
 
 from .kinematics import Geometry, Workspace, tension_distribution
 from .spool import CableMap
+from .station_core import MIN_SEG_US
+
+# Segment-duration floor. The station nacks ("range") any segment shorter than MIN_SEG_US (station_core), and a
+# rest-to-rest profile over a few micrometres lasts only a few milliseconds (T = 2 sqrt(d / a)), so a naive
+# "max(2, ceil(T / segment_s))" grid produced 3 ms segments for a 3 um move. The planner therefore never emits a segment
+# shorter than 2 x MIN_SEG_US (a 2x margin for rounding of the microsecond duration and for the station's own checks),
+# and a profile that would be shorter than two such segments is slowed down (never sped up) to last exactly that long.
+MIN_SEG_PLAN_S = 2 * MIN_SEG_US / 1e6        # shortest segment the planner emits (10 ms)
+MIN_PLAN_S = 2 * MIN_SEG_PLAN_S              # shortest plan (two segments minimum): 20 ms
+
+# A Cartesian move whose cable lengths all stay within this of their start values over the whole path is a no-op
+# ("already there"). 20 um of cable is far below the geometry's own uncertainty (calibrated length sigma ~1 mm) and is
+# 0.3 microstep on the coarsest simulated drive (~5 on the finest), so no station would move meaningfully for it.
+# It is kept small on purpose: any Cartesian move of >= 60 um moves some cable by >= ~30 um (the four cables span 3-D),
+# so it stays a real, slowed-down motion rather than being swallowed. The plan is returned with a single knot
+# (Plan.is_noop); Coordinator.execute completes it after the usual readiness checks without sending a segment.
+NOOP_CABLE_M = 20e-6
 
 
 @dataclass
@@ -58,6 +75,11 @@ class Plan:
         return float(self.times[-1])
 
     @property
+    def is_noop(self) -> bool:
+        """True for a plan with a single knot: the target is where the stations already are, no segment exists."""
+        return len(self.times) < 2
+
+    @property
     def start(self) -> np.ndarray:
         return self.pos[0]
 
@@ -68,6 +90,8 @@ class Plan:
     def position_at(self, tau_s: float) -> np.ndarray:
         """Planned microstep positions of all stations at path time tau (s)."""
         from .station_core import hermite
+        if self.is_noop:
+            return np.array(self.pos[0], float)
         tau = min(max(tau_s, 0.0), self.duration)
         k = int(min(np.searchsorted(self.times, tau, side="right") - 1, len(self.times) - 2))
         d = self.times[k + 1] - self.times[k]
@@ -125,6 +149,24 @@ def trapezoid(dist: float, vmax: float, amax: float):
     return T, s, sd
 
 
+def _slowed_profile(dist: float, T: float):
+    """(v, a) of a rest-to-rest triangular profile over ``dist`` lasting ``T``: slower than whatever it replaces whenever
+    ``T`` exceeds that profile's own duration. ``v`` is 1 % above the peak so ``trapezoid`` takes the triangular branch."""
+    return 1.01 * 2.0 * dist / T, 4.0 * dist / (T * T)
+
+
+def _segment_count(T: float, segment_s: float) -> int:
+    """Number of equal segments for a profile of duration ``T`` (>= MIN_PLAN_S): about ``segment_s`` each, at least two,
+    and never so many that one is shorter than MIN_SEG_PLAN_S."""
+    return max(2, min(int(math.ceil(T / segment_s)), int(math.floor(T / MIN_SEG_PLAN_S + 1e-9))))
+
+
+def _noop_plan(start_pos, cart, label, meta) -> Plan:
+    """A one-knot plan: the stations stay where they are (see NOOP_CABLE_M)."""
+    return Plan(np.zeros(1), np.asarray(start_pos, float).reshape(1, 4), np.zeros((1, 4)), np.zeros((0, 4), int),
+                None if cart is None else np.asarray(cart, float).reshape(1, 3), label, {"noop": True, **meta})
+
+
 class PlanError(ValueError):
     pass
 
@@ -145,19 +187,33 @@ class Limits:
 
 def plan_line(model: RobotModel, p_from, p_to, lim: Limits, *, R=None, ws: Workspace | None = None,
               allow_low: bool = False, ref=None, label="line", check_tension=True) -> Plan:
+    """Straight Cartesian move. A move whose cable lengths all stay within NOOP_CABLE_M of their start values over the
+    whole path (this includes a zero-length move) returns a no-op plan (``Plan.is_noop``): the target is already reached
+    and nothing is sent. Every other plan has >= 2 segments, each >= MIN_SEG_PLAN_S (> the station's MIN_SEG_US)."""
     p_from, p_to = np.asarray(p_from, float), np.asarray(p_to, float)
     delta = p_to - p_from
     dist = float(np.linalg.norm(delta))
-    if dist < 1e-6:
-        raise PlanError("zero-length move")
+    # lengths along the whole path, not only at its ends: a chord between two poses on a common sphere about every anchor
+    # would otherwise look like "no cable change"
+    L_from = model.lengths(p_from, R)
+    probe_pts = [p_from + delta * f for f in np.linspace(0, 1, 21)]
+    dL_max = max(float(np.max(np.abs(model.lengths(q, R) - L_from))) for q in probe_pts)
+    if dL_max < NOOP_CABLE_M:
+        if ref is not None and np.any(np.asarray(ref, int) != 0):
+            raise PlanError(f"reference-capture move of {dL_max * 1e6:.0f} um of cable is below the planner minimum "
+                            f"({NOOP_CABLE_M * 1e6:.0f} um): nothing could be captured")
+        _check_path(model, np.array([p_from, p_to]), ws, lim, R, allow_low, check_tension)
+        return _noop_plan(model.positions_for(p_from, R), p_to, label, {"dist": dist, "dL_max_m": dL_max})
     direction = delta / dist
     # worst cable-rate factor along the path: |dL/ds| = |u . dir|
-    probe = [p_from + direction * dist * f for f in np.linspace(0, 1, 21)]
-    kmax = max(float(np.max(np.abs(model.geometry.unit_vectors(q, R) @ direction))) for q in probe)
+    kmax = max(float(np.max(np.abs(model.geometry.unit_vectors(q, R) @ direction))) for q in probe_pts)
     v = min(lim.cart_v, lim.cable_v / max(kmax, 1e-6))
     a = min(lim.cart_a, lim.cable_a / max(kmax, 1e-6))
     T, s, sd = trapezoid(dist, v, a)
-    n = max(2, int(math.ceil(T / lim.segment_s)))
+    if T < MIN_PLAN_S:                       # too short for two station-legal segments: slow it down, never speed up
+        v, a = _slowed_profile(dist, MIN_PLAN_S)
+        T, s, sd = trapezoid(dist, v, a)
+    n = _segment_count(T, lim.segment_s)
     times = np.linspace(0, T, n + 1)
     cart = np.array([p_from + direction * s(t) for t in times])
     _check_path(model, cart, ws, lim, R, allow_low, check_tension, accels=(a * direction, -a * direction))
@@ -200,6 +256,12 @@ def plan_line_from(model: RobotModel, P_actual, p_to, lim: Limits, *, R=None, p_
     if np.max(np.abs(off_m)) > max_offset_m:
         raise PlanError(f"actual positions differ from the model by {np.round(off_m * 1e3, 1).tolist()} mm "
                         "of cable: model and cables disagree")
+    if plan.is_noop:                         # already at the target: hold exactly where the stations are
+        plan.pos = P_actual.reshape(1, 4).copy()
+        plan.cart = np.asarray(p_from, float).reshape(1, 3)
+        plan.meta["start_offset_usteps"] = off.tolist()
+        plan.meta["start_fk_rms_m"] = rms
+        return plan
     dist = plan.meta["dist"]
     _, sf, sdf = trapezoid(dist, plan.meta["v"], plan.meta["a"])
     s = np.array([sf(t) for t in plan.times]) / dist
@@ -230,7 +292,10 @@ def plan_cable_move(start_pos, delta_usteps, max_rate, max_acc, *, segment_s=0.1
     if big < 1e-9:
         raise PlanError("zero cable move")
     T, s, sd = trapezoid(1.0, max_rate / big, max_acc / big)
-    n = max(2, int(math.ceil(T / segment_s)))
+    if T < MIN_PLAN_S:                       # a few-microstep move: slow it down to two station-legal segments
+        v, a = _slowed_profile(1.0, MIN_PLAN_S)
+        T, s, sd = trapezoid(1.0, v, a)
+    n = _segment_count(T, segment_s)
     times = np.linspace(0, T, n + 1)
     pos = np.array([start + delta * s(t) for t in times])
     vel = np.array([delta * sd(t) for t in times])

@@ -1,0 +1,19 @@
+netlist : RoomCleaner_Claw_RevB_netlist.xml
+expected: 9 nets, 37 connected pins, 10 unconnected pins (claw_spec.py = CLAW_REVB_SPEC.md)
+found   : 9 nets, 37 connected pins, 10 unconnected pins, 15 components
+
+net         pins  result
+BAT_POS        2  ok    BT1.1 F1.1
+BAT_FUSED      3  ok    F1.2 SW1.1 U4.1
+VBAT_SW        4  ok    R1.1 SW1.2 U1.1 U2.1
+GND           13  ok    BT1.2 C1.2 C2.2 C3.2 C4.2 J2.1 R2.2 U1.2 U1.4 U2.2 U2.4 U3.13 U4.2
++6V_SERVO      4  ok    C1.1 C2.1 J2.2 U1.3
++5V_BUCK       2  ok    D1.2 U2.3
++5V_XIAO       3  ok    C3.1 D1.1 U3.14
+VBAT_SENSE     4  ok    C4.1 R1.2 R2.1 U3.3
+SERVO_PWM      2  ok    J2.3 U3.1
+unconnected pins ok   : U3.2 U3.4 U3.5 U3.6 U3.7 U3.8 U3.9 U3.10 U3.11 U3.12
+open pins ok          : every library pin of every part is on a spec net or flagged no-connect
+components ok         : 15 parts, symbols and values as in the parts table
+
+PASS

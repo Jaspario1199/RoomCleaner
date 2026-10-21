@@ -1,0 +1,502 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="E">
+  <design>
+    <source>/home/user/RoomCleaner/docs/electrical/claw_revB_20261021/kicad/RoomCleaner_Claw_RevB.kicad_sch</source>
+    <date>Wed Oct 21 15:47:32 2026</date>
+    <tool>Eeschema 7.0.11+dfsg-1build4</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>RoomCleaner claw — Rev B</title>
+        <company>RoomCleaner</company>
+        <rev>B</rev>
+        <date>2026-10-21</date>
+        <source>RoomCleaner_Claw_RevB.kicad_sch</source>
+        <comment number="1" value="Net table of CLAW_REVB_SPEC.md; DECISIONS.md D31"/>
+        <comment number="2" value="Design, not yet built or bench-tested"/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="BT1">
+      <value>Tenergy 7.4V 2200mAh 2S1P</value>
+      <libsource lib="Device" part="Battery" description="Multiple-cell battery"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="Multiple-cell battery"/>
+      <property name="ki_keywords" value="batt voltage-source cell"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0c0bfb83-66a5-589f-97a2-958eb1f9cffa</tstamps>
+    </comp>
+    <comp ref="C1">
+      <value>1000µF/16V</value>
+      <footprint>Capacitor_THT:CP_Radial_D10.0mm_P5.00mm</footprint>
+      <libsource lib="Device" part="C_Polarized" description="Polarized capacitor"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="Polarized capacitor"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>09b5ac3f-e00b-5777-b831-5f9440e40e23</tstamps>
+    </comp>
+    <comp ref="C2">
+      <value>100nF</value>
+      <footprint>Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm</footprint>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="Unpolarized capacitor"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>cf81e3a2-5a76-5519-873c-a1459b72562f</tstamps>
+    </comp>
+    <comp ref="C3">
+      <value>100nF</value>
+      <footprint>Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm</footprint>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="Unpolarized capacitor"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1b89e818-281f-511f-9c8b-7f102023aba5</tstamps>
+    </comp>
+    <comp ref="C4">
+      <value>100nF</value>
+      <footprint>Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm</footprint>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="Unpolarized capacitor"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>e004117c-4a0a-5f40-a81c-a2d656008e51</tstamps>
+    </comp>
+    <comp ref="D1">
+      <value>1N5819</value>
+      <footprint>Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal</footprint>
+      <libsource lib="Device" part="D_Schottky" description="Schottky diode"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="Schottky diode"/>
+      <property name="ki_keywords" value="diode Schottky"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>636d2a78-c24c-50dd-9b6e-8a2a2cc79b5b</tstamps>
+    </comp>
+    <comp ref="F1">
+      <value>5A blade</value>
+      <libsource lib="Device" part="Fuse" description="Fuse"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="Fuse"/>
+      <property name="ki_keywords" value="fuse"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>054d447d-fff3-5a13-8735-c20913273e4f</tstamps>
+    </comp>
+    <comp ref="J2">
+      <value>MG996R lead</value>
+      <footprint>Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</footprint>
+      <libsource lib="RoomCleanerClaw" part="Servo_Conn_3pin" description="Servo lead, 3 pin: pin 1 GND (brown), pin 2 V+ (red), pin 3 signal (orange). Drawn with GND at the bottom."/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="Servo lead, 3 pin: pin 1 GND (brown), pin 2 V+ (red), pin 3 signal (orange). Drawn with GND at the bottom."/>
+      <property name="ki_keywords" value="servo connector 3 pin"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>a4fcd551-3c34-53eb-866c-3b400c904044</tstamps>
+    </comp>
+    <comp ref="R1">
+      <value>200k 1%</value>
+      <footprint>Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal</footprint>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="Resistor"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>088e2b9c-e479-57d3-ae55-012923695762</tstamps>
+    </comp>
+    <comp ref="R2">
+      <value>100k 1%</value>
+      <footprint>Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal</footprint>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="Resistor"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>9afe1f05-c90e-531f-9eb9-d481c6e82884</tstamps>
+    </comp>
+    <comp ref="SW1">
+      <value>SPST &gt;=5A DC</value>
+      <libsource lib="Switch" part="SW_SPST" description="Single Pole Single Throw (SPST) switch"/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="Single Pole Single Throw (SPST) switch"/>
+      <property name="ki_keywords" value="switch lever"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>24faee54-196a-5f0b-a24c-b0cc6ffda166</tstamps>
+    </comp>
+    <comp ref="U1">
+      <value>ZTW UBEC 6.0V</value>
+      <footprint>RoomCleanerClaw:WireModule_4pad_P2.54mm</footprint>
+      <libsource lib="RoomCleanerClaw" part="UBEC_ZTW_4pin" description="ZTW UBEC, 6 A continuous / 10 A peak, output jumper set to 6.0 V. Generic 4-wire module: IN+, IN-, OUT+, OUT-. Verify against the labels on the real module."/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="ZTW UBEC, 6 A continuous / 10 A peak, output jumper set to 6.0 V. Generic 4-wire module: IN+, IN-, OUT+, OUT-. Verify against the labels on the real module."/>
+      <property name="ki_keywords" value="DC-DC buck module"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>62086872-36ea-589f-a4b1-a8d3e92c8373</tstamps>
+    </comp>
+    <comp ref="U2">
+      <value>MP1584EN 5.00V</value>
+      <footprint>RoomCleanerClaw:WireModule_4pad_P2.54mm</footprint>
+      <libsource lib="RoomCleanerClaw" part="Buck_MP1584_4pin" description="MP1584EN buck module, trim to 5.00 V. Generic 4-pin module: IN+, IN-, OUT+, OUT-. Verify against the labels on the real module."/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="MP1584EN buck module, trim to 5.00 V. Generic 4-pin module: IN+, IN-, OUT+, OUT-. Verify against the labels on the real module."/>
+      <property name="ki_keywords" value="DC-DC buck module"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>a83e4ae8-68ae-5047-a674-c5eb8cdaeed0</tstamps>
+    </comp>
+    <comp ref="U3">
+      <value>XIAO ESP32-S3 Sense</value>
+      <footprint>RoomCleanerClaw:XIAO_ESP32S3_Sense_THT</footprint>
+      <datasheet>https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/</datasheet>
+      <libsource lib="RoomCleanerClaw" part="XIAO_ESP32S3" description="Seeed Studio XIAO ESP32-S3 (Sense), 14 pin module (2 x 7, 2.54 mm): D0-D10 with GPIO numbers, 3V3, GND, 5V. The Sense camera board is on the factory B2B connector (not drawn); BAT pads on the underside unused."/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="Seeed Studio XIAO ESP32-S3 (Sense), 14 pin module (2 x 7, 2.54 mm): D0-D10 with GPIO numbers, 3V3, GND, 5V. The Sense camera board is on the factory B2B connector (not drawn); BAT pads on the underside unused."/>
+      <property name="ki_keywords" value="Seeed XIAO ESP32-S3 Sense ESP32S3 module"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>75ba792d-80ff-558b-9cf4-9a54dbf40f84</tstamps>
+    </comp>
+    <comp ref="U4">
+      <value>USB-C 2S 8.4V CC/CV 1A</value>
+      <footprint>RoomCleanerClaw:WireModule_2pad_P2.54mm</footprint>
+      <libsource lib="RoomCleanerClaw" part="Charger_USBC_2S" description="USB-C 2S charging module (&quot;2S1A&quot;): B+ / B- to the pack side. USB-C input from a 5 V adapter (external, not drawn). Must be an 8.4 V CC/CV type at &lt;= 1 A."/>
+      <property name="Sheetname" value=""/>
+      <property name="Sheetfile" value="RoomCleaner_Claw_RevB.kicad_sch"/>
+      <property name="ki_description" value="USB-C 2S charging module (&quot;2S1A&quot;): B+ / B- to the pack side. USB-C input from a 5 V adapter (external, not drawn). Must be an 8.4 V CC/CV type at &lt;= 1 A."/>
+      <property name="ki_keywords" value="USB-C 2S Li-ion charger module"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>dee52dc6-22fe-52c7-a7fc-43243272b0ca</tstamps>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="Device" part="Battery">
+      <description>Multiple-cell battery</description>
+      <docs>~</docs>
+      <fields>
+        <field name="Reference">BT</field>
+        <field name="Value">Battery</field>
+        <field name="Datasheet">~</field>
+      </fields>
+      <pins>
+        <pin num="1" name="+" type="passive"/>
+        <pin num="2" name="-" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="C">
+      <description>Unpolarized capacitor</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>C_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">C</field>
+        <field name="Datasheet">~</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="C_Polarized">
+      <description>Polarized capacitor</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>CP_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">C_Polarized</field>
+        <field name="Datasheet">~</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="D_Schottky">
+      <description>Schottky diode</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>TO-???*</fp>
+        <fp>*_Diode_*</fp>
+        <fp>*SingleDiode*</fp>
+        <fp>D_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">D_Schottky</field>
+        <field name="Datasheet">~</field>
+      </fields>
+      <pins>
+        <pin num="1" name="K" type="passive"/>
+        <pin num="2" name="A" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="Fuse">
+      <description>Fuse</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>*Fuse*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">F</field>
+        <field name="Value">Fuse</field>
+        <field name="Datasheet">~</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="R">
+      <description>Resistor</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>R_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">R</field>
+        <field name="Datasheet">~</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="RoomCleanerClaw" part="Buck_MP1584_4pin">
+      <description>MP1584EN buck module, trim to 5.00 V. Generic 4-pin module: IN+, IN-, OUT+, OUT-. Verify against the labels on the real module.</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>WireModule*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">Buck_MP1584_4pin</field>
+        <field name="Footprint">RoomCleanerClaw:WireModule_4pad_P2.54mm</field>
+        <field name="Datasheet">~</field>
+      </fields>
+      <pins>
+        <pin num="1" name="IN+" type="passive"/>
+        <pin num="2" name="IN-" type="passive"/>
+        <pin num="3" name="OUT+" type="power_out"/>
+        <pin num="4" name="OUT-" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="RoomCleanerClaw" part="Charger_USBC_2S">
+      <description>USB-C 2S charging module ("2S1A"): B+ / B- to the pack side. USB-C input from a 5 V adapter (external, not drawn). Must be an 8.4 V CC/CV type at &lt;= 1 A.</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>WireModule*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">Charger_USBC_2S</field>
+        <field name="Footprint">RoomCleanerClaw:WireModule_2pad_P2.54mm</field>
+        <field name="Datasheet">~</field>
+      </fields>
+      <pins>
+        <pin num="1" name="B+" type="passive"/>
+        <pin num="2" name="B-" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="RoomCleanerClaw" part="Servo_Conn_3pin">
+      <description>Servo lead, 3 pin: pin 1 GND (brown), pin 2 V+ (red), pin 3 signal (orange). Drawn with GND at the bottom.</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>Pin*1x03*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">Servo_Conn_3pin</field>
+        <field name="Footprint">Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical</field>
+        <field name="Datasheet">~</field>
+      </fields>
+      <pins>
+        <pin num="1" name="GND" type="passive"/>
+        <pin num="2" name="V+" type="passive"/>
+        <pin num="3" name="SIG" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="RoomCleanerClaw" part="UBEC_ZTW_4pin">
+      <description>ZTW UBEC, 6 A continuous / 10 A peak, output jumper set to 6.0 V. Generic 4-wire module: IN+, IN-, OUT+, OUT-. Verify against the labels on the real module.</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>WireModule*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">UBEC_ZTW_4pin</field>
+        <field name="Footprint">RoomCleanerClaw:WireModule_4pad_P2.54mm</field>
+        <field name="Datasheet">~</field>
+      </fields>
+      <pins>
+        <pin num="1" name="IN+" type="passive"/>
+        <pin num="2" name="IN-" type="passive"/>
+        <pin num="3" name="OUT+" type="power_out"/>
+        <pin num="4" name="OUT-" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="RoomCleanerClaw" part="XIAO_ESP32S3">
+      <description>Seeed Studio XIAO ESP32-S3 (Sense), 14 pin module (2 x 7, 2.54 mm): D0-D10 with GPIO numbers, 3V3, GND, 5V. The Sense camera board is on the factory B2B connector (not drawn); BAT pads on the underside unused.</description>
+      <docs>https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/</docs>
+      <footprints>
+        <fp>XIAO*ESP32S3*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">XIAO_ESP32S3</field>
+        <field name="Footprint">RoomCleanerClaw:XIAO_ESP32S3_Sense_THT</field>
+        <field name="Datasheet">https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/</field>
+      </fields>
+      <pins>
+        <pin num="1" name="D0/GPIO1" type="bidirectional"/>
+        <pin num="2" name="D1/GPIO2" type="bidirectional"/>
+        <pin num="3" name="D2/GPIO3" type="bidirectional"/>
+        <pin num="4" name="D3/GPIO4" type="bidirectional"/>
+        <pin num="5" name="D4/GPIO5" type="bidirectional"/>
+        <pin num="6" name="D5/GPIO6" type="bidirectional"/>
+        <pin num="7" name="D6/GPIO43" type="bidirectional"/>
+        <pin num="8" name="D7/GPIO44" type="bidirectional"/>
+        <pin num="9" name="D8/GPIO7" type="bidirectional"/>
+        <pin num="10" name="D9/GPIO8" type="bidirectional"/>
+        <pin num="11" name="D10/GPIO9" type="bidirectional"/>
+        <pin num="12" name="3V3" type="power_out"/>
+        <pin num="13" name="GND" type="power_in"/>
+        <pin num="14" name="5V" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="Switch" part="SW_SPST">
+      <description>Single Pole Single Throw (SPST) switch</description>
+      <docs>~</docs>
+      <fields>
+        <field name="Reference">SW</field>
+        <field name="Value">SW_SPST</field>
+        <field name="Datasheet">~</field>
+      </fields>
+      <pins>
+        <pin num="1" name="A" type="passive"/>
+        <pin num="2" name="B" type="passive"/>
+      </pins>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="Device">
+      <uri>/usr/share/kicad/symbols//Device.kicad_sym</uri>
+    </library>
+    <library logical="RoomCleanerClaw">
+      <uri>/home/user/RoomCleaner/docs/electrical/claw_revB_20261021/kicad/RoomCleanerClaw.kicad_sym</uri>
+    </library>
+    <library logical="Switch">
+      <uri>/usr/share/kicad/symbols//Switch.kicad_sym</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="/+5V_BUCK">
+      <node ref="D1" pin="2" pinfunction="A" pintype="passive"/>
+      <node ref="U2" pin="3" pinfunction="OUT+" pintype="power_out"/>
+    </net>
+    <net code="2" name="/+5V_XIAO">
+      <node ref="C3" pin="1" pintype="passive"/>
+      <node ref="D1" pin="1" pinfunction="K" pintype="passive"/>
+      <node ref="U3" pin="14" pinfunction="5V" pintype="power_in"/>
+    </net>
+    <net code="3" name="/+6V_SERVO">
+      <node ref="C1" pin="1" pintype="passive"/>
+      <node ref="C2" pin="1" pintype="passive"/>
+      <node ref="J2" pin="2" pinfunction="V+" pintype="passive"/>
+      <node ref="U1" pin="3" pinfunction="OUT+" pintype="power_out"/>
+    </net>
+    <net code="4" name="/BAT_FUSED">
+      <node ref="F1" pin="2" pintype="passive"/>
+      <node ref="SW1" pin="1" pinfunction="A" pintype="passive"/>
+      <node ref="U4" pin="1" pinfunction="B+" pintype="passive"/>
+    </net>
+    <net code="5" name="/BAT_POS">
+      <node ref="BT1" pin="1" pinfunction="+" pintype="passive"/>
+      <node ref="F1" pin="1" pintype="passive"/>
+    </net>
+    <net code="6" name="/SERVO_PWM">
+      <node ref="J2" pin="3" pinfunction="SIG" pintype="passive"/>
+      <node ref="U3" pin="1" pinfunction="D0/GPIO1" pintype="bidirectional"/>
+    </net>
+    <net code="7" name="/VBAT_SENSE">
+      <node ref="C4" pin="1" pintype="passive"/>
+      <node ref="R1" pin="2" pintype="passive"/>
+      <node ref="R2" pin="1" pintype="passive"/>
+      <node ref="U3" pin="3" pinfunction="D2/GPIO3" pintype="bidirectional"/>
+    </net>
+    <net code="8" name="/VBAT_SW">
+      <node ref="R1" pin="1" pintype="passive"/>
+      <node ref="SW1" pin="2" pinfunction="B" pintype="passive"/>
+      <node ref="U1" pin="1" pinfunction="IN+" pintype="passive"/>
+      <node ref="U2" pin="1" pinfunction="IN+" pintype="passive"/>
+    </net>
+    <net code="9" name="GND">
+      <node ref="BT1" pin="2" pinfunction="-" pintype="passive"/>
+      <node ref="C1" pin="2" pintype="passive"/>
+      <node ref="C2" pin="2" pintype="passive"/>
+      <node ref="C3" pin="2" pintype="passive"/>
+      <node ref="C4" pin="2" pintype="passive"/>
+      <node ref="J2" pin="1" pinfunction="GND" pintype="passive"/>
+      <node ref="R2" pin="2" pintype="passive"/>
+      <node ref="U1" pin="2" pinfunction="IN-" pintype="passive"/>
+      <node ref="U1" pin="4" pinfunction="OUT-" pintype="passive"/>
+      <node ref="U2" pin="2" pinfunction="IN-" pintype="passive"/>
+      <node ref="U2" pin="4" pinfunction="OUT-" pintype="passive"/>
+      <node ref="U3" pin="13" pinfunction="GND" pintype="power_in"/>
+      <node ref="U4" pin="2" pinfunction="B-" pintype="passive"/>
+    </net>
+    <net code="10" name="unconnected-(U3-3V3-Pad12)">
+      <node ref="U3" pin="12" pinfunction="3V3" pintype="power_out+no_connect"/>
+    </net>
+    <net code="11" name="unconnected-(U3-D1{slash}GPIO2-Pad2)">
+      <node ref="U3" pin="2" pinfunction="D1/GPIO2" pintype="bidirectional+no_connect"/>
+    </net>
+    <net code="12" name="unconnected-(U3-D3{slash}GPIO4-Pad4)">
+      <node ref="U3" pin="4" pinfunction="D3/GPIO4" pintype="bidirectional+no_connect"/>
+    </net>
+    <net code="13" name="unconnected-(U3-D4{slash}GPIO5-Pad5)">
+      <node ref="U3" pin="5" pinfunction="D4/GPIO5" pintype="bidirectional+no_connect"/>
+    </net>
+    <net code="14" name="unconnected-(U3-D5{slash}GPIO6-Pad6)">
+      <node ref="U3" pin="6" pinfunction="D5/GPIO6" pintype="bidirectional+no_connect"/>
+    </net>
+    <net code="15" name="unconnected-(U3-D6{slash}GPIO43-Pad7)">
+      <node ref="U3" pin="7" pinfunction="D6/GPIO43" pintype="bidirectional+no_connect"/>
+    </net>
+    <net code="16" name="unconnected-(U3-D7{slash}GPIO44-Pad8)">
+      <node ref="U3" pin="8" pinfunction="D7/GPIO44" pintype="bidirectional+no_connect"/>
+    </net>
+    <net code="17" name="unconnected-(U3-D8{slash}GPIO7-Pad9)">
+      <node ref="U3" pin="9" pinfunction="D8/GPIO7" pintype="bidirectional+no_connect"/>
+    </net>
+    <net code="18" name="unconnected-(U3-D9{slash}GPIO8-Pad10)">
+      <node ref="U3" pin="10" pinfunction="D9/GPIO8" pintype="bidirectional+no_connect"/>
+    </net>
+    <net code="19" name="unconnected-(U3-D10{slash}GPIO9-Pad11)">
+      <node ref="U3" pin="11" pinfunction="D10/GPIO9" pintype="bidirectional+no_connect"/>
+    </net>
+  </nets>
+</export>

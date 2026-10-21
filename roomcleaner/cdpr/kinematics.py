@@ -15,8 +15,8 @@ inner mouths of the corner holes of the electrical box) the lengths depend on R.
 roll/pitch from the static equilibrium of the rigid claw (gravity at the claw CoM
 plus the four cable tensions, :class:`Attitude`) at a *held yaw* (the last
 measured one; yaw is only weakly constrained by the lines and is therefore
-treated as passive, measured by vision, never predicted). Callers that hold a measurement (IMU
-roll/pitch + vision yaw = the marker pose) pass ``R`` explicitly. A common
+treated as passive, measured by vision, never predicted). Callers that hold a measurement (the full
+vision attitude = the marker pose; D27: no IMU) pass ``R`` explicitly. A common
 attachment point (all b_i equal) is orientation independent and ``R_at`` returns
 the identity, reproducing the original point-claw model exactly.
 
@@ -70,13 +70,13 @@ class Attitude:
     The claw is a rigid body loaded by gravity at its CoM (``Geometry.com``; a payload acts at the jaws) and four
     line tensions ``T_i u_i`` acting at the attachment points ``R b_i`` (``u_i`` from attachment toward its anchor).
     Force balance ``sum T_i u_i = m (a + g)`` leaves a one-parameter family of tension sets (4 unknowns, 3 equations,
-    the self-stress mode is the internal pretension); the set with the least total tension (minimum norm: no
-    pretension) is used. The two horizontal moment equations about the CoM then fix roll and pitch (Newton on the
+    the self-stress mode is the internal pretension); the minimum 2-norm set (no pretension; NOT the least-total-tension LP
+    solution, and it can be slightly negative at some poses) is used. The two horizontal moment equations about the CoM then fix roll and pitch (Newton on the
     2x2 system, a handful of iterations).
 
     Yaw is NOT predicted: it is only weakly held by the lines (3.6 to 6 deg per mm of line-length inconsistency,
     verification/claw_camera_bay_verification.md F6) and the same mm-level inconsistencies also move the tilt, so
-    this is a nominal value; the measured attitude (IMU roll/pitch + vision yaw) replaces it wherever a measurement
+    this is a nominal value; the measured attitude (vision roll/pitch/yaw) replaces it wherever a measurement
     exists. The unbalanced vertical-axis moment is reported (``yaw_moment``).
     """
 

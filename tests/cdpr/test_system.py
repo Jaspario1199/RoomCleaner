@@ -48,8 +48,9 @@ def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
     for i, s in enumerate(IDS):                    # the reported absolute sigma covers the true error
         err = abs(r.ctx.model.maps[s].L0 - r.world.true_L0(s))
         assert err < 3.5 * m["absolute_sigma_m"][i] + 0.002
-    # a task: two items delivered with visual verification
-    c = cfg.room_m[:2] / 2
+    # a task: two items delivered with visual verification. The items lie around where the startup left the claw
+    # (inside its scan footprint); where that is depends on the noise stream, so it is not hard-coded to the room centre.
+    c = r.world.p[:2].copy()
     r.world.hamper = (np.asarray(cfg.tasks.hamper_room_m), cfg.tasks.hamper_radius_m)
     r.world.add_item("sock", c + [-0.3, 0.2])
     r.world.add_item("jeans", c + [0.2, 0.35], mass=0.9, height=0.08)

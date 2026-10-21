@@ -324,3 +324,83 @@ GRIPV7_SADDLE_NOTCH_X0 = 12.0     # mm, notch starts at |x| = 12 (inside the tub
 GRIPV7_SADDLE_NOTCH_Y_PAD = 0.3   # mm, notch half-length in y beyond the column clearance radius
 GRIPV7_JAW_BOSS_R_A = 9.8         # mm, jaw boss radius at the crank pin A (was 9.5; B keeps 9.5): wall to the crank slot = 9.8 - (8.0 + 0.5) = 1.3
 GRIPV7_JAW_CRANK_SLOT_MARGIN = 0.5  # mm, radial clearance tongue end -> slot wall at A (was 0.8: crescent wall 0.7 mm)
+
+
+# =============================================================================
+# GRIPPER v6r -- Jasper's v6 gears modified for the 2:1 gearbox (10/21/2026).  Master values for
+# cad/parts/gripper_v6r_gears.py.  The solids are TAKEN from solidworks/gripper_v6_2026-10-20 (read-only STEP);
+# only the tooth count of the big gear, the crank length and one axial relief are changed.
+# Frame: part frame = gear axis on the z axis, z = 0 at the bottom of the gear stack (his world z 1080.48987).
+# Placement frame = the v7 LOCAL frame (x lateral, tube axis x = 0, gear-axes line y = 0), same as v6 world - origin.
+# =============================================================================
+GRIPV6R_SRC_STEP = "solidworks/gripper_v6_2026-10-20/LaundryGripperAssem1.STEP"
+GRIPV6R_SRC_PINION = "Simple_18T_Pinionvlast"
+GRIPV6R_SRC_COMPOUND = "06_compound_54T_24T"
+GRIPV6R_SRC_FOLLOWER = "24T_Follower"
+# his world coordinates (measured from his solids; the module re-measures and asserts to GRIPV6R_SRC_TOL)
+GRIPV6R_SRC_Z0 = 1080.48987       # mm, bottom of his gear stack
+GRIPV6R_SRC_C_XY = (969.8474967, 707.9863920)      # compound axis
+GRIPV6R_SRC_F_XY = (933.8474967, 707.9863920)      # follower axis
+GRIPV6R_SRC_S_XY = (961.8474967, 761.3905117)      # pinion / servo axis
+GRIPV6R_SRC_TOL = 0.005           # mm
+GRIPV6R_SRC_ARM_R = 75.0          # his lug / fork pivot radius
+GRIPV6R_SRC_ARM_DEG_C = -31.2259097    # his compound lug angle (world, CCW from +x)
+GRIPV6R_SRC_ARM_DEG_F = 209.8828815    # his follower lug angle
+# layers (part frame z)
+GRIPV6R_L1_Z0, GRIPV6R_L1_Z1 = 0.0, 16.0      # pinion + big gear layer (face 16)
+GRIPV6R_L2_Z0, GRIPV6R_L2_Z1 = 16.0, 36.0     # 24T pair layer (face 20) incl. the lug band 16 .. 26
+GRIPV6R_LUG_Z1 = 26.0                         # top of the lug / fork band (10 mm thick)
+
+# --- tooth form, measured from his 54T (module 1.5, 20 deg involute, 1.0 m / 1.25 m, R0.4 root blend,
+#     0.100 mm thinning at the pitch circle); the v3/v6 generator reproduces his 54T section to 1e-5 mm ---------
+GRIPV6R_MODULE = 1.5
+GRIPV6R_PRESSURE_ANGLE = 20.0
+GRIPV6R_ADDENDUM_K = 1.0          # x module
+GRIPV6R_DEDENDUM_K = 1.25         # x module
+GRIPV6R_ROOT_FILLET_R = 0.40
+GRIPV6R_TOOTH_THIN = 0.10         # mm per gear at the pitch circle (as his; v6 had NO centre-distance allowance)
+GRIPV6R_Z_PINION = 18
+GRIPV6R_Z_MAIN_V6 = 54            # his big gear
+GRIPV6R_Z_MAIN = GRIPV7_Z_MAIN    # 36 (2:1)
+GRIPV6R_Z_SYNC = 24
+GRIPV6R_CD_MAIN = GRIPV7_CD_MAIN  # 40.80 (nominal 40.5 + 0.3)
+GRIPV6R_CD_SYNC = GRIPV7_CD_SYNC  # 36.30 (nominal 36.0 + 0.3)
+GRIPV6R_C_XY = (GRIPV6R_CD_SYNC / 2.0, 0.0)       # placement frame: compound axis
+GRIPV6R_F_XY = (-GRIPV6R_CD_SYNC / 2.0, 0.0)      # follower axis
+GRIPV6R_S_X = GRIPV7_SERVO_X_OFF                  # pinion / servo shaft x (v6 and v7: 10 mm from the tube axis)
+GRIPV6R_S_XY = (GRIPV6R_S_X, (GRIPV6R_CD_MAIN ** 2 - (GRIPV6R_S_X - GRIPV6R_C_XY[0]) ** 2) ** 0.5)
+
+# --- big gear web (inside the new root radius his hub, pocket, lips and web are kept) ------------------------------
+GRIPV6R_CORE_R = 8.5              # mm, his solid is kept inside this radius (pocket wall R7.0375 + 1.46)
+GRIPV6R_POCKET_R = 7.0375         # his Ø14.075 pocket
+GRIPV6R_LIGHT_MIN_LIG = 2.0       # mm, minimum ligament: hole to pocket wall, hole to root circle, hole to hole
+GRIPV6R_LIGHT_D = 12.0            # mm, his hole Ø is kept
+GRIPV6R_LIGHT_N = 7               # largest count of Ø12 holes that keeps every ligament >= 2.0 (8 do not fit)
+GRIPV6R_LIGHT_R = 16.7            # mm, hole circle radius (min ligament 2.43: pocket 3.66, root 2.43, hole-hole 2.49)
+GRIPV6R_LIGHT_PHASE_DEG = 90.0    # deg, angle of the first hole in the part frame (any: pattern is 7-fold)
+
+# --- the ONLY functional change besides tooth count and crank length (flag to Jasper) --------------------------------
+GRIPV6R_RELIEF_DEPTH = GRIPV7_AXIAL_RELIEF        # 0.30 mm
+GRIPV6R_RELIEF_R_MARGIN = GRIPV7_RELIEF_R_MARGIN  # 0.30 mm inside the follower's nearest point
+GRIPV6R_RELIEF_R_IN = GRIPV6R_CD_SYNC - GRIPV6R_MODULE * (GRIPV6R_Z_SYNC + 2) / 2.0 - GRIPV6R_RELIEF_R_MARGIN   # 16.5
+# --- crank --------------------------------------------------------------------------------------------------------
+GRIPV6R_ARM_R = GRIPV7_CRANK_R                    # 53.0 (his 75)
+GRIPV6R_ARM_SHORTEN = GRIPV6R_SRC_ARM_R - GRIPV6R_ARM_R      # 22.0
+GRIPV6R_ARM_CUT_X = 30.0          # mm along the arm from the axis: the constant-section slab removed starts here
+GRIPV6R_ARM_DEG_C = GRIPV7_THETA_CLOSED           # compound lug angle at the v7 closed pose (CCW from +x, v7 convention)
+GRIPV6R_ARM_DEG_F = 180.0 - GRIPV7_THETA_CLOSED   # follower lug: mirror image about the tube plane x = 0
+GRIPV6R_SWEEP_DEG = GRIPV7_SWEEP_DEG              # 76.5 deg closed -> open (compound), follower opposite, pinion x -2
+GRIPV6R_SWEEP_PINION_RATIO = GRIPV6R_Z_MAIN / GRIPV6R_Z_PINION   # 2.0
+
+# --- clearances (Jasper addendum 10/21) --------------------------------------------------------------------------
+GRIPV6R_BACKLASH_MIN = 0.20       # mm circumferential at the pitch circle, every pose of the +-30 deg sweep and the stroke
+GRIPV6R_TIP_ROOT_MIN = 0.25 * GRIPV6R_MODULE      # 0.375 mm
+GRIPV6R_AXIAL_GAP_MIN = 0.30      # mm between counter-rotating faces / lug faces and the gear faces they pass
+GRIPV6R_PINION_BOSS_GAP = 0.30    # mm: servo-boss plane sits this far above the pinion top face (v6: flush)
+GRIPV6R_SWEEP_CLEAR_MIN = 1.0     # mm lug / fork to the other gear, the other lug, pins and bearings over the stroke
+GRIPV6R_RADIAL_36T_FOLLOWER_MIN = 1.0   # mm 36T tip to follower hub / body in the 36T layer
+GRIPV6R_PIVOT_HOLE_D = 3.5        # his compound pivot hole (M3 clearance); kept.  His follower pivot hole is Ø8.33 (kept).
+GRIPV6R_PIVOT_HOLE_D_FOR_SHOULDER_D4 = 4.2   # NOTE only: Ø4 shoulder screws would need Ø4.2 holes (not applied)
+GRIPV6R_PIN_D = 7.0               # housing pin on the compound / follower axes (his integral Ø7 pins)
+GRIPV6R_BRG_OD = 14.0             # 687 bearings in his pockets
+GRIPV6R_DENSITY_PETG = 1.27       # g/cm3 (cad/materials.py)

@@ -123,6 +123,28 @@ def test_set_mount_offset_rejects_non_rotations():
         v.set_mount_offset(np.diag([1.0, 1.0, 2.0]))
 
 
+def test_gravity_fusion_is_optional_and_off_by_default():
+    """claw.imu = false: no roll/pitch provider is wired anywhere; the optional path still works when one is given."""
+    Q_true = np.eye(3)
+    T_M_B = planar_T(0.1, -0.05, 0.7, 0.52)
+    v, _ = _vision(FakeFrames(T_M_B, Q_true))
+    assert v.imu is None
+    roll, pitch = 0.02, -0.01
+    t = {"us": 0.0}
+
+    def now():
+        t["us"] += 1e5
+        return t["us"]
+    fused = VisionSource(FakeFrames(T_M_B, Q_true), T_B_C_NOM, 520.0, 0.1524, max_age_s=1.0, now_us=now,
+                         imu=SimpleNamespace(roll_pitch=lambda: (roll, pitch)))
+    o = fused.observe()
+    assert o.ok and tilt_angle(o.R) == pytest.approx(math.hypot(roll, pitch), rel=0.02)
+    from roomcleaner.cdpr.sim.harness import SimRobot
+    r = SimRobot(fast_cfg(), seed=0)
+    assert r.vision.imu is None and r.cfg.claw.imu is False
+    assert not hasattr(r.claw, "tilt") and not {"roll", "pitch", "tilt_rad", "imu_ok"} & set(r.claw.status())
+
+
 # ============================================================ pendulum dwell
 def test_pendulum_period_from_the_claw_geometry():
     assert pendulum_period_s(0.2) == pytest.approx(2 * math.pi * math.sqrt(0.2 / 9.81))

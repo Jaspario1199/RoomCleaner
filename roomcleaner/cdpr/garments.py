@@ -6,7 +6,7 @@ FIXED overhead camera with a fixed pixel->floor mapping. In gen-2 the camera
 rides on the claw, so this module adds the missing pieces:
 
 * ``ClawFloorMapper``: pixel -> floor point using the claw's CURRENT pose (from
-  the marker + IMU, ``perception.VisionSource``), the camera intrinsics and the
+  the marker pose, ``perception.VisionSource``), the camera intrinsics and the
   calibrated marker registration -- an exact ray/plane intersection
   (``perception/moving_camera.pixel_to_world_plane``).
 * ``ClawGarmentPerception``: the ``tasks.ItemPerception`` used by the task

@@ -220,3 +220,17 @@ anywhere in the working area is ~1.1 kg total (claw + payload). D30 (Vref at
 the board maximum) stands; the capacity consequence is open — see
 `docs/decisions/WINCH_CAPACITY_20261021.md` (pull test first; 3:1 winch
 reduction recommended).
+
+D31. **Claw power: Tenergy 7.4 V 2S pack, ZTW UBEC at 6.0 V for the servo, MP1584
+at 5.00 V for the XIAO, USB-C 2S charger on the claw** (Jasper, 2026-10-21).
+Battery: Tenergy 7.4 V 2200 mAh 2S1P Li-ion with protection PCB (the 10/19 cart
+item; 31003 assumed: 3 A continuous, 1 A max charge). The servo rail matches
+`firmware/claw_s3` ("servo power from the 6.0 V buck"); the XIAO 5V pin is fed
+from a separate MP1584 through a 1N5819, never from the 6 V rail. Battery sense
+200k/100k on D2/GPIO3 (firmware BATT_RATIO 3.0, cutoff 6.8 V); servo PWM on
+D0/GPIO1. Charging: the USB-C 2S module sits on the pack side of the main switch
+and is used with the switch OFF (Jasper chose "whichever is best, we were going
+with the on-claw charger"; lead kept it, with the condition that the module is
+verified as an 8.4 V CC/CV type at ≤ 1 A before first charge). Supersedes the
+Rev A two-5 V-regulator / FSR / buffer drawing and the 10/18 18650 proposal
+(both kept as history). Schematic: docs/electrical/claw_revB_20261021/.

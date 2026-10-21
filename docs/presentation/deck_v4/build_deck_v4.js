@@ -173,6 +173,115 @@ function calFlow(sl, x, y, w, h) {
   arrow(x + 2 * bw + gx + 0.05, y + bh + gy + bh / 2, gx - 0.1, 0, true); arrow(x + bw + 0.05, y + bh + gy + bh / 2, gx - 0.1, 0, true);
 }
 
+// ------------------------------------------------------------------------------------------------ control-logic diagrams (native shapes)
+// pptxgenjs draws a line from the top-left to the bottom-right of its box; flipH / flipV mirror it, so the arrow end lands on (x2, y2).
+function seg(sl, x1, y1, x2, y2, line) {
+  sl.addShape(pres.shapes.LINE, { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1),
+                                  flipH: x2 < x1, flipV: y2 < y1, line });
+}
+function label(sl, text, x, y, w, h, o = {}) {
+  sl.addText(text, { x, y, w, h, fontSize: o.size || 12, bold: !!o.bold, color: o.color || HEX.ink, fontFace: "Arial", align: o.align || "left",
+                     valign: o.valign || "middle", margin: 0, isTextBox: true, objectName: o.name || "label" });
+}
+// Gen-1 vs final logic, as a native table.
+function logicTable(sl, x, y, w) {
+  const hdr = t => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { color: HEX.navy } } });
+  const rows = [
+    [hdr(""), hdr("First logic (gen 1)"), hdr("Final logic")],
+    ["Where is the claw?", "Assumed: where the cables were told to put it", "Measured: claw camera on the floor board, refit at every startup"],
+    ["Room geometry", "Point mass; anchors from a tape measure", "Rigid claw; anchors and cable lengths fitted, with error bars"],
+    ["Who runs the motors", "One central board steps all four", "Each station runs time-stamped segments; the host coordinates"],
+    ["Finding laundry", "Ceiling camera, pixel to floor map", "Claw camera, ray from the claw's pose to the floor"],
+    ["Did the grab work?", "Assumed once the claw closed", "Camera checks pickup and delivery"],
+    ["Faults", "E-stop only; no fault states", "Supervisor: stop keeps torque, nothing restarts by itself"],
+    ["Where it may move", "Anywhere the cables can hold", "Only where the calibration earned trust"],
+  ].map((r, i) => i === 0 ? r : r.map((c, j) => ({ text: c, options: j === 0 ? { bold: true, color: HEX.ink } : { color: j === 1 ? HEX.mid : HEX.ink } })));
+  sl.addTable(rows, { x, y, w, colW: [w * 0.22, w * 0.36, w * 0.42], fontFace: "Arial", fontSize: 12.5, valign: "middle",
+                      border: { type: "solid", pt: 0.75, color: HEX.rule }, rowH: 0.56, margin: 0.06, objectName: "gen-1 vs final logic" });
+}
+// Five layers, top to bottom, with the claw beside the task layer.
+function layerStack(sl, x, y, w, h) {
+  const layers = [["Phone app", "Start, PAUSE, and a “yes” before every move"],
+                  ["Supervisor  ·  host PC", "One robot state; refuses commands that do not fit it"],
+                  ["Startup and tasks  ·  host PC", "Calibrate; then scan, grip, check, deliver"],
+                  ["Planner and coordinator  ·  host PC", "Checks every path point, then streams time-stamped segments"],
+                  ["Stations × 4  ·  a controller in each", "Step the motor, watch the encoder, hold if the link drops"]];
+  const cw = 1.75, mw = w - cw - 0.45, gap = 0.22, bh = (h - 0.45 - gap * 4) / 5;
+  layers.forEach(([n, d], i) => {
+    const by = y + i * (bh + gap), host = i >= 1 && i <= 3;
+    sl.addShape(pres.shapes.RECTANGLE, { x, y: by, w: mw, h: bh, fill: { color: host ? "F2F2F4" : "FFFFFF" }, line: { color: HEX.navy, width: 1.25 },
+                                         objectName: `layer ${i + 1}` });
+    sl.addText([{ text: n, options: { bold: true, fontSize: 14, color: HEX.navy, breakLine: true } }, { text: d, options: { fontSize: 12, color: HEX.ink } }],
+               { x: x + 0.15, y: by, w: mw - 0.3, h: bh, fontFace: "Arial", valign: "middle", margin: 0, isTextBox: true });
+    if (i < 4) seg(sl, x + mw / 2, by + bh + 0.02, x + mw / 2, by + bh + gap - 0.02, { color: HEX.grey, width: 1.5, endArrowType: "triangle" });
+  });
+  const ty = y + 2 * (bh + gap), cx = x + mw + 0.45;
+  sl.addShape(pres.shapes.RECTANGLE, { x: cx, y: ty - 0.1, w: cw, h: bh + 0.2, fill: { color: "FFFFFF" }, line: { color: HEX.navy, width: 1.25 }, objectName: "claw" });
+  sl.addText([{ text: "Claw", options: { bold: true, fontSize: 14, color: HEX.navy, breakLine: true } }, { text: "sends frames; grips only when approved", options: { fontSize: 11.5 } }],
+             { x: cx + 0.1, y: ty - 0.1, w: cw - 0.2, h: bh + 0.2, fontFace: "Arial", valign: "middle", margin: 0, isTextBox: true });
+  seg(sl, x + mw + 0.04, ty + bh / 2, cx - 0.04, ty + bh / 2, { color: HEX.grey, width: 1.5, beginArrowType: "triangle", endArrowType: "triangle" });
+  label(sl, "Commands flow down; status and camera frames flow back up.", x, y + h - 0.35, w, 0.3, { size: 12, color: HEX.mid, name: "layer note" });
+}
+// One run, left to right: start up, find, pick and deliver (repeats), put away; the stop rule under all four.
+function runCycle(sl, x, y, w, h) {
+  const cols = [["1  Start up", ["Self-check: stations, claw, camera", "Take up slack, one cable at a time", "Lift a few centimetres",
+                                 "Calibrate from floor-board poses", "Set the trust level"]],
+                ["2  Find", ["Rise to scan height", "Claw camera and detector list the items", "Map each item to the floor", "Choose the nearest"]],
+                ["3  Pick and deliver", ["Hover; wait until the claw is still", "Descend straight down, close", "Lift: camera checks it is held",
+                                         "Fly to the hamper, release", "Camera checks it is in"]],
+                ["4  Put away", ["Lower over the floor board", "Camera confirms the floor", "Disarm only after a typed confirm and a fresh floor check"]]];
+  const gap = 0.32, cw = (w - 3 * gap) / 4, hh = 0.5, bodyH = h - hh - 1.25;   // 1.25: loop arrow + stop rule
+  cols.forEach(([t, lines], i) => {
+    const cx = x + i * (cw + gap);
+    sl.addShape(pres.shapes.RECTANGLE, { x: cx, y, w: cw, h: hh, fill: { color: HEX.navy }, line: { color: HEX.navy }, objectName: `stage ${i + 1}` });
+    label(sl, t, cx + 0.12, y, cw - 0.24, hh, { size: 15, bold: true, color: "FFFFFF" });
+    sl.addShape(pres.shapes.RECTANGLE, { x: cx, y: y + hh, w: cw, h: bodyH, fill: { color: "FFFFFF" }, line: { color: HEX.navy, width: 1 } });
+    const arr = lines.map((ln, j) => ({ text: ln, options: { bullet: { indent: 12 }, breakLine: j < lines.length - 1, paraSpaceAfter: 6 } }));
+    sl.addText(arr, { x: cx + 0.08, y: y + hh + 0.1, w: cw - 0.16, h: bodyH - 0.2, fontSize: 14, color: HEX.ink, fontFace: "Arial", valign: "top",
+                      margin: 0, isTextBox: true, objectName: `stage ${i + 1} steps` });
+    if (i < 3) seg(sl, cx + cw + 0.04, y + hh / 2, cx + cw + gap - 0.04, y + hh / 2, { color: HEX.grey, width: 1.5, endArrowType: "triangle" });
+  });
+  // repeat loop: from the bottom of stage 3 back to the bottom of stage 2
+  const by = y + hh + bodyH, ly = by + 0.28, c2 = x + (cw + gap) + cw / 2, c3 = x + 2 * (cw + gap) + cw / 2;
+  seg(sl, c3, by, c3, ly, { color: HEX.navy2, width: 1.5 });
+  seg(sl, c3, ly, c2, ly, { color: HEX.navy2, width: 1.5 });
+  seg(sl, c2, ly, c2, by + 0.02, { color: HEX.navy2, width: 1.5, endArrowType: "triangle" });
+  label(sl, "next item; 3 failures in a row → pause for the operator", c2 - cw / 2, ly + 0.02, 2 * cw + gap, 0.3, { size: 11.5, color: HEX.navy2, align: "center" });
+  sl.addShape(pres.shapes.RECTANGLE, { x, y: y + h - 0.6, w, h: 0.6, fill: { color: "FFFFFF" }, line: { color: HEX.red, width: 1.5 }, objectName: "stop rule" });
+  sl.addText([{ text: "At any point:  ", options: { bold: true, color: HEX.red } },
+              { text: "PAUSE or a fault stops every station on the same point of the path, still holding. Nothing restarts by itself; the operator lowers or recovers.",
+                options: { color: HEX.ink } }],
+             { x: x + 0.15, y: y + h - 0.6, w: w - 0.3, h: 0.6, fontSize: 13, fontFace: "Arial", valign: "middle", margin: 0, isTextBox: true });
+}
+// Side view along the room diagonal A-C: a 1.9 m shelf 1 m out from corner A; the same claw spot clears at 1.5 m and is refused at 0.8 m.
+function obstacleSide(sl, x, y, w, h) {
+  const Ld = 4.19, Hc = 2.74, za = 2.59, s = Math.min((w - 0.2) / Ld, (h - 1.0) / Hc);
+  const ox = x + (w - Ld * s) / 2, oy = y + 0.15 + Hc * s;            // floor-level origin at corner A
+  const X = d => ox + d * s, Y = z => oy - z * s;
+  seg(sl, X(0), Y(0), X(Ld), Y(0), { color: HEX.ink, width: 1.25 });
+  seg(sl, X(0), Y(Hc), X(Ld), Y(Hc), { color: HEX.rule, width: 1 });
+  label(sl, "floor", X(Ld) - 0.6, Y(0) + 0.03, 0.6, 0.22, { size: 10, color: HEX.grey, align: "right" });
+  label(sl, "ceiling", X(Ld / 2) - 0.4, Y(Hc) - 0.25, 0.8, 0.22, { size: 10, color: HEX.grey, align: "center" });
+  sl.addShape(pres.shapes.RECTANGLE, { x: X(0.8), y: Y(1.9), w: 0.4 * s, h: 1.9 * s, fill: { color: "D9DEE5" }, line: { color: HEX.grey, width: 1 },
+                                       objectName: "keep-out cylinder (shelf)" });
+  label(sl, "keep-out\ncylinder:\nshelf, 0–1.9 m", X(0.8) - 1.1, Y(1.2), 1.04, 0.75, { size: 11, color: HEX.mid, align: "right" });
+  const ok = [2.1, 1.5], bad = [2.1, 0.8];
+  seg(sl, X(0), Y(za), X(ok[0]), Y(ok[1]), { color: HEX.navy, width: 2 });
+  seg(sl, X(Ld), Y(za), X(ok[0]), Y(ok[1]), { color: HEX.navy, width: 2 });
+  seg(sl, X(0), Y(za), X(bad[0]), Y(bad[1]), { color: HEX.red, width: 2, dashType: "dash" });
+  seg(sl, X(Ld), Y(za), X(bad[0]), Y(bad[1]), { color: HEX.red, width: 2, dashType: "dash" });
+  [[0, "A"], [Ld, "C"]].forEach(([d, n]) => {
+    sl.addShape(pres.shapes.OVAL, { x: X(d) - 0.07, y: Y(za) - 0.07, w: 0.14, h: 0.14, fill: { color: HEX.ink }, line: { color: HEX.ink } });
+    label(sl, `anchor ${n}`, d === 0 ? X(d) - 0.05 : X(d) - 1.0, Y(Hc) - 0.3, 1.05, 0.25, { size: 11, bold: true, align: d === 0 ? "left" : "right" });
+  });
+  [[ok, HEX.navy, "1.5 m: clear", 1.5], [bad, HEX.red, "0.8 m: refused,\ncable A crosses the shelf", 2.2]].forEach(([p, c, t, lw]) => {   // labels centred under the points, between the lines
+    sl.addShape(pres.shapes.RECTANGLE, { x: X(p[0]) - 0.09, y: Y(p[1]) - 0.09, w: 0.18, h: 0.18, fill: { color: c }, line: { color: c } });
+    label(sl, t, X(p[0]) - lw / 2, Y(p[1]) + 0.13, lw, t.includes("\n") ? 0.45 : 0.25, { size: 12, bold: true, color: c, align: "center", valign: "top" });
+  });
+  caption(sl, "Side view along the A–C diagonal; same floor spot (room centre), two heights. Example obstacle, checked with the planner's own test.",
+          x, y + h - 0.55, w);
+}
+
 const R = f => P("docs/presentation/deck_assets/renders", f);
 const PH = f => P("docs/presentation/photos", f);
 const FG = f => path.join(FIGDIR, f);
@@ -209,10 +318,11 @@ content("Goal: pick laundry off the floor anywhere in an 11 × 9 ft room", [
                  ["Homing and calibration", "Bead homing, why it limited the motion, the camera-based method"],
                  ["The claw", "Gripper evolution, the four-bar hands, overhead camera to claw camera, weight vs lift"],
                  ["Manufacturing", "Printed PETG parts, and a heat fin cut and drilled on a manual mill"],
-                 ["Electronics and software", "Station board, bring-up, control and the phone app"],
+                 ["Electronics", "Station board and a bring-up lesson"],
+                 ["Control logic", "First logic vs final logic, one run end to end, the phone app, obstacles"],
                  ["Status and next steps", "First test, what is built, what I learned"]];
   items.forEach(([t, s], i) => {
-    const y = 1.6 + i * 0.75;
+    const y = 1.55 + i * 0.66;
     sl.addText(String(i + 1), { x: M, y, w: 0.6, h: 0.6, fontSize: 24, bold: true, color: HEX.navy, fontFace: "Arial", margin: 0, isTextBox: true });
     sl.addText(t, { x: M + 0.7, y: y - 0.02, w: 10, h: 0.38, fontSize: 21, bold: true, color: HEX.ink, fontFace: "Arial", margin: 0, isTextBox: true });
     sl.addText(s, { x: M + 0.7, y: y + 0.34, w: 10, h: 0.32, fontSize: 15, color: HEX.mid, fontFace: "Arial", margin: 0, isTextBox: true });
@@ -542,7 +652,7 @@ content("The fin was sheared and drilled in one mill setup to hold ±0.1 mm", [
 "One setup from the same two edges means hole-to-hole errors do not stack, so the fin bolts on without reaming.", { split: 0.5 });
 
 // ================================================================================================ section 6
-section(6, "Electronics and software", "The station board, a bring-up lesson, and how the robot is controlled");
+section(6, "Electronics", "The station board and a bring-up lesson");
 
 content("The station board boots safe, and its schematic matches it net for net", [
   "The driver boots disabled (EN pull-up): a reset never steps the motor",
@@ -563,18 +673,74 @@ content("A 1.14 V logic rail, not the code, kept the first motor still", [
 ], { file: [PH("07_bench_wiring_a.jpg"), PH("12_bench_bringup_laptop.jpg")], alt: "Bench wiring and bring-up", caption: "Bench wiring and bring-up" },
 "Lesson: measure before trusting the software's view of the hardware.");
 
-content("The host plans, the stations execute, and the phone confirms moves", [
-  "The host plans paths; the stations execute timed segments; a lost link means hold",
-  "Stop never disables: there is no brake, so faults and pause keep holding torque",
+// ================================================================================================ section 7: control logic
+section(7, "Control logic", "From the first simulator loop to the logic that runs the robot");
+
+content("The first logic trusted its model; the final logic measures, then checks", [
+  "Gen 1 was written against a simulator: the claw was wherever the cables were told to put it",
+  "Real hardware breaks that: lines stretch, pulleys stick, a stepper can skip, anchors are never where the tape says",
+  "So the final logic measures before it trusts and checks after it acts",
+  "Each row on the right came from a problem earlier in this talk: wiring, homing, the camera",
+  "Kept from gen 1: the cable maths, the state-machine idea, the YOLO-World detector",
+], (sl, x, y, w, h) => logicTable(sl, x, y + 0.05, w),
+"Same robot, different stance: gen 1 assumed, the final logic verifies. The detector and the kinematics carried over unchanged.",
+{ split: 0.38, size: 17 });
+
+content("Five layers run the robot, and only the bottom one turns a motor", [
+  "Each layer talks only to the layers next to it",
+  "The phone never moves a motor: it asks the supervisor",
+  "The supervisor holds the one robot state and refuses commands that do not fit it",
+  "Startup and tasks decide what to do; the planner checks whether it is safe to do it",
+  "Stations run the motion on their own clocks and stop together if the host goes quiet",
+  "The claw obeys: it grips only when the host approves",
+], (sl, x, y, w, h) => layerStack(sl, x, y, w, h),
+"Zoomed out: phone, supervisor, startup and tasks, planner and coordinator, stations. The claw is a sensor plus a gripper that obeys.",
+{ split: 0.44, size: 17, eq: { lines: [
+  "Every path point **p**_k:  L_i = ‖**a**_i − **p**_k‖,   T_{min} ≤ T_i ≤ T_{max}",
+  "No host message for t > t_{lease}  →  coordinated hold",
+], note: "Tension includes the claw, the 0.9 kg payload and 2 m/s²; lease 0.3 s in simulation" } });
+
+{
+  const sl = pres.addSlide({ masterName: "CONTENT", sectionTitle: SECTION_NAME });
+  head(sl, SECTION_NAME, "One run: start up and calibrate, then pick, check and deliver each item");
+  runCycle(sl, M, 1.62, W - 2 * M, 4.28);
+  bullets(sl, [
+    "Every step has a limit and a check; a check that fails stops the run instead of guessing",
+    "A servo command proves nothing: the camera confirms both the pickup and the delivery",
+  ], M, 6.0, W - 2 * M, 0.9, 16);
+  sl.addNotes("The whole operating logic on one slide. Startup is the calibration from section 3. Find and pick-and-deliver repeat per item, " +
+              "nearest first. Grips wait until the claw stops swinging (pendulum dwell). Lowering ends with a vision floor check, and disarm needs " +
+              "both a typed confirmation and a fresh floor check, because releasing torque drops a hanging claw. Simulated end to end; the first " +
+              "hardware test runs the startup and a short move only.");
+}
+
+content("The phone is the operator's only control, and every move asks first", [
   "Phone app over home Wi-Fi: robot status, live claw camera, guided setup, chat",
-  "- anything that moves the robot asks “yes” first; pause runs at once",
+  "Anything that moves the robot asks “yes” first; PAUSE runs at once",
+  "PAUSE holds position; the switched power strip is the one hard stop",
+  "A reboot never resumes a task: the operator starts again",
   "Tested in a full simulator of the stations and the claw",
 ], { file: [P("docs/app_screenshots/01_home.png"), P("docs/app_screenshots/02_camera.png"), P("docs/app_screenshots/04_chat.png")],
      alt: "Phone app screens", caption: "Phone app: home, camera, chat" },
 "The software was built against a simulator first, so faults like lost messages and reboots were exercised before hardware.", { split: 0.48 });
 
-// ================================================================================================ section 7
-section(7, "Status and next steps");
+content("It plans around known obstacles but cannot yet detect new ones", [
+  "Known obstacles (shelf, lamp, ceiling fan) are entered as keep-out cylinders",
+  "Before any motion, every path point is checked: each cable line against each cylinder",
+  "- plus walls 0.2 m, pulleys 0.4 m, task height 1.6 m, cable tension",
+  "A path that fails is refused before the robot moves; it is not re-routed yet",
+  "While moving it detects a jammed or stalled cable (encoder) and a failed grip (camera)",
+  "It cannot yet see a person, a pet or a moved chair: the camera looks down and has no depth",
+  "- so: nobody under the robot, PAUSE, and the power strip",
+], (sl, x, y, w, h) => obstacleSide(sl, x, y, w, h),
+"Gen 1 had the same idea for the ceiling fan. Next steps: skip an unreachable item instead of stopping, keep-out zones drawn in the app, and furniture footprints mapped from the claw camera's scans.",
+{ split: 0.5, size: 16, eq: { lines: [
+  "Cable i:  **q**(s) = **a**_i + s (**b**_i − **a**_i),   0 ≤ s ≤ 1",
+  "Hit if  z_{low} ≤ q_z ≤ z_{high}  and  (q_x − x_c)² + (q_y − y_c)² ≤ r²",
+], note: "a: pulley exit;  b: the cable's hole on the claw;  checked at points along each cable" } });
+
+// ================================================================================================ section 8
+section(8, "Status and next steps");
 
 content("First test: self-calibration and a short move on the real hardware", [
   "Stations up in studs, powered from the switched power strip",

@@ -809,6 +809,8 @@ def print_housing_report(rep):
 # HOUSING with the THREE-CABLE holes ("_34", spec section 5): measurements, renders, build
 # --------------------------------------------------------------------------------------------------------------------
 STEP_NAME_34 = "gripper1021_housing_cambay_34"
+CLOSEUP_AZ_OFFSET_DEG = 32.0       # close-up camera: turned this far from the wall normal (about the vertical) ...
+CLOSEUP_ELEV_DEG = 18.0            # ... and raised this far, so the chamfer and the deboss walls are lit
 
 
 def housing34_load():
@@ -884,11 +886,17 @@ def housing34_keepouts(G, orig, new_removed_holes, added, cover):
                 return False
             n, c = f.normalAt(), f.Center()
             on_outer = n.dot(own["normal"]) > 0.999 and abs(c.dot(own["normal"]) - G.BOX_UPPER_HALF) < 1e-3
-            on_inner = n.dot(own["normal"]) < -0.999 and abs(c.dot(own["normal"]) + G.POCKET_HALF) < 1e-3
+            on_inner = n.dot(own["normal"]) < -0.999 and abs(c.dot(own["normal"]) - G.POCKET_HALF) < 1e-3     # pocket wall: normal points into the pocket
             return on_outer or on_inner
+        own_faces = [f for f in faces if own_face(f)]
         others = [f for f in faces if not own_face(f)]
+        # faces that share an edge with the hole's own wall faces (outer / pocket corner fillets tangent to the wall, the blend, the rim)
+        adjacent = [f for f in others if any(e1.isSame(e2) for e1 in f.Edges() for o_ in own_faces for e2 in o_.Edges())]
+        far = [f for f in others if not any(f.isSame(a) for a in adjacent)]
         dmin, dface = min(((hs.distance(f), f) for f in others), key=lambda t: t[0])
+        dfar, dface_far = min(((hs.distance(f), f) for f in far), key=lambda t: t[0])
         bb = dface.BoundingBox()
+        bbf = dface_far.BoundingBox()
         out[hid] = {
             "corner_holes": min(hs.distance(c) for c in corner),
             "wire_window": hs.distance(window),
@@ -899,6 +907,8 @@ def housing34_keepouts(G, orig, new_removed_holes, added, cover):
             "tube_hole": min(hs.distance(f) for f in tube),
             "any_other_face_of_jaspers_housing": dmin,
             "nearest_other_face": f"{dface.geomType()} area {dface.Area():.1f} bbox x[{bb.xmin:.1f},{bb.xmax:.1f}] y[{bb.ymin:.1f},{bb.ymax:.1f}] z[{bb.zmin:.1f},{bb.zmax:.1f}]",
+            "any_face_not_adjacent_to_own_wall": dfar,
+            "nearest_non_adjacent_face": f"{dface_far.geomType()} area {dface_far.Area():.1f} bbox x[{bbf.xmin:.1f},{bbf.xmax:.1f}] y[{bbf.ymin:.1f},{bbf.ymax:.1f}] z[{bbf.zmin:.1f},{bbf.zmax:.1f}]",
         }
     return out
 
@@ -909,6 +919,9 @@ def housing34_report():
     o, b, n, cv = orig.val(), base.val(), new.val(), cover.val()
     fr = G.tri_hole_frames()
     petg = P.GRIP1021_PETG_G_CM3 / 1000.0
+    up = cq.Vector(0.0, 1.0, 0.0)
+    r, k = G.TRI_R, G.TRI_TIP_K
+    c_ = P.CAMBAY1021_TRI_CHAMFER
     rep = {"valid": n.isValid(), "solids": len(new.solids().vals())}
     bb0, bb1 = b.BoundingBox(), n.BoundingBox()
     rep["bbox_current"] = [bb0.xmin, bb0.xmax, bb0.ymin, bb0.ymax, bb0.zmin, bb0.zmax]
@@ -918,20 +931,23 @@ def housing34_report():
     removed, added_ = b.cut(n), n.cut(b)
     rep["removed_total_mm3"], rep["added_total_mm3"] = removed.Volume(), added_.Volume()
     rep["mass_removed_g"] = removed.Volume() * petg
-    # --- the removed solids: three holes and three labels
-    solids = removed.Solids()
+
+    # --- the removed solids are the three holes and the three labels
     holes, labels = {}, {}
-    for s_ in solids:
+    for s_ in removed.Solids():
         c = s_.BoundingBox()
-        bucket = holes if c.ymax <= 44.6 else labels
+        is_hole = c.ymax <= 44.6
         mid = cq.Vector((c.xmin + c.xmax) / 2, (c.ymin + c.ymax) / 2, (c.zmin + c.zmax) / 2)
-        hid = min(fr, key=lambda k: (fr[k]["outer"] + cq.Vector(0.0, 0.0 if bucket is holes else P.CAMBAY1021_TRI_LABEL_ABOVE, 0.0) - mid).Length)
-        bucket[hid] = s_
-    rep["removed_solids"] = {"holes": len(holes), "labels": len(labels), "total": len(solids)}
-    r, k = G.TRI_R, G.TRI_TIP_K
+        ref = lambda f: f["outer"] + up * (0.0 if is_hole else P.CAMBAY1021_TRI_LABEL_ABOVE)
+        hid = min(fr, key=lambda h: (ref(fr[h]) - mid).Length)
+        (holes if is_hole else labels)[hid] = s_
+    rep["removed_solids"] = {"holes": len(holes), "labels": len(labels), "total": len(removed.Solids())}
+    assert len(holes) == 3 and len(labels) == 3, rep["removed_solids"]
+
+    # --- holes
+    rep["holes"] = {}
     for hid, f in fr.items():
         d = {}
-        # axis measured on the bore's cylindrical face
         cyl = measured_cylinder_axes(n, f["outer"], r)
         assert len(cyl) == 1, (hid, len(cyl))
         p0, dd, rad = cyl[0]
@@ -946,93 +962,78 @@ def housing34_report():
         d["outer_mouth_error_mm"] = (outer_m - f["outer"]).Length
         d["inner_mouth_error_mm"] = (inner_m - f["inner"]).Length
         d["wall_length_expected"], d["wall_length_measured"] = f["length"], (outer_m - inner_m).Length
-        # volume removed by the hole (boolean difference to the current housing)
-        hv = holes[hid].Volume()
-        L = f["length"]
-        plain = math.pi * r * r * L
-        tear = G.teardrop_area() * L
-        d["removed_mm3"] = hv
-        d["plain_bore_mm3"], d["teardrop_bore_mm3"] = plain, tear
+        # volume removed (boolean difference to the current housing) against a Ø2 bore of the wall length and the analytic teardrop
+        hv, L = holes[hid].Volume(), f["length"]
+        plain, tear = math.pi * r * r * L, G.teardrop_area() * L
+        d["removed_mm3"], d["plain_bore_mm3"], d["teardrop_bore_mm3"] = hv, plain, tear
         d["ratio_to_plain_bore"] = hv / plain
         d["chamfer_extra_mm3"] = hv - tear
-        # bore only: the part of the removed solid deeper than the chamfer (wall-normal coordinate 40 .. 44.2), against the plain bore of that length
-        depth_hi = G.BOX_UPPER_HALF - 0.8
-        slab = cq.Workplane(cq.Plane(origin=f["outer"], xDir=f["reading_dir"], normal=f["normal"])).rect(40.0, 40.0).extrude(-(depth_hi * 0 + (G.BOX_UPPER_HALF - G.POCKET_HALF) - 0.8)).val()
+        # the bore proper: removed material deeper than the chamfer (wall-normal coordinate 40 .. 44.2) against a plain bore of that length
+        n_hi = G.BOX_UPPER_HALF - 0.8
+        slab = (cq.Workplane(cq.Plane(origin=f["outer"] - f["normal"] * (G.BOX_UPPER_HALF - n_hi), xDir=f["reading_dir"], normal=f["normal"]))
+                .rect(40.0, 40.0).extrude(-(n_hi - G.POCKET_HALF)).val())
         deep = holes[hid].intersect(slab).Volume()
-        deep_len = (G.BOX_UPPER_HALF - 0.8 - G.POCKET_HALF) / abs(f["normal"].dot(f["axis"]))
+        deep_len = (n_hi - G.POCKET_HALF) / abs(f["normal"].dot(f["axis"]))
         d["deep_bore_mm3"], d["deep_bore_ratio_to_plain"] = deep, deep / (math.pi * r * r * deep_len)
         d["deep_bore_ratio_expected_teardrop"] = G.teardrop_area() / (math.pi * r * r)
-        # probes on the built solid: empty along the axis, circle and tip, solid just outside
-        mid = (f["outer"] + f["inner"]) * 0.5
-        up, tg = cq.Vector(0, 1, 0), f["reading_dir"]
-        P_ = lambda h, u, base_=mid: base_ + up * h + tg * u
-        probes = {
+        # probes on the built solid at mid-wall (bore, circle, tip, flank) and at the bottom lip (0.5 x 45 deg chamfer)
+        mid, tg = (f["outer"] + f["inner"]) * 0.5, up.cross(f["axis"])           # profile frame of the bore: u horizontal, perpendicular to the AXIS (not the wall)
+        at = lambda h, u, m=mid, tg=tg: (m + up * h + tg * u).toTuple()
+        ang = (-1.2, -1.57, -1.9, 0.0, math.pi)
+        lip = lambda depth, dy, f=f: (f["outer"] - f["normal"] * depth + up * (-r - c_ + depth + dy)).toTuple()
+        d["probes"] = {
             "axis_empty": all(not _inside(n, (mid + f["axis"] * t).toTuple()) for t in (-2.4, -1.0, 0.0, 1.0, 2.4)),
-            "circle_empty_r0p98": all(not _inside(n, P_(0.98 * math.sin(a), 0.98 * math.cos(a)).toTuple()) for a in (-1.2, -1.57, -1.9, 0.0, 3.1416)),
-            "outside_circle_solid_r1p02": all(_inside(n, P_(1.02 * math.sin(a), 1.02 * math.cos(a)).toTuple()) for a in (-1.2, -1.57, -1.9, 0.0, 3.1416)),
-            "tip_empty_1p30_above_axis": not _inside(n, P_(1.30, 0.0).toTuple()),
-            "tip_solid_1p50_above_axis": _inside(n, P_(1.50, 0.0).toTuple()),
-            "flank_empty_below_line": not _inside(n, P_(r / math.sin(k) - 0.5 - 0.05, 0.5).toTuple()),
-            "flank_solid_above_line": _inside(n, P_(r / math.sin(k) - 0.5 + 0.05, 0.5).toTuple()),
+            "circle_empty_r0p98": all(not _inside(n, at(0.98 * math.sin(a), 0.98 * math.cos(a))) for a in ang),
+            "outside_circle_solid_r1p02": all(_inside(n, at(1.02 * math.sin(a), 1.02 * math.cos(a))) for a in ang),
+            "tip_empty_1p30_above_axis": not _inside(n, at(1.30, 0.0)),
+            "tip_solid_1p50_above_axis": _inside(n, at(1.50, 0.0)),
+            "flank_empty_below_line": not _inside(n, at(r / math.sin(k) - 0.5 - 0.05, 0.5)),
+            "flank_solid_above_line": _inside(n, at(r / math.sin(k) - 0.5 + 0.05, 0.5)),
+            "chamfer_empty_inside_cone": all(not _inside(n, lip(dp, +0.05)) for dp in (0.1, 0.25, 0.4)),
+            "chamfer_solid_below_cone": all(_inside(n, lip(dp, -0.05)) for dp in (0.1, 0.25, 0.4)),
         }
-        # chamfer 0.5 x 45 deg at the lateral centre of the bottom lip: line y = (axis_y - r - c) + depth
-        c_ = P.CAMBAY1021_TRI_CHAMFER
-        def lip(depth, dy, f=f):
-            return f["outer"] - f["normal"] * depth + up * (-r - c_ + depth + dy)
-        probes["chamfer_empty_inside_cone"] = all(not _inside(n, lip(dp, +0.05).toTuple()) for dp in (0.1, 0.25, 0.4))
-        probes["chamfer_solid_below_cone"] = all(_inside(n, lip(dp, -0.05).toTuple()) for dp in (0.1, 0.25, 0.4))
-        d["probes"] = probes
-        rep.setdefault("holes", {})[hid] = d
-    # --- labels
+        rep["holes"][hid] = d
+
+    # --- labels: size, position, depth, and reading direction (centroid of the debossed letter against its bounding-box centre)
+    rep["labels"] = {}
     for hid, f in fr.items():
         ls = labels[hid]
         c = ls.BoundingBox()
-        centre = cq.Vector((c.xmin + c.xmax) / 2, (c.ymin + c.ymax) / 2, (c.zmin + c.zmax) / 2)
-        exp_c = f["outer"] + cq.Vector(0.0, P.CAMBAY1021_TRI_LABEL_ABOVE, 0.0)
-        ext_n = max((cq.Vector(*v) - f["outer"]).dot(f["normal"]) for v in [(c.xmin, c.ymin, c.zmin), (c.xmax, c.ymax, c.zmax), (c.xmin, c.ymin, c.zmax), (c.xmax, c.ymax, c.zmin)])
-        ext_n2 = min((cq.Vector(*v) - f["outer"]).dot(f["normal"]) for v in [(c.xmin, c.ymin, c.zmin), (c.xmax, c.ymax, c.zmax), (c.xmin, c.ymin, c.zmax), (c.xmax, c.ymax, c.zmin)])
-        tg = f["reading_dir"]
-        width = max(abs((cq.Vector(*v) - centre).dot(tg)) for v in [(c.xmin, c.ymin, c.zmin), (c.xmax, c.ymax, c.zmax), (c.xmin, c.ymin, c.zmax), (c.xmax, c.ymax, c.zmin)]) * 2
-        # reading test: probe the stroke pattern of the letter in the label frame (u along the reading direction, h up)
-        def lp(u, h, f=f, centre=centre):
-            return (centre + f["reading_dir"] * u + cq.Vector(0, 1, 0) * h + f["normal"] * 0.0)
-        wall_pt = lambda u, h: lp(u, h) + f["normal"] * (-(P.CAMBAY1021_TRI_LABEL_DEPTH / 2))            # mid-depth of the deboss
-        pat = {}
-        if hid == "A":       # apex at the top centre, two legs at the bottom
-            pat = {"apex_top_centre_cut": not _inside(n, wall_pt(0.0, 1.5).toTuple()), "legs_bottom_cut": (not _inside(n, wall_pt(-1.2, -1.7).toTuple())) and (not _inside(n, wall_pt(1.2, -1.7).toTuple())),
-                   "top_corners_not_cut": _inside(n, wall_pt(-1.2, 1.7).toTuple()) and _inside(n, wall_pt(1.2, 1.7).toTuple())}
-        elif hid == "B":     # vertical stem on the left, bowls to the right
-            pat = {"stem_left_cut": not _inside(n, wall_pt(-0.9, 0.0).toTuple()), "left_of_stem_not_cut": _inside(n, wall_pt(-1.6, 0.0).toTuple()),
-                   "bowl_right_cut": not _inside(n, wall_pt(0.95, 1.6).toTuple()) or not _inside(n, wall_pt(1.0, -1.6).toTuple())}
-        else:                # C: opening to the right, stroke on the left
-            pat = {"stroke_left_cut": not _inside(n, wall_pt(-1.35, 0.0).toTuple()), "opening_right_not_cut": _inside(n, wall_pt(1.2, 0.0).toTuple())}
-        rep.setdefault("labels", {})[hid] = {"height_mm": c.ymax - c.ymin, "width_mm": width, "centre_error_mm": (centre - exp_c).Length if False else
-                                             math.hypot((centre - exp_c).dot(tg), centre.y - exp_c.y), "depth_mm": ext_n - ext_n2 if False else -ext_n2,
-                                             "volume_mm3": ls.Volume(), "reading_pattern": pat}
+        in_x = abs(f["normal"].x) > 0.5                                  # wall normal along x -> tangent along z
+        depth = (c.xmax - c.xmin) if in_x else (c.zmax - c.zmin)
+        width = (c.zmax - c.zmin) if in_x else (c.xmax - c.xmin)
+        bbc = cq.Vector((c.xmin + c.xmax) / 2, (c.ymin + c.ymax) / 2, (c.zmin + c.zmax) / 2)
+        exp_c = f["outer"] + up * P.CAMBAY1021_TRI_LABEL_ABOVE
+        com = ls.Center()
+        rep["labels"][hid] = {
+            "height_mm": c.ymax - c.ymin, "width_mm": width, "depth_mm": depth, "volume_mm3": ls.Volume(),
+            "centre_error_mm": math.hypot((bbc - exp_c).dot(f["reading_dir"]), bbc.y - exp_c.y),
+            "centroid_offset_reading_mm": (com - bbc).dot(f["reading_dir"]), "centroid_offset_up_mm": com.y - bbc.y,
+            "normal_extent_mm": [(cq.Vector(c.xmin, c.ymin, c.zmin) - f["outer"]).dot(f["normal"]), (cq.Vector(c.xmax, c.ymax, c.zmax) - f["outer"]).dot(f["normal"])],
+        }
+
     # --- keep-outs and confinement
-    added = n.cut(o)                                                   # material the bay adds (housing + bay + holes minus Jasper's housing)
-    hs_min = housing34_keepouts(G, orig, holes, G.make_bay_body().val(), cv)
-    rep["keepouts_mm"] = hs_min
-    zone = []
+    rep["keepouts_mm"] = housing34_keepouts(G, orig, holes, G.make_bay_body().val(), cv)
     conf = P.CAMBAY1021_TRI_CONFINE
+    zone = None
     for hid, f in fr.items():
-        zone.append(cq.Solid.makeCylinder(r + conf, f["length"] + 2 * conf, f["inner"] - f["axis"] * conf, f["axis"]))
-        lab_c = f["outer"] + cq.Vector(0.0, P.CAMBAY1021_TRI_LABEL_ABOVE, 0.0)
-        box = cq.Workplane(cq.Plane(origin=lab_c, xDir=f["reading_dir"], normal=f["normal"])).rect(P.CAMBAY1021_TRI_LABEL_H * 1.5 + 2 * conf, P.CAMBAY1021_TRI_LABEL_H + 2 * conf).extrude(-(G.BOX_UPPER_HALF - G.POCKET_HALF + conf)).val()
-        zone.append(box)
-    z = zone[0]
-    for s_ in zone[1:]:
-        z = z.fuse(s_)
-    rep["removed_outside_confinement_mm3"] = removed.cut(z).Volume()
-    rep["added_outside_confinement_mm3"] = added_.Volume()
-    # --- corner holes and bay unchanged: same removed/added test against the sub-features
+        cyl = cq.Solid.makeCylinder(r + conf, f["length"] + 2 * conf, f["inner"] - f["axis"] * conf, f["axis"])
+        lab_c = f["outer"] + up * P.CAMBAY1021_TRI_LABEL_ABOVE
+        box = (cq.Workplane(cq.Plane(origin=lab_c, xDir=f["reading_dir"], normal=f["normal"]))
+               .rect(P.CAMBAY1021_TRI_LABEL_H * 1.5 + 2 * conf, P.CAMBAY1021_TRI_LABEL_H + 2 * conf)
+               .extrude(-(G.BOX_UPPER_HALF - G.POCKET_HALF + conf)).val())
+        for part in (cyl, box):
+            zone = part if zone is None else zone.fuse(part)
+    rep["removed_outside_confinement_mm3"] = removed.cut(zone).Volume()
     pocket = cq.Solid.makeBox(2 * G.POCKET_HALF, 50.0, 2 * G.POCKET_HALF, cq.Vector(-G.POCKET_HALF, G.POCKET_FLOOR_Y, -G.POCKET_HALF))
-    rep["removed_in_pocket_mm3"] = removed.intersect(pocket).Volume()
-    # --- body frame points (m)
-    rep["body_frame_m"] = {hid: {"outer_mouth": body_frame_m(G, rep["holes"][hid] and cq.Vector(*rep["holes"][hid]["outer_mouth_measured"])),
+    rep["removed_in_pocket_mm3"] = removed.intersect(pocket).Volume()    # the holes pass through the pocket wall plane only; their stubs are not in the part
+
+    # --- the attachment points in the claw body frame (m)
+    rep["body_frame_m"] = {hid: {"outer_mouth": body_frame_m(G, cq.Vector(*rep["holes"][hid]["outer_mouth_measured"])),
                                   "inner_mouth": body_frame_m(G, cq.Vector(*rep["holes"][hid]["inner_mouth_measured"]))} for hid in fr}
     rep["corner_holes_body_m"] = corner_hole_points_body_m()
-    # --- exports: STEP re-import, STL orientation
+
+    # --- exports: STEP re-import
     paths = G.export_all_34(STEP_DIR, STL_DIR)
     rep["reimport"] = reimport_check(paths[STEP_NAME_34]["step"], G.to_world(n))
     rep["exports"] = paths
@@ -1069,9 +1070,9 @@ def housing34_renders():
         mesh = tessellate(near, 0.01, 0.1)
         # camera azimuth in the up='y' plot frame (plot x = x, plot y = -z): the outward wall normal sets it
         nx, nz = f["normal"].x, f["normal"].z
-        az = math.degrees(math.atan2(-nz, nx))
+        az = math.degrees(math.atan2(-nz, nx)) + CLOSEUP_AZ_OFFSET_DEG          # looking at the outer wall, turned a little so the recesses shade
         path = os.path.join(REND_DIR, f"{STEP_NAME_34}_closeup_{hid}.png")
-        render([mesh + (BLUE, 1.0)], path, 12, az, f"T_{hid}: teardrop hole, chamfer and label (outer wall, box upright)",
+        render([mesh + (BLUE, 1.0)], path, CLOSEUP_ELEV_DEG, az, f"T_{hid}: teardrop hole, chamfer and label (outer wall, box upright)",
                bounds=((c.x - half, c.y - half, c.z - half), (c.x + half, c.y + half, c.z + half)), up="y", dpi=150, size=(6, 6))
         paths.append(path)
     return paths
@@ -1111,7 +1112,8 @@ def print_housing34_report(rep):
         ko = rep["keepouts_mm"][hid]
         print("      keep-outs mm:", {k: (round(v, 2) if not isinstance(v, str) else v) for k, v in ko.items()})
     for hid, d in rep["labels"].items():
-        print(f"[label {hid}] height {d['height_mm']:.3f} width {d['width_mm']:.3f} centre err {d['centre_error_mm']:.3f} depth {d['depth_mm']:.3f} vol {d['volume_mm3']:.3f}; reading {d['reading_pattern']}")
+        print(f"[label {hid}] height {d['height_mm']:.3f} width {d['width_mm']:.3f} depth {d['depth_mm']:.3f} centre err {d['centre_error_mm']:.3f} vol {d['volume_mm3']:.3f}; "
+              f"centroid vs bbox centre: reading {d['centroid_offset_reading_mm']:+.3f} up {d['centroid_offset_up_mm']:+.3f}")
     print("body frame (m) outer mouths:", {k: f3(v["outer_mouth"]) for k, v in rep["body_frame_m"].items()})
     print("body frame (m) inner mouths:", {k: f3(v["inner_mouth"]) for k, v in rep["body_frame_m"].items()})
     print("corner holes body (m):", {k: {kk: f3(vv) for kk, vv in v.items()} for k, v in rep["corner_holes_body_m"].items()})

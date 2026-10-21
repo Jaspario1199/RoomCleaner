@@ -1,0 +1,598 @@
+{
+ "model": "\nCable-line clearance for the THREE-CABLE holes of the Gripper 1021 electrical housing (cad/GRIPPER_1021_SPEC.md section 5).\nAdapted from scripts/analyze_cable_lines_claw_camera_bay.py (that script is unchanged and still analyses the v6 corner holes).\n\nRun:  /usr/bin/python3 scripts/analyze_cable_lines_housing_34.py\nReads config/robot.sim.json (room size, workspace_margin_m, ceiling_margin_m) -- read-only.\nWrites verification/gripper1021_housing_34_cable_lines.json\n\nModel\n  * Hole k (C, A, B) leaves the housing at its OUTER mouth centre (box frame, cad.parts.gripper1021_housing_cambay.tri_hole_frames()).\n    The line runs from that mouth straight to the station anchor prior (CAMBAY1021_TRI_ANCHORS_ROOM_M, docs/THREE_STATION_MODE_SPEC.md).\n  * Room frame: x east, y north, z up.  Claw yaw psi rotates the box frame about the vertical: box +x -> room (cos psi, sin psi),\n    box +z -> room (sin psi, -cos psi), so body +y = -box z = room +y at psi = 0 (the bay, and hole C, face room +y = station C).\n  * Claw reference = the tube axis at the height of the three outer mouths (box y = CAMBAY1021_TRI_Y).  Workspace, as the spec says:\n    floor projection inside the A-B-C triangle AND the wall margin (0.2 m), heights from the lowest working height (closed fingertip\n    on the floor: mouth height - GRIP1021_TIP_Y) to 0.4 m below the anchors; claw yaw -15 .. +15 deg.\n  * A line is FEASIBLE if it leaves the housing, i.e. its direction has a positive component along the hole's outward wall normal.\n    Lines that would have to run back into the housing are physically impossible for that pose and are counted, not scored.\n  * Clearance of a line = minimum distance from the line (mouth -> anchor) to every exterior surface of housing + bay + cover,\n    EXCEPT the line's own outer wall face (the flat wall region around its mouth, incl. its bore, chamfer and label): a line that\n    leaves a wall never meets that wall's face again, so \"away from its own mouth\" = everything but its own wall face.  The pocket\n    (interior) surfaces are excluded too: the cable is outside the housing.  The wall's top rim edge is NOT excluded.\n  * Surface sampled at <= SAMPLE_AREA mm2 per point plus its edges at <= EDGE_STEP mm; distances from a KD-tree, the line sampled every\n    LINE_STEP mm over its first LINE_LEN mm (the housing is within 160 mm of every mouth).  Sampling error: distances over-estimate by\n    less than about 0.3 mm.\n",
+ "workspace": {
+  "floor_positions": 185,
+  "heights_m": [
+   0.5582,
+   0.7918,
+   1.0253,
+   1.2589,
+   1.4925,
+   1.7261,
+   1.9596,
+   2.1932
+  ],
+  "yaws_deg": [
+   -15.0,
+   -7.5,
+   0.0,
+   7.5,
+   15.0
+  ],
+  "room_m": [
+   3.3528,
+   2.7432
+  ],
+  "wall_margin_m": 0.2,
+  "ceiling_margin_m": 0.4,
+  "z_anchor_m": 2.5932
+ },
+ "totals": {
+  "C": {
+   "lines": 7400,
+   "feasible": 7400,
+   "infeasible": 0
+  },
+  "A": {
+   "lines": 7400,
+   "feasible": 7400,
+   "infeasible": 0
+  },
+  "B": {
+   "lines": 7400,
+   "feasible": 7400,
+   "infeasible": 0
+  }
+ },
+ "sample_points": 682309,
+ "required_min_mm": 5.0,
+ "min_distance_mm": 0.262,
+ "min_at": {
+  "hole": "A",
+  "claw_xyz_m": [
+   0.2,
+   0.293778,
+   0.5581904999999999
+  ],
+  "yaw_deg": -14.999999999999998,
+  "line_elevation_deg": 82.97,
+  "angle_to_hole_axis_deg": 51.57,
+  "nearest_point_box_mm": [
+   -45.0,
+   55.0,
+   27.62
+  ],
+  "nearest_part": "box rim (top edge)",
+  "line_length_m": 2.05
+ },
+ "min_distance_bay_cover_only_mm": 12.729,
+ "lines_below_required": 2856,
+ "lines_scored": 22200,
+ "lines_touching_below_0p5mm": 18,
+ "per_hole": {
+  "C": {
+   "min_distance_mm": 0.489,
+   "lines_scored": 7400,
+   "lines_below_required": 472,
+   "at_claw_xyz_m": [
+    1.584103,
+    2.5432,
+    0.5581904999999999
+   ],
+   "yaw_deg": 14.999999999999998,
+   "elevation_deg": 85.82,
+   "angle_to_axis_deg": 59.3,
+   "nearest_part": "box rim (top edge)"
+  },
+  "A": {
+   "min_distance_mm": 0.262,
+   "lines_scored": 7400,
+   "lines_below_required": 1200,
+   "at_claw_xyz_m": [
+    0.2,
+    0.293778,
+    0.5581904999999999
+   ],
+   "yaw_deg": -14.999999999999998,
+   "elevation_deg": 82.97,
+   "angle_to_axis_deg": 51.57,
+   "nearest_part": "box rim (top edge)"
+  },
+  "B": {
+   "min_distance_mm": 0.262,
+   "lines_scored": 7400,
+   "lines_below_required": 1184,
+   "at_claw_xyz_m": [
+    3.1528,
+    0.293778,
+    0.5581904999999999
+   ],
+   "yaw_deg": 14.999999999999998,
+   "elevation_deg": 82.97,
+   "angle_to_axis_deg": 51.57,
+   "nearest_part": "box rim (top edge)"
+  }
+ },
+ "min_distance_by_elevation_deg": {
+  "0-10": {
+   "lines": 955,
+   "min_mm": 2.53,
+   "below_required": 81
+  },
+  "10-20": {
+   "lines": 3860,
+   "min_mm": 2.43,
+   "below_required": 291
+  },
+  "20-30": {
+   "lines": 4676,
+   "min_mm": 2.48,
+   "below_required": 359
+  },
+  "30-40": {
+   "lines": 5519,
+   "min_mm": 2.39,
+   "below_required": 395
+  },
+  "40-50": {
+   "lines": 3574,
+   "min_mm": 2.47,
+   "below_required": 237
+  },
+  "50-60": {
+   "lines": 1853,
+   "min_mm": 1.2,
+   "below_required": 191
+  },
+  "60-70": {
+   "lines": 1003,
+   "min_mm": 0.76,
+   "below_required": 542
+  },
+  "70-80": {
+   "lines": 547,
+   "min_mm": 0.36,
+   "below_required": 547
+  },
+  "80-90": {
+   "lines": 213,
+   "min_mm": 0.26,
+   "below_required": 213
+  }
+ },
+ "min_distance_by_angle_to_axis_deg": {
+  "0-15": {
+   "lines": 10368,
+   "min_mm": 0.79,
+   "below_required": 528
+  },
+  "15-30": {
+   "lines": 7824,
+   "min_mm": 0.54,
+   "below_required": 860
+  },
+  "30-45": {
+   "lines": 3784,
+   "min_mm": 0.41,
+   "below_required": 1391
+  },
+  "45-60": {
+   "lines": 224,
+   "min_mm": 0.26,
+   "below_required": 77
+  }
+ },
+ "min_at_bay_cover_only": {
+  "hole": "C",
+  "claw_xyz_m": [
+   0.2,
+   0.2,
+   0.558
+  ],
+  "yaw_deg": -14.999999999999998,
+  "elevation_deg": 35.5
+ },
+ "min_distance_mm_for_elevation_at_most_and_angle_to_axis_at_most": {
+  "elev<=30,angle<=10": 6.95,
+  "elev<=30,angle<=15": 6.42,
+  "elev<=30,angle<=20": 5.84,
+  "elev<=30,angle<=30": 4.55,
+  "elev<=30,angle<=45": 2.43,
+  "elev<=45,angle<=10": 6.95,
+  "elev<=45,angle<=15": 6.42,
+  "elev<=45,angle<=20": 5.84,
+  "elev<=45,angle<=30": 4.54,
+  "elev<=45,angle<=45": 2.43,
+  "elev<=60,angle<=10": 5.32,
+  "elev<=60,angle<=15": 4.97,
+  "elev<=60,angle<=20": 4.69,
+  "elev<=60,angle<=30": 3.99,
+  "elev<=60,angle<=45": 2.15,
+  "elev<=70,angle<=10": 3.53,
+  "elev<=70,angle<=15": 3.3,
+  "elev<=70,angle<=20": 3.11,
+  "elev<=70,angle<=30": 2.44,
+  "elev<=70,angle<=45": 1.36,
+  "elev<=90,angle<=10": 0.79,
+  "elev<=90,angle<=15": 0.79,
+  "elev<=90,angle<=20": 0.68,
+  "elev<=90,angle<=30": 0.54,
+  "elev<=90,angle<=45": 0.41
+ },
+ "lines_below_required_by_part": {
+  "box corner (R10)": 1419,
+  "box rim (top edge)": 1437,
+  "other box surface": 0
+ },
+ "lines_below_required_elevation_range_deg": [
+  7.6,
+  86.2
+ ],
+ "lines_below_required_claw_height_range_m": [
+  0.56,
+  2.19
+ ],
+ "every_line_with_elevation_below_deg_passes": 7.6,
+ "closest_lines": [
+  {
+   "hole": "A",
+   "dist_mm": 0.262,
+   "claw_xyz_m": [
+    0.2,
+    0.294,
+    0.558
+   ],
+   "yaw_deg": -14.999999999999998,
+   "elevation_deg": 83.0,
+   "angle_to_axis_deg": 51.6,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    -45.0,
+    55.0,
+    27.6
+   ]
+  },
+  {
+   "hole": "B",
+   "dist_mm": 0.262,
+   "claw_xyz_m": [
+    3.153,
+    0.294,
+    0.558
+   ],
+   "yaw_deg": 14.999999999999998,
+   "elevation_deg": 83.0,
+   "angle_to_axis_deg": 51.6,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    45.0,
+    55.0,
+    27.6
+   ]
+  },
+  {
+   "hole": "B",
+   "dist_mm": 0.288,
+   "claw_xyz_m": [
+    3.153,
+    0.294,
+    0.792
+   ],
+   "yaw_deg": 14.999999999999998,
+   "elevation_deg": 82.1,
+   "angle_to_axis_deg": 51.6,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    45.0,
+    55.0,
+    27.7
+   ]
+  },
+  {
+   "hole": "A",
+   "dist_mm": 0.307,
+   "claw_xyz_m": [
+    0.2,
+    0.294,
+    0.792
+   ],
+   "yaw_deg": -14.999999999999998,
+   "elevation_deg": 82.1,
+   "angle_to_axis_deg": 51.6,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    -45.0,
+    55.0,
+    27.9
+   ]
+  },
+  {
+   "hole": "A",
+   "dist_mm": 0.326,
+   "claw_xyz_m": [
+    0.2,
+    0.294,
+    1.025
+   ],
+   "yaw_deg": -14.999999999999998,
+   "elevation_deg": 80.9,
+   "angle_to_axis_deg": 51.6,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    -45.0,
+    55.0,
+    28.1
+   ]
+  },
+  {
+   "hole": "B",
+   "dist_mm": 0.326,
+   "claw_xyz_m": [
+    3.153,
+    0.294,
+    1.025
+   ],
+   "yaw_deg": 14.999999999999998,
+   "elevation_deg": 80.9,
+   "angle_to_axis_deg": 51.6,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    45.0,
+    55.0,
+    28.1
+   ]
+  },
+  {
+   "hole": "A",
+   "dist_mm": 0.361,
+   "claw_xyz_m": [
+    0.2,
+    0.294,
+    1.259
+   ],
+   "yaw_deg": -14.999999999999998,
+   "elevation_deg": 79.3,
+   "angle_to_axis_deg": 51.6,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    -45.0,
+    55.0,
+    28.4
+   ]
+  },
+  {
+   "hole": "B",
+   "dist_mm": 0.361,
+   "claw_xyz_m": [
+    3.153,
+    0.294,
+    1.259
+   ],
+   "yaw_deg": 14.999999999999998,
+   "elevation_deg": 79.3,
+   "angle_to_axis_deg": 51.6,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    45.0,
+    55.0,
+    28.4
+   ]
+  },
+  {
+   "hole": "A",
+   "dist_mm": 0.406,
+   "claw_xyz_m": [
+    0.2,
+    0.2,
+    0.558
+   ],
+   "yaw_deg": -14.999999999999998,
+   "elevation_deg": 85.2,
+   "angle_to_axis_deg": 38.8,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    -45.0,
+    55.0,
+    26.9
+   ]
+  },
+  {
+   "hole": "B",
+   "dist_mm": 0.406,
+   "claw_xyz_m": [
+    3.153,
+    0.2,
+    0.558
+   ],
+   "yaw_deg": 14.999999999999998,
+   "elevation_deg": 85.2,
+   "angle_to_axis_deg": 38.8,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    45.0,
+    55.0,
+    26.9
+   ]
+  },
+  {
+   "hole": "A",
+   "dist_mm": 0.44,
+   "claw_xyz_m": [
+    0.2,
+    0.294,
+    1.492
+   ],
+   "yaw_deg": -14.999999999999998,
+   "elevation_deg": 77.2,
+   "angle_to_axis_deg": 51.6,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    -45.0,
+    55.0,
+    28.9
+   ]
+  },
+  {
+   "hole": "B",
+   "dist_mm": 0.44,
+   "claw_xyz_m": [
+    3.153,
+    0.294,
+    1.492
+   ],
+   "yaw_deg": 14.999999999999998,
+   "elevation_deg": 77.2,
+   "angle_to_axis_deg": 51.6,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    45.0,
+    55.0,
+    28.9
+   ]
+  },
+  {
+   "hole": "A",
+   "dist_mm": 0.443,
+   "claw_xyz_m": [
+    0.2,
+    0.2,
+    0.792
+   ],
+   "yaw_deg": -14.999999999999998,
+   "elevation_deg": 84.6,
+   "angle_to_axis_deg": 38.8,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    -45.0,
+    55.0,
+    27.1
+   ]
+  },
+  {
+   "hole": "B",
+   "dist_mm": 0.443,
+   "claw_xyz_m": [
+    3.153,
+    0.2,
+    0.792
+   ],
+   "yaw_deg": 14.999999999999998,
+   "elevation_deg": 84.6,
+   "angle_to_axis_deg": 38.8,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    45.0,
+    55.0,
+    27.1
+   ]
+  },
+  {
+   "hole": "A",
+   "dist_mm": 0.476,
+   "claw_xyz_m": [
+    0.2,
+    0.294,
+    0.558
+   ],
+   "yaw_deg": -7.499999999999999,
+   "elevation_deg": 83.1,
+   "angle_to_axis_deg": 43.0,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    -45.0,
+    55.0,
+    27.4
+   ]
+  },
+  {
+   "hole": "B",
+   "dist_mm": 0.476,
+   "claw_xyz_m": [
+    3.153,
+    0.294,
+    0.558
+   ],
+   "yaw_deg": 7.499999999999999,
+   "elevation_deg": 83.1,
+   "angle_to_axis_deg": 43.0,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    45.0,
+    55.0,
+    27.4
+   ]
+  },
+  {
+   "hole": "C",
+   "dist_mm": 0.489,
+   "claw_xyz_m": [
+    1.584,
+    2.543,
+    0.558
+   ],
+   "yaw_deg": 14.999999999999998,
+   "elevation_deg": 85.8,
+   "angle_to_axis_deg": 59.3,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    0.9,
+    55.0,
+    -45.0
+   ]
+  },
+  {
+   "hole": "C",
+   "dist_mm": 0.489,
+   "claw_xyz_m": [
+    1.769,
+    2.543,
+    0.558
+   ],
+   "yaw_deg": -14.999999999999998,
+   "elevation_deg": 85.8,
+   "angle_to_axis_deg": 59.3,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    -0.9,
+    55.0,
+    -45.0
+   ]
+  },
+  {
+   "hole": "A",
+   "dist_mm": 0.518,
+   "claw_xyz_m": [
+    0.2,
+    0.2,
+    1.025
+   ],
+   "yaw_deg": -14.999999999999998,
+   "elevation_deg": 83.8,
+   "angle_to_axis_deg": 38.8,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    -45.0,
+    55.0,
+    27.4
+   ]
+  },
+  {
+   "hole": "B",
+   "dist_mm": 0.518,
+   "claw_xyz_m": [
+    3.153,
+    0.2,
+    1.025
+   ],
+   "yaw_deg": 14.999999999999998,
+   "elevation_deg": 83.8,
+   "angle_to_axis_deg": 38.8,
+   "part": "box rim (top edge)",
+   "nearest_box_mm": [
+    45.0,
+    55.0,
+    27.4
+   ]
+  }
+ ]
+}

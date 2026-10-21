@@ -210,3 +210,22 @@ threaded through one pattern or the other; the unused holes stay empty.
   - **four stations:** lines through the corner holes, as before;
   - **three stations:** lines through T_A, T_B and T_C; the claw starts with the camera bay facing station C. Inside,
     each line is tied off on a washer or bead larger than the hole: a knot alone can pull through Ø2.
+
+### 5.1 Lead decisions on the implementer's flags (2026-10-21)
+
+1. **Removed volume:** C 17.76 mm³, A and B 20.32 mm³, which is +12 to +13 % over a plain Ø2 bore.
+   - **Accepted.** The excess is this spec's own hole form: the teardrop tip adds +6.8 % and the 0.5 mm chamfer +5 to +6 %. The bore proper is +6.8 %.
+   - The criterion now reads: within 10 % of the designed cutter (bore + teardrop + chamfer). Its purpose stays the same: prove the cut met only wall material.
+2. **Keep-out:** A and B sit 4.98 mm from the pocket's R10 corner fillet.
+   - **Accepted.** The fillet belongs to the same wall the hole is drilled through; it is not an independent feature.
+   - Every independent feature is at least 6.39 mm away (lid-seat ledge); the bay cover is 11.2 mm away.
+3. **Cable-line minimum:** 0.26 mm overall, ≥ 5 mm only up to about 45° elevation.
+   - **Accepted; the criterion was wrong for this layout.** No line enters the claw anywhere: every line leaves its mouth outward and upward.
+   - The near misses are lines that run close past two convex, rounded features:
+     - the box rim edge, 13 mm above the mouth, for steep lines (elevation above about 67°: the claw within about 0.4 to 0.9 m horizontally of its own station);
+     - the R10 box corner, for A and B lines far off the hole axis.
+   - If the claw tilts a few degrees, these lines can touch the rim or the corner. Grazing contact there is benign, and it moves the effective attachment point by a few millimetres at most, small against the calibration's own uncertainty. The bay and cover are clear by 12.7 mm, which was the real risk.
+   - The criterion becomes: no line intersects the claw solid (minimum > 0), and the bay and cover are clear by ≥ 5 mm.
+   - Practice: break the rim's outer edge above each three-mode hole with a file if the line marks it.
+4. **Software attachment points:** use the **outer** mouth for the three new holes; the line leaves there and turns.
+   - The corner holes keep their inner-mouth convention until the configs are re-derived for the 1021 box. Flag that work to the software owner.

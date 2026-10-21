@@ -1,0 +1,991 @@
+{
+ "valid": true,
+ "solids": 1,
+ "bbox_current": [
+  -50.00000340484001,
+  49.99999679516001,
+  -3.929998572653858e-07,
+  55.00002380700008,
+  -101.3,
+  49.999971124999924
+ ],
+ "bbox_34": [
+  -50.00000340484001,
+  49.99999679516001,
+  -3.929998572653858e-07,
+  55.00002380700008,
+  -101.3,
+  49.999971124999924
+ ],
+ "vol_current": 154311.08666460015,
+ "vol_34": 154246.26994269862,
+ "mass_g_current": 195.9750800640422,
+ "mass_g_34": 195.89276282722727,
+ "removed_total_mm3": 64.48552206243197,
+ "added_total_mm3": 0.0,
+ "mass_removed_g": 0.0818966130192886,
+ "removed_solids": {
+  "holes": 3,
+  "labels": 3,
+  "total": 6
+ },
+ "holes": {
+  "C": {
+   "diameter_measured": 1.999999999999999,
+   "axis_dir_measured": [
+    0.0,
+    0.0,
+    -1.0
+   ],
+   "axis_angle_error_deg": 0.0,
+   "outer_mouth_expected": [
+    0.0,
+    42.0,
+    -45.0
+   ],
+   "outer_mouth_measured": [
+    0.0,
+    42.0,
+    -45.0
+   ],
+   "inner_mouth_expected": [
+    0.0,
+    42.0,
+    -40.0
+   ],
+   "inner_mouth_measured": [
+    0.0,
+    42.0,
+    -40.0
+   ],
+   "outer_mouth_error_mm": 0.0,
+   "inner_mouth_error_mm": 0.0,
+   "wall_length_expected": 5.0,
+   "wall_length_measured": 5.0,
+   "removed_mm3": 17.75997392652064,
+   "plain_bore_mm3": 15.707963267948966,
+   "teardrop_bore_mm3": 16.780972450961723,
+   "ratio_to_plain_bore": 1.130635055835575,
+   "chamfer_extra_mm3": 0.9790014755589169,
+   "deep_bore_mm3": 14.095919613072226,
+   "deep_bore_ratio_to_plain": 1.0683025161173525,
+   "deep_bore_ratio_expected_teardrop": 1.0683098861837907,
+   "probes": {
+    "axis_empty": true,
+    "circle_empty_r0p98": true,
+    "outside_circle_solid_r1p02": true,
+    "tip_empty_1p30_above_axis": true,
+    "tip_solid_1p50_above_axis": true,
+    "flank_empty_below_line": true,
+    "flank_solid_above_line": true,
+    "chamfer_empty_inside_cone": true,
+    "chamfer_solid_below_cone": true
+   }
+  },
+  "A": {
+   "diameter_measured": 1.999999999999999,
+   "axis_dir_measured": [
+    -0.8660254037844364,
+    0.0,
+    0.500000000000004
+   ],
+   "axis_angle_error_deg": 0.0,
+   "outer_mouth_expected": [
+    -45.0,
+    42.0,
+    25.980762113533167
+   ],
+   "outer_mouth_measured": [
+    -45.0,
+    42.0,
+    25.98076211353321
+   ],
+   "inner_mouth_expected": [
+    -40.0,
+    42.0,
+    23.09401076758504
+   ],
+   "inner_mouth_measured": [
+    -40.0,
+    42.0,
+    23.09401076758505
+   ],
+   "outer_mouth_error_mm": 4.263256414560601e-14,
+   "inner_mouth_error_mm": 1.0658141036401503e-14,
+   "wall_length_expected": 5.773502691896257,
+   "wall_length_measured": 5.773502691896273,
+   "removed_mm3": 20.323979175925903,
+   "plain_bore_mm3": 18.137993642342177,
+   "teardrop_bore_mm3": 19.37699792365289,
+   "ratio_to_plain_bore": 1.1205196989638733,
+   "chamfer_extra_mm3": 0.9469812522730123,
+   "deep_bore_mm3": 16.276665448287183,
+   "deep_bore_ratio_to_plain": 1.0683090455659778,
+   "deep_bore_ratio_expected_teardrop": 1.0683098861837907,
+   "probes": {
+    "axis_empty": true,
+    "circle_empty_r0p98": true,
+    "outside_circle_solid_r1p02": true,
+    "tip_empty_1p30_above_axis": true,
+    "tip_solid_1p50_above_axis": true,
+    "flank_empty_below_line": true,
+    "flank_solid_above_line": true,
+    "chamfer_empty_inside_cone": true,
+    "chamfer_solid_below_cone": true
+   }
+  },
+  "B": {
+   "diameter_measured": 1.999999999999999,
+   "axis_dir_measured": [
+    0.8660254037844364,
+    0.0,
+    0.500000000000004
+   ],
+   "axis_angle_error_deg": 0.0,
+   "outer_mouth_expected": [
+    45.0,
+    42.0,
+    25.980762113533192
+   ],
+   "outer_mouth_measured": [
+    45.0,
+    42.0,
+    25.98076211353323
+   ],
+   "inner_mouth_expected": [
+    40.0,
+    42.0,
+    23.09401076758506
+   ],
+   "inner_mouth_measured": [
+    40.0,
+    42.0,
+    23.094010767585072
+   ],
+   "outer_mouth_error_mm": 3.907985046680551e-14,
+   "inner_mouth_error_mm": 1.0658141036401503e-14,
+   "wall_length_expected": 5.773502691896258,
+   "wall_length_measured": 5.773502691896273,
+   "removed_mm3": 20.32469692434723,
+   "plain_bore_mm3": 18.13799364234218,
+   "teardrop_bore_mm3": 19.376997923652894,
+   "ratio_to_plain_bore": 1.120559270508305,
+   "chamfer_extra_mm3": 0.9476990006943353,
+   "deep_bore_mm3": 16.276678255859157,
+   "deep_bore_ratio_to_plain": 1.0683098861831812,
+   "deep_bore_ratio_expected_teardrop": 1.0683098861837907,
+   "probes": {
+    "axis_empty": true,
+    "circle_empty_r0p98": true,
+    "outside_circle_solid_r1p02": true,
+    "tip_empty_1p30_above_axis": true,
+    "tip_solid_1p50_above_axis": true,
+    "flank_empty_below_line": true,
+    "flank_solid_above_line": true,
+    "chamfer_empty_inside_cone": true,
+    "chamfer_solid_below_cone": true
+   }
+  }
+ },
+ "labels": {
+  "C": {
+   "height_mm": 3.9999999382201423,
+   "width_mm": 3.293194304058093,
+   "depth_mm": 0.4000290750000772,
+   "volume_mm3": 1.687855286577403,
+   "centre_error_mm": 0.0,
+   "centroid_offset_reading_mm": -0.14809897382606502,
+   "centroid_offset_up_mm": -0.03271016977826946,
+   "normal_extent_mm": [
+    2.9075000078648827e-05,
+    -0.3999999999999986
+   ]
+  },
+  "A": {
+   "height_mm": 4.0,
+   "width_mm": 3.4897052453906916,
+   "depth_mm": 0.40000330483999136,
+   "volume_mm3": 1.9132052504932338,
+   "centre_error_mm": 0.0,
+   "centroid_offset_reading_mm": 0.015066617149496864,
+   "centroid_offset_up_mm": -0.1371236718667319,
+   "normal_extent_mm": [
+    3.304839992779307e-06,
+    -0.3999999999999986
+   ]
+  },
+  "B": {
+   "height_mm": 3.999999925651842,
+   "width_mm": 2.9849117385724426,
+   "depth_mm": 0.39999679516000697,
+   "volume_mm3": 2.474358350471202,
+   "centre_error_mm": 0.0,
+   "centroid_offset_reading_mm": -0.1534629039623887,
+   "centroid_offset_up_mm": -0.011779142300831325,
+   "normal_extent_mm": [
+    -0.3999999999999986,
+    -3.2048399916106973e-06
+   ]
+  }
+ },
+ "keepouts_mm": {
+  "C": {
+   "corner_holes": 47.978532885431605,
+   "wire_window": 19.525625673735522,
+   "bay_body": 17.4805163259591,
+   "bay_cover": 11.231902969308294,
+   "lid_seat_ledge": 6.388181844032681,
+   "floor_holes_8x_d3p3": 42.68079920299071,
+   "tube_hole": 43.829204385844555,
+   "any_other_face_of_jaspers_housing": 6.388181844032681,
+   "nearest_other_face": "PLANE area 300.0 bbox x[-30.0,30.0] y[50.0,55.0] z[-42.5,-42.5]",
+   "any_face_not_adjacent_to_own_wall": 6.388181844032681,
+   "nearest_non_adjacent_face": "PLANE area 300.0 bbox x[-30.0,30.0] y[50.0,55.0] z[-42.5,-42.5]"
+  },
+  "A": {
+   "corner_holes": 33.7920499962712,
+   "wire_window": 72.0022817746876,
+   "bay_body": 70.91783281297745,
+   "bay_cover": 73.86721327485058,
+   "lid_seat_ledge": 6.43024327998612,
+   "floor_holes_8x_d3p3": 36.55760026697109,
+   "tube_hole": 47.54362532261455,
+   "any_other_face_of_jaspers_housing": 4.98073536802699,
+   "nearest_other_face": "CYLINDER area 703.6 bbox x[-40.0,-30.0] y[5.0,50.0] z[30.0,40.0]",
+   "any_face_not_adjacent_to_own_wall": 6.43024327998612,
+   "nearest_non_adjacent_face": "PLANE area 300.0 bbox x[-42.5,-42.5] y[50.0,55.0] z[-30.0,30.0]"
+  },
+  "B": {
+   "corner_holes": 33.79204999627119,
+   "wire_window": 72.00227718479549,
+   "bay_body": 70.91783001523685,
+   "bay_cover": 73.86720914330888,
+   "lid_seat_ledge": 6.430245849748424,
+   "floor_holes_8x_d3p3": 36.55760028409175,
+   "tube_hole": 47.54362471475022,
+   "any_other_face_of_jaspers_housing": 4.980738672866963,
+   "nearest_other_face": "CYLINDER area 703.6 bbox x[30.0,40.0] y[5.0,50.0] z[30.0,40.0]",
+   "any_face_not_adjacent_to_own_wall": 6.430245849748424,
+   "nearest_non_adjacent_face": "PLANE area 300.0 bbox x[42.5,42.5] y[50.0,55.0] z[-30.0,30.0]"
+  }
+ },
+ "removed_outside_confinement_mm3": 9.287070810248821e-05,
+ "removed_in_pocket_mm3": 1.2807575398195393e-05,
+ "body_frame_m": {
+  "C": {
+   "outer_mouth": [
+    0.0,
+    0.045,
+    0.03418
+   ],
+   "inner_mouth": [
+    0.0,
+    0.04,
+    0.03418
+   ]
+  },
+  "A": {
+   "outer_mouth": [
+    -0.045,
+    -0.025980762113533208,
+    0.03418
+   ],
+   "inner_mouth": [
+    -0.04,
+    -0.02309401076758505,
+    0.03418
+   ]
+  },
+  "B": {
+   "outer_mouth": [
+    0.045,
+    -0.025980762113533232,
+    0.03418
+   ],
+   "inner_mouth": [
+    0.04,
+    -0.023094010767585074,
+    0.03418
+   ]
+  }
+ },
+ "corner_holes_body_m": {
+  "A": {
+   "inner_mouth": [
+    -0.03707,
+    -0.03707,
+    0.0
+   ],
+   "outer_mouth": [
+    -0.04322,
+    -0.04322,
+    0.002129999999999999
+   ]
+  },
+  "B": {
+   "inner_mouth": [
+    0.03707,
+    -0.03707,
+    0.0
+   ],
+   "outer_mouth": [
+    0.04322,
+    -0.04322,
+    0.002129999999999999
+   ]
+  },
+  "C": {
+   "inner_mouth": [
+    0.03707,
+    0.03707,
+    0.0
+   ],
+   "outer_mouth": [
+    0.04322,
+    0.04322,
+    0.002129999999999999
+   ]
+  },
+  "D": {
+   "inner_mouth": [
+    -0.03707,
+    0.03707,
+    0.0
+   ],
+   "outer_mouth": [
+    -0.04322,
+    0.04322,
+    0.002129999999999999
+   ]
+  }
+ },
+ "reimport": {
+  "solids": 1,
+  "valid": true,
+  "vol_ref": 154246.2699426986,
+  "vol_reimport": 154246.26879956448,
+  "vol_rel_diff": 7.411097280965215e-09,
+  "bbox_max_diff_mm": 2.2737367544323206e-13
+ },
+ "exports": {
+  "gripper1021_housing_cambay_34": {
+   "step": "/home/user/RoomCleaner/exports/step/gripper1021_housing_cambay_34.step",
+   "stl": "/home/user/RoomCleaner/exports/stl/gripper1021_housing_cambay_34.stl"
+  }
+ },
+ "stl_bbox": {
+  "min": [
+   -50.000003814697266,
+   -49.999969482421875,
+   -2.929998572653858e-07
+  ],
+  "max": [
+   49.999996185302734,
+   101.30000305175781,
+   55.000022888183594
+  ]
+ },
+ "cables": {
+  "model": "\nCable-line clearance for the THREE-CABLE holes of the Gripper 1021 electrical housing (cad/GRIPPER_1021_SPEC.md section 5).\nAdapted from scripts/analyze_cable_lines_claw_camera_bay.py (that script is unchanged and still analyses the v6 corner holes).\n\nRun:  /usr/bin/python3 scripts/analyze_cable_lines_housing_34.py\nReads config/robot.sim.json (room size, workspace_margin_m, ceiling_margin_m) -- read-only.\nWrites verification/gripper1021_housing_34_cable_lines.json\n\nModel\n  * Hole k (C, A, B) leaves the housing at its OUTER mouth centre (box frame, cad.parts.gripper1021_housing_cambay.tri_hole_frames()).\n    The line runs from that mouth straight to the station anchor prior (CAMBAY1021_TRI_ANCHORS_ROOM_M, docs/THREE_STATION_MODE_SPEC.md).\n  * Room frame: x east, y north, z up.  Claw yaw psi rotates the box frame about the vertical: box +x -> room (cos psi, sin psi),\n    box +z -> room (sin psi, -cos psi), so body +y = -box z = room +y at psi = 0 (the bay, and hole C, face room +y = station C).\n  * Claw reference = the tube axis at the height of the three outer mouths (box y = CAMBAY1021_TRI_Y).  Workspace, as the spec says:\n    floor projection inside the A-B-C triangle AND the wall margin (0.2 m), heights from the lowest working height (closed fingertip\n    on the floor: mouth height - GRIP1021_TIP_Y) to 0.4 m below the anchors; claw yaw -15 .. +15 deg.\n  * A line is FEASIBLE if it leaves the housing, i.e. its direction has a positive component along the hole's outward wall normal.\n    Lines that would have to run back into the housing are physically impossible for that pose and are counted, not scored.\n  * Clearance of a line = minimum distance from the line (mouth -> anchor) to every exterior surface of housing + bay + cover,\n    EXCEPT the line's own outer wall face (the flat wall region around its mouth, incl. its bore, chamfer and label): a line that\n    leaves a wall never meets that wall's face again, so \"away from its own mouth\" = everything but its own wall face.  The pocket\n    (interior) surfaces are excluded too: the cable is outside the housing.  The wall's top rim edge is NOT excluded.\n  * Surface sampled at <= SAMPLE_AREA mm2 per point plus its edges at <= EDGE_STEP mm; distances from a KD-tree, the line sampled every\n    LINE_STEP mm over its first LINE_LEN mm (the housing is within 160 mm of every mouth).  Sampling error: distances over-estimate by\n    less than about 0.3 mm.\n",
+  "workspace": {
+   "floor_positions": 185,
+   "heights_m": [
+    0.5582,
+    0.7918,
+    1.0253,
+    1.2589,
+    1.4925,
+    1.7261,
+    1.9596,
+    2.1932
+   ],
+   "yaws_deg": [
+    -15.0,
+    -7.5,
+    0.0,
+    7.5,
+    15.0
+   ],
+   "room_m": [
+    3.3528,
+    2.7432
+   ],
+   "wall_margin_m": 0.2,
+   "ceiling_margin_m": 0.4,
+   "z_anchor_m": 2.5932
+  },
+  "totals": {
+   "C": {
+    "lines": 7400,
+    "feasible": 7400,
+    "infeasible": 0
+   },
+   "A": {
+    "lines": 7400,
+    "feasible": 7400,
+    "infeasible": 0
+   },
+   "B": {
+    "lines": 7400,
+    "feasible": 7400,
+    "infeasible": 0
+   }
+  },
+  "sample_points": 682309,
+  "required_min_mm": 5.0,
+  "min_distance_mm": 0.262,
+  "min_at": {
+   "hole": "A",
+   "claw_xyz_m": [
+    0.2,
+    0.293778,
+    0.5581904999999999
+   ],
+   "yaw_deg": -14.999999999999998,
+   "line_elevation_deg": 82.97,
+   "angle_to_hole_axis_deg": 51.57,
+   "nearest_point_box_mm": [
+    -45.0,
+    55.0,
+    27.62
+   ],
+   "nearest_part": "box rim (top edge)",
+   "line_length_m": 2.05
+  },
+  "min_distance_bay_cover_only_mm": 12.729,
+  "lines_below_required": 2856,
+  "lines_scored": 22200,
+  "lines_touching_below_0p5mm": 18,
+  "per_hole": {
+   "C": {
+    "min_distance_mm": 0.489,
+    "lines_scored": 7400,
+    "lines_below_required": 472,
+    "at_claw_xyz_m": [
+     1.584103,
+     2.5432,
+     0.5581904999999999
+    ],
+    "yaw_deg": 14.999999999999998,
+    "elevation_deg": 85.82,
+    "angle_to_axis_deg": 59.3,
+    "nearest_part": "box rim (top edge)"
+   },
+   "A": {
+    "min_distance_mm": 0.262,
+    "lines_scored": 7400,
+    "lines_below_required": 1200,
+    "at_claw_xyz_m": [
+     0.2,
+     0.293778,
+     0.5581904999999999
+    ],
+    "yaw_deg": -14.999999999999998,
+    "elevation_deg": 82.97,
+    "angle_to_axis_deg": 51.57,
+    "nearest_part": "box rim (top edge)"
+   },
+   "B": {
+    "min_distance_mm": 0.262,
+    "lines_scored": 7400,
+    "lines_below_required": 1184,
+    "at_claw_xyz_m": [
+     3.1528,
+     0.293778,
+     0.5581904999999999
+    ],
+    "yaw_deg": 14.999999999999998,
+    "elevation_deg": 82.97,
+    "angle_to_axis_deg": 51.57,
+    "nearest_part": "box rim (top edge)"
+   }
+  },
+  "min_distance_by_elevation_deg": {
+   "0-10": {
+    "lines": 955,
+    "min_mm": 2.53,
+    "below_required": 81
+   },
+   "10-20": {
+    "lines": 3860,
+    "min_mm": 2.43,
+    "below_required": 291
+   },
+   "20-30": {
+    "lines": 4676,
+    "min_mm": 2.48,
+    "below_required": 359
+   },
+   "30-40": {
+    "lines": 5519,
+    "min_mm": 2.39,
+    "below_required": 395
+   },
+   "40-50": {
+    "lines": 3574,
+    "min_mm": 2.47,
+    "below_required": 237
+   },
+   "50-60": {
+    "lines": 1853,
+    "min_mm": 1.2,
+    "below_required": 191
+   },
+   "60-70": {
+    "lines": 1003,
+    "min_mm": 0.76,
+    "below_required": 542
+   },
+   "70-80": {
+    "lines": 547,
+    "min_mm": 0.36,
+    "below_required": 547
+   },
+   "80-90": {
+    "lines": 213,
+    "min_mm": 0.26,
+    "below_required": 213
+   }
+  },
+  "min_distance_by_angle_to_axis_deg": {
+   "0-15": {
+    "lines": 10368,
+    "min_mm": 0.79,
+    "below_required": 528
+   },
+   "15-30": {
+    "lines": 7824,
+    "min_mm": 0.54,
+    "below_required": 860
+   },
+   "30-45": {
+    "lines": 3784,
+    "min_mm": 0.41,
+    "below_required": 1391
+   },
+   "45-60": {
+    "lines": 224,
+    "min_mm": 0.26,
+    "below_required": 77
+   }
+  },
+  "min_at_bay_cover_only": {
+   "hole": "C",
+   "claw_xyz_m": [
+    0.2,
+    0.2,
+    0.558
+   ],
+   "yaw_deg": -14.999999999999998,
+   "elevation_deg": 35.5
+  },
+  "min_distance_mm_for_elevation_at_most_and_angle_to_axis_at_most": {
+   "elev<=30,angle<=10": 6.95,
+   "elev<=30,angle<=15": 6.42,
+   "elev<=30,angle<=20": 5.84,
+   "elev<=30,angle<=30": 4.55,
+   "elev<=30,angle<=45": 2.43,
+   "elev<=45,angle<=10": 6.95,
+   "elev<=45,angle<=15": 6.42,
+   "elev<=45,angle<=20": 5.84,
+   "elev<=45,angle<=30": 4.54,
+   "elev<=45,angle<=45": 2.43,
+   "elev<=60,angle<=10": 5.32,
+   "elev<=60,angle<=15": 4.97,
+   "elev<=60,angle<=20": 4.69,
+   "elev<=60,angle<=30": 3.99,
+   "elev<=60,angle<=45": 2.15,
+   "elev<=70,angle<=10": 3.53,
+   "elev<=70,angle<=15": 3.3,
+   "elev<=70,angle<=20": 3.11,
+   "elev<=70,angle<=30": 2.44,
+   "elev<=70,angle<=45": 1.36,
+   "elev<=90,angle<=10": 0.79,
+   "elev<=90,angle<=15": 0.79,
+   "elev<=90,angle<=20": 0.68,
+   "elev<=90,angle<=30": 0.54,
+   "elev<=90,angle<=45": 0.41
+  },
+  "lines_below_required_by_part": {
+   "box corner (R10)": 1419,
+   "box rim (top edge)": 1437,
+   "other box surface": 0
+  },
+  "lines_below_required_elevation_range_deg": [
+   7.6,
+   86.2
+  ],
+  "lines_below_required_claw_height_range_m": [
+   0.56,
+   2.19
+  ],
+  "every_line_with_elevation_below_deg_passes": 7.6,
+  "closest_lines": [
+   {
+    "hole": "A",
+    "dist_mm": 0.262,
+    "claw_xyz_m": [
+     0.2,
+     0.294,
+     0.558
+    ],
+    "yaw_deg": -14.999999999999998,
+    "elevation_deg": 83.0,
+    "angle_to_axis_deg": 51.6,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     -45.0,
+     55.0,
+     27.6
+    ]
+   },
+   {
+    "hole": "B",
+    "dist_mm": 0.262,
+    "claw_xyz_m": [
+     3.153,
+     0.294,
+     0.558
+    ],
+    "yaw_deg": 14.999999999999998,
+    "elevation_deg": 83.0,
+    "angle_to_axis_deg": 51.6,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     45.0,
+     55.0,
+     27.6
+    ]
+   },
+   {
+    "hole": "B",
+    "dist_mm": 0.288,
+    "claw_xyz_m": [
+     3.153,
+     0.294,
+     0.792
+    ],
+    "yaw_deg": 14.999999999999998,
+    "elevation_deg": 82.1,
+    "angle_to_axis_deg": 51.6,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     45.0,
+     55.0,
+     27.7
+    ]
+   },
+   {
+    "hole": "A",
+    "dist_mm": 0.307,
+    "claw_xyz_m": [
+     0.2,
+     0.294,
+     0.792
+    ],
+    "yaw_deg": -14.999999999999998,
+    "elevation_deg": 82.1,
+    "angle_to_axis_deg": 51.6,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     -45.0,
+     55.0,
+     27.9
+    ]
+   },
+   {
+    "hole": "A",
+    "dist_mm": 0.326,
+    "claw_xyz_m": [
+     0.2,
+     0.294,
+     1.025
+    ],
+    "yaw_deg": -14.999999999999998,
+    "elevation_deg": 80.9,
+    "angle_to_axis_deg": 51.6,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     -45.0,
+     55.0,
+     28.1
+    ]
+   },
+   {
+    "hole": "B",
+    "dist_mm": 0.326,
+    "claw_xyz_m": [
+     3.153,
+     0.294,
+     1.025
+    ],
+    "yaw_deg": 14.999999999999998,
+    "elevation_deg": 80.9,
+    "angle_to_axis_deg": 51.6,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     45.0,
+     55.0,
+     28.1
+    ]
+   },
+   {
+    "hole": "A",
+    "dist_mm": 0.361,
+    "claw_xyz_m": [
+     0.2,
+     0.294,
+     1.259
+    ],
+    "yaw_deg": -14.999999999999998,
+    "elevation_deg": 79.3,
+    "angle_to_axis_deg": 51.6,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     -45.0,
+     55.0,
+     28.4
+    ]
+   },
+   {
+    "hole": "B",
+    "dist_mm": 0.361,
+    "claw_xyz_m": [
+     3.153,
+     0.294,
+     1.259
+    ],
+    "yaw_deg": 14.999999999999998,
+    "elevation_deg": 79.3,
+    "angle_to_axis_deg": 51.6,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     45.0,
+     55.0,
+     28.4
+    ]
+   },
+   {
+    "hole": "A",
+    "dist_mm": 0.406,
+    "claw_xyz_m": [
+     0.2,
+     0.2,
+     0.558
+    ],
+    "yaw_deg": -14.999999999999998,
+    "elevation_deg": 85.2,
+    "angle_to_axis_deg": 38.8,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     -45.0,
+     55.0,
+     26.9
+    ]
+   },
+   {
+    "hole": "B",
+    "dist_mm": 0.406,
+    "claw_xyz_m": [
+     3.153,
+     0.2,
+     0.558
+    ],
+    "yaw_deg": 14.999999999999998,
+    "elevation_deg": 85.2,
+    "angle_to_axis_deg": 38.8,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     45.0,
+     55.0,
+     26.9
+    ]
+   },
+   {
+    "hole": "A",
+    "dist_mm": 0.44,
+    "claw_xyz_m": [
+     0.2,
+     0.294,
+     1.492
+    ],
+    "yaw_deg": -14.999999999999998,
+    "elevation_deg": 77.2,
+    "angle_to_axis_deg": 51.6,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     -45.0,
+     55.0,
+     28.9
+    ]
+   },
+   {
+    "hole": "B",
+    "dist_mm": 0.44,
+    "claw_xyz_m": [
+     3.153,
+     0.294,
+     1.492
+    ],
+    "yaw_deg": 14.999999999999998,
+    "elevation_deg": 77.2,
+    "angle_to_axis_deg": 51.6,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     45.0,
+     55.0,
+     28.9
+    ]
+   },
+   {
+    "hole": "A",
+    "dist_mm": 0.443,
+    "claw_xyz_m": [
+     0.2,
+     0.2,
+     0.792
+    ],
+    "yaw_deg": -14.999999999999998,
+    "elevation_deg": 84.6,
+    "angle_to_axis_deg": 38.8,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     -45.0,
+     55.0,
+     27.1
+    ]
+   },
+   {
+    "hole": "B",
+    "dist_mm": 0.443,
+    "claw_xyz_m": [
+     3.153,
+     0.2,
+     0.792
+    ],
+    "yaw_deg": 14.999999999999998,
+    "elevation_deg": 84.6,
+    "angle_to_axis_deg": 38.8,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     45.0,
+     55.0,
+     27.1
+    ]
+   },
+   {
+    "hole": "A",
+    "dist_mm": 0.476,
+    "claw_xyz_m": [
+     0.2,
+     0.294,
+     0.558
+    ],
+    "yaw_deg": -7.499999999999999,
+    "elevation_deg": 83.1,
+    "angle_to_axis_deg": 43.0,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     -45.0,
+     55.0,
+     27.4
+    ]
+   },
+   {
+    "hole": "B",
+    "dist_mm": 0.476,
+    "claw_xyz_m": [
+     3.153,
+     0.294,
+     0.558
+    ],
+    "yaw_deg": 7.499999999999999,
+    "elevation_deg": 83.1,
+    "angle_to_axis_deg": 43.0,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     45.0,
+     55.0,
+     27.4
+    ]
+   },
+   {
+    "hole": "C",
+    "dist_mm": 0.489,
+    "claw_xyz_m": [
+     1.584,
+     2.543,
+     0.558
+    ],
+    "yaw_deg": 14.999999999999998,
+    "elevation_deg": 85.8,
+    "angle_to_axis_deg": 59.3,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     0.9,
+     55.0,
+     -45.0
+    ]
+   },
+   {
+    "hole": "C",
+    "dist_mm": 0.489,
+    "claw_xyz_m": [
+     1.769,
+     2.543,
+     0.558
+    ],
+    "yaw_deg": -14.999999999999998,
+    "elevation_deg": 85.8,
+    "angle_to_axis_deg": 59.3,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     -0.9,
+     55.0,
+     -45.0
+    ]
+   },
+   {
+    "hole": "A",
+    "dist_mm": 0.518,
+    "claw_xyz_m": [
+     0.2,
+     0.2,
+     1.025
+    ],
+    "yaw_deg": -14.999999999999998,
+    "elevation_deg": 83.8,
+    "angle_to_axis_deg": 38.8,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     -45.0,
+     55.0,
+     27.4
+    ]
+   },
+   {
+    "hole": "B",
+    "dist_mm": 0.518,
+    "claw_xyz_m": [
+     3.153,
+     0.2,
+     1.025
+    ],
+    "yaw_deg": 14.999999999999998,
+    "elevation_deg": 83.8,
+    "angle_to_axis_deg": 38.8,
+    "part": "box rim (top edge)",
+    "nearest_box_mm": [
+     45.0,
+     55.0,
+     27.4
+    ]
+   }
+  ]
+ },
+ "renders": [
+  "/home/user/RoomCleaner/renders/gripper1021/gripper1021_housing_cambay_34_closeup_C.png",
+  "/home/user/RoomCleaner/renders/gripper1021/gripper1021_housing_cambay_34_closeup_A.png",
+  "/home/user/RoomCleaner/renders/gripper1021/gripper1021_housing_cambay_34_closeup_B.png"
+ ]
+}

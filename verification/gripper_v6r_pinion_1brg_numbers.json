@@ -1,0 +1,178 @@
+{
+ "valid": true,
+ "solids": 1,
+ "volume_mm3": 7257.5271320991,
+ "area_mm2": 4344.175656005533,
+ "mass_g_petg": 9.217059457765856,
+ "bbox": [
+  -14.892268612766811,
+  14.892268612766543,
+  -15.000000100000017,
+  15.000000100000223,
+  -9.96616879110657e-08,
+  16.000000100338355
+ ],
+ "stl_bbox_print_pose": [
+  -14.893265709348816,
+  14.893265709348956,
+  -15.002046960047222,
+  15.002046960042055,
+  -0.0023304012628405273,
+  16.002330601262937
+ ],
+ "print_orientation": "pocket side UP (rotated 180 deg about x; pocket mouth at the top, servo face z=16 and teeth on the bed)",
+ "his_volume_mm3": 8024.154474334767,
+ "his_mass_g_petg": 10.190676182405154,
+ "roundtrip": {
+  "valid": true,
+  "solids": 1,
+  "volume_rel_diff": 1.3949083952658146e-12,
+  "bbox_max_diff": 3.304023721284466e-13
+ },
+ "removed": {
+  "solids": 1,
+  "volume_mm3": 766.6273422356498,
+  "added_volume_mm3": 0.0,
+  "volume_check": 1.7280399333685637e-11,
+  "outside_pocket_envelope_mm3": 0.0
+ },
+ "donor_profile": {
+  "pocket_R": 7.0375,
+  "pocket_z": [
+   1.95,
+   7.0
+  ],
+  "pocket_depth": 5.05,
+  "lip_R": 7.0,
+  "lip_len": 1.95,
+  "lip_z": [
+   0.0,
+   1.95
+  ],
+  "lip_segments": 8,
+  "lip_ledge_z": 1.95,
+  "bore_R": 4.15,
+  "bore_z": [
+   7.0,
+   24.0
+  ],
+  "notch_fillet_R": 0.25,
+  "notch_fillet_axes": 16,
+  "notch_outer_extent": 7.799048651084499,
+  "floor_z": 7.0,
+  "forbidden": 0
+ },
+ "new_profile": {
+  "pocket_R": 7.0375,
+  "pocket_z": [
+   1.95,
+   7.0
+  ],
+  "pocket_depth": 5.05,
+  "lip_R": 7.0,
+  "lip_len": 1.95,
+  "lip_z": [
+   0.0,
+   1.95
+  ],
+  "lip_segments": 8,
+  "lip_ledge_z": 1.95,
+  "bore_R": 4.15,
+  "bore_z": [
+   7.0,
+   12.0
+  ],
+  "notch_fillet_R": 0.25,
+  "notch_fillet_axes": 16,
+  "notch_outer_extent": 7.799048651084499,
+  "floor_z": 7.0,
+  "forbidden": 0
+ },
+ "pocket_vs_donor": {
+  "cavity_volume_new": 1275.9558423356477,
+  "cavity_volume_donor": 1275.9558423004069,
+  "sym_diff_mm3": 0.0,
+  "profile_diffs_mm": {
+   "pocket_R": 0.0,
+   "pocket_depth": 0.0,
+   "lip_R": 0.0,
+   "lip_len": 0.0,
+   "lip_ledge_z": 0.0,
+   "bore_R": 0.0,
+   "notch_outer_extent": 0.0,
+   "pocket_z0": 0.0,
+   "pocket_z1": 0.0,
+   "floor_z": 0.0
+  },
+  "max_profile_diff_mm": 0.0,
+  "same_counts": true
+ },
+ "walls": {
+  "root_r": 11.625,
+  "pocket_wall": 4.5875,
+  "lip_wall": 4.625,
+  "notch_wall": 3.825951348915501
+ },
+ "bore_servo_side": {
+  "R": 4.0,
+  "z0": 12.0,
+  "z1": 16.0,
+  "area_mm2": 100.53096492337656
+ },
+ "mesh_3d": {
+  "rows": [
+   {
+    "delta_deg": 0.0,
+    "pinion_compound": 0.0,
+    "pinion_follower": 0.0
+   },
+   {
+    "delta_deg": 10.0,
+    "pinion_compound": 0.0,
+    "pinion_follower": 0.0
+   },
+   {
+    "delta_deg": 20.0,
+    "pinion_compound": 0.0,
+    "pinion_follower": 0.0
+   },
+   {
+    "delta_deg": 30.0,
+    "pinion_compound": 0.0,
+    "pinion_follower": 0.0
+   },
+   {
+    "delta_deg": 45.0,
+    "pinion_compound": 0.0,
+    "pinion_follower": 0.0
+   },
+   {
+    "delta_deg": 60.0,
+    "pinion_compound": 0.0,
+    "pinion_follower": 0.0
+   },
+   {
+    "delta_deg": 76.5,
+    "pinion_compound": 0.0,
+    "pinion_follower": 0.0
+   },
+   {
+    "delta_deg": -10.0,
+    "pinion_compound": 0.0,
+    "pinion_follower": 0.0
+   },
+   {
+    "delta_deg": -20.0,
+    "pinion_compound": 0.0,
+    "pinion_follower": 0.0
+   },
+   {
+    "delta_deg": -30.0,
+    "pinion_compound": 0.0,
+    "pinion_follower": 0.0
+   }
+  ],
+  "control_3deg_overlap_mm3": 23.24607174865923
+ },
+ "source_unchanged": true
+}

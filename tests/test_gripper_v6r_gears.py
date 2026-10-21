@@ -291,3 +291,129 @@ def test_saved_outputs_exist_and_consistent():
     for k, v in j["parts"].items():
         assert v["valid"] and v["solids"] == 1
         assert v["roundtrip"]["volume_rel_diff"] < 1e-5
+
+
+# ===============================================================================================================
+# pinion with ONE 687 bearing pocket (his one-bearing pocket from his compound, cad/parts/gripper_v6r_pinion_bearing.py)
+# ===============================================================================================================
+from cad.parts import gripper_v6r_pinion_bearing as B   # noqa: E402
+
+STEP_1BRG = os.path.join(REPO, "exports", "step", "gripper_v6r_pinion_1brg.step")
+STL_1BRG = os.path.join(REPO, "exports", "stl", "gripper_v6r_pinion_1brg.stl")
+
+
+@pytest.fixture(scope="module")
+def pin1():
+    return B.make_pinion_1brg()
+
+
+def test_1brg_single_valid_solid_and_envelope(pin1):
+    assert pin1.isValid() and len(pin1.Solids()) == 1
+    x0, x1, y0, y1, z0, z1 = bb(pin1)
+    assert (z0, z1) == pytest.approx((0.0, 16.0), abs=1e-6)            # his 16 mm face width
+    assert bb(pin1) == pytest.approx(bb(G.home_pinion()), abs=1e-6)     # same envelope as his pinion
+
+
+def test_1brg_donor_profile_is_his_one_bearing_pocket():
+    d = B.donor_profile()
+    assert d["pocket_R"] == pytest.approx(7.0375, abs=1e-4)             # D14.075
+    assert d["pocket_depth"] == pytest.approx(5.05, abs=1e-4)
+    assert d["lip_R"] == pytest.approx(7.0, abs=1e-4)                   # D14.000
+    assert d["lip_len"] == pytest.approx(1.95, abs=1e-4)
+    assert d["bore_R"] == pytest.approx(4.15, abs=1e-4)                 # D8.30 step
+    assert d["floor_z"] == pytest.approx(7.0, abs=1e-4)
+    assert d["lip_segments"] == 8 and d["notch_fillet_axes"] == 16
+    assert d["forbidden"] == 0                                          # no chamfer / cone / torus in his pocket
+
+
+def test_1brg_pocket_equals_donor_within_1um(pin1):
+    r = B.pocket_vs_donor(pin1)
+    assert r["same_counts"]
+    assert r["max_profile_diff_mm"] < 1e-3, r["profile_diffs_mm"]
+    assert r["sym_diff_mm3"] < 1e-3
+    assert r["cavity_volume_new"] == pytest.approx(r["cavity_volume_donor"], abs=1e-3)
+
+
+def test_1brg_only_removed_material_is_the_pocket(pin1):
+    his = G.home_pinion()
+    assert B.added_material() == pytest.approx(0.0, abs=1e-6)           # nothing added
+    rem = B.removed_material()
+    assert len(rem.Solids()) == 1
+    assert rem.Volume() == pytest.approx(his.Volume() - pin1.Volume(), abs=1e-6)
+    rb = rem.BoundingBox()
+    assert max(abs(rb.xmin), abs(rb.xmax), abs(rb.ymin), abs(rb.ymax)) < B.R_COPY          # inside the pocket envelope
+    assert rb.zmin >= -1e-6 and rb.zmax == pytest.approx(B.BORE_RELIEF_TOP_Z, abs=1e-6)
+    # removed volume = lip slab + R7.0375 pocket + floor opening + D8.30 counterbore (analytic, minus the D8.00 bore)
+    p = B.donor_profile()
+    analytic_pocket = math.pi * (p["pocket_R"] ** 2 - 4.0 ** 2) * (p["floor_z"] - p["lip_len"])
+    cb = math.pi * (p["bore_R"] ** 2 - 4.0 ** 2) * (B.BORE_RELIEF_TOP_Z - p["floor_z"])
+    lip_slab = B.cavity_in(G.home_compound(), 0.0, p["lip_len"]).Volume() - math.pi * 4.15 ** 2 * 0   # copied slab
+    assert rem.Volume() == pytest.approx(analytic_pocket + cb + (lip_slab - math.pi * 4.0 ** 2 * p["lip_len"]), abs=0.05)
+    # outside the pocket envelope the part is identical to his
+    env = cq.Solid.makeCylinder(B.R_COPY, B.BORE_RELIEF_TOP_Z, cq.Vector(0, 0, 0))
+    assert pin1.cut(env).Volume() == pytest.approx(his.cut(env).Volume(), abs=1e-6)
+
+
+def test_1brg_keeps_his_bore_teeth_face(pin1):
+    on, _ = G._surface_census(pin1)
+    assert on[(4.0, 12.0, 16.0)][1] == pytest.approx(math.pi * 8.0 * 4.0, rel=1e-4)       # D8.00 bore on the servo side (4 mm)
+    assert (4.15, 7.0, 12.0) in on                                                         # D8.30 step, shoulder at z = 7
+    assert not any(k[0] < 4.0 - 1e-3 for k in on)
+    # teeth identical: every non-planar face reaching beyond R9.5 (flanks, tips, roots) is his (the planar end faces change
+    # only by the pocket opening)
+    from OCP.BRepAdaptor import BRepAdaptor_Surface
+    from OCP.GeomAbs import GeomAbs_Plane
+
+    def outer(s):
+        return sum(f.Area() for f in s.Faces() if BRepAdaptor_Surface(f.wrapped).GetType() != GeomAbs_Plane and max(abs(f.BoundingBox().xmin), abs(f.BoundingBox().xmax),
+                                                      abs(f.BoundingBox().ymin), abs(f.BoundingBox().ymax)) > 9.5)
+    assert outer(pin1) == pytest.approx(outer(G.home_pinion()), abs=1e-3)
+
+
+def test_1brg_wall_and_shoulder_logic():
+    w = B.walls(B.donor_profile())
+    assert w["root_r"] == pytest.approx(11.625)
+    assert w["pocket_wall"] == pytest.approx(11.625 - 7.0375, abs=1e-4)      # 4.5875
+    assert w["pocket_wall"] > 4.5
+    assert w["notch_wall"] > 3.5                                             # worst case: notch outer extent R7.80
+    p = B.donor_profile()
+    assert p["bore_R"] > 4.0                                                 # floor opening larger than his D8.00 bore (D8.30)
+    assert p["pocket_depth"] == pytest.approx(B.BRG_W + 0.05, abs=1e-4)      # 687 is 5 wide
+
+
+def test_1brg_mass(pin1):
+    m = pin1.Volume() * PETG / 1000.0
+    assert m == pytest.approx(9.217, abs=0.005)
+    assert m < G.home_pinion().Volume() * PETG / 1000.0
+
+
+def test_1brg_step_roundtrip_and_exports(pin1):
+    assert os.path.exists(STEP_1BRG) and os.path.exists(STL_1BRG)
+    re = cq.importers.importStep(STEP_1BRG).val()
+    assert re.isValid() and len(re.Solids()) == 1
+    assert re.Volume() == pytest.approx(pin1.Volume(), rel=1e-9)
+    assert bb(re) == pytest.approx(bb(pin1), abs=1e-6)
+    pp = B.print_pose_pocket_up(pin1)
+    b = bb(pp)
+    assert b[4] == pytest.approx(0.0, abs=1e-6) and b[5] == pytest.approx(16.0, abs=1e-5)
+    # pocket side UP: the top face (z = 16) carries the pocket, the bed face (z = 0) is the closed servo face with the D8 bore
+    top = [f for f in pp.Faces() if abs(f.BoundingBox().zmin - 16.0) < 1e-4 and abs(f.BoundingBox().zmax - 16.0) < 1e-4]
+    bed = [f for f in pp.Faces() if abs(f.BoundingBox().zmin) < 1e-4 and abs(f.BoundingBox().zmax) < 1e-4]
+    assert top and bed
+    assert sum(f.Area() for f in top) < sum(f.Area() for f in bed) - 100.0       # pocket mouth removes area from the top face
+
+
+def test_1brg_mesh_with_36T_at_40_80_zero_overlap(pin1):
+    assert P.GRIPV6R_CD_MAIN == pytest.approx(40.80)
+    sx, sy = P.GRIPV6R_S_XY
+    assert math.hypot(sx - P.GRIPV6R_C_XY[0], sy - P.GRIPV6R_C_XY[1]) == pytest.approx(40.80, abs=1e-9)
+    for r in B.mesh_overlap_3d([0.0, 15.0, P.GRIPV6R_SWEEP_DEG, -15.0]):
+        assert r["pinion_compound"] == pytest.approx(0.0, abs=1e-6), r
+        assert r["pinion_follower"] == pytest.approx(0.0, abs=1e-6), r
+    assert B.mesh_control() > 1.0                                              # positive control: 3 deg off the window overlaps
+
+
+def test_1brg_source_step_untouched():
+    before = sha(V6_STEP)
+    B.donor_profile()
+    assert sha(V6_STEP) == before

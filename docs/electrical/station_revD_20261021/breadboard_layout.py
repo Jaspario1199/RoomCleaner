@@ -215,8 +215,20 @@ def draw():
     lead("i33", "i29", "", "#555555", lw=4)
     ax.text(31, ypos["i"] - 0.15, "D1 1N5819\nstripe at i29", fontsize=6.5, ha="center", va="top", zorder=9,
             bbox=dict(fc="white", ec="#555", lw=0.5, pad=0.5))
-    lead("h20", "h21", "", "#1f5fbf", lw=6)
-    ax.text(18.6, ypos["h"] - 0.1, "C1 100uF\n+ at h20", fontsize=6.8, ha="right", va="center", zorder=9)
+    # C1 drawn as an electrolytic can beside its two legs (a straight bar here read like a 12 V-to-GND short)
+    from matplotlib.patches import Circle as _Circle
+    (x20, yh), (x21, _) = xy("h20"), xy("h21")
+    can_x, can_y = 18.55, (ypos["h"] + ypos["i"]) / 2
+    for xl in (x20, x21):
+        ax.plot([can_x + (0.18 if xl == x21 else -0.05), xl], [can_y, yh], color="#777", lw=1.2, zorder=7)
+    ax.add_patch(_Circle((can_x, can_y), 0.42, fc="#1f5fbf", ec="#111", lw=0.8, zorder=8))
+    ax.add_patch(Rectangle((can_x + 0.12, can_y - 0.36), 0.16, 0.72, fc="#d9e2f2", ec="none", zorder=8.5))   # minus stripe
+    ax.text(can_x - 0.12, can_y, "C1", fontsize=6.5, color="white", ha="center", va="center", zorder=9, weight="bold")
+    ax.plot([x20, x21], [yh, yh], "o", ms=4.0, color="#1f5fbf", mec="#111", mew=0.5, zorder=8, ls="none")
+    ax.text(x20 - 0.05, yh + 0.42, "+", fontsize=9, weight="bold", color="#c2352b", ha="center", va="bottom", zorder=9)
+    ax.text(x21 + 0.05, yh + 0.42, "-", fontsize=10, weight="bold", color="#2459b8", ha="center", va="bottom", zorder=9)
+    ax.text(17.9, can_y, "C1 100 uF capacitor:\n+ leg h20 (12 V row)\n- leg h21 (GND row)\nnot a wire", fontsize=6.6,
+            ha="right", va="center", zorder=9, bbox=dict(fc="white", ec="#1f5fbf", lw=0.6, pad=0.6))
     # wires
     rail_row = {"b21": 21, "b22": 22, "b23": 23, "a24": 24, "a25": 25, "j6": 6, "j7": 7, "j26": 26, "j21": 21.4, "j27": 27.4,
                 "j34": 34, "j35": 35}

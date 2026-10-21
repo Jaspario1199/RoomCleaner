@@ -1,5 +1,69 @@
 # Claw camera bay: independent geometry verification
 
+# ROUND 3 (newest): IMU removal, 23.0 x 18.6 cradle, lens window at the USB-C end, D28 tube cut (commit 769d4e4)
+
+Verifier: geometry-verifier (did not build the part).  Measured the SHIPPED exports (`exports/step/*.step`, `exports/stl/*.stl`) with my own
+ray casting, solid booleans and occupancy grids (tests/test_claw_camera_bay_verify.py); previous export and preview taken from `git show 1c2e968:`.
+Nothing was repaired, committed or pushed.  Frames as before (bay frame = v6 world - (951.8475, 1091.1905, 1103.9899); r = -z).
+Reproduce: `/usr/bin/python3 -m pytest tests/test_claw_camera_bay*.py tests/test_gripper_v7*.py -q -rxX` (about 15 min; the verifier file alone 5 min).
+
+**Verdict: PASS WITH CONDITIONS.**  Of the ten claims, 1, 4, 5, 7, 8, 9 and 10 reproduce fully; 2 (ribs), 3 (window tolerance) and 6 (walls) carry the two findings:
+R3-F1 (MEDIUM, FAIL): the shipped body/housing export is stale against `cad/parts/claw_camera_bay.py` (locating ribs; details below);
+R3-F2 (LOW, shortfall): the lens window does not reach the +-4 mm tolerance everywhere.  Everything else reproduces within tolerance.
+
+## R3.1 Claim by claim (expected vs measured)
+
+| # | Check | Expected | Measured | Tol | Status |
+|---|---|---|---|---|---|
+| 1 | IMU removed | no IMU pocket/pad/peg/vent, no CAMBAY_IMU_*, bay ends r 101.3 | no `CAMBAY_IMU` in params.py or the part; housing/body/cover bbox r max 101.30; 0 mm3 of any part beyond r 101.4; no R1.05 post/pilot cylinders; cover has only the 4 cradle-corner pegs. The 3 XIAO airflow slots in the -X cradle wall (r 84.5/90/95.5, y 10.9..18.9) remain by design (not IMU vents) | 0.01 | PASS |
+| 2a | Pocket | 23.0 x 18.6 | x -11.5..+11.5 = 23.00; r 80.7..99.3 = 18.60 | 0.02 | PASS |
+| 2b | Cavity height | >= 16 (claimed 17.0) | seat y 9.9 (block top), cover underside 26.9 -> 17.00 above the seat.  Only the four 2.4 mm cover pegs drop to 11 above the seat at the corners | 0.01 | PASS |
+| 2c | Four 0.4 mm ribs | 4 ribs, 0.4 proud, 17.8 between | 4 ribs (2 per long wall), pocket 17.8 between them (r 81.1..98.9), 0.40 proud.  BUT positions/widths differ from the module (see R3-F1) | 0.01 | PASS (count, height) / FAIL vs module |
+| 2d | Board fit | 21 x 17.8, ~15 mm stack fits | 21 x 17.8 (+1.5 USB overhang) x 7 mm above the seat (nominal stack, camera 8 mm in the window): 0 mm3 with housing and cover.  A full 15 mm above the seat fits the housing (0 mm3) but touches the cover pegs (56 mm3; not the real arrangement).  Width 18.0 squeezes the ribs (3.4 mm3, by design).  Play: +-0.25 mm in X, 0 radially (snug).  23.2 long board collides (11.4 mm3) | 1e-3 | PASS |
+| 3a | Lens window | 14.25 x 16.4 at the USB-C end | x -3.25..+11.0 = 14.25 (centre +3.875, USB-C end), r 81.8..98.2 = 16.40 centred on r 90.00; 1.0 mm chamfer at the bottom mouth; 2.5 mm wall to the +X outside above the chamfer | 0.02 | PASS |
+| 3b | Window vs lens shifts (lens centre x 4.75, r 90) | D8 barrel and 8.5 module clear for -3.9/+2.25 in X, +-3.9 in R | D8 barrel limits: X -4.00 / +2.25, R +-4.20.  8.5 module: X -3.75 / +2.00, R +-3.95.  Claim holds for the barrel (and R for both); the 8.5 module is 0.15 (X-) and 0.25 (X+) short of the claimed values | 0.03 | PASS (barrel) / FAIL (module X) |
+| 3c | +-4 mm everywhere | +-4 in X and R | Shortfall vs 4.0: barrel +X 1.75; module X- 0.25, X+ 2.00, R 0.05.  The +X cap does NOT matter: the board has 0.25 mm slack in the pocket and the module cannot overhang the board end (lens centre >= 4.25 from the end, nominal 5.0), so the lens cannot move more than about +1.0 mm toward +X; the window gives +2.0 | n/a | FAIL (R3-F2, harmless in X+) |
+| 4a | USB-C notch | 15 wide, sill 0.4 above the seat, closed by the cover | width 15.00 (r 82.5..97.5, centred r 90.00) constant from the sill to the wall top, through the whole +X wall (x 11.5..13.5); sill y 10.3 = 0.4 above the seat; wall top 26.9 = cover underside, cover plate 26.9..29.3 roofs the notch | 0.02 | PASS |
+| 4b | Plug 12 x 6.5 reaches the receptacle in place | 0 interference | Overmould front at the receptacle face x = 11.25, 12 x 6.5 plug: 0 mm3 with housing and cover for plug centre y 13.55..22.65 (receptacle nominal 15.3 -> margin -1.75 / +7.35 mm, i.e. the plug centre must be >= 3.65 above the seat), lateral +-1.5 mm.  12 x 7: 13.80..22.40; 13 x 8: 14.30..21.90, lateral +-1.0.  8.94 x 3.26 receptacle clear.  Open assumption: receptacle centre height (stack top - 1.6) is still unmeasured | 1e-4 | PASS |
+| 5 | Unchanged vs 1c2e968 | corner holes, lid seat, rim, wire window | differences vs the previous export lie only inside the bay zone (|x|<=36, r 50..131, y<40): 0.00 mm3 outside; nothing above y 27 and nothing on the +Z half; wire window removed volume 1050.94 mm3 both, symmetric difference 0.0; bore areas of all 4 corner holes identical (85.916 mm2); lid seat (1792.699 mm2), rim (1949.825 mm2) and volume above y 60/73.7/80 identical; nearest added material to a bore 16.76 mm | 0.01 | PASS |
+| 6 | Walls | >= 1.2 (claimed min 1.6 at ribs) | 1,552 bay facets + 1,408 cover facets (inward-normal probe, no exclusions): every wall except the ribs >= 1.999 mm (cover 1.999).  Ribs in the SHIPPED export: 1.2 mm wide at x = -8.0 and a free-standing fin only 0.5 mm thick (0.4 proud + 0.1) at x = -1.0, 8 mm tall, in the |x| < 4 wire gap with no wall behind it.  Module would give 1.6 mm ribs backed by the fences | 0.02 | FAIL (R3-F1) |
+| 7 | STEP round trip | single valid solid, bbox and volume agree | housing 404,199.15 mm3, body 14,984.04, cover 3,597.63: valid, 1 solid, 1 shell; re-import volume diff < 1e-6 relative, bbox diff < 1e-4 mm; STL closed 2-manifold, volume within 0.3 %, z min 0 | 1e-6 | PASS |
+| 8 | Mass | 19.1 g (was 28.7) | PETG 1.27 g/cc: bay net of the window cut 14.56 g + cover 4.57 g = 19.12 g (gross of the window 20.46 g) | 0.2 g | PASS |
+| 9a | D28 tube | GRIPV7_TUBE_LEN 254.8; lower end 786.39, top 1041.19 | param 254.8 (V6 304.8, cut 50.0); preview tube 786.390 .. 1041.190 = 254.800, axis x 951.8475 z 1103.990; volume down by annulus x 50 (12,035 mm3) | 0.01 | PASS |
+| 9b | Only four parts moved | tube shortened, cylinder, box+bay, cover down exactly 50.0 | 55 of 59 preview solids bit-identical (bbox < 1e-4 mm, volume); the cylinder moved -50.0000 rigidly; box+bay and cover equal the CURRENT exports shifted -50.000 in y (symmetric difference 0.0 mm3) | 1e-4 | PASS |
+| 9c | No interference moved vs head/tube | none new | Touching pairs identical to the previous preview: tube/cylinder 0.037 mm3, cylinder/box 0.004 mm3 (coincident faces); cover and bay touch nothing; box bottom plane = tube top = y 1041.19 | 0.05 | PASS |
+| 9d | Lens position and height | (956.60, 1043.09, 1013.99); 462.06 above the lowest tip (581.03) | lens (956.5975, 1043.0905, 1013.9899); lowest closed-jaw point of the v7 head y 581.034; height 462.056 mm.  (v6 frame, bay unmoved: y 1093.09, 511.66 above the v6 tip 581.43; v6-frame FOV blockage test still within 12.4 +-1.5 %) | 0.01 | PASS |
+| 10 | Cable-line clearance (az 0..90, el 10..90, stated range) | earlier 19.25 | min 20.67 mm (1,292 rays per corner, 0 hits); corner hole mouth to the bay solid 21.43 mm (21.37 before) - the closest features are the gussets and columns near the root, so the shorter bay changes nothing.  Realistic lines (yaw about the installed orientation): 0 hits at |yaw| <= 30 deg in all four installed orientations (round 2: 2 hits at +-30); +-45: 5 hits (installed 0/180) / 7 (90/270) (round 2: 7); +-60: 3 / 8 | 5 mm | PASS (F6 narrowed to |yaw| >= 45) |
+
+## R3.2 Findings
+
+**R3-F1 (MEDIUM): the shipped body/housing export is stale against the module.**  `cad/parts/claw_camera_bay.py` builds the locating ribs at
+x = -8.0 and +7.0, 1.6 mm wide (both clear of the |x| < 4 wire gap).  The export has them at x = -8.0 and -1.0, 1.2 mm wide: regen-minus-export 12.8 mm3 and
+export-minus-regen 8.64 mm3, nothing else differs (cover export identical).  The x = -1.0 pair is a 0.5 mm free-standing fin (0.4 proud + 0.1 buried, 8 mm tall) that
+narrows the wire gap and is below the 1.2 mm minimum wall; the author's suite passes because it tests the module, not the export.
+Repair is a re-export only (no design change).  Evidence: `test_exports_not_stale`, `test_min_wall_1p2_everywhere_including_ribs` (both xfail strict), `test_rib_defect_is_confined_to_the_stale_ribs`.
+
+**R3-F2 (LOW): lens window tolerance.**  The window follows the stated +-4 mm for the D8 barrel in X- and R only.  Shortfalls are in R3.1 3c.  The X+ cap (0.5 mm short of
+the pocket end wall) is physically harmless as computed; the real exposure is the -X/R direction for the 8.5 mm module (0.25 / 0.05 mm) and the unmeasured lens position itself.
+
+**Observations (no action needed):** the Seeed ruler photo (xiao_esp32s3_top_seeed_ruler.png) shows the USB-C receptacle overhanging the board edge by about 1.7 mm and the board
+without the USB about 20 mm (scale read at 150 px/cm, +-0.5 mm); so the "21 mm" most likely includes the receptacle and the 21 + 1.5 envelope in the 23.0 pocket is conservative.
+Camera protrusion 8 mm, receptacle height and lens position remain ASSUMED (VERIFY with calipers before printing).  Wire bundle: widest sphere from the neck to the box pocket 6.99 mm (was 3.5).
+
+## R3.3 Test-file changes (tests/test_claw_camera_bay_verify.py, tests/test_gripper_v7_verify.py)
+
+Constants changed only after my own measurement above: export volumes (404,199 / 14,984 / 3,598), added bbox r <= 101.3 and y <= 26.9, lens window x -3.25..11.0 and 16.4, lens x +4.75
+and heights (v6 511.66; v7 preview 462.06 added), cradle 23.0 x 18.6, seat 9.9, notch/sill/plug tests (15 wide, y 10.3, centre 15.3), boss x 16.55 / hole bottom 19.9, cover top 29.3, section Ix 15,369,
+mass 19.1 g, minimum-wall test split (non-rib walls >= 1.95 pass; the rib defect is a strict xfail), IMU tests replaced by `test_imu_removed`, F6 yaw test moved from +-30 (now passes, all 4 orientations) to +-45 (strict xfail).
+New: lens shift limits, plug passage ranges, unchanged-regions vs previous export, four D28 preview tests.  No assertion was weakened to hide a failing measurement.
+`test_gripper_v7_verify.py`: `_tube()` now searches 254.8 mm (the v6-STEP call passes 304.8).
+
+Final runs: `tests/test_claw_camera_bay.py` 19 passed; `tests/test_claw_camera_bay_verify.py` **61 passed, 6 xfailed** (strict: F5 grasp point hidden, R3-F1 x2, R3-F2, F6 at +-45 x2);
+`tests/test_gripper_v7.py` 34 passed and `tests/test_gripper_v7_verify.py` 72 passed (106 total).
+
+---
+
+
 Verifier: geometry-verifier (did not build the part).  Commit under review: 7f63e95.
 Method: measured the SHIPPED exports (`exports/step/*.step`, `exports/stl/*.stl`), the original v6 STEP
 (read through the XCAF loader, hash-checked against git HEAD) and the CadQuery module (regeneration check only).

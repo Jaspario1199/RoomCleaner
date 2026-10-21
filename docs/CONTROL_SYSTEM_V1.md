@@ -42,7 +42,7 @@ run a stage whose numbers are missing.
 |---|---|---|
 | Host PC | `roomcleaner/cdpr` | vision, calibration, planning, coordination, supervision, logging |
 | Station ×4 (XIAO ESP32-C3 + A4988 + AS5600 + NC bead switch) | `firmware/winch_station` | local step generation from Hermite segments, encoder tracking, switch capture, feed-hold, lease, faults |
-| Claw (XIAO ESP32-S3 Sense + MPU6050 + MG996R) | `firmware/claw_s3` | timestamped JPEG frames, roll/pitch, battery, grip with tilt gate |
+| Claw (XIAO ESP32-S3 Sense + MG996R; no IMU, D27) | `firmware/claw_s3` | timestamped JPEG frames, battery, grip (obeys; the host approves grips) |
 | Phone | `roomcleaner/cdpr/static/setup.html` | setup, start/pause, recovery, confirmed disarm |
 
 Host layering (each layer only uses those below it):
@@ -80,24 +80,36 @@ by `scripts/extract_claw_body_frame.py` → `verification/claw_body_frame.json` 
 (+,−), (+,+), (−,+); (±42.07, ±42.07, 0) mm; hole 18.2 mm long, rising 21° outward).
 Lengths therefore depend on the orientation `R`, so every length, direction,
 Jacobian, tension and workspace check takes `R`:
-* **measured** `R` where a vision pose exists: IMU roll/pitch + vision yaw
-  (`perception.VisionSource`, i.e. the marker pose `T_M_B`); the estimator uses each
+* **measured** `R` where a vision pose exists: the full vision attitude, roll/pitch against the
+  floor reference's normal and yaw (`perception.VisionSource`, i.e. the marker pose `T_M_B`;
+  **no IMU, D27**). The camera-to-body *tilt* offset is measured at every startup, while the
+  claw rests upright on its jaws over the printout (`StartupSequencer._measure_mount`,
+  `attitude.mount_offset_from_up`: the marker normal seen by the camera is body z; the
+  rotation about the vertical is unobservable there and keeps its CAD value), stored, saved
+  with the model and applied to every later vision pose; startup aborts if it exceeds
+  `claw.mount_offset_max_rad` (5°: the claw is not resting upright or the mount is wrong).
+  Honest sigma of a vision roll/pitch: `claw.vision_attitude_sigma_rad` = 10 mrad
+  (not the 4 mrad of the IMU it replaced) combined with the standard error of the mount
+  measurement (frame scatter/√30, about 2–3 mrad). The estimator uses each
   sample's own `R` and `b_i` in the measurement model, the slack hypotheses
   (re-solved at the sample's `R`), the slack probe (response computed with the
   rigid-body 6×6 stiffness), bead verification, witnesses and identifiability;
   the attitude error is added to the length sigma (`calibration.attitude_sigma_rad`·|b_i|);
 * **predicted** `R` for a target not yet visited (`Geometry.R_at`, `kinematics.Attitude`):
   rigid-body statics of gravity at the CoM (`claw.com_body_m`, payload at the jaws)
-  plus the four tensions, the least-total-tension (no pretension) distribution, roll/pitch
-  from the horizontal moment balance, **yaw held at the last measured value**
-  (`RobotContext.room_pose` updates it). Assumption (VERIFY): the CoM is a CAD estimate
-  without electronics.
+  plus the four tensions, the minimum 2-norm tension distribution (no pretension; it is not the
+  least-total-tension LP solution and can be slightly negative at some poses, which `.taut`
+  reports), roll/pitch from the horizontal moment balance, **yaw held at the last measured
+  value** (`RobotContext.room_pose` updates it). Away from the floor reference this is the
+  claw's attitude (D27), valid once the pendulum has settled, with a 1-sigma of
+  `claw.statics_attitude_sigma_rad` (4°: it moves with the CoM height and the payload).
+  Assumption (VERIFY): the CoM is a CAD estimate without electronics.
 * **Yaw is passive.** The four lines leave nearly radially from the corners, so
   yaw is only weakly held: 3.6–6° per mm of line-length inconsistency (linear tilt-free
   model, `verification/claw_camera_bay_verification.md` F6; the elastic simulator gives
   2.4–3.7°/mm). It is measured, never predicted; the same mm-level inconsistencies also
-  move the tilt by a few degrees, so the predicted attitude is *nominal* and vision/IMU
-  close the loop. Backward compatibility: one common point (`attachment: "common"`, b = 0)
+  move the tilt by a few degrees, so the predicted attitude is *nominal* and vision
+  closes the loop wherever the floor reference is in view. Backward compatibility: one common point (`attachment: "common"`, b = 0)
   is orientation independent, `R_at` is the identity and the original point-claw
   model is reproduced exactly (`tests/cdpr/test_rigid_body.py`).
 * **Known simplification.** The line is a straight chord from the inner mouth to the
@@ -124,7 +136,8 @@ analytic Hessian and an Armijo line search, warm-started. Non-convergence is rep
 kept: a non-equilibrium state is never returned. This replaced an undamped 3-DOF
 Newton that limit-cycled at some poses and produced spurious 14–25 N tensions
 (`verification/slack_probe_review.md` M1). Passive yaw drift under length errors
-emerges from the model. On the floor the claw rests upright and yaw is held by friction.
+emerges from the model. On the floor the claw rests on its jaws with the equilibrium attitude of its lines
+(upright when they are slack or vertical, slightly tilted when loaded) and yaw is held by friction.
 
 **Overconstraint — measured in simulation, important.** With stiff cables and
 any length error, the claw hangs on **three** cables and the fourth goes
@@ -250,7 +263,7 @@ abort conditions. Aborts **hold**; they never disable.
 
 | State | Does | Aborts (→ FAULT / PAUSED / RECOVERY_REQUIRED) |
 |---|---|---|
-| SELF_CHECK | config complete for the stage, suspended motion authorised; stations configured (param hash), synced, fault-free, switches closed, armed; claw online, battery ≥ min; camera calibration id recorded; marker visible and still; claw resting upright on the floor (height ±3 cm, tilt) | any check fails |
+| SELF_CHECK | config complete for the stage, suspended motion authorised; stations configured (param hash), synced, fault-free, switches closed, armed; claw online, battery ≥ min; camera calibration id recorded; marker visible and still; **camera-to-body tilt offset measured** (30 frames, claw resting upright on its jaws over the printout, D27) and stored; claw on the floor at the expected height (±3 cm) | any check fails, or the measured mount offset > `claw.mount_offset_max_rad` |
 | SLACK_TAKEUP | one station at a time, a slow continuous retraction (claw on the floor = stations uncoupled), bounded by `max_slack_m`. Each vision frame is checked; claw motion ≥ max(onset_translation, k·noise) marks taut onset. Pulling continues to `bearing_translation_m` so the **slide direction** is measured, then a hold and a pay-out of `onset_backoff_m` | no onset within max slack (cable unattached, wrong winding direction, station order); marker lost > 1 s; tilt |
 | — after all four | slide bearings vs anchor entries (catches **swapped station wiring**); first fit → L0 per station + marker registration | bearing RMS > limit |
 | INITIAL_LIFT | all cables to just-taut, then vertical packets computed from the model's cable directions; vision after each | lateral drift > max, tilt > max, commanded − observed lift > budget, no clearance by `max_lift_m` |
@@ -320,7 +333,7 @@ hardware caveats (tension rise when probing a taut cable on real Dyneema; recomm
   * the marker's room pose (x, y, yaw);
   * one nuisance position per vision sample.
 * **Observations:**
-  * vision poses with covariance, **gravity-fused**: roll/pitch from the claw IMU, only yaw and position from the image;
+  * vision poses with covariance (full vision attitude; the claw has no IMU, D27; the optional gravity fusion `claw.imu` is off and unused);
   * motor positions;
   * taut-onset lengths and slide bearings;
   * bead captures.
@@ -398,7 +411,7 @@ Then the captures are added as observations and **the whole model is refit**.
 Changing L0 alone would break the anchor/L0 consistency the vision fit
 established.
 
-**Simulation finding (6-inch marker, 3 mrad IMU tilt σ):** absolute σ came out
+**Simulation finding (6-inch marker, 3 mrad IMU tilt σ; historic, before D27 removed the IMU, see `verification/imu_removal_results.md`):** absolute σ came out
 at 20–25 mm, with actual errors of −38 to +21 mm, so the 3σ claims held. With
 `overtravel = 12 mm` the gate requires σ ≤ 2 mm, so all four beads were
 **BLOCKED** and the robot finished at **LOCAL_ONLY**. This is the honest
@@ -499,8 +512,16 @@ RELEASE → DELIVERY_VERIFICATION.
   verification F6: hits only above ~1.6 m at |yaw| ≥ 30°). Calibration excitation and
   recovery keep their own bounds. (A yaw-measurement guard was considered and
   dropped in favour of this single limit.)
-* The claw must settle upright (IMU) before closing. The claw firmware also
-  refuses a tilted close.
+* **Settle, then approve (D27).** The claw has no IMU and no tilt gate: `/grip` obeys.
+  Before descending the host waits until the claw is *still* (`attitude.wait_until_still`):
+  camera-observed motion of the floor reference below `tasks.grip_still_rate_rad_s` (corner
+  shift / (fx·dt)) for `tasks.grip_still_frames` consecutive frames; with no camera motion
+  signal (reference not in view) a dwell of `tasks.grip_settle_periods` pendulum periods
+  `T = 2π√(L/g)`, L = depth of the CoM below the attachment plane (never less than
+  `tasks.grip_settle_min_s`). It then approves only if the tilt (vision when the reference is
+  in view, else the cable model) and the predicted `R_at` tilt at the hover and at the grip
+  pose are within `claw.grip_tilt_max_rad`. Each approval is recorded
+  (`TaskRunner.approvals`). The same settle gate precedes a release.
 * The final descent is at 30 % speed. Transport is planned with claw mass
   plus the maximum payload (0.9 kg).
 * A servo command proves nothing: pickup and delivery are both checked by

@@ -528,6 +528,7 @@ CAMBAY1021_TRI_LABEL_ABOVE = 5.0      # label centre this far above the mouth ce
 CAMBAY1021_TRI_KEEPOUT = 5.0          # required clear distance to every other feature of the housing
 CAMBAY1021_TRI_CONFINE = 3.0          # the part may differ from the 1021 housing only within this distance of the holes / labels
 CAMBAY1021_TRI_CORNER_R = 10.0        # box outer and pocket corner radius (measured on Jasper's housing; flat wall half = HALF - R)
+CAMBAY1021_TRI_LID_RECESS_HALF = 42.5    # lid-seat recess half width (measured: faces at |x|, |z| = 42.5, y 50 .. 55)
 CAMBAY1021_TRI_BODY_ORIGIN_Y = CAMBAY1021_CORNER_HOLE_INNER_Y   # body-frame origin height in the box frame (corner-hole inner mouth, 7.82)
 # Station anchor priors, room frame (x east, y north, z up), metres: docs/THREE_STATION_MODE_SPEC.md (C, A, B in IDS order).
 CAMBAY1021_TRI_ANCHORS_ROOM_M = ((1.6764, 2.6932, 2.5932), (0.05, 0.05, 2.5932), (3.3028, 0.05, 2.5932))

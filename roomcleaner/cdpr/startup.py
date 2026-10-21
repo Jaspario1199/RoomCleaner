@@ -454,8 +454,6 @@ class StartupSequencer:
     def __init__(self, ctx: RobotContext):
         self.ctx = ctx
         self.cfg = ctx.cfg
-        self.ids = tuple(ctx.cfg.ids)           # the ACTIVE stations (4, or 3 in three-station mode)
-        self.n = len(self.ids)
         self.rep = StartupReport()
         self.noise_m = 0.001
         self.p_floor = None
@@ -463,6 +461,15 @@ class StartupSequencer:
         self.cal_report: dict | None = None     # last acceptance report of the final calibration
 
     # -------------------------------------------------------------- helpers
+    @property
+    def ids(self) -> tuple:
+        """The ACTIVE stations (four, or three in three-station mode); every per-cable array is in this order."""
+        return tuple(self.cfg.ids)
+
+    @property
+    def n(self) -> int:
+        return len(self.ids)
+
     @property
     def board(self):
         """Visibility / span queries of the multi-tag floor reference (sim.world.FloorBoard or vision.board.BoardGeometry

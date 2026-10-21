@@ -432,3 +432,8 @@ Adafruit 3886 MPU-6050 as selected, "not recorded ordered").
   ≈ 53–56 °C motor case, ~33 °C shell air; vented 1.25 A ≈ 47–49 °C;
   sealed 1.5 A ≈ 65–69 °C. A4988 junction at 1.25 A sealed ≈ 90–115 °C
   (165 °C shutdown); 1.5 A still too close in the worst case.
+- Heat fin centre hole as built: 7/8 in (22.23 mm) instead of Ø22.5 (Jasper,
+  10/21). The NEMA 17 pilot boss is Ø22.0 nominal, so 7/8 in still clears it by
+  ~0.11 mm per side; test-fit before enlarging. If enlarging is needed, ream or
+  file it by hand (no pressing). Deburr both faces flat, because burrs cost
+  thermal contact.

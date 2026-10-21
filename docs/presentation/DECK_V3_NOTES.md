@@ -57,8 +57,18 @@ https://docs.google.com/spreadsheets/d/1UGFnkL1v305WnDYj5aj5zBtgxnxmGP7_TVRN0afZ
   - Incropera et al., *Fundamentals of Heat and Mass Transfer*, ch. 3 (fin equations);
   - Allegro A4988 datasheet (current limit).
 
+## v3.1 (same day, Jasper's follow-up)
+
+- **Camera story (D33):** two new slides in The claw section. *First setup: an overhead camera* covers the gen-1 ceiling camera, YOLO-World, and the pixel-to-floor map, with equations and a render of the gen-1 ceiling case. *Moving the camera to the claw* replaces the old *Camera on the claw* slide: why the overhead camera went, what replaced it, and the cost.
+- **New photos:**
+  - 19, the soldered station perfboard, on *Station board* next to the KiCad schematic;
+  - 20, the slicer for the K1, on *Designing parts to be printed*.
+  - The other three photos Jasper sent were already in the deck (05, 04, 11).
+- **Other edits:** "the overhead camera" added to the parts-deleted lesson; the outline's claw line updated. The deck is now 45 slides.
+
 ## Open for Jasper
 
 - **Fin length:** 200 mm was sized for the 1/8 in plate. For the 0.019 in sheet, about 140 mm does the same job (past 136 mm adds under 5 %). Keep 200 mm, so the same cover slot takes the plate later, or trim. The slide says "built 200 mm" either way.
+- **Camera reasons:** the three reasons on *Moving the camera to the claw* come from the design review; say them in your own words or replace them with your own.
 - **First test slide:** replace the placeholder with the photo and the measured numbers after the run.
 - **Hold-test length:** the deck says 90 min (status slide); the prep checklist says 60 min. Pick one.

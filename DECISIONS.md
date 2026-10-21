@@ -256,3 +256,17 @@ v6 camera bay (r 90, same lens position). Cable-to-bay clearance is ≥ 12 mm
 within ±15° claw yaw; contact is possible at ≥ 30° yaw near the ceiling, so
 start square to the room. Spec: cad/GRIPPER_1021_SPEC.md; checks:
 verification/gripper1021_build_notes.md, gripper1021_hands_lead_check.md.
+
+D33. **The overhead camera is retired; the claw camera is the robot's camera**
+(Jasper, 2026-10-21: "the first setup also used an overhead camera, and moving
+away from that design change"). Gen 1 used one fixed ceiling camera looking
+straight down (USB board in `camera_case_overhead`, YOLO-World detection,
+pixel-to-floor map: linear for a straight-down camera, 4-point homography for a
+tilted one). Gen 2 uses only the XIAO ESP32-S3 Sense in the claw's camera bay
+(D32), which guides the grasp and reads the floor board for calibration.
+Reasons as presented (from the gen-2 review R7, wording to be confirmed by
+Jasper): the ceiling camera is one more device to mount, wire and calibrate in
+every room; the claw and cables hide the grasp spot from above; its floor map
+assumes a flat floor. Cost accepted: the claw camera sees less of the room at
+once, so the robot scans by moving. R7's "keep both cameras" recommendation is
+not adopted. Gen-1 camera parts and code stay in the repo as history.

@@ -207,7 +207,7 @@ content("Goal and constraints", [
   const items = [["How a cable robot works", "Position vectors, statics, the winch"],
                  ["From one box to modular stations", "Wiring, a controller per winch, the slide-in housing, plug-in power, cooling and the fin"],
                  ["Homing and calibration", "Bead homing, why it limited the motion, the camera-based method"],
-                 ["The claw", "Gripper evolution, the four-bar hands, the camera, weight vs lift"],
+                 ["The claw", "Gripper evolution, the four-bar hands, overhead camera to claw camera, weight vs lift"],
                  ["Manufacturing", "Printed PETG parts, and a heat fin cut and drilled on a manual mill"],
                  ["Electronics and software", "Station board, bring-up, control and the phone app"],
                  ["Status and next steps", "First test, what is built, what I learned"]];
@@ -453,14 +453,29 @@ content("Final gripper: gears and four-bar hands", [
   "Lewis: σ = F_t / (b m Y),   F_t = 2τ / d",
 ] } });
 
-content("Camera on the claw", [
-  "XIAO ESP32-S3 Sense camera in a bay built into the electronics housing",
-  "It looks straight down along the tube at the grasp spot",
-  "Sees the spot from about 17 cm above it; at contact the jaws hide it, so the last view guides the final approach",
-  "The same camera reads the floor board for calibration",
-  "One printed part: the bay is part of the housing, with a screwed cover",
+content("First setup: an overhead camera", [
+  "One camera on the ceiling, looking straight down and framing the whole floor",
+  "A detector that works from words (YOLO-World) finds “sock”, “towel”, “t-shirt” with no training",
+  "Each item's bottom-centre pixel, where it meets the floor, becomes a floor position",
+  "- straight-down camera: scale by the room size; tilted camera: a homography from four taped floor points",
+  "The claw then flies to that point and grabs",
+  "The camera board sat in a printed ceiling case: shell plus a screw-on lens bezel",
+], { file: R("gen1_overhead_camera.png"), alt: "Gen-1 overhead camera case", caption: "Gen-1 ceiling camera case: shell and lens bezel (45 g PETG)" },
+"Gen 1 found laundry from above and mapped it to the floor; the claw only had to go there.",
+{ eq: { lines: [
+  "Straight down:  x = u · W / w_{img},   y = v · D / h_{img}",
+  "Tilted:  (x, y, 1) ∝ **H** · (u, v, 1),   **H** fitted from 4 floor points",
+], note: "u, v: pixel;  W × D: floor size;  w × h: image size in pixels" } });
+
+content("Moving the camera to the claw", [
+  "The overhead camera was one more device to mount, wire and calibrate in every room",
+  "The claw and cables hide the spot right where it grasps: it cannot see the grip",
+  "Its floor map assumes a flat floor, but a pile of clothes has height",
+  "Now: a XIAO ESP32-S3 Sense camera in a bay in the claw's housing, looking straight down the tube",
+  "One camera, two jobs: it guides the grasp up close and reads the floor board for calibration",
+  "Cost: it sees less of the room at once, so the robot scans by moving",
 ], { file: R("gripper1021_final.png"), alt: "Claw with camera bay", caption: "Camera bay on the electronics housing (cover in navy)" },
-"Lens position kept from the studied design, so the view study still applies.");
+"Sees the grasp spot from about 17 cm; at contact the jaws hide it, so the last view guides the final approach. The gen-1 camera case and its software are kept in the repository.");
 
 content("Weight vs lift: where it stands", [
   "Driver limit 1.06 A → running pull ≈ 18–24 N per winch (full vs empty spool)",
@@ -480,13 +495,13 @@ content("Weight vs lift: where it stands", [
 section(5, "Manufacturing", "Printed PETG parts, and a heat fin cut and drilled on a manual mill");
 
 content("Designing parts to be printed", [
-  "PETG for parts under constant load (PLA creeps); TPU only where a part must flex",
+  "PETG on a Creality K1 (0.4 mm nozzle, 0.2 mm layers); PLA creeps under load",
   "Orientation: flat face on the bed, loads along the layers, no supports on mating faces",
   "Printed holes come out undersize (bead rounding, shrink, first-layer squash)",
   "- so fits get a lead-in: 687 bearing pocket Ø14.075 with a Ø14.000 entry lip",
   "Heat-set M3 inserts where screws are reused",
   "Fewer parts: camera bay printed into the housing",
-], { file: PH("04_gen2_station_shells.jpg"), alt: "Printed PETG station shells", caption: "Printed PETG station shells" },
+], { file: [PH("04_gen2_station_shells.jpg"), PH("20_slicer_creality_k1_petg.jpg")], alt: "Printed shells and the slicer", caption: "Printed PETG station shells; slicing the plate for the K1" },
 "Every printed interface is chosen for how it prints and how I can measure it, not just how it looks in CAD.",
 { split: 0.56, eq: { lines: [
   "Clearance c = (D_hole − u) − D_shaft,   u = printer undersize",
@@ -522,8 +537,9 @@ content("Station board", [
   "100 µF at the driver's motor supply",
   "Connectors for the motor, homing switch, encoder and 12 V",
   "The KiCad schematic is generated from the soldered board's net list, so the two cannot disagree",
-], { file: R("kicad_station_revD.png"), alt: "Station schematic", caption: "Station schematic (KiCad), checked net by net against the board" },
-"Rules check: 0 errors. 16 nets, 55 pins match the perfboard.", { split: 0.44 });
+], { file: [R("kicad_station_revD.png"), PH("19_station_perfboard_soldered.jpg")], alt: "Station schematic and the soldered board",
+     caption: "KiCad schematic (left), checked net by net against the soldered perfboard (right)" },
+"Rules check: 0 errors. 16 nets, 55 pins match the perfboard.", { split: 0.42 });
 
 content("A motor that would not move", [
   "The log said it was stepping; the shaft did not turn",
@@ -577,7 +593,7 @@ content("What I learned", [
   "Hold tolerance where it matters: one mill setup for the fin's holes",
   "Design for the worst case: stall, the corner of the room, the hottest hour",
   "Modularity paid for itself: every station can be pulled, fixed and put back",
-  "Question each requirement and delete parts: the IMU, the five-finger hand (now two jaws), the long motor harnesses",
+  "Question each requirement and delete parts: the IMU, the overhead camera, the five-finger hand, the long motor harnesses",
 ], { file: R("gripper1021_head.png"), alt: "Final gripper head" },
 "If I did it again: buy the pulleys and couplers sooner, and build one complete station to test before building four.");
 

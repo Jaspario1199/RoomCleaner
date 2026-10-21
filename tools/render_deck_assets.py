@@ -227,6 +227,17 @@ JOBS["gripper1021_final"] = lambda: _gripper1021(False)
 JOBS["gripper1021_head"] = lambda: _gripper1021(True)
 
 
+# Gen 1: the fixed overhead camera's ceiling case (shell + screw-on bezel), seen from below (deck v3.1)
+def _gen1_overhead_camera():
+    shell = load(S("cad/step/camera_case_overhead_shell.step"), 0.1, 0.2)
+    Vb, Fb = load(S("cad/step/camera_case_overhead_bezel.step"), 0.1, 0.2)
+    Vb = Vb + [0, 0, -24.6 - 3.0 - 6.0]            # bezel sits under the skirt (24.6 deep, 3 thick); 6 mm exploded gap
+    return [(*shell, PETG, False), (Vb, Fb, NAVY, False)]
+
+
+JOBS["gen1_overhead_camera"] = _gen1_overhead_camera
+
+
 def _v6_part(name):
     """One of Jasper's v6 solids, by name, from the v6 assembly STEP (read-only)."""
     sys.path.insert(0, str(ROOT))
@@ -251,6 +262,7 @@ OPTS["v6_compound_original"] = dict(view=(0.7, -0.9, 1.1))
 OPTS["gripper_v7"] = {**YUP, "view": (1, 0.9, 1)}
 OPTS["gripper1021_final"] = {**YUP, "view": (1, 0.55, -1.1), **TALL}
 OPTS["gripper1021_head"] = {**YUP, "view": (0.9, 0.5, -1.2)}
+OPTS["gen1_overhead_camera"] = dict(view=(1, -1.2, -0.75))
 for n in ("claw_v6", "claw_v6_camera_bay", "wall_mount_v3"):
     OPTS[n] = {**OPTS[n], **TALL}
 

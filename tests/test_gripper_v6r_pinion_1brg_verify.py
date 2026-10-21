@@ -365,38 +365,60 @@ def _section_wires(shape, z):
     return faces[0].outerWire(), faces[0].innerWires()
 
 
-def _rmax(wire):
-    r = 0.0
+def _samples(wire, step=0.004):
+    """Dense points on a wire (about one point per `step` mm), (N, 2) array.  BRepExtrema vertex-to-wire proved unreliable
+    on the tooth outline (returned 12.29 for a 11.625 root), so distances are taken between dense samples."""
+    pts = []
     for e in wire.Edges():
-        for t in np.linspace(0.0, 1.0, 400):
-            p = e.positionAt(t)
-            r = max(r, math.hypot(p.x, p.y))
-    return r
+        n = max(8, int(e.Length() / step))
+        for t in np.linspace(0.0, 1.0, n):
+            q = e.positionAt(t)
+            pts.append((q.x, q.y))
+    return np.array(pts)
 
 
-def test_3_walls(new):
-    zero = cq.Vertex.makeVertex(0, 0, 0)
+def _wall_numbers(new):
+    from scipy.spatial import cKDTree
     out4, inn4 = _section_wires(new, 4.0)
     assert len(inn4) == 1
-    root = BRepExtrema_DistShapeShape(zero.wrapped, out4.wrapped)
-    root.Perform()
-    root_r = root.Value()
-    pocket_r = _rmax(inn4[0])
-    d = BRepExtrema_DistShapeShape(out4.wrapped, inn4[0].wrapped)
-    d.Perform()
-    wall_pocket = d.Value()
+    o4, i4 = _samples(out4), _samples(inn4[0])
+    root_r = float(np.hypot(o4[:, 0], o4[:, 1]).min())
+    pocket_r = float(np.hypot(i4[:, 0], i4[:, 1]).max())
+    wall_pocket = float(cKDTree(o4).query(i4)[0].min())
     out1, inn1 = _section_wires(new, 1.0)
     assert len(inn1) == 1
-    d1 = BRepExtrema_DistShapeShape(out1.wrapped, inn1[0].wrapped)
-    d1.Perform()
-    wall_notch = d1.Value()
-    notch_r = _rmax(inn1[0])
-    MEAS["walls"] = dict(root_r=root_r, pocket_r=pocket_r, wall_pocket=wall_pocket, notch_outer_r=notch_r, wall_notch=wall_notch)
-    assert root_r == pytest.approx(11.625, abs=2e-3)              # 18T, m1.5: 13.5 - 1.25*1.5
-    assert pocket_r == pytest.approx(R_POCKET, abs=2e-3)
-    assert wall_pocket == pytest.approx(4.59, abs=0.01)           # expected 11.625 - 7.0375 = 4.5875
-    assert wall_notch >= 3.83 - 0.01                              # expected 11.625 - 7.80 = 3.825..3.83 at the notches
-    assert 7.7 < notch_r < 7.9
+    o1, i1 = _samples(out1), _samples(inn1[0])
+    notch_r = float(np.hypot(i1[:, 0], i1[:, 1]).max())
+    wall_notch = float(cKDTree(o1).query(i1)[0].min())
+    ax = max(np.abs(i1[:, 0]).max(), np.abs(i1[:, 1]).max())
+    return dict(root_r=root_r, pocket_r=pocket_r, wall_pocket=wall_pocket, notch_outer_r=notch_r, notch_outer_axis_aligned_extent=float(ax),
+                wall_notch=wall_notch, wall_notch_root_minus_notch_r=root_r - notch_r)
+
+
+def test_3_wall_pocket_to_root_circle(new):
+    w = _wall_numbers(new)
+    MEAS["walls"] = w
+    assert w["root_r"] == pytest.approx(11.625, abs=2e-3)              # 18T, m1.5: 13.5 - 1.25*1.5
+    assert w["pocket_r"] == pytest.approx(R_POCKET, abs=2e-3)
+    assert w["wall_pocket"] == pytest.approx(4.5875, abs=0.005)         # about 4.59
+
+
+def test_3_wall_at_notches_is_consistent_with_notch_geometry(new):
+    w = _wall_numbers(new)
+    # the true largest radius of the relief notch is fillet-axis radius + 0.25, not the axis-aligned bbox extent
+    assert w["notch_outer_r"] == pytest.approx(7.6663 + R_FILLET, abs=2e-3)
+    assert w["wall_notch"] == pytest.approx(w["wall_notch_root_minus_notch_r"], abs=0.01)
+
+
+def test_3_wall_at_notches_at_least_3p83(new):
+    """The 3.83 mm figure was the implementer's mis-measured claim (R7.80 is the notch's X/Y bbox extent; its largest
+    radius is 7.916, so the true wall to the root circle is 3.709 mm, as the verifier found).  Lead decision: the design
+    requirement is the 1.2 mm minimum wall; the claim is corrected to the measured 3.709 mm.  The test now pins the
+    measured value and the real requirement."""
+    w = _wall_numbers(new)
+    MEAS["walls_notch_requirement"] = (w["wall_notch"], 1.2)
+    assert w["wall_notch"] == pytest.approx(3.709, abs=0.01), w
+    assert w["wall_notch"] >= 1.2, w
 
 
 # =============================================================================================================
@@ -459,7 +481,7 @@ def test_4_stl_closed_manifold_and_printed_pocket_up(new):
     lo, hi = pts.min(0), pts.max(0)
     MEAS["stl"] = dict(triangles=n, vertices=len(uniq), components=ncomp, signed_volume=svol, area=area, bbox_min=lo.tolist(), bbox_max=hi.tolist())
     assert ncomp == 1
-    MEAS["stl"]["euler_V_E_F"] = (len(uniq), len(cu), n, len(uniq) - len(cu) + n)
+    MEAS["stl"]["euler_V_E_F"] = (len(uniq), len(cu) // 2, n, len(uniq) - len(cu) // 2 + n)   # 0 = torus (the bore goes through)
     assert svol > 0
     assert svol == pytest.approx(new.Volume(), rel=0.005)                   # tessellation tolerance
     assert area == pytest.approx(new.Area(), rel=0.005)
@@ -585,3 +607,8 @@ def test_7_engineering_note_floor_opening_vs_inner_ring(new, donor):
     MEAS["note"]["opening_window_D_mm"] = (d_min, d_max)
     MEAS["note"]["donor_opening_D"] = 2 * d_rows[0]["R"]
     assert 2 * pr < min(LAND_OD) and d_min < d_max
+    # his compound has the SAME opening at BOTH floors: the R4.15 bore runs from the lower floor (z = 7) to the upper floor (z = 24)
+    z0 = min(x["z0"] for x in d_rows)
+    z1 = max(x["z1"] for x in d_rows)
+    MEAS["note"]["donor_opening_z_span"] = (z0, z1)
+    assert z0 == pytest.approx(7.0, abs=1e-3) and z1 == pytest.approx(24.0, abs=1e-3)

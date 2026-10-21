@@ -13,7 +13,7 @@ All sim numbers are simulation numbers. Nothing was committed.
 * Vision-only attitude is **workable with the floor board**, with two small changes (section 6): a per-frame attitude sigma taken from
   the tag geometry instead of the constant 10 mrad, and a board whose centre sheets are close enough that >= 2 tags are in view when the
   claw rests on the floor (about 0.5 m lens height). With the single 6-inch tag it is not workable at the stated 10 mrad in most poses.
-* 7 findings need action, 4 of them before any hardware attempt (section 5).
+* 11 findings (3 High, 5 Medium, 2 Low, 1 Info), section 5; F1-F3 should be fixed before the next study or any hardware attempt.
 
 ## 1. Facts, assumptions, derived results, uncertainty
 
@@ -104,13 +104,13 @@ pitch 0.30: 2-3 tags in 7 of 8 seeds (1.7-2.8 mrad); 0.25: 3-4 tags (1.0-2.0 mra
 | p0.42, as D26 (B) | 1 / 9-11 mrad | 0/3 (floor stage: 2x slide-direction 3.4-3.5 sigma, 1x drag 11.5 mm) | - | - | - |
 | p0.30 (H) | 3-4 / 1.5-3.0 mrad | 2/3 (seed 0 starts with 1 tag in view: slide directions) | 68, 72 % | 17.7, 18.2 | LOCAL_ONLY |
 | p0.25 (I) | 4-5 / 2.5-3.0 mrad | 3/3 | 70, 72, 76 % | 18.3, 19.9, 19.2 | LOCAL_ONLY |
-| p0.22, study case 3a (J) | J_TAGS | J_DONE | J_PROBED | J_SIG | J_TRUST |
+| p0.22, study case 3a, 0.16 tags (J) | 5 / 2.7-2.8 mrad | 2/3 (seed 0: calibration rejected, 1 outlier reading, witness 3.8 mm) | 76, 72, 77 % | 22.2, 20.7 (refit), 20.1 | LOCAL_ONLY |
 | matched-sigma control (F): p0.42, plant 2 / estimator 2 mrad | - | 3/3 | 80-84 % | 11.1-14.8 | **VERIFIED 3/3** |
 | implementer, vision only, estimator 10 mrad (A) | - | 2/3 | 20-25 % | 19.4-21.0 | LOCAL_ONLY |
 | implementer, IMU on (supplied, not re-run) | - | 3/3 | 68-75 % | 15.6-16.2 | LOCAL_ONLY |
 
 Conclusion: with a board that shows >= 2 tags at the rest pose and a per-frame sigma, the slack probe is back (68-76 % probed, equal to the
-IMU-on 68-75 %) and the floor stage completes (8 of 9 runs). They stay LOCAL_ONLY because the predicted work-volume sigma is 6.6-7.6 mm
+IMU-on 68-75 %) and the floor stage completes in 8 of 9 runs (p0.30: 2/3, p0.25: 3/3, p0.22: 3/3) and 7 of 9 end READY. They stay LOCAL_ONLY because the predicted work-volume sigma is 6.6-7.6 mm
 against the 5 mm criterion (the same reason as IMU-on). Absolute-length sigma 18-20 mm is still above the IMU-on 16 mm: the dense-core boards have a
 smaller span and a worse scale/depth term; the p0.42 board (span 1.0 m) gives 11-15 mm and VERIFIED only if the estimator is told the true
 low noise (F) AND the floor stage works, which needs the rest pose to see >= 2 tags. A hybrid (4-5 sheets near the rest position at
@@ -162,8 +162,8 @@ empty or other values; servo limited to 600-2400 us, power-up open, WiFi loss do
 amplitude; refusal paths (still moving, vision tilt > 5 deg, predicted `R_at` tilt at hover or grip pose > 5 deg) are covered by the
 implementer's tests and behave as described. Open points: F8.
 
-**Mount offset**: 30 frames, abort at 5 deg: correct arithmetic; recovery within the standard error in the simulator (I see 0.57 deg measured against
-0.97 deg true in one single-tag run, 1.9 sigma). Open points: F7.
+**Mount offset**: 30 frames, abort at 5 deg: correct arithmetic; recovery in the simulator is near the standard error (one board run with a single tag in view at rest: 0.57 deg measured against
+0.97 deg true, 1.9 sigma). Open points: F7.
 
 **`service.py`**: `build_hardware_context` raises SystemExit with the D27 message when `claw.imu = true` (my test, with fake addresses). The
 refusal comes after the UDP transport is bound and the claw client created (harmless: the process exits).
@@ -177,7 +177,7 @@ exercised (predicted 8.8-9.1 mm against 5 mm); (2) the simulated reach (60 mm) i
 a pick that passes at 50-60 mm miss would not close on the hardware; set `reach_xy` to ~0.046 in a follow-up. Moving the items to the claw's
 position does not hide a loss of the validated volume (the room centre is inside the hull in all runs), but the hull is 20 % smaller (F11).
 Full-suite run: not done (21 min); `test_attitude`, `test_claw_sketch`, `test_slack_probe`, `test_margin_trust` (16 passed, 8 xfailed, 526 s),
-and the 14 review tests were run; `test_system` + `test_garments`: T3_RESULT.
+and the 14 review tests were run; `test_system` + `test_garments` (the fixture files): 19 passed in 448 s.
 
 ## 8. Reproduce
 

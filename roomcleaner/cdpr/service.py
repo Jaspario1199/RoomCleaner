@@ -58,6 +58,7 @@ MAX_STREAMS = 4                  # open camera streams (each holds a server thre
 CLAW_POLL_S = 2.0                # claw telemetry refresh (background thread, never from a request)
 CLAW_STALE_S = 10.0
 BUSY_BACKOFF_S = 0.005           # host loop sleep while a command holds the robot lock (it pumps the stations itself)
+LOCK_WAIT_S = 0.3                # how long an operator command waits for the idle host loop to release the robot lock
 DEFAULT_DATA = Path(__file__).resolve().parents[2] / "data" / "cdpr"
 CHECKLIST = [
     "Room cleared; nobody will stand under the workspace",
@@ -203,7 +204,10 @@ class Service:
                     pass
                 self._log_done(name, err)
                 self.busy = None
-        if not self.lock.acquire(blocking=False):
+        # A running command is refused at once; otherwise wait briefly for the idle host loop to hand the lock over: on
+        # hardware it re-takes the lock microseconds after each 20 ms keep-alive tick, so a non-blocking try never wins
+        # (three-station review H1).
+        if self.busy or not self.lock.acquire(timeout=LOCK_WAIT_S):
             raise CommandRefused(f"busy with '{self.busy}'")
         self.busy = name
         self.log_event("command", f"Command '{name}' started")     # before the worker starts: results always follow it

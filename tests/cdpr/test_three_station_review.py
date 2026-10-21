@@ -140,7 +140,7 @@ def test_f3_fix_a_persistent_error_in_the_tick_does_not_spin_the_loop_or_kill_it
     assert 20 < calls[0] < 200, calls[0]                          # ~100 at 5 ms: alive, not spinning
 
 
-def test_h1_pin_the_idle_host_loop_holds_the_robot_lock_so_an_operator_command_is_refused_on_hardware(tmp_path):
+def test_h1_fixed_an_operator_command_gets_the_robot_lock_on_the_hardware_loop(tmp_path):
     """PIN F-H1 (High for tonight, pre-existing, NOT fixed by the F3 change). ``main()`` runs the hardware host loop with
     ``real_sleep_s=0.0``: ``idle_tick`` holds ``Service.lock`` for 20 ms (20 real 1 ms sleeps) and re-takes it microseconds after
     releasing it. ``_run`` (start, lower, disarm, ...) takes the same lock with ``acquire(blocking=False)`` from the HTTP thread, so it
@@ -176,10 +176,9 @@ def test_h1_pin_the_idle_host_loop_holds_the_robot_lock_so_an_operator_command_i
         t0 = time.time()
         while svc.busy and time.time() - t0 < 20:
             time.sleep(0.05)
-    rate = accepted / max(accepted + busy_none, 1)
-    assert rate < 0.2 and busy_none >= 60, (
-        f"DEFECT H1 fixed? accepted={accepted}, 'busy with None'={busy_none}, other={other[:2]}: the command lock is no longer "
-        "starved by the idle loop: flip this test to assert a command is accepted at the first or second attempt")
+    # H1 FIXED (lead, 2026-10-21): Service._run waits up to LOCK_WAIT_S for the idle loop to hand the lock over.
+    assert accepted >= 1 and busy_none == 0, (
+        f"H1 regressed: accepted={accepted}, 'busy with None'={busy_none}, other={other[:2]}: the idle loop starves operator commands")
 
 
 def test_h1_the_suggested_fix_is_sufficient_on_the_hardware_loop(tmp_path, monkeypatch):

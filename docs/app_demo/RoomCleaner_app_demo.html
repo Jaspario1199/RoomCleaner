@@ -1,0 +1,1168 @@
+<title>RoomCleaner App Demo</title>
+<style>
+/* RoomCleaner phone app. No external fonts, images or scripts: it must work on a LAN without internet. */
+:root {
+  color-scheme: light;
+  --page: #f6f6f3; --surface: #ffffff; --surface2: #eeede7; --ink: #1b1b1a; --muted: #5f5e58; --border: #d6d5cc;
+  --accent: #2459b8; --accent-ink: #ffffff; --good: #0f7a29; --warn: #915f00; --bad: #b92e24;
+  --stop: #c2352b; --stop-ink: #ffffff; --bubble-me: #2459b8; --bubble-me-ink: #ffffff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0f0f0e; --surface: #1b1b1a; --surface2: #262624; --ink: #f3f2ec; --muted: #a8a79d; --border: #343431;
+    --accent: #6ea4f4; --accent-ink: #0b1a33; --good: #43c066; --warn: #e8ae45; --bad: #f2786d;
+    --stop: #d9453a; --stop-ink: #ffffff; --bubble-me: #3a6fc4; --bubble-me-ink: #ffffff;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #0f0f0e; --surface: #1b1b1a; --surface2: #262624; --ink: #f3f2ec; --muted: #a8a79d; --border: #343431;
+    --accent: #6ea4f4; --accent-ink: #0b1a33; --good: #43c066; --warn: #e8ae45; --bad: #f2786d;
+    --stop: #d9453a; --stop-ink: #ffffff; --bubble-me: #3a6fc4; --bubble-me-ink: #ffffff;
+    --shadow: none;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  height: 100%; display: flex; flex-direction: column; overflow: hidden;
+  -webkit-text-size-adjust: 100%; overscroll-behavior: none;
+}
+[hidden] { display: none !important; }
+h2 { font-size: 14px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 18px 2px 6px; font-weight: 700; }
+h3 { margin: 0 0 6px; font-size: 18px; }
+p { margin: 6px 0; }
+ul, ol { margin: 6px 0; padding-left: 20px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row.between { justify-content: space-between; }
+.row.end { justify-content: flex-end; margin-top: 12px; }
+.stack { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+
+/* ---- header */
+#top {
+  display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 6px) 12px 6px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.brand { font-weight: 800; letter-spacing: .01em; }
+.conn { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.conn .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.conn.ok .dot { background: var(--good); }
+.conn.bad .dot { background: var(--bad); }
+.pill {
+  display: inline-block; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border);
+  font-size: 13px; font-weight: 700; white-space: nowrap; background: var(--surface2); color: var(--muted);
+}
+.pill.good { color: var(--good); border-color: currentColor; }
+.pill.warn { color: var(--warn); border-color: currentColor; }
+.pill.bad { color: var(--bad); border-color: currentColor; }
+.banner { padding: 10px 14px; background: var(--bad); color: #fff; font-weight: 600; font-size: 14px; }
+
+/* ---- screens */
+main { flex: 1; min-height: 0; position: relative; }
+.tab {
+  position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 12px max(12px, calc((100% - 640px) / 2)) 20px;
+}
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin: 10px 0;
+  box-shadow: var(--shadow);
+}
+.label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+.bigstate { font-size: 34px; line-height: 1.1; font-weight: 800; margin: 2px 0 4px; overflow-wrap: anywhere; }
+.bigstate.good { color: var(--good); } .bigstate.warn { color: var(--warn); } .bigstate.bad { color: var(--bad); }
+.busy { display: flex; align-items: center; gap: 8px; margin: 8px 0 0; font-weight: 600; color: var(--warn); }
+.spin { width: 16px; height: 16px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--warn); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+.errbox { margin-top: 8px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--bad); color: var(--bad); font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.list { list-style: none; padding: 0; margin: 6px 0; }
+.list li { padding: 4px 0; border-top: 1px solid var(--border); font-size: 14px; overflow-wrap: anywhere; }
+.list li:first-child { border-top: 0; }
+.list.bad li { color: var(--bad); }
+.events .k { display: inline-block; min-width: 3.2em; color: var(--muted); font-size: 12px; margin-right: 6px; }
+
+.grid { display: grid; gap: 8px; }
+.tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 8px 9px; min-width: 0; box-shadow: var(--shadow); }
+.tile .id { font-size: 22px; font-weight: 800; line-height: 1.15; }
+.tile .ln { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.tile .ln b { color: var(--ink); }
+.tile.fault { border-color: var(--bad); }
+.ok { color: var(--good); } .warnc { color: var(--warn); } .badc { color: var(--bad); }
+.kvs .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--border); font-size: 15px; }
+.kvs .kv:first-child { border-top: 0; }
+.kv > span { color: var(--muted); }
+.kv > b { text-align: right; overflow-wrap: anywhere; }
+
+/* ---- buttons and inputs */
+button { font: inherit; color: inherit; cursor: pointer; }
+.btn {
+  min-height: 44px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface);
+  color: var(--ink); width: 100%; font-weight: 600;
+}
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.btn.danger { border-color: var(--bad); color: var(--bad); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.icon { width: 48px; padding: 0; display: grid; place-items: center; }
+.btn.icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.btn.icon.on { background: var(--bad); color: #fff; border-color: transparent; }
+.row .btn { width: auto; flex: 1; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+input[type=text], input[type=number] {
+  font: inherit; width: 100%; min-height: 44px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--page); color: var(--ink); min-width: 0;
+}
+label { display: block; font-size: 13px; color: var(--muted); min-width: 0; }
+label input { margin-top: 2px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 8px 0; }
+.anchors { display: grid; gap: 6px; margin: 6px 0 10px; }
+.anchors .arow { display: grid; grid-template-columns: 22px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center; }
+.anchors .arow b { font-size: 16px; }
+.step { display: flex; align-items: center; gap: 8px; margin: 4px 0 6px; }
+.num { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.card .step ~ .step { margin-top: 16px; }
+#checklist label { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; color: var(--ink); padding: 8px 0; min-height: 44px; }
+#checklist input { width: 22px; height: 22px; margin: 1px 0 0; flex: none; }
+.steps { padding-left: 22px; margin: 10px 0 0; font-size: 14px; }
+.steps li { color: var(--muted); padding: 1px 0; }
+.steps li.done { color: var(--good); } .steps li.done::marker { content: "\2713  "; }
+.steps li.now { color: var(--ink); font-weight: 800; }
+
+/* ---- camera */
+.camwrap { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #000; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); }
+.camwrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+.camoverlay { position: absolute; inset: 0; display: grid; place-items: center; color: #cfcfc8; font-size: 15px; text-align: center; padding: 12px; pointer-events: none; }
+.camlive { position: absolute; top: 8px; left: 8px; }
+
+/* ---- chat */
+.tab.chat { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 8px; }
+.chatlog { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 4px 0 8px; -webkit-overflow-scrolling: touch; }
+.msg { max-width: 88%; padding: 9px 12px; border-radius: 16px; font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg .t { display: block; font-size: 11px; opacity: .7; margin-top: 3px; }
+.msg.me { align-self: flex-end; background: var(--bubble-me); color: var(--bubble-me-ink); border-bottom-right-radius: 5px; }
+.msg.robot { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 5px; }
+.msg.sys { align-self: flex-start; background: var(--surface2); color: var(--ink); font-size: 14px; border-radius: 12px; }
+.msg.sys.bad { border-left: 4px solid var(--bad); } .msg.sys.warn { border-left: 4px solid var(--warn); } .msg.sys.good { border-left: 4px solid var(--good); }
+.msg.hist { opacity: .65; }
+.msg .go { margin-top: 8px; width: auto; min-height: 36px; padding: 6px 12px; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 6px 0; flex: none; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; min-height: 40px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 14px; font-weight: 600; }
+.pendingbar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; margin: 4px 0; border-radius: 12px; border: 2px solid var(--warn); background: var(--surface); font-size: 14px; font-weight: 600; }
+.pendingbar .row { flex: none; }
+.pendingbar .btn { min-height: 40px; padding: 6px 16px; }
+.composer { display: flex; gap: 8px; flex: none; align-items: center; }
+.composer input { flex: 1; }
+.composer .btn { width: auto; flex: none; }
+.composer .btn.icon { width: 48px; }
+.speakwrap { display: flex; gap: 8px; align-items: center; margin: 6px 0 0; font-size: 14px; color: var(--muted); min-height: 32px; }
+
+/* ---- persistent pause + tab bar */
+.dock { flex: none; background: var(--surface); border-top: 1px solid var(--border); padding: 8px 12px 6px; }
+.pause {
+  display: block; width: 100%; max-width: 640px; margin: 0 auto; min-height: 50px; border: 0; border-radius: 12px;
+  background: var(--stop); color: var(--stop-ink); font-weight: 800; font-size: 18px; letter-spacing: .03em;
+}
+.pause:active { filter: brightness(.9); }
+.estop { margin: 6px auto 0; max-width: 640px; text-align: center; font-size: 12px; line-height: 1.3; color: var(--muted); }
+.tabs { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+.tabs button { background: none; border: 0; border-top: 3px solid transparent; min-height: 56px; padding: 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.tabs button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tabs button[aria-selected=true] { color: var(--accent); border-top-color: var(--accent); }
+
+/* ---- toast, dialog, connect */
+.toast { position: fixed; left: 12px; right: 12px; bottom: calc(var(--dock-h, 150px) + 8px); z-index: 30; padding: 10px 14px; border-radius: 12px; background: var(--ink); color: var(--page); font-size: 14px; font-weight: 600; text-align: center; box-shadow: 0 4px 16px rgba(0, 0, 0, .3); }
+.toast.bad { background: var(--bad); color: #fff; }
+.sheet {
+  position: fixed; left: 12px; right: 12px; bottom: calc(var(--dock-h, 150px) + 8px); z-index: 40; max-width: 560px; margin: 0 auto;
+  border: 2px solid var(--warn); border-radius: 16px; padding: 14px; background: var(--surface); color: var(--ink);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .35);
+}
+.sheet input { margin-top: 6px; }
+.connect { position: fixed; inset: 0; z-index: 50; background: var(--page); display: grid; place-items: center; padding: 16px; }
+.connect .card { width: min(100%, 420px); display: flex; flex-direction: column; gap: 10px; }
+
+/* ---- short phones: keep PAUSE and the emergency-stop line, give the screen back its height */
+@media (max-height: 700px) {
+  .dock { padding: 6px 12px 4px; }
+  .pause { min-height: 44px; font-size: 16px; }
+  .estop { margin-top: 4px; font-size: 11.5px; }
+  .tabs button { min-height: 46px; padding: 3px 0; }
+  .tabs button svg { width: 20px; height: 20px; }
+  .bigstate { font-size: 28px; }
+}
+
+.banner.demo { background: var(--surface2); color: var(--ink); border-bottom: 1px solid var(--border); font-weight: 500; font-size: 13px; }
+</style>
+
+
+<header id="top">
+  <span class="brand">RoomCleaner</span>
+  <span id="conn" class="conn" role="status" aria-live="polite"><span class="dot"></span><span id="connText">connecting</span></span>
+  <span id="topState" class="pill">...</span>
+</header>
+<div id="banner" class="banner" role="alert" hidden></div>
+<div id="demoNote" class="banner demo" role="note"></div>
+
+<main>
+  <!-- ================================================================= HOME -->
+  <section id="tab-home" class="tab" role="tabpanel" aria-labelledby="t-home">
+    <div class="card statecard">
+      <div class="label">Robot state</div>
+      <div id="state" class="bigstate">...</div>
+      <p id="stateText" class="muted"></p>
+      <div id="busy" class="busy" hidden><span class="spin" aria-hidden="true"></span><span id="busyText"></span></div>
+      <div id="stepLine" class="muted"></div>
+      <div id="lastErr" class="errbox" hidden></div>
+    </div>
+
+    <div class="card" id="trust">
+      <div class="row between"><b>Trust</b><span id="level" class="pill">-</span></div>
+      <p id="trustText" class="muted"></p>
+      <ul id="trustReasons" class="list"></ul>
+    </div>
+
+    <h2>Stations</h2>
+    <div id="stations" class="grid tiles"></div>
+
+    <h2>Claw</h2>
+    <div id="claw" class="card kvs"></div>
+
+    <h2>Recent</h2>
+    <ul id="homeEvents" class="list events"></ul>
+  </section>
+
+  <!-- =============================================================== CAMERA -->
+  <section id="tab-camera" class="tab" role="tabpanel" aria-labelledby="t-camera" hidden>
+    <div class="camwrap">
+      <img id="cam" alt="Live claw camera view" decoding="async">
+      <div id="camOverlay" class="camoverlay">No frame yet</div>
+      <span id="camLive" class="pill camlive">-</span>
+    </div>
+    <div class="card kvs">
+      <div class="kv"><span>Frame age</span><b id="camAge">-</b></div>
+      <div class="kv"><span>Marker / board</span><b id="camDet">-</b></div>
+      <div class="kv"><span>Source</span><b id="camSrc">-</b></div>
+      <div class="kv"><span>Transport</span><b id="camTransport">-</b></div>
+    </div>
+    <p class="muted small">This is the frame the host has already fetched from the claw (the phone is not a second
+      client on the claw), about 5 per second. In the simulator it is the simulated claw view.</p>
+  </section>
+
+  <!-- ================================================================ SETUP -->
+  <section id="tab-setup" class="tab" role="tabpanel" aria-labelledby="t-setup" hidden>
+    <div class="card" id="needs" hidden>
+      <b>What the robot needs from you</b>
+      <p id="needsText" class="muted"></p>
+    </div>
+
+    <div class="card" id="roomcard">
+      <div class="step"><span class="num">a</span><b>Room and anchors (metres)</b></div>
+      <div class="grid3">
+        <label>width X<input id="rw" type="number" step="0.01" inputmode="decimal"></label>
+        <label>depth Y<input id="rd" type="number" step="0.01" inputmode="decimal"></label>
+        <label>height Z<input id="rh" type="number" step="0.01" inputmode="decimal"></label>
+      </div>
+      <div id="anchors" class="anchors"></div>
+      <button id="saveRoom" class="btn">Save room</button>
+      <p id="roomNote" class="muted small"></p>
+    </div>
+
+    <div class="card">
+      <div class="step"><span class="num">b</span><b>Unmeasured configuration</b></div>
+      <ul id="checks" class="list"></ul>
+    </div>
+
+    <div class="card">
+      <div class="step"><span class="num">c</span><b>Before starting: safety checklist</b></div>
+      <p class="muted small">Tick each item yourself. Ticks are not remembered; they clear when the robot starts moving.</p>
+      <div id="checklist"></div>
+      <div class="step"><span class="num">d</span><b>Start</b></div>
+      <button id="start" class="btn primary" disabled>Start calibration</button>
+      <ol id="steps" class="steps"></ol>
+      <ul id="startReasons" class="list bad"></ul>
+      <div id="recovery" class="stack" hidden>
+        <b>Recovery</b>
+        <button id="resume" class="btn" hidden>Resume</button>
+        <button id="ack" class="btn" hidden>Acknowledge fault</button>
+        <button id="recover" class="btn" hidden>Recover (re-reference from camera)</button>
+        <button id="lower" class="btn" hidden>Lower claw to the floor</button>
+        <button id="disarm" class="btn danger" hidden>Disarm (claw must rest on the floor)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step"><span class="num">e</span><b>Calibration result and trust</b></div>
+      <div id="calib" class="kvs"></div>
+    </div>
+  </section>
+
+  <!-- ================================================================= CHAT -->
+  <section id="tab-chat" class="tab chat" role="tabpanel" aria-labelledby="t-chat" hidden>
+    <div id="chatlog" class="chatlog" role="log" aria-live="polite" aria-label="Conversation with the robot"></div>
+    <div id="pendingBar" class="pendingbar" hidden>
+      <span id="pendingText"></span>
+      <span class="row"><button id="yes" class="btn primary">Yes</button><button id="no" class="btn">No</button></span>
+    </div>
+    <div id="chips" class="chips" aria-label="Quick replies"></div>
+    <form id="composer" class="composer" autocomplete="off">
+      <input id="say" type="text" inputmode="text" enterkeyhint="send" maxlength="300" placeholder="Talk to the robot..." aria-label="Message">
+      <button id="mic" type="button" class="btn icon" aria-label="Speak a message" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <button id="send" type="submit" class="btn primary">Send</button>
+    </form>
+    <label id="speakWrap" class="speakwrap" hidden><input id="speak" type="checkbox"> Speak replies</label>
+  </section>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<div id="dock" class="dock">
+  <button id="pause" class="pause" type="button">PAUSE (hold position)</button>
+  <p class="estop">Emergency stop = the switched power strip. It drops the claw: nobody under the robot.</p>
+</div>
+
+<nav id="tabs" class="tabs" role="tablist" aria-label="Screens">
+  <button id="t-home" role="tab" data-tab="home" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+  <button id="t-camera" role="tab" data-tab="camera" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/></svg>Camera</button>
+  <button id="t-setup" role="tab" data-tab="setup" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Setup</button>
+  <button id="t-chat" role="tab" data-tab="chat" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H10l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>Chat</button>
+</nav>
+
+<!-- confirmation sheet: deliberately NOT a modal dialog, so PAUSE (below it) stays pressable while it is open -->
+<div id="dlg" class="sheet" role="alertdialog" aria-labelledby="dlgTitle" aria-describedby="dlgBody" hidden>
+  <form id="dlgForm">
+    <h3 id="dlgTitle"></h3>
+    <p id="dlgBody"></p>
+    <input id="dlgInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" hidden aria-label="Confirmation text">
+    <div class="row end">
+      <button type="button" id="dlgCancel" class="btn">Cancel</button>
+      <button type="submit" id="dlgOk" class="btn primary">OK</button>
+    </div>
+  </form>
+</div>
+
+<div id="connect" class="connect" hidden>
+  <form id="connectForm" class="card">
+    <h3>Connect to the robot</h3>
+    <p id="connectNote" class="muted">Open the address printed in the robot computer's terminal, or paste it (or just the token) here.</p>
+    <input id="connectInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="token or full address" aria-label="Session token">
+    <button class="btn primary" type="submit">Connect</button>
+  </form>
+</div>
+
+
+
+<script>window.__RC_CAPTURE = {"status0": {"allowed": ["start", "disarm"], "anchors_m": {"A": [0.05, 0.05, 2.5932], "B": [3.3028, 0.05, 2.5932], "C": [3.3028, 2.6932, 2.5932], "D": [0.05, 2.6932, 2.5932]}, "app_error": null, "busy": null, "camera": {"age_s": 0.2, "available": true, "detection": {"n_tags": 1, "ok": true, "text": "marker in view (155 px; modelled, not drawn)"}, "frame_id": 81, "mode": "sim-800x600", "source": "sim"}, "checklist": ["Room cleared; nobody will stand under the workspace", "Switched power strip (emergency stop) within reach", "Claw upright on the floor near the middle, marker under the camera", "All four cables attached and routed over their pulleys", "Claw battery charged per the charging rule (switch off, attended, 8.4 V charger at \u2264 1 A)"], "chips": ["Status", "Why?", "Battery", "Start", "Pause", "Help"], "claw": {"age_s": 1.4, "battery_low": false, "battery_min_v": 7.0, "battery_v": 7.8, "camera_mode": null, "camera_ok": true, "grip_closed": false, "online": true, "stale": false}, "claw_supported": false, "detail": "", "error": null, "events": [[0.0, "DISARMED", "host start (no automatic resume)"]], "level": "NONE", "profile": "simulation", "reasons": [], "recovery_required": false, "room_m": [3.3528, 2.7432, 2.7432], "state": "DISARMED", "state_hint": "Say 'start' after ticking the checklist on Setup.", "state_text": "Disarmed. The stations are not holding the claw; it should be resting on the floor. Tick the safety checklist on Setup, then Start.", "stations": {"A": {"bead_verified": false, "boot": 3626764237, "encoder_valid": false, "fault": "NONE", "note": "", "online": true, "state": "OFF", "tel_age_s": 0.01, "valid": false}, "B": {"bead_verified": false, "boot": 577090037, "encoder_valid": false, "fault": "NONE", "note": "", "online": true, "state": "OFF", "tel_age_s": 0.01, "valid": false}, "C": {"bead_verified": false, "boot": 4106135923, "encoder_valid": false, "fault": "NONE", "note": "", "online": true, "state": "OFF", "tel_age_s": 0.02, "valid": false}, "D": {"bead_verified": false, "boot": 1022050301, "encoder_valid": false, "fault": "NONE", "note": "", "online": true, "state": "OFF", "tel_age_s": 0.02, "valid": false}}, "trust": {"basis": null, "full_workspace": false, "level": "NONE", "margin": {}, "reasons": []}}, "checks": {"bead_verification": [], "calibration": [], "floor_startup": [], "station_bench": [], "synchronized_motion": []}}; window.__RC_FRAME = "data:image/jpeg;base64,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O+lIaAGkUlLSGgA6/hSikpRQA4H3p4pg604daAHjilFNB7+tOGRxQAuKKKKAGe1FLRQAmOKKPzooAQ0lL2pPagBKSnds0n0oAKKKKADPpRRS5oAT8KPel6UUAFH0oxRQAlJ1696UmkPI5oAaTTCe1OPXNNP1oAaaaTSmm80AGacDTKcKAJBT85qJakFAEgp3amDp606gBc5pDS5zSdaAGmkNKRSGgBKKKSgBR9aKSloASlpKWgApefxpPalFABRSD6UtAC0tJS0AL3p2KQU6gAx6iijtR0oASkpx5FMNACE00ntSnApvSgAJppP50E0mc0ALmjNNooAdnNGRSZoHvQA/tTqZnNOFADxSjtSCnCgBeDR79KBSjFABiilooASkp1JQA2mmnEUhoAYaSnGm96AEpRzSUooAUfWnCmj604d6AHfjRijtSj6UAJSGlpKACkoxmg/hQAlFFKKAAdaUD1pOtLQAvrSUtJ2oAQ0h/wA80p96SgBp6802nEUnFACYpR+VJSigBwpwNMHSng0AOFOpvalFAC0fhRig8UAJmiiigANJRRQAnak/lRRQAmf1ooooASloooAKXHpRRQAUde9FFABRRRQAhpCaKKAGHg000UUAM+lNoooASlAoooAeKkHWiigB606iigBaQ/jRRQA00hoooATFJ0oooAMUd6KKADvS0UUAAooooAWjtRRQAvSloooAd1pwoooAXvRRRQAlNoooAYaae5oooAb39aSiigBKKKKAAZpwoooAUU4cUUUAOp4oooAcMUv8qKKACjFFFAAefpSduKKKAEPvTTj6UUUAMNJRRQAnFLRRQAo6U4UUUAOpaKKACkoooAQ5pv1oooAD6UUUUAKPeloooAX2ox2oooASmk0UUAN6cUhoooATiloooAcOeacKKKAHUooooAWiiigD/9k=";</script>
+<script>
+/* Demo backend for the RoomCleaner phone app: a small simulated robot that answers the app's /api calls inside
+ * the browser, so the real app.js can run on a hosted page with no robot service behind it.
+ * The texts, chips, allowed commands and confirmation questions are copied from roomcleaner/cdpr/chat.py and
+ * supervisor.py; the status shape was captured from the --sim service. Nothing here reaches hardware. */
+(() => {
+"use strict";
+const CAP = window.__RC_CAPTURE;            // {status0, checks}
+const FRAME_SRC = window.__RC_FRAME;        // data: URI of a captured simulator frame
+
+const ESTOP = "Emergency stop = the switched power strip. It drops the claw: nobody under the robot.";
+const STATE_TEXT = {
+  DISARMED: "Disarmed. The stations are not holding the claw; it should be resting on the floor. Tick the safety checklist on Setup, then Start.",
+  STARTUP: "Starting up: taking up slack, lifting and calibrating. Keep clear of the robot.",
+  READY: "Ready. Calibrated, holding position.",
+  TASK: "Working: running a pickup task.",
+  PAUSED: "Paused. Holding position with torque on. Resume, or lower the claw to the floor.",
+  FAULT: "Fault. Motion is stopped and the references are still trusted. Acknowledge to clear it.",
+  RECOVERY_REQUIRED: "Recovery needed. The claw may be hanging and a reference is no longer trusted. Check the scene, then Recover or Lower.",
+  PARKED: "Parked on the floor, cables slack, stations still holding. Start, or Disarm on Setup.",
+};
+const STATE_HINT = {
+  FAULT: "Say 'acknowledge' (or tap Acknowledge on Setup).",
+  RECOVERY_REQUIRED: "Check nobody is under the robot, then say 'recover' or 'lower'.",
+  PAUSED: "Say 'resume' or 'lower' when you are ready.", PARKED: "The claw is on the floor.",
+  READY: "Calibrated and holding position.", DISARMED: "Say 'start' after ticking the checklist on Setup.",
+};
+const CHIPS = {
+  DISARMED: ["Status", "Why?", "Battery", "Start", "Pause", "Help"], STARTUP: ["Status", "Why?", "Battery", "Pause", "Help"],
+  READY: ["Status", "Why?", "Battery", "Lower", "Pause", "Help"], TASK: ["Status", "Why?", "Battery", "Pause", "Help"],
+  PAUSED: ["Status", "Why?", "Battery", "Resume", "Lower", "Pause", "Help"],
+  FAULT: ["Status", "Why?", "Battery", "Acknowledge", "Recover", "Lower", "Pause", "Help"],
+  RECOVERY_REQUIRED: ["Status", "Why?", "Battery", "Recover", "Lower", "Pause", "Help"],
+  PARKED: ["Status", "Why?", "Battery", "Start", "Open grip", "Close grip", "Pause", "Help"],
+};
+const ALL = Object.keys(STATE_TEXT);
+const ALLOWED = {
+  start: ["DISARMED", "PARKED"], pause: ALL, resume: ["PAUSED"], acknowledge: ["FAULT"],
+  recover: ["RECOVERY_REQUIRED", "FAULT"], lower: ["READY", "PAUSED", "RECOVERY_REQUIRED", "FAULT"],
+  disarm: ["PARKED", "DISARMED", "FAULT", "RECOVERY_REQUIRED", "PAUSED"], task: ["READY"],
+};
+const QUESTIONS = {
+  start: "Run the startup sequence now? The claw takes up slack, lifts off the floor and moves around the room while it calibrates. You have ticked the checklist: nobody under the robot, power strip in reach.",
+  resume: "Resume from PAUSED? The robot re-checks the stations and the camera first, then restarts from the safest step. The claw may move.",
+  recover: "Run recovery now? The stations are re-armed, one cable may be re-referenced from the camera, and the claw may move slightly while it re-checks.",
+  lower: "Lower the claw to the floor now? It moves over the marker and descends. Nobody under the robot.",
+  grip_open: "Open the grip now? Whatever the claw is holding will be released.",
+  grip_close: "Close the grip now? The fingers curl in.",
+};
+const STARTED = {
+  start: "Starting. Watch Home or Setup for progress. Say 'pause' to hold position at any time.",
+  resume: "Resuming. The robot re-checks first; it may refuse and tell you why. Say 'pause' to hold.",
+  recover: "Recovering. Say 'pause' to hold position.", lower: "Lowering the claw to the floor. Say 'pause' to hold position.",
+  grip_open: "Opening the grip.", grip_close: "Closing the grip.",
+};
+const HELP = "I understand: status, why (trust and reasons), battery, pause, resume, start, acknowledge, recover, lower, open grip, close grip, help. Anything that moves the robot asks 'yes' first (within 30 s). Pause runs at once. Disarm is only on the Setup screen. " + ESTOP;
+// startup steps (seconds of demo time each) and the claw height the camera view follows
+const STEPS = [["SELF_CHECK", 4, 0], ["SLACK_TAKEUP", 7, 0], ["INITIAL_LIFT", 5, 0.25], ["VISUAL_INITIALIZATION", 5, 0.3],
+               ["CALIBRATION", 9, 0.45], ["REFERENCE_VERIFICATION", 5, 0.35]];
+const TTL = 30;
+
+const R = {
+  state: "DISARMED", detail: "", busy: null, level: "NONE", stations: "OFF", grip: false, supported: false,
+  height: 0, battery: 7.82, frame: 80, step: 0, timer: null, calibrated: false, sup: [], room: CAP.status0.room_m.slice(),
+  anchors: JSON.parse(JSON.stringify(CAP.status0.anchors_m)), reasons: [], pending: null,
+};
+const now = () => Date.now() / 1000, T0 = now();
+const events = []; let evId = 0;
+const ev = (kind, text) => events.push({id: ++evId, kind, text, t: now(), host_t: +(now() - T0).toFixed(2)});
+function setState(s, why) {
+  R.state = s; R.sup.push([+(now() - T0).toFixed(1), s, why || ""]);
+  const hint = ["FAULT", "RECOVERY_REQUIRED", "PAUSED"].includes(s) ? " " + STATE_HINT[s] : "";
+  ev("state", (why ? `${s}: ${why}.` : `${s}.`) + hint);
+}
+ev("state", "DISARMED: host start (no automatic resume).");
+ev("info", "Demo: a simulated robot runs inside this page. Nothing here reaches real hardware.");
+
+const allowed = s => Object.entries(ALLOWED).filter(([c, st]) => st.includes(s) && c !== "pause" && c !== "task").map(([c]) => c);
+const lc = s => s.replace(/_/g, " ").toLowerCase();
+
+function trust() {
+  if (R.level === "NONE") return {basis: null, full_workspace: false, level: "NONE", margin: {}, reasons: []};
+  return {basis: null, full_workspace: false, level: "LOCAL_ONLY",
+    reasons: ["slack probe was off: the predicted sigma is not honest (demo)",
+              "predicted length sigma 5.3 mm > 5.0 mm gate: full workspace not unlocked"],
+    margin: {k: 3.0, ok: false, ceiling_margin_m: 0.4, workspace_margin_m: 0.2, sigma_ceiling_m: 0.0053,
+             sigma_wall_m: 0.0061, k_sigma_ceiling_m: 0.0159, k_sigma_wall_m: 0.0183, slack_probe: false, calibration_accepted: true}};
+}
+function station(id) {
+  const st = R.stations, run = st === "RUN";
+  return {bead_verified: false, boot: 1000 + id.charCodeAt(0), encoder_valid: st !== "OFF", fault: "NONE", note: "",
+          online: true, state: st, tel_age_s: 0.01, valid: st !== "OFF" || R.calibrated, ...(run ? {} : {})};
+}
+function status() {
+  R.battery = Math.max(7.0, R.battery - 0.0004);
+  const px = Math.round(155 / (1 + 1.6 * R.height));
+  return {
+    allowed: allowed(R.state), anchors_m: R.anchors, app_error: null, busy: R.busy,
+    camera: {age_s: +(0.1 + Math.random() * 0.15).toFixed(1), available: true, frame_id: R.frame, mode: "sim-800x600", source: "sim",
+             detection: {n_tags: R.height > 0.3 ? 2 : 1, ok: true, text: `marker in view (${px} px; modelled, not drawn)`}},
+    checklist: CAP.status0.checklist, chips: CHIPS[R.state],
+    claw: {age_s: +(0.4 + Math.random()).toFixed(1), battery_low: R.battery < 7.0, battery_min_v: 7.0, battery_v: +R.battery.toFixed(2),
+           camera_mode: null, camera_ok: true, grip_closed: R.grip, online: true, stale: false},
+    claw_supported: R.supported, detail: R.detail, error: null, events: R.sup.slice(-20), level: R.level, profile: "demo (simulated in the page)",
+    reasons: R.reasons.slice(-5), recovery_required: R.state === "RECOVERY_REQUIRED", room_m: R.room, state: R.state,
+    state_hint: STATE_HINT[R.state] || "", state_text: STATE_TEXT[R.state],
+    stations: Object.fromEntries(["A", "B", "C", "D"].map(id => [id, station(id)])), trust: trust(),
+  };
+}
+
+// ---------------------------------------------------------------- motion (timers stand in for the sequencer)
+function clearRun() { clearTimeout(R.timer); R.timer = null; }
+function runStartup(from) {
+  clearRun(); R.busy = "start"; R.stations = "RUN"; R.supported = false;
+  if (R.state !== "STARTUP") setState("STARTUP", from ? "resume" : "operator start");
+  const go = i => {
+    if (i >= STEPS.length) {
+      R.busy = null; R.detail = ""; R.stations = "IDLE"; R.level = "LOCAL_ONLY"; R.calibrated = true; R.height = 0.4;
+      setState("READY", "startup finished (LOCAL_ONLY)");
+      ev("command", "'start' finished; state READY"); return;
+    }
+    R.step = i; const [name, secs, h] = STEPS[i];
+    R.detail = name; R.height = h; ev("step", "Startup step: " + lc(name));
+    R.timer = setTimeout(() => go(i + 1), secs * 1000);
+  };
+  ev("command", "Command 'start' started"); go(from || 0);
+}
+function runLower() {
+  clearRun(); R.busy = "lower"; R.stations = "RUN"; R.detail = "LOWERING";
+  if (R.state === "PAUSED") R.state = R.resumeTo || "READY";
+  ev("command", "Command 'lower' started");
+  R.timer = setTimeout(() => {
+    R.busy = null; R.detail = ""; R.stations = "IDLE"; R.height = 0; R.supported = true;
+    setState("PARKED", "claw lowered onto the floor"); ev("command", "'lower' finished; state PARKED");
+  }, 6000);
+}
+function pause() {
+  const was = R.state;
+  ev("pause", `Pause pressed in ${was}: holding position.`);
+  if (["STARTUP", "READY", "TASK"].includes(was)) {
+    clearRun(); R.resumeTo = was; R.resumeStep = R.step; R.busy = null; R.stations = "IDLE";
+    setState("PAUSED", "operator pause");
+  }
+  return was;
+}
+function exec(cmd, body) {
+  const s = R.state;
+  const refuse = msg => ({ok: false, error: msg});
+  if (cmd !== "pause" && R.busy) return refuse(`busy with '${R.busy}'`);
+  if (cmd in ALLOWED && !ALLOWED[cmd].includes(s)) return refuse(`'${cmd}' is only available in ${ALLOWED[cmd].join(", ")}; the robot is ${s}`);
+  switch (cmd) {
+    case "pause": pause(); break;
+    case "start": if (!body.checklist) return refuse("tick the pre-start safety checklist first"); runStartup(0); break;
+    case "resume": if (R.resumeTo === "STARTUP") runStartup(R.resumeStep || 0); else { R.stations = "IDLE"; setState(R.resumeTo || "READY", "resume"); } break;
+    case "lower": runLower(); break;
+    case "disarm":
+      if (body.confirm !== "claw_supported") return refuse("type 'claw_supported' to confirm the claw rests on a support");
+      clearRun(); R.stations = "OFF"; R.busy = null; R.detail = ""; R.supported = true; setState("DISARMED", "operator disarm"); break;
+    case "acknowledge": case "recover": R.stations = "IDLE"; setState("READY", cmd); break;
+    case "grip_open": case "grip_close":
+      R.grip = cmd === "grip_close"; ev("info", R.grip ? "Grip closed." : "Grip opened."); break;
+    case "task": return refuse("tasks are not part of the demo");
+    default: return refuse(`unknown command '${cmd}'`);
+  }
+  return {ok: true, state: R.state};
+}
+
+// ---------------------------------------------------------------- chat (same intents and wording as chat.py)
+const RX = {
+  yes: /^(yes|y|yeah|yep|confirm|do it|ok|okay|go ahead)\b/, no: /^(no|n|nope|cancel|stop asking)\b/,
+  help: /\b(help|what can you do|commands)\b/, battery: /\b(battery|volt|charge)\b/, why: /\b(why|trust|reason)/,
+  status: /\b(status|state|how are you|what.?s up|report)\b/, pause: /\b(pause|hold|freeze|wait)\b/,
+  resume: /\b(resume|continue|carry on)\b/, start: /\b(start|restart|begin|calibrate|calibration|startup|get started|get going)\b/,
+  acknowledge: /\b(acknowledge|ack|clear fault)\b/, recover: /\b(recover|recovery)\b/, lower: /\b(lower|land|put (it )?down|park)\b/,
+  grip_open: /\b(open|release|let go|drop)\b/, grip_close: /\b(close|grab|grip|pick|clamp)\b/, disarm: /\b(disarm|power off|turn off)\b/,
+};
+function reply(text, extra) { return Object.assign({ok: true, reply: text, chips: CHIPS[R.state], command_run: null, goto: null, pending_confirm: null}, extra || {}); }
+function gripAllowed() { return (R.state === "PARKED" || (R.state === "DISARMED" && R.supported)) && !R.busy; }
+function stLine() {
+  const st = status(), c = st.claw;
+  return `State ${R.state}${R.detail ? " (" + R.detail + ")" : ""}: ${STATE_TEXT[R.state]} Stations: A ok, B ok, C ok, D ok. `
+       + `Claw: ${c.battery_v.toFixed(2)} V, grip ${c.grip_closed ? "closed" : "open"}, camera ok.`;
+}
+function say(body) {
+  const raw = (body.text || "").trim(), t = raw.toLowerCase();
+  const p = R.pending && R.pending.until > now() ? R.pending : null;
+  if (RX.yes.test(t)) {
+    if (!p) return reply("Nothing is waiting for confirmation.");
+    R.pending = null;
+    const res = exec(p.cmd, Object.assign({}, p.body, {checklist: p.body.checklist && body.checklist}));
+    if (!res.ok) return reply("I couldn't do that: " + res.error);
+    return reply(STARTED[p.cmd], {command_run: p.cmd, chips: CHIPS[R.state]});
+  }
+  if (RX.no.test(t)) { const had = !!p; R.pending = null; return reply(had ? "Okay, cancelled. Nothing was done." : "Okay. Nothing was waiting for confirmation."); }
+  if (RX.help.test(t)) return reply(HELP);
+  if (RX.pause.test(t)) { const was = pause(); return reply(`Paused: holding position with torque on (state ${R.state === "PAUSED" ? "PAUSED" : was}). This is not an emergency stop. ${ESTOP}`, {command_run: "pause"}); }
+  if (RX.battery.test(t)) return reply(`Claw battery ${R.battery.toFixed(2)} V. OK for lifting.`);
+  if (RX.disarm.test(t)) return reply("Disarm is only on the Setup screen, with its typed confirmation.", {goto: "setup"});
+  const ask = cmd => {
+    R.pending = {cmd, until: now() + TTL, body};
+    return reply(QUESTIONS[cmd], {pending_confirm: {action: cmd, question: QUESTIONS[cmd], expires_in_s: TTL}, chips: ["Yes", "No", "Pause"]});
+  };
+  const cant = cmd => reply(`I can't do that now: '${cmd}' is only available in ${ALLOWED[cmd].join(", ")}; the robot is ${R.state}`);
+  for (const cmd of ["resume", "acknowledge", "recover", "lower", "start"]) {
+    if (!RX[cmd].test(t)) continue;
+    if (!ALLOWED[cmd].includes(R.state)) return cant(cmd);
+    if (R.busy) return reply(`I can't do that now: busy with '${R.busy}'. Say 'pause' to hold.`);
+    if (cmd === "start" && !body.checklist)
+      return reply("Starting needs the pre-start safety checklist, and I can't tick it for you. Open the Setup tab, confirm every item yourself (room cleared, power strip in reach, claw upright over the marker, cables on their pulleys, battery charged), then say 'start' again.", {goto: "setup"});
+    if (cmd === "acknowledge") { exec(cmd, body); return reply("Acknowledging the fault: the stations are re-checked. Watch Home for the result.", {command_run: cmd}); }
+    return ask(cmd);
+  }
+  for (const cmd of ["grip_open", "grip_close"]) {
+    if (!RX[cmd].test(t)) continue;
+    if (!gripAllowed()) return reply(`I can't do that now: the grip can only be moved from the phone when the claw is verified on the floor (PARKED); the robot is ${R.state}. Opening it while hanging could drop what it holds.`);
+    return ask(cmd);
+  }
+  if (RX.why.test(t)) {
+    const tr = trust();
+    return reply(`State ${R.state}: ${STATE_TEXT[R.state]} Trust ${tr.level}` + (tr.reasons.length ? ": " + tr.reasons.join("; ") + "." : "."));
+  }
+  if (RX.status.test(t)) return reply(stLine());
+  return reply(`I didn't understand “${raw}”. ${HELP}`);
+}
+
+// ---------------------------------------------------------------- camera: the captured sim frame, scaled with claw height
+const img = new Image(); img.src = FRAME_SRC;
+const cv = document.createElement("canvas"); cv.width = 800; cv.height = 600;
+function frameBlob() {
+  const g = cv.getContext("2d"); R.frame++;
+  g.fillStyle = "#969696"; g.fillRect(0, 0, 800, 600);
+  const k = 1 / (1 + 1.6 * R.height), moving = R.stations === "RUN", tt = now();
+  const jx = moving ? 6 * Math.sin(tt * 1.7) : 0, jy = moving ? 5 * Math.cos(tt * 1.3) : 0;
+  if (img.complete && img.naturalWidth) {
+    const w = 800 * k, hgt = 600 * k;
+    g.save(); g.beginPath(); g.rect(0, 0, 800, 600); g.clip();
+    g.drawImage(img, 400 - w / 2 + jx, 300 - hgt / 2 + jy, w, hgt); g.restore();
+  }
+  for (let i = 0; i < 900; i++) {           // sensor grain, so the feed visibly updates
+    const v = 120 + Math.random() * 60 | 0; g.fillStyle = `rgba(${v},${v},${v},0.25)`;
+    g.fillRect(Math.random() * 800, Math.random() * 600, 2, 2);
+  }
+  return new Promise(res => cv.toBlob(b => res(b), "image/jpeg", 0.8));
+}
+
+// ---------------------------------------------------------------- fetch shim
+const json = (data, status = 200) => new Response(JSON.stringify(data), {status, headers: {"Content-Type": "application/json"}});
+const realFetch = window.fetch.bind(window);
+window.fetch = async (input, init) => {
+  const url = typeof input === "string" ? input : input.url;
+  if (!url.startsWith("/api/")) return realFetch(input, init);
+  await new Promise(r => setTimeout(r, 40 + Math.random() * 60));     // a little network latency
+  const u = new URL(url, "https://demo.invalid"), path = u.pathname, method = (init && init.method) || "GET";
+  const body = init && init.body ? JSON.parse(init.body) : {};
+  if (path === "/api/status") return json(status());
+  if (path === "/api/events") {
+    const since = +(u.searchParams.get("since") || 0);
+    return json({events: events.filter(e => e.id > since), last_id: evId});
+  }
+  if (path === "/api/checks") return json(CAP.checks);
+  if (path === "/api/calibration") {
+    if (!R.calibrated) return json({ok: false, error: "no calibration yet"}, 404);
+    return json({result: {norm_rms: 1.08, anchors_room_m: ["A", "B", "C", "D"].map(id => R.anchors[id].map(x => x + (Math.random() - 0.5) * 0.01))},
+                 validation: {accepted: true, witness_rms_m: 0.0061, reasons: ["Demo numbers, not a real calibration."]}});
+  }
+  if (path === "/api/frame.jpg") {
+    const b = await frameBlob();
+    return new Response(b, {status: 200, headers: {"Content-Type": "image/jpeg", "X-Frame-Age-S": "0.1"}});
+  }
+  if (path === "/api/room" && method === "POST") {
+    const w = +body.width_m, d = +body.depth_m, h = +body.height_m;
+    if (!(w > 0.5 && d > 0.5 && h > 0.5)) return json({ok: false, error: "room size must be positive metres"}, 400);
+    R.room = [w, d, h];
+    R.anchors = body.anchors || {A: [0.05, 0.05, h - 0.15], B: [w - 0.05, 0.05, h - 0.15], C: [w - 0.05, d - 0.05, h - 0.15], D: [0.05, d - 0.05, h - 0.15]};
+    ev("info", `Room set to ${w} x ${d} x ${h} m.`);
+    return json({ok: true, room_m: R.room, anchors: R.anchors});
+  }
+  if (path === "/api/command" && method === "POST") {
+    const res = exec(body.cmd, body);
+    return res.ok ? json(res) : json(res, 409);
+  }
+  if (path === "/api/say" && method === "POST") return json(say(body));
+  return json({ok: false, error: "not in the demo: " + path}, 404);
+};
+
+// the app reads its session token from the URL or sessionStorage; the demo has none, so give it one
+try { sessionStorage.setItem("rc_token", "demo"); } catch (e) { /* blocked storage: the URL below still works */ }
+try { history.replaceState(null, "", location.pathname + "?token=demo" + location.hash); } catch (e) { /* fine */ }
+})();
+
+</script>
+<script>
+/* RoomCleaner phone app (docs/PHONE_APP_SPEC.md). Plain JS, no build step, no external resources.
+ *
+ * The app only calls the service's existing endpoints. Losing the connection does nothing to the robot; PAUSE needs the
+ * connection, and the app says so loudly when it is lost. Nothing here claims to be an emergency stop. */
+(() => {
+"use strict";
+
+const $ = id => document.getElementById(id);
+const STEPS = ["SELF_CHECK", "SLACK_TAKEUP", "INITIAL_LIFT", "VISUAL_INITIALIZATION", "CALIBRATION",
+               "REFERENCE_VERIFICATION", "READY"];
+const STATE_CLASS = {READY: "good", TASK: "good", PARKED: "", DISARMED: "", STARTUP: "warn", PAUSED: "warn",
+                     FAULT: "bad", RECOVERY_REQUIRED: "bad"};
+const STATION_STATE = {OFF: "off (not holding)", IDLE: "holding", RUN: "moving", HOLD: "stopping", FAULT: "fault (holding)"};
+const STATION_WORD = {OFF: "off", IDLE: "holding", RUN: "moving", HOLD: "stopping", FAULT: "fault"};
+const TABS = ["home", "camera", "setup", "chat"];
+
+let TOKEN = "";
+let S = null;                      // last /api/status
+let tab = "home";
+let lastEvent = 0, firstEvents = true, recent = [];
+let netFails = 0, ticking = false;
+let pending = null;                // {action, until}
+let roomInit = false, lastChecks = 0, calibKey = "", checklistText = "";
+
+// ------------------------------------------------------------------------------------------------ helpers
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null) e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return e;
+}
+const store = {
+  get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* private mode: fine */ } },
+};
+function readToken() {
+  const q = new URLSearchParams(location.search).get("token");
+  const f = new URLSearchParams(location.hash.replace(/^#/, "")).get("token");
+  const t = q || f;
+  if (t) { store.set("rc_token", t); return t; }
+  return store.get("rc_token") || "";
+}
+TOKEN = readToken();
+const fmtTime = t => new Date((t || Date.now() / 1000) * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const mm = x => (x * 1e3).toFixed(0) + " mm";
+
+let toastTimer = null;
+function toast(msg, bad = false, ms = 3500) {
+  const t = $("toast");
+  t.textContent = msg; t.className = "toast" + (bad ? " bad" : ""); t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, bad ? Math.max(ms, 7000) : ms);
+}
+
+function layout() {            // sheets and toasts sit just above the PAUSE dock
+  const hgt = $("dock").offsetHeight + $("tabs").offsetHeight;
+  document.documentElement.style.setProperty("--dock-h", hgt + "px");
+}
+
+// ------------------------------------------------------------------------------------------------ network
+async function api(path, body) {
+  const headers = {"X-Token": TOKEN};
+  const opt = {headers, cache: "no-store"};
+  if (body !== undefined) { opt.method = "POST"; headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+  let r;
+  try { r = await fetch(path, opt); }
+  catch (e) { netFails++; setConn(false); return {ok: false, status: 0, data: {error: "no connection to the robot service"}}; }
+  netFails = 0; setConn(true);
+  if (r.status === 401) showConnect("The session token is missing or wrong. The service makes a new one every time it starts.");
+  let data = {};
+  try { data = await r.json(); } catch (e) { /* not JSON */ }
+  return {ok: r.ok, status: r.status, data};
+}
+
+function setConn(ok) {
+  $("conn").className = "conn " + (ok ? "ok" : "bad");
+  $("connText").textContent = ok ? "online" : "offline";
+  const b = $("banner");
+  if (!ok && netFails >= 2) {
+    b.textContent = "Lost the connection to the robot service. The robot keeps holding its position and does nothing by "
+      + "itself, but PAUSE cannot reach it until the connection is back.";
+    b.hidden = false;
+  } else if (ok && b.dataset.kind !== "app") b.hidden = true;
+}
+
+function showConnect(note) {
+  if (note) $("connectNote").textContent = note;
+  $("connect").hidden = false;
+}
+$("connectForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = $("connectInput").value.trim();
+  const m = v.match(/[?#&]token=([^&\s]+)/);
+  TOKEN = m ? decodeURIComponent(m[1]) : v;
+  if (!TOKEN) return;
+  store.set("rc_token", TOKEN);
+  $("connect").hidden = true;
+  tick();
+});
+
+// ------------------------------------------------------------------------------------------------ confirm sheet
+let closeSheet = null;
+function ask({title, body, ok = "OK", input = null}) {
+  if (closeSheet) closeSheet(null);
+  return new Promise(res => {
+    const box = $("dlg"), inp = $("dlgInput"), okb = $("dlgOk");
+    $("dlgTitle").textContent = title; $("dlgBody").textContent = body;
+    inp.hidden = !input; inp.value = ""; inp.placeholder = input || "";
+    okb.textContent = ok; okb.disabled = !!input;
+    const done = v => { box.hidden = true; closeSheet = null; $("dlgForm").onsubmit = null; $("dlgCancel").onclick = null; inp.oninput = null; res(v); };
+    closeSheet = done;
+    inp.oninput = () => { okb.disabled = inp.value.trim() !== input; };
+    $("dlgForm").onsubmit = e => { e.preventDefault(); if (!okb.disabled) done(input ? inp.value.trim() : true); };
+    $("dlgCancel").onclick = () => done(null);
+    box.hidden = false; layout();
+    (input ? inp : okb).focus({preventScroll: true});
+  });
+}
+
+// ------------------------------------------------------------------------------------------------ commands
+async function cmd(name, extra) {
+  const r = await api("/api/command", Object.assign({cmd: name}, extra || {}));
+  if (!r.ok) toast((r.data && r.data.error) || ("HTTP " + r.status), true);
+  setTimeout(tick, 150);
+  return r;
+}
+async function doPause() {
+  const r = await api("/api/command", {cmd: "pause"});
+  if (r.ok) toast("Paused: holding position, torque stays on. This is not an emergency stop.");
+  else toast("PAUSE DID NOT REACH THE ROBOT SERVICE. Use the power strip if the claw is in danger. " + ((r.data && r.data.error) || ""), true);
+  setTimeout(tick, 100);
+}
+$("pause").addEventListener("click", doPause);
+
+// ------------------------------------------------------------------------------------------------ tabs
+function showTab(name) {
+  if (!TABS.includes(name)) name = "home";
+  tab = name; store.set("rc_tab", name);
+  for (const b of document.querySelectorAll("#tabs button")) b.setAttribute("aria-selected", String(b.dataset.tab === name));
+  for (const t of TABS) $("tab-" + t).hidden = t !== name;
+  if (name === "camera") camStart(); else camStop();
+  if (name === "setup") { refreshChecks(); refreshCalib(); }
+  if (name === "chat") scrollChat(true);
+}
+document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+// ------------------------------------------------------------------------------------------------ status rendering
+function trustText(t) {
+  if (!t || t.level === "NONE") return "Not calibrated yet: no volume is trusted.";
+  const m = t.margin || {};
+  if (t.level === "VERIFIED") {
+    const nums = (m.k_sigma_ceiling_m !== undefined)
+      ? ` (k=${m.k}: ceiling ${mm(m.k_sigma_ceiling_m)} of ${mm(m.ceiling_margin_m)}, walls ${mm(m.k_sigma_wall_m)} of ${mm(m.workspace_margin_m)})` : "";
+    return "Full workspace, checked by " + (t.basis === "beads" ? "bead references" : "the ceiling and wall margins" + nums) + ".";
+  }
+  return "Restricted to the calibrated volume.";
+}
+function line(label, value, cls) { return h("div", {class: "ln"}, label + ": ", h("b", {class: cls || ""}, value)); }
+
+function stationTile(id, v) {
+  const fault = v.fault && v.fault !== "NONE";
+  const ref = !v.valid ? "ref INVALID" : (v.bead_verified ? "ref bead" : "ref visual");
+  const st = v.online ? (STATION_WORD[v.state] || v.state || "?") : "OFFLINE";
+  return h("div", {class: "tile" + (fault || !v.online ? " fault" : ""), title: STATION_STATE[v.state] || ""},
+    h("div", {class: "id"}, id),
+    h("div", {class: "ln"}, h("b", {class: v.online ? "" : "badc"}, st)),
+    h("div", {class: "ln"}, h("b", {class: fault ? "badc" : ""}, fault ? "fault " + v.fault : "no fault")),
+    h("div", {class: "ln " + (v.valid ? "" : "badc")}, ref));
+}
+
+function kv(label, ...vals) { return h("div", {class: "kv"}, h("span", {}, label), h("b", {}, ...vals)); }
+
+function renderClaw(c) {
+  const box = $("claw"); box.replaceChildren();
+  if (c.online === null || c.online === undefined) { box.append(kv("Link", "no telemetry yet")); return; }
+  const v = c.battery_v;
+  box.append(
+    kv("Link", h("span", {class: c.online ? "ok" : "badc"}, c.online ? "online" : (c.stale ? "stale" : "OFFLINE")),
+       c.age_s != null ? ` (${c.age_s} s ago)` : ""),
+    kv("Battery", v == null ? "n/a" : v.toFixed(2) + " V ",
+       v == null ? "" : h("span", {class: c.battery_low ? "badc" : "ok"}, c.battery_low ? "LOW (min " + c.battery_min_v + " V to lift)" : "OK")),
+    kv("Grip", c.grip_closed == null ? "unknown" : (c.grip_closed ? "closed" : "open")),
+    kv("Camera", h("span", {class: c.camera_ok ? "ok" : "badc"}, c.camera_ok == null ? "n/a" : (c.camera_ok ? "OK" : "FAULT")),
+       c.camera_mode ? " " + c.camera_mode : ""));
+  if (c.error) box.append(kv("Error", c.error));
+}
+
+function renderStatus(s) {
+  S = s;
+  const st = s.state, cls = STATE_CLASS[st] || "";
+  $("topState").textContent = st; $("topState").className = "pill " + cls;
+  $("state").textContent = st; $("state").className = "bigstate " + cls;
+  $("stateText").textContent = s.state_text || "";
+  $("busy").hidden = !s.busy; $("busyText").textContent = s.busy ? `Working: ${s.busy} ...` : "";
+  const stepNow = s.detail && (STEPS.includes(s.detail) || ["STARTUP", "TASK"].includes(st));
+  $("stepLine").textContent = stepNow ? "Step: " + s.detail.replace(/_/g, " ").toLowerCase() : "";
+  const err = $("lastErr"); err.hidden = !s.error; err.textContent = s.error ? "Last error: " + s.error : "";
+  const ab = $("banner");
+  if (s.app_error) { ab.textContent = "App service problem: " + s.app_error; ab.dataset.kind = "app"; ab.hidden = false; }
+  else if (ab.dataset.kind === "app") { ab.dataset.kind = ""; ab.hidden = true; }
+
+  // trust
+  const t = s.trust || {};
+  $("level").textContent = s.level; $("level").className = "pill " + ({VERIFIED: "good", LOCAL_ONLY: "warn", NONE: ""}[s.level] || "");
+  $("trustText").textContent = trustText(t);
+  $("trustReasons").replaceChildren(...((t.reasons || []).map(r => h("li", {}, r))));
+
+  // stations and claw
+  $("stations").replaceChildren(...Object.entries(s.stations || {}).sort().map(([id, v]) => stationTile(id, v)));
+  renderClaw(s.claw || {});
+
+  // camera line
+  renderCameraStatus(s.camera || {});
+
+  // setup
+  renderSetup(s);
+
+  // chat chips follow the state unless a question is waiting
+  if (!pending && s.chips) setChips(s.chips);
+}
+
+function checklistTicked() {
+  const c = [...document.querySelectorAll("#checklist input")];
+  return c.length > 0 && c.every(x => x.checked);
+}
+
+function renderSetup(s) {
+  const st = s.state, idle = !s.busy, ok = c => (s.allowed || []).includes(c);
+  // (c) checklist: rebuilt only when the wording changes; ticks never survive movement or a reload
+  const txt = (s.checklist || []).join("\n");
+  if (txt !== checklistText) {
+    checklistText = txt;
+    $("checklist").replaceChildren(...(s.checklist || []).map(c => h("label", {},
+      h("input", {type: "checkbox", onchange: gate}), h("span", {}, c))));
+  }
+  if (!["DISARMED", "PARKED"].includes(st)) document.querySelectorAll("#checklist input").forEach(x => { x.checked = false; });
+  gate();
+  // (a) room: editable only DISARMED / PARKED (the service refuses otherwise)
+  const editable = idle && ["DISARMED", "PARKED"].includes(st);
+  for (const id of ["rw", "rd", "rh"]) $(id).disabled = !editable;
+  document.querySelectorAll("#anchors input").forEach(x => { x.disabled = !editable; });
+  $("saveRoom").disabled = !editable;
+  $("roomNote").textContent = editable ? "Anchors are the corner points of the four cables (x, y, z)." : "Room and anchors can only be edited while DISARMED or PARKED.";
+  if (!roomInit && s.room_m) {
+    roomInit = true;
+    [$("rw").value, $("rd").value, $("rh").value] = s.room_m.map(x => +x.toFixed(3));
+    $("anchors").replaceChildren(...Object.entries(s.anchors_m || {}).sort().map(([id, a]) => h("div", {class: "arow"},
+      h("b", {}, id), ...a.map((x, i) => h("input", {type: "number", step: "0.01", inputmode: "decimal", "aria-label": `anchor ${id} ${"xyz"[i]}`,
+        value: +x.toFixed(3), "data-orig": (+x.toFixed(3)).toString(), "data-id": id, "data-axis": i})))));
+  }
+  // (d) progress
+  const idx = STEPS.indexOf(s.detail);
+  $("steps").replaceChildren(...STEPS.map((x, i) => h("li", {class: st === "READY" || i < idx ? "done" : (i === idx ? "now" : "")},
+    x.replace(/_/g, " ").toLowerCase())));
+  const reasons = [...new Set([s.error, ...(s.reasons || [])].filter(Boolean))];
+  $("startReasons").replaceChildren(...reasons.map(r => h("li", {}, r)));
+  // what the robot needs from you
+  const needs = ["PAUSED", "FAULT", "RECOVERY_REQUIRED"].includes(st);
+  $("needs").hidden = !needs;
+  $("needsText").textContent = needs ? [s.state_text, s.reasons && s.reasons.length ? "Reason: " + s.reasons[s.reasons.length - 1] : ""].filter(Boolean).join(" ") : "";
+  // recovery actions appear only where the supervisor allows them
+  const map = {resume: "resume", ack: "acknowledge", recover: "recover", lower: "lower", disarm: "disarm"};
+  let any = false;
+  for (const [id, c] of Object.entries(map)) { const a = ok(c); $(id).hidden = !a; $(id).disabled = !idle; any = any || a; }
+  $("recovery").hidden = !any;
+}
+function gate() {
+  const allowed = S && (S.allowed || []).includes("start") && !S.busy;
+  $("start").disabled = !(allowed && checklistTicked());
+}
+
+// ------------------------------------------------------------------------------------------------ setup actions
+$("start").addEventListener("click", async () => {
+  if (!checklistTicked()) return;
+  if (await ask({title: "Start calibration?", ok: "Start",
+    body: "The claw takes up slack, lifts off the floor and moves around the room. You have confirmed that nobody is under the robot and the power strip is within reach."}))
+    cmd("start", {checklist: true});
+});
+$("resume").addEventListener("click", async () => {
+  if (await ask({title: "Resume?", ok: "Resume", body: "The robot re-checks the stations and the camera, then restarts from the safest step. The claw may move."})) cmd("resume");
+});
+$("ack").addEventListener("click", () => cmd("acknowledge"));
+$("recover").addEventListener("click", async () => {
+  if (await ask({title: "Recover?", ok: "Recover", body: "Stations are re-armed and the model is re-checked against the camera. The claw may move slightly."})) cmd("recover");
+});
+$("lower").addEventListener("click", async () => {
+  if (await ask({title: "Lower the claw to the floor?", ok: "Lower", body: "The claw moves over the marker and descends. Nobody under the robot."})) cmd("lower");
+});
+$("disarm").addEventListener("click", async () => {
+  const t = await ask({title: "Disarm: remove holding torque", ok: "Disarm", input: "claw_supported",
+    body: "The claw will fall if it is not resting on the floor. The camera must confirm it. Type claw_supported to confirm."});
+  if (t) cmd("disarm", {confirm: t});
+});
+$("saveRoom").addEventListener("click", async () => {
+  const body = {width_m: +$("rw").value, depth_m: +$("rd").value, height_m: +$("rh").value, anchors: {}};
+  document.querySelectorAll("#anchors input").forEach(x => {
+    const id = x.dataset.id;
+    (body.anchors[id] = body.anchors[id] || [0, 0, 0])[+x.dataset.axis] = +x.value;
+  });
+  for (const id of Object.keys(body.anchors)) {          // send only the anchors that were edited
+    const orig = [...document.querySelectorAll(`#anchors input[data-id="${id}"]`)].every(x => x.value === x.dataset.orig);
+    if (orig) delete body.anchors[id];
+  }
+  const r = await api("/api/room", body);
+  if (r.ok) { toast("Room saved."); roomInit = false; } else toast((r.data && r.data.error) || "Could not save the room", true);
+  setTimeout(tick, 150);
+});
+
+async function refreshChecks() {
+  lastChecks = Date.now();
+  const r = await api("/api/checks");
+  if (!r.ok) return;
+  $("checks").replaceChildren(...Object.entries(r.data).map(([stage, miss]) => h("li", {},
+    h("b", {}, stage + ": "), miss.length ? h("span", {class: "warnc"}, "unmeasured " + miss.join(", ")) : h("span", {class: "ok"}, "all measured"))));
+}
+
+async function refreshCalib() {
+  calibKey = S ? S.state + "|" + S.detail + "|" + S.level : "";
+  const r = await api("/api/calibration"), box = $("calib");
+  box.replaceChildren();
+  if (r.ok && r.data.result) {
+    const res = r.data.result, val = r.data.validation || {};
+    box.append(kv("Accepted", h("span", {class: val.accepted ? "ok" : "badc"}, val.accepted ? "yes" : "NO")));
+    if (res.norm_rms != null) box.append(kv("Fit residual (normalised RMS)", res.norm_rms.toFixed(2)));
+    if (val.witness_rms_m != null) box.append(kv("Witness RMS", (val.witness_rms_m * 1e3).toFixed(1) + " mm"));
+    (res.anchors_room_m || []).forEach((a, i) => box.append(kv("Anchor " + "ABCD"[i] + " (m)", a.map(x => x.toFixed(3)).join(", "))));
+    (val.reasons || []).forEach(x => box.append(kv("Note", x)));
+  } else {
+    box.append(h("p", {class: "muted"}, "No calibration yet. The startup makes it."));
+  }
+  if (S && S.trust) box.append(kv("Trust", S.level), h("p", {class: "muted small"}, trustText(S.trust)));
+}
+
+// ------------------------------------------------------------------------------------------------ events and chat
+const log = $("chatlog");
+function nearBottom() { return log.scrollHeight - log.scrollTop - log.clientHeight < 80; }
+function scrollChat(force) { if (force || nearBottom()) log.scrollTop = log.scrollHeight; }
+
+function addMsg(who, text, opt = {}) {
+  const stick = nearBottom() || who === "me";
+  const m = h("div", {class: "msg " + who + (opt.cls ? " " + opt.cls : "")}, text, h("span", {class: "t"}, fmtTime(opt.t)));
+  if (opt.goto) m.append(h("button", {class: "btn go", type: "button", onclick: () => showTab(opt.goto)}, "Open " + cap(opt.goto)));
+  log.append(m);
+  while (log.children.length > 200) log.firstChild.remove();
+  if (stick) log.scrollTop = log.scrollHeight;
+}
+function eventClass(e) {
+  if (e.kind === "error" || e.kind === "refused") return "bad";
+  if (e.kind === "pause" || e.kind === "reason") return "warn";
+  if (e.kind === "state") return /^(FAULT|RECOVERY)/.test(e.text) ? "bad" : /^(PAUSED)/.test(e.text) ? "warn" : /^(READY|PARKED)/.test(e.text) ? "good" : "";
+  return "";
+}
+function takeEvents(d) {
+  if (d.last_id < lastEvent) { lastEvent = 0; firstEvents = true; recent = []; }
+  const evs = d.events || [];
+  const shown = firstEvents ? evs.slice(-6) : evs;                 // on load: just the last few as history
+  for (const e of shown) if (e.kind !== "chat") addMsg("sys", e.text, {cls: eventClass(e) + (firstEvents ? " hist" : ""), t: e.t});
+  for (const e of evs) recent.push(e);
+  recent = recent.slice(-8);
+  firstEvents = false;
+  if (evs.length) lastEvent = evs[evs.length - 1].id;
+  $("homeEvents").replaceChildren(...recent.slice().reverse().map(e => h("li", {}, h("span", {class: "k"}, fmtTime(e.t)), e.text)));
+}
+
+function setChips(list) {
+  const items = (list || []).filter(t => !(pending && (t === "Yes" || t === "No")));
+  $("chips").replaceChildren(...items.map(t => h("button", {class: "chip", type: "button", onclick: () => send(t)}, t)));
+}
+let pendTimer = null;
+function setPending(p) {
+  clearInterval(pendTimer);
+  if (!p) { pending = null; $("pendingBar").hidden = true; return; }
+  pending = {action: p.action, until: Date.now() + (p.expires_in_s || 30) * 1000};
+  $("pendingBar").hidden = false;
+  const upd = () => {
+    const left = Math.ceil((pending.until - Date.now()) / 1000);
+    if (left <= 0) { setPending(null); addMsg("sys", "That question timed out; nothing was done.", {cls: "warn"}); if (S) setChips(S.chips); return; }
+    $("pendingText").textContent = `Waiting for your answer: ${p.action.replace("_", " ")} (${left} s)`;
+  };
+  upd(); pendTimer = setInterval(upd, 500);
+}
+
+async function send(text) {
+  text = (text || "").trim();
+  if (!text) return;
+  addMsg("me", text);
+  const r = await api("/api/say", {text, checklist: checklistTicked()});
+  if (!r.ok) { addMsg("sys", (r.data && r.data.error) || "The robot service did not answer.", {cls: "bad"}); return; }
+  const d = r.data;
+  setPending(d.pending_confirm);
+  addMsg("robot", d.reply, {goto: d.goto});
+  setChips(d.chips);
+  speakOut(d.reply);
+  if (d.command_run) setTimeout(tick, 150);
+}
+$("composer").addEventListener("submit", e => { e.preventDefault(); const v = $("say").value; $("say").value = ""; send(v); });
+$("yes").addEventListener("click", () => send("yes"));
+$("no").addEventListener("click", () => send("no"));
+
+// ---- optional voice (browser speech recognition / synthesis; hidden when the browser has none)
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const canTalk = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+let rec = null;
+if (SR) {
+  $("mic").hidden = false;
+  $("mic").addEventListener("click", () => {
+    if (rec) { rec.stop(); return; }
+    rec = new SR();
+    rec.lang = navigator.language || "en-US"; rec.interimResults = false; rec.maxAlternatives = 1;
+    rec.onresult = ev => { const t = ev.results[0][0].transcript; if (t) send(t); };
+    rec.onerror = ev => addMsg("sys", "Voice input did not work (" + ev.error + "). Browsers often allow it only on https or localhost; typing always works.", {cls: "warn"});
+    rec.onend = () => { rec = null; $("mic").classList.remove("on"); };
+    try { rec.start(); $("mic").classList.add("on"); } catch (e) { rec = null; }
+  });
+}
+if (canTalk) {
+  $("speakWrap").hidden = false;
+  $("speak").checked = store.get("rc_speak") === "1";
+  $("speak").addEventListener("change", () => { store.set("rc_speak", $("speak").checked ? "1" : "0"); if (!$("speak").checked) speechSynthesis.cancel(); });
+}
+function speakOut(text) {
+  if (!canTalk || !$("speak").checked) return;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+}
+
+// ------------------------------------------------------------------------------------------------ camera
+let camWatch = null, camTimer = null, camMode = null, camGot = false, camUrl = null;
+function camStart() {
+  camStop();
+  if (!TOKEN) return;
+  camMode = "stream"; camGot = false;
+  const img = $("cam");
+  $("camTransport").textContent = "MJPEG stream (about 5 fps)";
+  img.onload = () => { camGot = true; $("camOverlay").hidden = true; };
+  img.onerror = () => camFallback("stream error");
+  img.src = "/api/stream.mjpg?token=" + encodeURIComponent(TOKEN) + "&_=" + Date.now();   // the one URL that carries the token
+  camWatch = setTimeout(() => { if (!camGot) camFallback("no stream frame within 4 s"); }, 4000);
+}
+function camFallback(why) {
+  clearTimeout(camWatch);
+  const img = $("cam"); img.onload = img.onerror = null; img.removeAttribute("src");
+  camMode = "still"; $("camTransport").textContent = "still JPEG, twice a second (" + why + ")";
+  pollStill();
+}
+async function pollStill() {
+  if (camMode !== "still" || tab !== "camera") return;
+  try {
+    const r = await fetch("/api/frame.jpg", {headers: {"X-Token": TOKEN}, cache: "no-store"});
+    if (r.ok) {
+      const u = URL.createObjectURL(await r.blob());
+      $("cam").src = u; if (camUrl) URL.revokeObjectURL(camUrl);
+      camUrl = u; $("camOverlay").hidden = true;
+    }
+  } catch (e) { /* the status poll shows the connection state */ }
+  camTimer = setTimeout(pollStill, 500);
+}
+function camStop() {
+  clearTimeout(camWatch); clearTimeout(camTimer);
+  const img = $("cam"); img.onload = img.onerror = null; img.removeAttribute("src");
+  camMode = null;
+  if (camUrl) { URL.revokeObjectURL(camUrl); camUrl = null; }
+}
+function renderCameraStatus(c) {
+  const live = c.available && c.age_s != null && c.age_s <= 2;
+  $("camLive").textContent = !c.available ? "NO FRAME" : (live ? "LIVE" : "STALE");
+  $("camLive").className = "pill camlive " + (live ? "good" : "bad");
+  $("camAge").textContent = c.age_s == null ? "-" : c.age_s.toFixed(1) + " s" + (c.frame_id != null ? "  (frame " + c.frame_id + ")" : "");
+  const d = c.detection || {};
+  $("camDet").textContent = d.text || "-"; $("camDet").className = d.ok === true ? "ok" : d.ok === false ? "warnc" : "";
+  $("camSrc").textContent = c.source === "sim" ? "simulated claw view" : (c.mode ? "claw camera " + c.mode : "claw camera");
+  if (!c.available) { $("camOverlay").textContent = "No camera frame yet"; $("camOverlay").hidden = false; }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) camStop(); else if (tab === "camera") camStart();
+});
+
+// ------------------------------------------------------------------------------------------------ main loop
+async function tick() {
+  if (ticking || !TOKEN) return;
+  ticking = true;
+  try {
+    const st = await api("/api/status");
+    if (st.ok) renderStatus(st.data);
+    const ev = await api("/api/events?since=" + lastEvent);
+    if (ev.ok) takeEvents(ev.data);
+    if (tab === "setup") {
+      const n = Date.now();
+      if (n - lastChecks > 5000) refreshChecks();
+      if (S && calibKey !== S.state + "|" + S.detail + "|" + S.level) refreshCalib();   // the report changes with the startup, not on a timer
+    }
+  } finally { ticking = false; }
+}
+function loop() { tick().finally(() => setTimeout(loop, document.hidden ? 4000 : 1000)); }
+
+window.addEventListener("resize", layout);
+layout();
+showTab(new URLSearchParams(location.search).get("tab") || store.get("rc_tab") || "home");
+if (!TOKEN) showConnect();
+loop();
+})();
+
+</script>
+<script>
+(() => {
+  document.getElementById("demoNote").textContent = "Demo: a simulated robot runs inside this page, so nothing here reaches hardware. The real app runs on the laptop next to the robot and opens on your phone over home Wi-Fi.";
+  const mic = document.getElementById("mic"); if (mic) mic.hidden = true;   // the hosted page has no microphone
+  window.dispatchEvent(new Event("resize"));
+})();
+</script>

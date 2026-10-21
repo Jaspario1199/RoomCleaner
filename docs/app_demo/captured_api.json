@@ -1,0 +1,152 @@
+{
+ "status0": {
+  "allowed": [
+   "start",
+   "disarm"
+  ],
+  "anchors_m": {
+   "A": [
+    0.05,
+    0.05,
+    2.5932
+   ],
+   "B": [
+    3.3028,
+    0.05,
+    2.5932
+   ],
+   "C": [
+    3.3028,
+    2.6932,
+    2.5932
+   ],
+   "D": [
+    0.05,
+    2.6932,
+    2.5932
+   ]
+  },
+  "app_error": null,
+  "busy": null,
+  "camera": {
+   "age_s": 0.2,
+   "available": true,
+   "detection": {
+    "n_tags": 1,
+    "ok": true,
+    "text": "marker in view (155 px; modelled, not drawn)"
+   },
+   "frame_id": 81,
+   "mode": "sim-800x600",
+   "source": "sim"
+  },
+  "checklist": [
+   "Room cleared; nobody will stand under the workspace",
+   "Switched power strip (emergency stop) within reach",
+   "Claw upright on the floor near the middle, marker under the camera",
+   "All four cables attached and routed over their pulleys",
+   "Claw battery charged per the charging rule (switch off, attended, 8.4 V charger at \u2264 1 A)"
+  ],
+  "chips": [
+   "Status",
+   "Why?",
+   "Battery",
+   "Start",
+   "Pause",
+   "Help"
+  ],
+  "claw": {
+   "age_s": 1.4,
+   "battery_low": false,
+   "battery_min_v": 7.0,
+   "battery_v": 7.8,
+   "camera_mode": null,
+   "camera_ok": true,
+   "grip_closed": false,
+   "online": true,
+   "stale": false
+  },
+  "claw_supported": false,
+  "detail": "",
+  "error": null,
+  "events": [
+   [
+    0.0,
+    "DISARMED",
+    "host start (no automatic resume)"
+   ]
+  ],
+  "level": "NONE",
+  "profile": "simulation",
+  "reasons": [],
+  "recovery_required": false,
+  "room_m": [
+   3.3528,
+   2.7432,
+   2.7432
+  ],
+  "state": "DISARMED",
+  "state_hint": "Say 'start' after ticking the checklist on Setup.",
+  "state_text": "Disarmed. The stations are not holding the claw; it should be resting on the floor. Tick the safety checklist on Setup, then Start.",
+  "stations": {
+   "A": {
+    "bead_verified": false,
+    "boot": 3626764237,
+    "encoder_valid": false,
+    "fault": "NONE",
+    "note": "",
+    "online": true,
+    "state": "OFF",
+    "tel_age_s": 0.01,
+    "valid": false
+   },
+   "B": {
+    "bead_verified": false,
+    "boot": 577090037,
+    "encoder_valid": false,
+    "fault": "NONE",
+    "note": "",
+    "online": true,
+    "state": "OFF",
+    "tel_age_s": 0.01,
+    "valid": false
+   },
+   "C": {
+    "bead_verified": false,
+    "boot": 4106135923,
+    "encoder_valid": false,
+    "fault": "NONE",
+    "note": "",
+    "online": true,
+    "state": "OFF",
+    "tel_age_s": 0.02,
+    "valid": false
+   },
+   "D": {
+    "bead_verified": false,
+    "boot": 1022050301,
+    "encoder_valid": false,
+    "fault": "NONE",
+    "note": "",
+    "online": true,
+    "state": "OFF",
+    "tel_age_s": 0.02,
+    "valid": false
+   }
+  },
+  "trust": {
+   "basis": null,
+   "full_workspace": false,
+   "level": "NONE",
+   "margin": {},
+   "reasons": []
+  }
+ },
+ "checks": {
+  "bead_verification": [],
+  "calibration": [],
+  "floor_startup": [],
+  "station_bench": [],
+  "synchronized_motion": []
+ }
+}

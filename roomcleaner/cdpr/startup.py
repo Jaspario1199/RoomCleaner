@@ -65,6 +65,7 @@ from __future__ import annotations
 
 import json
 import math
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -421,6 +422,9 @@ class StartupSequencer:
     # may not exceed MOUNT_RECHECK_K sigma of the two measurements (and at least MOUNT_RECHECK_FLOOR_RAD).
     MOUNT_RECHECK_K = 4.0
     MOUNT_RECHECK_FLOOR_RAD = 0.003
+    # Keep-alive grid while a long computation runs on a worker thread (_pumped): Coordinator.pump pings every
+    # min(faults.lease_s / 4, 20 ms), so ctx.wait is called in steps of one ping period.
+    PUMP_STEP_S = 0.02
 
     def __init__(self, ctx: RobotContext):
         self.ctx = ctx
@@ -437,6 +441,24 @@ class StartupSequencer:
         """Visibility / span queries of the multi-tag floor reference (sim.world.FloorBoard or vision.board.BoardGeometry
         of a surveyed layout), or None for the single tag. ``study_board`` (class attribute) wins over the context's."""
         return self.study_board if self.study_board is not None else getattr(self.ctx, "floor_board", None)
+
+    def _pumped(self, fn, *args, **kwargs):
+        """Run the long computation ``fn(*args, **kwargs)`` (a ``Calibrator.fit``, the survey top-up's ``flush``) on a one-worker
+        thread while this (the command) thread keeps the station keep-alive going with ``ctx.wait`` on the 20 ms grid. While a
+        command owns the robot the idle host loop does not pump (``Service.idle_tick``), so a computation of seconds on this
+        thread would outlast ``faults.lease_s`` and latch Fault.LEASE on all four armed stations (review H1). ``fn`` must touch
+        only its own objects (the calibrator, the survey and its layout), never the coordinator; its result is returned and an
+        exception it raises is re-raised unchanged. An exception of ``ctx.wait`` (abort, e-stop) propagates at once: the worker
+        is not waited for (it cannot be interrupted and its result is dropped)."""
+        pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="startup-pumped")
+        fut = None
+        try:
+            fut = pool.submit(fn, *args, **kwargs)
+            while not fut.done():
+                self.ctx.wait(self.PUMP_STEP_S)
+            return fut.result()
+        finally:
+            pool.shutdown(wait=fut is not None and fut.done(), cancel_futures=True)
 
     def _enter(self, state, msg=""):
         self.rep.state = state
@@ -745,7 +767,7 @@ class StartupSequencer:
         if rms > st.bearing_rms_max:
             raise StartupAbort(S, f"slide directions disagree with the anchor entries (RMS {rms:.1f} sigma): "
                                   "check station order/wiring A-D and anchor coordinates")
-        res = ctx.cal.fit([], ctx.onsets, psi_inits=[psi])
+        res = self._pumped(ctx.cal.fit, [], ctx.onsets, psi_inits=[psi])
         ctx.apply_result(res, "onset")
         self.rep.measurements["L0_onset"] = res.L0.tolist()
 
@@ -829,13 +851,13 @@ class StartupSequencer:
         """Survey top-up while suspended: the still frames offered since the last call (``FloorBoardSurveyor.offer``) are given to the
         survey; sheets that the resting claw could not see but this pose does, and that now have enough views, are surveyed, the
         layout file is updated and the excitation design sees them. Nothing moves; the cost is a few PnP solves and, when a
-        sheet is ready, one bundle adjustment (~1 s) -- on hardware that is time during which the keep-alive is not pumped
-        (the stations hold on their own lease; measure it against ``faults.lease_s``)."""
+        sheet is ready, one bundle adjustment (~1 s) -- so the flush runs on a worker thread while this thread keeps pumping the
+        station keep-alive (``_pumped``); an unpumped stall of that length would outlast ``faults.lease_s``."""
         ctx = self.ctx
         sv = getattr(ctx, "board_survey", None)
         if sv is None or not self.cfg.startup.board_survey:
             return
-        out = sv.flush()
+        out = self._pumped(sv.flush)
         rep = self.rep.measurements.get("board_survey")
         if out is None or rep is None or not (out["new"] or out["cleared"]):
             return
@@ -1049,7 +1071,7 @@ class StartupSequencer:
         ctx, S = self.ctx, "VISUAL_INITIALIZATION"
         s = self._sample_probed("fit", S)
         ctx.samples = [s]
-        res = ctx.cal.fit(ctx.samples, ctx.onsets, L0_init=ctx.result.L0, psi_inits=[ctx.result.psi])
+        res = self._pumped(ctx.cal.fit, ctx.samples, ctx.onsets, L0_init=ctx.result.L0, psi_inits=[ctx.result.psi])
         ctx.apply_result(res, "visual")
         self.rep.measurements["L0_visual"] = res.L0.tolist()
 
@@ -1140,7 +1162,7 @@ class StartupSequencer:
         c_local = np.array([here[0], here[1], max(here[2], min_z + lb[2] + 0.01)])
         self._stage("local", c_local, lb, max(8, cc.min_samples // 2), max(2, cc.witness_samples // 2),
                     R_M, min_z, (5, 5, 3))
-        res = ctx.cal.fit([s for s in ctx.samples if s.kind == "fit"], ctx.onsets, L0_init=ctx.result.L0,
+        res = self._pumped(ctx.cal.fit, [s for s in ctx.samples if s.kind == "fit"], ctx.onsets, L0_init=ctx.result.L0,
                           psi_inits=[ctx.result.psi])
         wit = [s for s in ctx.samples if s.kind == "witness"]
         rep_local = ctx.cal.validate(res, wit)
@@ -1161,12 +1183,12 @@ class StartupSequencer:
             self._stage(name, c, half, max(6, int(cc.min_samples * frac)),
                         max(2, int(round(cc.witness_samples * frac))), R_M, min_z, (7, 7, 4))
             if name != "expanded":
-                res = ctx.cal.fit([s for s in ctx.samples if s.kind == "fit"], ctx.onsets,
+                res = self._pumped(ctx.cal.fit, [s for s in ctx.samples if s.kind == "fit"], ctx.onsets,
                                   L0_init=ctx.result.L0, psi_inits=[ctx.result.psi])
                 ctx.apply_result(res, "visual")
         fit = [s for s in ctx.samples if s.kind == "fit"]
         wit = [s for s in ctx.samples if s.kind == "witness"]
-        res = ctx.cal.fit(fit, ctx.onsets, L0_init=ctx.result.L0, psi_inits=[ctx.result.psi])
+        res = self._pumped(ctx.cal.fit, fit, ctx.onsets, L0_init=ctx.result.L0, psi_inits=[ctx.result.psi])
         vol = self._work_volume(res)
         report = ctx.cal.validate(res, wit, [to_marker(res.T_R_M, q) for q in vol])
         self.cal_report = report
@@ -1345,7 +1367,7 @@ class StartupSequencer:
                                                  math.hypot(bead.uncertainty_m, 1e-4)))
             if ctx.cal.beads:
                 fit = [s for s in ctx.samples if s.kind == "fit"]
-                res = ctx.cal.fit(fit, ctx.onsets, L0_init=ctx.result.L0, psi_inits=[ctx.result.psi])
+                res = self._pumped(ctx.cal.fit, fit, ctx.onsets, L0_init=ctx.result.L0, psi_inits=[ctx.result.psi])
                 rep = ctx.cal.validate(res, [s for s in ctx.samples if s.kind == "witness"])
                 hard = [r for r in rep["reasons"] if not r.startswith("prior-dominated")]
                 if hard or res.norm_rms > self.cfg.calibration.norm_rms_max:

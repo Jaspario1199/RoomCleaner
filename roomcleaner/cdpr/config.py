@@ -62,11 +62,13 @@ def _vec(v, name, n=3, allow_none=True):
 # reason; ``load_config`` refuses a value outside it and the message repeats the reason. Ranges are NOT acceptance thresholds
 # of the product: they only exclude values that no camera, pendulum or print can have.
 ATTITUDE_BOUNDS = {
-    "camera.corner_sigma_px": (0.05, 2.0, "px",
+    "camera.corner_sigma_px": (0.15, 2.0, "px",
         "1-sigma of a detected tag corner. cv2's sub-pixel refinement alone is biased by ~0.15 px on a 50 px tag "
-        "(verification/floor_board_detector.md) and every covariance scales with its square, so a value under 0.05 px makes "
-        "the estimator overconfident; 2 px is the detector's own reprojection limit (camera.max_reprojection_px): a frame "
-        "noisier than that is refused anyway"),
+        "(verification/floor_board_detector.md), so a value under 0.15 px claims a corner better than the detector's own "
+        "systematic error and, since every covariance scales with its square, makes the estimator overconfident; 2 px is the "
+        "detector's own reprojection limit (camera.max_reprojection_px): a frame noisier than that is refused anyway. The "
+        "settle gate's still-rate limit has to clear the noise this value implies (tasks.grip_still_rate_rad_s, checked in "
+        "load_config)"),
     "camera.pose_cov_inflate": (1.0, 5.0, "x",
         "margin on the Cramer-Rao standard deviation. The bound is the best any unbiased estimator can reach, so a factor "
         "below 1 claims the impossible (0.05 would shrink every covariance 400-fold); above 5 the covariance is 25x too "
@@ -79,10 +81,14 @@ ATTITUDE_BOUNDS = {
         "a rigid claw is a compound pendulum, T = 2 pi sqrt((k^2 + L^2) / (g L)): 1.2x the simple period for k = 0.13 m about "
         "the centre of mass and L = 0.196 m (imu_removal_review.md F8c). Below that the dwell is shorter than the number of "
         "periods it claims (0.05 collapses it to the grip_settle_min_s floor); 3x would need k = 0.55 m, larger than the claw"),
-    "tasks.grip_still_rate_rad_s": (0.005, 0.1, "rad/s",
-        "image-motion rate below which the claw counts as still. A still claw's rate noise is 0.3 px x sqrt(2) / (520 px x "
-        "0.1 s) = 8e-3 rad/s per corner (4e-3 over the 4 corners of a tag), so a limit under 0.005 never opens; 0.1 rad/s "
-        "is a 17 mrad (1 deg) swing at the 5.9 rad/s of the 1.07 s pendulum, a fifth of the 5 deg grip tilt limit"),
+    "tasks.grip_still_rate_rad_s": (0.015, 0.1, "rad/s",
+        "image-motion rate below which the claw counts as still. image_motion_rad_s averages the corner-shift NORMS, which do "
+        "not average away however many corners there are (Rayleigh mean 1.2533 x sqrt(2) x sigma = 1.77 sigma): a still "
+        "claw's noise-only rate is 1.77 x 0.3 px / (520 px x 0.1 s) = 1.0e-2 rad/s at the default corner noise, not the "
+        "8e-3 / 4e-3 of a shift that averages to zero. A limit under ~1.0e-2 never opens; at 1.2e-2 a one-tag view passes 75 % "
+        "of the pairs (5 in a row: 24 %), at 1.5e-2 95 % (79 %; three tags 99.8 % / 99 %), so the lower bound is 0.015 = 1.4x "
+        "the noise rate at the default corner noise. load_config also refuses a limit below 1.4x the noise rate of the "
+        "configured camera.corner_sigma_px; 0.1 rad/s is a 17 mrad (1 deg) swing at the 5.9 rad/s of the 1.07 s pendulum, a fifth of the 5 deg grip tilt limit"),
     "tasks.grip_still_frames": (3, 30, "frame pairs",
         "consecutive quiet frame pairs. The image rate of a swinging claw is zero twice per period, so the quiet window must "
         "span a quarter period (0.27 s of the 1.07 s pendulum) to be sure to contain moving frames: 3 pairs at 0.1 s. 30 "
@@ -94,22 +100,45 @@ ATTITUDE_BOUNDS = {
         "floor of that dwell for a very short pendulum: at least one full period (0.89 s simple, 1.07 s compound); above 10 s "
         "it exceeds the loaded dwell (5 x 1.25 x 1.25 s = 7.8 s) and the period arithmetic means nothing"),
     "tasks.grip_settle_timeout_s": (10.0, 120.0, "s",
-        "give-up time. The unloaded dwell is 5.6 s and a loaded release 7.8 s, so under 10 s a normal release can be refused; "
-        "above 2 minutes the operator waits on a claw that is not going to settle"),
+        "give-up time of a claw that is still moving. The unloaded dwell is 5.6 s and a loaded release 7.8 s; wait_until_still "
+        "extends the timeout of a loaded release to cover its dwell (max(timeout, dwell + 2 frame intervals)), but a camera that "
+        "sees the claw swinging for under 10 s is not yet a claw that will not settle; above 2 minutes the operator waits on a "
+        "claw that is not going to settle"),
     "startup.board_survey_frames": (10, 200, "frames",
         "frames of the still claw given to the board survey: a sheet needs >= 8 views with a camera pose (BoardSurvey.min_obs), "
         "so under 10 leaves no spare for frames that lose it; 200 frames (20 s at 0.1 s) is the longest a hand-placed board "
         "and a resting claw are worth waiting for"),
-    "startup.rocking_tilt_k": (3.0, 10.0, "sigma",
+    "startup.rocking_tilt_k": (4.0, 10.0, "sigma",
         "threshold of the rocking check in sigmas of the tilt change. The norm of a 2-D noise vector exceeds k sigma with "
-        "probability exp(-k^2/2): 1e-2 at k = 3 (several false alarms per take-up), 4e-6 at 5; above 10 a board "
-        "(1.5 mrad) would only trip at 15 mrad = 8 mm of body-origin motion"),
+        "probability exp(-k^2/2): 1e-2 at k = 3, 3e-4 at 4, 4e-6 at 5. A take-up is ~430 evaluations of overlapping 3-frame "
+        "means, and the simulated share of take-ups with a false trip is 98 % at k = 3, 12.7 % at k = 4 and 0.15 % at k = 5 "
+        "(verification/board_followups_review.md L1), so under 4 a resting claw is reported as rocking in most take-ups; "
+        "above 10 a board (1.5 mrad) would only trip at 15 mrad = 8 mm of body-origin motion"),
     "startup.rocking_tilt_min_rad": (0.001, 0.02, "rad",
         "least tilt change that counts as rocking: 1 mrad is the systematic floor of a tag-set change "
         "(claw.vision_attitude_floor_rad); 20 mrad is 10 mm of body-origin motion at the 0.52 m lever, 5x the take-up onset"),
     "startup.rocking_yaw_coupling": (0.0, 0.5, "rad of tilt per rad of yaw",
         "tilt that comes with a take-up yaw (rigid-body simulator ~0.03-0.04); 0.5 would let a 10 deg yaw hide 5 deg of tilt"),
 }
+# Noise-only image rate of a claw that does not move (attitude.image_motion_rad_s): the mean over the corners of the shift
+# norm between two frames. Each corner shift is a 2-D Gaussian of 1-sigma sqrt(2) x corner_sigma_px per axis, its norm has the
+# Rayleigh mean sqrt(pi/2) x sqrt(2) x sigma = sqrt(pi) x sigma, and that mean does not average away with more corners:
+# rate = sqrt(pi) x sigma / (fx x dt) = 1.0e-2 rad/s at 0.3 px, fx = 520 px (the sim camera), dt = 0.1 s (frame_interval_s).
+# Linear in sigma. Monte Carlo with 1-4 tags (review M1, tests/cdpr/test_keepalive_pumping.py): the same to 2 %.
+STILL_RATE_REF_FX_PX = 520.0
+STILL_RATE_REF_DT_S = 0.1
+# A limit has to clear that mean by 1.4x: the one-tag rate has a spread of 26 % of its mean (4 corners), so 1.4x passes 93 % of
+# the pairs of a one-tag view (99 % with 3 tags) and five quiet pairs in a row 70 % (97 %) of the time per window. At 1.0x half of
+# the pairs fail and the gate practically never opens. 1.4 is also below 0.1 / (sqrt(pi) x 2 px / 52) = 1.47, so that even the
+# noisiest corner sigma of its range (2 px) has a feasible limit inside the range of tasks.grip_still_rate_rad_s.
+STILL_RATE_NOISE_K = 1.4
+
+
+def still_rate_noise_floor_rad_s(corner_sigma_px):
+    """Mean image rate (rad/s) of a claw that does not move, for a corner noise ``corner_sigma_px`` (reference camera and frame interval)."""
+    return math.sqrt(math.pi) * corner_sigma_px / (STILL_RATE_REF_FX_PX * STILL_RATE_REF_DT_S)
+
+
 _LAYOUT_VERSION = 1            # vision.board.FloorBoardLayout.VERSION (config must not import cv2 / scipy; a test keeps them equal)
 
 
@@ -709,12 +738,20 @@ def load_config(path_or_dict) -> SystemConfig:
                    ("startup.board_survey_frames", su.board_survey_frames), ("startup.rocking_tilt_k", su.rocking_tilt_k), ("startup.rocking_tilt_min_rad", su.rocking_tilt_min_rad),
                    ("startup.rocking_yaw_coupling", su.rocking_yaw_coupling)):
         _in_range(v, key)
-    # the longest dwell (loaded release, pendulum period <= 1.5 s with margin) has to fit in the give-up time, or a release
-    # could never be approved
-    if tk.grip_settle_periods * tk.grip_period_margin * 1.5 > tk.grip_settle_timeout_s:
-        raise ConfigError(f"tasks: grip_settle_periods x grip_period_margin x 1.5 s = "
-                          f"{tk.grip_settle_periods * tk.grip_period_margin * 1.5:.1f} s is longer than grip_settle_timeout_s "
-                          f"({tk.grip_settle_timeout_s:g} s): a loaded release could never be approved")
+    # (There is deliberately no check of the settle dwell against grip_settle_timeout_s: wait_until_still extends the timeout of a
+    # loaded release to max(timeout, dwell + 2 dt) and the no-signal dwell is not bounded by it, so every combination of the
+    # ranges above can be approved; the removed check hard-coded a 1.5 s period and refused configs that work, review L2.)
+    # the still-rate limit has to clear the noise of a claw that does not move at the configured corner noise, or the settle gate
+    # never opens (it fails closed: an availability fault, but one that only shows on the robot)
+    floor_rate = still_rate_noise_floor_rad_s(cfg.camera.corner_sigma_px)
+    if tk.grip_still_rate_rad_s < STILL_RATE_NOISE_K * floor_rate:
+        raise ConfigError(
+            f"tasks.grip_still_rate_rad_s = {tk.grip_still_rate_rad_s:g} rad/s is below {STILL_RATE_NOISE_K:g} x the image rate "
+            f"that sensor noise alone gives a claw that does not move at camera.corner_sigma_px = "
+            f"{cfg.camera.corner_sigma_px:g} px ({floor_rate:.2g} rad/s = sqrt(pi) x sigma / (520 px x 0.1 s): the gate averages "
+            f"corner-shift norms, which do not average to zero): it would see five quiet frame pairs in a row only rarely and "
+            f"could not approve a grip or release. Raise tasks.grip_still_rate_rad_s to at least "
+            f"{STILL_RATE_NOISE_K * floor_rate:.2g} rad/s or lower camera.corner_sigma_px (measure it on the real camera)")
     if cfg.claw.vision_attitude_floor_rad > cl.vision_attitude_sigma_rad:
         raise ConfigError("claw.vision_attitude_floor_rad is above claw.vision_attitude_sigma_rad: the floor added to a "
                           "frame's own covariance would exceed the constant sigma it replaces")

@@ -442,3 +442,6 @@ Adafruit 3886 MPU-6050 as selected, "not recorded ordered").
   through the fin holes. The 0.48 mm sheet bows along its 250 mm length when
   handled, so flatten it before the final mount; the free length may buzz
   with stepper vibration (watch for this in the hold test).
+- Next session (Jasper, 10/21): FEA of the heat fin and a stress test of the
+  wall mounts, for the presentation. A4988 boards confirmed R100 → Vref 1.08 V
+  for 1.35 A (D29).

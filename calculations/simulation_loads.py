@@ -123,6 +123,35 @@ def fleet_limited_case(theta_deg: float = THETA_SCAN, sign: int = -1) -> np.ndar
     return inplane + np.array([0.0, sign * math.sin(a), 0.0])
 
 
+def clip_fleet(u: np.ndarray) -> tuple[np.ndarray, float]:
+    """Clip the along-shaft component of u to the fleet limit, keeping the in-plane direction.
+    Returns the clipped unit vector and the tension factor 1/cos(fleet): at the SAME shaft torque
+    the line tension is T = slip / cos(fleet), because only the in-plane share turns the drum."""
+    a = math.radians(fleet_limit_deg())
+    sy = math.sin(a)
+    if abs(u[1]) <= sy:
+        return np.array(u, float), 1.0
+    h = math.hypot(u[0], u[2])
+    k = math.cos(a) / h
+    return np.array([u[0] * k, math.copysign(sy, u[1]), u[2] * k]), 1.0 / math.cos(a)
+
+
+def reachable_cases(t: dict) -> list:
+    """The cases the line can actually take with a bare drum between 18 mm flanges.
+    id, label, unit vector, tension at the slip-limit torque (N), load point (mm)."""
+    out = []
+    u1 = unit_vector(0.0, 0.0)
+    out.append(("D1", "straight down", u1, t["slip"], tangent_point(u1)))
+    uc, f = clip_fleet(unit_vector(THETA_FLOOR, 45.0))
+    out.append(("D2c", "floor-centre diagonal, fleet-clipped", uc, t["slip"] * f, tangent_point(uc)))
+    u3 = unit_vector(THETA_SCAN, 0.0)
+    out.append(("D3", "scan, straight out", u3, t["slip"], tangent_point(u3)))
+    u4 = fleet_limited_case()
+    out.append(("D4f", "along the wall toward -y, reachable", u4, t["slip"] / math.cos(math.radians(fleet_limit_deg())),
+                tangent_point(u4)))
+    return out
+
+
 def real_room_angles() -> dict:
     """Same angles for the real 11 x 9 x 9 ft room (config/robot.sim.json): the
     43.9 / 78.7 deg figures belong to the old 4 x 3 x 2.6 m default room (T18)."""
@@ -186,10 +215,19 @@ WALL_X = -42.31                                                # wall plane (bac
 M_MOTOR, M_SHELL = 0.28, 0.25      # kg: motor [REPO guide 0.28], shell + electronics [ASSUMED, weigh it]
 P_MOTOR = np.array([0.0, -19.0, 0.0])   # motor centre of mass (38 mm body behind the flange)
 P_SHELL = np.array([39.0, 15.6, 8.0])   # shell centroid, mm [STEP bbox centre]
+V_WALL_MM3, V_SLIPIN_MM3 = 602284.0, 217693.0   # [STEP] assembly solids, 100 % solid
+SELF_WEIGHT_N = (V_WALL_MM3 + V_SLIPIN_MM3) * 1e-9 * PETG["rho"] * G   # 10.2 N: the two meshed PETG bodies
+REMOTE_WEIGHT_N = (M_MOTOR + 0.01 + M_SHELL) * G                        # 5.30 N: motor+spool and shell+electronics
+
+
+def expected_reaction(F_line: np.ndarray) -> np.ndarray:
+    """Sum of the fixture reactions the FEA must show (P5): minus the line force, the 5.30 N remote
+    weights and the 10.2 N self-weight of the wall mount and slide-in."""
+    return -(np.asarray(F_line, float) + np.array([0.0, 0.0, -(REMOTE_WEIGHT_N + SELF_WEIGHT_N)]))
 
 
 def tab_root_estimate(F: np.ndarray, P: np.ndarray, E: float = PETG["E"]) -> dict:
-    """Cantilever estimate for the 5 mm PETG motor tab with a rigid motor. The force
+    """Cantilever estimate of the root stress of the 5 mm PETG motor tab with a rigid motor. The force
     F (N) acts at P (mm, station frame). Root section: normal x, thickness t in y,
     width b in z (strong axis y, weak axis z)."""
     b, t = TAB["b"], TAB["t"]
@@ -201,23 +239,65 @@ def tab_root_estimate(F: np.ndarray, P: np.ndarray, E: float = PETG["E"]) -> dic
     sig = abs(F[0]) / A + abs(M[1]) * (b / 2) / Iy + abs(M[2]) * (t / 2) / Iz
     tau = max(1.5 * abs(F[1]) / A, 1.5 * abs(F[2]) / A) + abs(M[0]) / (0.312 * b * t * t)
     vm = math.sqrt(sig ** 2 + 3 * tau ** 2)
-    a = r[0]                     # arm from root to load point
-    # y-deflection of the load point: tip shear Fy (already inside M[2] at the root) plus the
-    # END moment that Fx produces about z through its y-lever
-    m_end = abs(r[1] * F[0])
-    d_y = (abs(F[1]) * a ** 3 / 3.0 + m_end * a ** 2 / 2.0) / (E * Iz)
-    return dict(sigma_nom=sig, tau_nom=tau, vm_nom=vm, M=M, defl_y=d_y)
+    d = tab_displacement(F, P, E)
+    return dict(sigma_nom=sig, tau_nom=tau, vm_nom=vm, M=M, defl_total=d["load_point_total"],
+                defl_along=d["load_point_along"], holes_max=d["holes_max"], holes_mean=d["holes_mean"])
 
 
-def screw_group_estimate(F_total: np.ndarray, M_about_centroid: np.ndarray) -> dict:
-    """Six wall screws, wall bearing ignored (conservative: no roller on the back face).
-    Tension share = Fx/6 + moment about y distributed linearly with row height."""
+def tab_displacement(F: np.ndarray, P: np.ndarray, E: float = PETG["E"], nu: float = PETG["nu"]) -> dict:
+    """Displacement of the load point and of the four S3 hole centres for a free cantilever tab
+    (rigid motor, so conservative if the real flange stiffens the tab). Euler-Bernoulli bending in y
+    (thin direction, I_z) and z (I_y), axial, and torsion (J = 0.312 b t^3, G = E / 2(1+nu)); the
+    end loads are F plus the moments of F about the beam axis; points beyond the load point move
+    with the end rotation. Read-out rule for the manual: 'gauge' = max over the four S3 holes."""
+    b, t = TAB["b"], TAB["t"]
+    A = b * t
+    Iy = t * b ** 3 / 12.0
+    Iz = b * t ** 3 / 12.0
+    G_ = E / (2 * (1 + nu))
+    J = 0.312 * b * t ** 3
+    a = P[0] - TAB["x_root"]
+    off = np.array([0.0, P[1] - TAB["y_c"], P[2] - TAB["z_c"]])
+    Mend = np.cross(off, F)                         # moments about the beam axis at the load plane
+    Fx, Fy, Fz = F
+    Mx, My, Mz = Mend
+
+    def at(x_from_root: float, oy: float, oz: float) -> np.ndarray:
+        x = min(x_from_root, a)
+        ex = max(x_from_root - a, 0.0)              # rigid extension beyond the load point
+        v = Fy * (3 * a * x ** 2 - x ** 3) / (6 * E * Iz) + Mz * x ** 2 / (2 * E * Iz)
+        th_z = Fy * (2 * a * x - x ** 2) / (2 * E * Iz) + Mz * x / (E * Iz)
+        w = Fz * (3 * a * x ** 2 - x ** 3) / (6 * E * Iy) - My * x ** 2 / (2 * E * Iy)
+        th_y = -(Fz * (2 * a * x - x ** 2) / (2 * E * Iy) - My * x / (E * Iy))
+        th_x = Mx * x / (G_ * J)
+        u_ax = Fx * x_from_root / (E * A) if ex == 0 else Fx * a / (E * A)
+        v += th_z * ex
+        w += -th_y * ex
+        return np.array([u_ax + th_y * oz - th_z * oy, v - th_x * oz, w + th_x * oy])
+
+    u_load = at(a, off[1], off[2])
+    along = abs(float(u_load @ F) / float(np.linalg.norm(F)))
+    holes = []
+    for xh in (-15.5, 15.5):
+        for zh in (-15.5, 15.5):
+            holes.append(float(np.linalg.norm(at(xh - TAB["x_root"], 0.0, zh))))
+    return dict(load_point_total=float(np.linalg.norm(u_load)), load_point_along=along, u_load=u_load,
+                holes_max=max(holes), holes_mean=float(np.mean(holes)))
+
+
+def screw_group_estimate(F_total: np.ndarray, M_c: np.ndarray) -> dict:
+    """Six wall screws (columns y = -2.78 / 34.22, rows z = -34.75 / 10.25 / 55.25), rigid plate, wall bearing
+    ignored (conservative). F_total is the force on the plate; M_c the moment of all loads about the screw
+    centroid. Tension: Fx/6 + My (rows) + Mz (columns). Shear: (Fy, Fz)/6 + Mx twist; arithmetic worst-case sums."""
     zc = float(np.mean(SCREW_ROWS_Z))
-    dz = [z - zc for z in SCREW_ROWS_Z for _ in SCREW_COLS_Y]
-    s2 = sum(d * d for d in dz)
-    t_top = F_total[0] / 6.0 + abs(M_about_centroid[1]) * max(dz) / s2
-    shear = math.hypot(F_total[1], F_total[2]) / 6.0
-    return dict(t_top=t_top, shear=shear, zc=zc)
+    yc = float(np.mean(SCREW_COLS_Y))
+    dz = np.array([z - zc for z in SCREW_ROWS_Z for _ in SCREW_COLS_Y])
+    dy = np.array([y - yc for _ in SCREW_ROWS_Z for y in SCREW_COLS_Y])
+    t_max = abs(F_total[0]) / 6.0 + abs(M_c[1]) * np.max(np.abs(dz)) / np.sum(dz ** 2) \
+        + abs(M_c[2]) * np.max(np.abs(dy)) / np.sum(dy ** 2)
+    r2 = dy ** 2 + dz ** 2
+    shear = math.hypot(F_total[1], F_total[2]) / 6.0 + abs(M_c[0]) * math.sqrt(np.max(r2)) / np.sum(r2)
+    return dict(t_top=float(t_max), shear=float(shear), zc=zc)
 
 
 # ===========================================================================
@@ -541,18 +621,32 @@ def report_static(use_step: bool = True) -> dict:
         print(f"      working {t['work']:.2f} N : {vec(t['work']*u)} ; dynamic {t['dyn']:.2f} N : {vec(t['dyn']*u)}")
     out["rows"] = rows
     a_fl = fleet_limit_deg()
-    uf = fleet_limited_case()
-    pf = tangent_point(uf)
-    print(f"  D4f (optional, physically reachable bound for the along-wall cases): fleet angle limited to {a_fl:.1f} deg "
-          f"before the line scrubs a spool flange")
-    print(f"      u = {vec(uf)} ; P_station = ({pf[0]:+.2f}, {pf[1]:+.2f}, {pf[2]:+.2f}) ; F(slip-limit) = {vec(t['slip']*uf)} N")
-    out["d4f"] = (uf, pf)
+    print(f"\n  Reachability (bare drum between r = 18 mm flanges, line leaving the 16 mm drum mid-plane): the fleet angle "
+          f"cannot exceed {a_fl:.1f} deg before the line scrubs a flange. D2 needs {math.degrees(math.asin(0.4903)):.1f} deg and "
+          f"D4/D5 need 78.7 deg (D4 would also pass through the tab and motor), so D2 needs an outlet that turns the line, and D4/D5 are "
+          f"unreachable bounds. At the same shaft torque the tension along a fleeted line is T = slip / cos(fleet).")
+    reach = reachable_cases(t)
+    out["reach"] = reach
+    for cid, label, u, T, p in reach:
+        F = T * u
+        print(f"  {cid} {label}: u = {vec(u)}, T = {T:.2f} N, load point ({p[0]:+.2f}, {p[1]:+.2f}, {p[2]:+.2f}) mm")
+        print(f"      F at slip-limit = {vec(F)} N ; working x{t['work']/t['slip']:.3f} = {vec(F*t['work']/t['slip'])} ; "
+              f"dynamic x2 = {vec(F*2)}")
+    out["d4f"] = (reach[3][2], reach[3][4])
 
-    hr("A3. Weights (gravity -z) and remote masses")
-    row("motor + spool + line (remote mass 1)", M_MOTOR + 0.01, "kg", "[REPO guide 0.28 kg] + spool ~10 g at 100 % PETG")
-    row("shell + electronics (remote mass 2)", M_SHELL, "kg", "[ASSUMED] weigh it; solid shell would be 0.47 kg")
-    w_tot = (M_MOTOR + 0.01 + M_SHELL) * G
-    row("total weight carried by the housing", w_tot, "N", "(m1 + m2) g")
+    hr("A3. Weights (gravity -z), remote forces and the P5 reaction check")
+    row("motor + spool + line (remote force 1)", M_MOTOR + 0.01, "kg", "[REPO guide 0.28 kg] + spool ~10 g at 100 % PETG")
+    row("shell + electronics (remote force 2)", M_SHELL, "kg", "[ASSUMED] weigh it; solid shell would be 0.47 kg")
+    w_tot = REMOTE_WEIGHT_N
+    row("remote weights (applied as forces)", w_tot, "N", "(m1 + m2) g")
+    row("self-weight of the two meshed bodies", SELF_WEIGHT_N, "N",
+        f"({V_WALL_MM3:,.0f} + {V_SLIPIN_MM3:,.0f}) mm3 x 1270 kg/m3 x g = {(V_WALL_MM3+V_SLIPIN_MM3)*1e-9*1270:.3f} kg [STEP]")
+    print("  Expected sum of fixture reactions (P5), station frame, N: minus (line force + weights + self-weight)")
+    for cid, label, th, ps, u, p, F in rows:
+        print(f"    {cid:<4} {vec(expected_reaction(F))}")
+    for cid, label, u, T, p in reach:
+        if cid not in ("D1", "D3"):
+            print(f"    {cid:<4} {vec(expected_reaction(T*u))}")
 
     hr("A4. Material, allowables, target SF")
     for k, v in PETG.items():
@@ -577,36 +671,36 @@ def report_static(use_step: bool = True) -> dict:
           "study). 0.5 mm is 2.5 % of the ~20 mm absolute-length sigma the vision calibration leaves (D24/D26), "
           "<5 % added compliance in series with the line, and is the repo guide's existing criterion.")
 
-    hr("A6. Hand estimates for the FEA sanity band (hole-only load path, rigid motor)")
-    wvec = np.array([0.0, 0.0, -w_tot])
-    for cid, label, th, ps, u, p, F in rows:
-        Ftot = F + wvec
-        est = tab_root_estimate(F, p)
-        # moment about the screw-group centroid
-        C = np.array([WALL_X, float(np.mean(SCREW_COLS_Y)), float(np.mean(SCREW_ROWS_Z))])
-        Mc = np.cross(p - C, F) + np.cross(P_MOTOR + 0 - C, np.array([0, 0, -(M_MOTOR + 0.01) * G])) \
+    hr("A6. Hand estimates for the FEA sanity band (hole-only load path, rigid motor, free cantilever tab)")
+    print("  tab root: nominal sigma / von Mises (x1.5-2.5 with the root corner); displacement of the load point (total / along the "
+          "line) and the S3 hole gauge (max / mean over the four holes); wall screws: max tension / max shear")
+    C = np.array([WALL_X, float(np.mean(SCREW_COLS_Y)), float(np.mean(SCREW_ROWS_Z))])
+    est_rows = []
+    cases6 = [(c[0], c[1], t["slip"] * c[4], c[5]) for c in rows] + \
+             [(c[0], c[1], c[3] * c[2], c[4]) for c in reach if c[0] in ("D2c", "D4f")]
+    for cid, label, F, p in cases6:
+        Mw = np.cross(P_MOTOR - C, np.array([0, 0, -(M_MOTOR + 0.01) * G])) \
             + np.cross(P_SHELL - C, np.array([0, 0, -M_SHELL * G]))
+        Mc = np.cross(p - C, F) + Mw
+        Ftot = F + np.array([0.0, 0.0, -(REMOTE_WEIGHT_N + SELF_WEIGHT_N)])
+        est = tab_root_estimate(F, p)
         sg = screw_group_estimate(Ftot, Mc)
-        dtxt = f"{est['defl_y']:.2f}" if est['defl_y'] >= 0.05 else "<0.05 (in-plane)"
-        print(f"  {cid}: F+weights = {vec(Ftot)} N | tab root nominal sigma {est['sigma_nom']:.2f} MPa, "
-              f"von Mises {est['vm_nom']:.2f} MPa (x1.5..2.5 with the root fillet: {1.5*est['vm_nom']:.1f}-{2.5*est['vm_nom']:.1f}), "
-              f"exit deflection ~{dtxt} mm | top-row screw tension ~{sg['t_top']:.0f} N, "
-              f"shear/screw ~{sg['shear']:.1f} N")
-    uf, pf = out["d4f"]
-    est = tab_root_estimate(t["slip"] * uf, pf)
-    print(f"  D4f: F = {vec(t['slip']*uf)} N | tab root nominal sigma {est['sigma_nom']:.2f} MPa, von Mises {est['vm_nom']:.2f} MPa "
-          f"(x1.5..2.5: {1.5*est['vm_nom']:.1f}-{2.5*est['vm_nom']:.1f}), exit deflection ~{est['defl_y']:.2f} mm")
+        est_rows.append((cid, est, sg))
+        print(f"  {cid:<4} F = {vec(F)} N | sigma {est['sigma_nom']:.2f} MPa, vM {est['vm_nom']:.2f} MPa "
+              f"({1.5*est['vm_nom']:.1f}-{2.5*est['vm_nom']:.1f}) | load point {est['defl_total']:.2f}/{est['defl_along']:.2f} mm, "
+              f"S3 gauge {est['holes_max']:.2f}/{est['holes_mean']:.2f} mm | screws {sg['t_top']:.1f} N / {sg['shear']:.1f} N")
+    out["est_rows"] = est_rows
     out["w_tot"] = w_tot
 
     hr("A7. Retention check by hand (R3)")
     F3 = t["slip"] * unit_vector(THETA_SCAN, 0.0)
     fx = F3[0]
-    rib_flank_mm2 = 401.6      # measured inclined dovetail flank area (one per rib side) [STEP]
+    rib_flank_mm2 = 420.1      # measured inclined dovetail groove flank area (one per rib side) [STEP]
     lip_mm2 = 2758.5           # J-lip inner face, one per side [STEP]
-    p_dt = (fx / 3.0) / (rib_flank_mm2 * math.sin(math.radians(25.0)))
+    p_dt = (fx / 3.0) / (rib_flank_mm2 * math.sin(math.radians(30.0)))
     p_lip = (fx / 2.0) / (0.25 * lip_mm2)
     row("D3 pull-away force Fx at slip-limit", fx, "N", "")
-    row("dovetail flank bearing, 3 ribs, 25 deg flank", p_dt, "MPa", "Fx/3 per rib over one flank, projected [ASSUMED flank angle]")
+    row("dovetail flank bearing, 3 ribs, 30 deg flank", p_dt, "MPa", "Fx/3 per rib over one 420 mm2 flank, projected; flank normals (-0.5, +-0.866) measured [STEP]")
     row("J-lip bearing if only 25 % of the lip area bears", p_lip, "MPa", "backup path after 0.15 mm slip")
     row("margin to 8.33 MPa allowable", al["vm_static"] / max(p_dt, p_lip), "x", "strength is not the issue; fit/creep is")
 
@@ -707,7 +801,7 @@ def report_thermal() -> dict:
         return fin_quasi_1d(k, t_mm, h, q_total=P)
 
     print("\n   all heat through the fin (bound), Q = %.2f W, patch = contact square" % P)
-    print("   t_mm  alloy      finish        h    m[1/m]   mL    eta   R_fin  th_base th_patch  th_tip | Tpatch   Ttip  (C, room 23)")
+    print("   t_mm  alloy      finish        h    m[1/m]   mL    eta   R_fin  rise@z50 patch-avg  tip   | Tpatch   Ttip  (C, room 23)")
     table = {}
     for t_mm in (T_AS_BUILT, T_DESIGN):
         for alloy, k in ALLOYS.items():
@@ -786,16 +880,21 @@ def report_thermal() -> dict:
         print(f"   {mode}: motor at 60 min = {t60:.1f} C of steady {final:.1f} C; 95 % of the rise at "
               f"{'>120' if t95 is None else f'{t95:.0f}'} min")
 
-    hr("B8. FEA targets (as-built, temperature RISE over ambient, +/-20 % tolerance on the formula column)")
+    hr("B8. FEA targets (as-built, temperature RISE over ambient)")
+    print("   The FORMULA (eta, R_fin, A = 2 x 44 x 200 mm) is referenced to the shell exit, z = 50 mm, where the 200 mm exposed")
+    print("   length starts; the FEA at z = 50 should land within +/-20 % of it. At the top of the contact patch (z = 42.15) the")
+    print("   rise is about 4 K higher (conduction along the 7.85 mm neck); the patch average is higher still (hole + spreading).")
     for fin_name in EPS:
         for t_mm in (T_AS_BUILT, T_DESIGN):
             tb = table[(t_mm, "6061-T6", fin_name)]
             f = tb["f"]
-            print(f"   {fin_name:<12} t {t_mm:5.3f} mm: eta {f['eta']:.3f}, R_fin {f['R']:.1f} K/W, theta_base {tb['th_b']:.1f} K "
-                  f"(band {0.8*tb['th_b']:.1f}-{1.2*tb['th_b']:.1f}), theta_tip {tb['th_tip']:.2f} K, patch avg (quasi-1D) {tb['fd']['patch_avg']:.1f} K")
+            fdd = tb["fd"]
+            print(f"   {fin_name:<12} t {t_mm:5.3f} mm: eta {f['eta']:.3f}, R_fin {f['R']:.1f} K/W, formula rise at z=50 {tb['th_b']:.1f} K "
+                  f"(band {0.8*tb['th_b']:.1f}-{1.2*tb['th_b']:.1f}); quasi-1D: z=42.15 {fdd['base']:.1f}, z=50 {fdd['exit']:.1f}, "
+                  f"z=100 {fdd['at'](100.0):.1f}, tip {fdd['tip']:.2f} (formula {tb['th_tip']:.2f}), patch avg {fdd['patch_avg']:.1f} K")
     for alloy in ALLOYS:
         tb = table[(T_AS_BUILT, alloy, "black paint")]
-        print(f"   alloy {alloy:<9} (painted, 0.483 mm): eta {tb['f']['eta']:.3f}, R_fin {tb['f']['R']:.1f} K/W, theta_base {tb['th_b']:.1f} K")
+        print(f"   alloy {alloy:<9} (painted, 0.483 mm): eta {tb['f']['eta']:.3f}, R_fin {tb['f']['R']:.1f} K/W, formula rise at z=50 {tb['th_b']:.1f} K")
     return out
 
 

@@ -9,21 +9,34 @@ two-node motor model convention from `calculations/gen2_motor_thermal.py`. The s
 **Question this study answers:** how much does the 0.019 in sheet fin lower the winch motor's temperature at the D30 current,
 does a finite-element model reproduce the hand calculation, and why would the 1/8 in design have been better?
 
-**Time:** about 1 hour (model 10 min, one run 10 min, alloy and finish sensitivity 15 min, 1/8 in repeat 10 min, table and slides 15 min).
+**Time:** about 2 to 3 hours the first time (model 10 min, B-1 setup and run 25 min, alloy and finish sensitivity 15 min, B-2 20 min, 1/8 in repeat 10 min, table and slides 20 min);
+about 1 hour once familiar. Click paths were written for SolidWorks 2023 to 2026; wording shifts a little between releases.
+
+> **Before you run: what is not settled**
+>
+> 1. **Licence.** Thermal studies need Simulation Professional or higher (confirm tonight that *Thermal* appears under New Study).
+> 2. **Coil resistance is assumed.** 1.8 Ω per phase is the repo's placeholder ("measure with a meter"). Heat is I² R, so a measured value rescales every rise in proportion (1.5 Ω would give 1.69 W, 0.83 of the numbers here).
+> 3. **Current and motor.** The 2.03 W assumes the A4988 holds I_a² + I_b² = I_trip² at 1.0625 A (that is how the repo model treats it). The motor torque basis (microstepping vector current, 17HS4401 versus
+>    SIMAX3D nameplate) is unresolved (see the structural manual); it does not change the heat estimate, which depends only on I_trip and R.
+> 4. **Fin finish and alloy are unknown.** Bare versus black paint changes the *fin* resistance by 37 %; alloy by up to 10 %. The hold test (section 8) tells you the finish.
+> 5. **Fin top versus the ceiling.** The fin top is 229 mm above the shaft axis (250 mm plate, axis 21 mm above its bottom edge). The anchor is 0.15 m below the ceiling (`config/robot.sim.json`), so if the shaft is near anchor height the fin reaches about 80 mm into the ceiling.
+>    A ceiling hot-air layer would cut h below the free-vertical-plate value used here. Confirm the station height; the thermocouple at y = 100 mm will show it.
+> 6. **No outlet or pulley is involved in the thermal study**, but the shell shape (vented or sealed) is an input: 26 °C inside air for a vented shell, 32 °C sealed.
 
 ---
 
 ## 0. The answer sheet
 
 Hand-calculation targets for the fin as built (6061, 44 mm wide, 200 mm exposed, both faces, all **2.03 W** forced through the fin,
-room air 23 °C). The FEA of model B-1 must reproduce the **rise over room air** within about **±20 %**.
+room air 23 °C). The formula (η, R_fin) is **referenced to the shell exit, z = 50 mm**, where the 200 mm exposed length starts, so compare the FEA there. The FEA of model B-1 must reproduce the formula
+rise at z = 50 mm within about **±20 %**; the rises at the top of the contact patch (z = 42 mm, 7.85 mm lower) and the patch average are higher because of conduction along the neck, the hole and spreading.
 
-| Fin | η = tanh(mL)/mL | R_fin = 1/(hηA) | Rise at the top of the contact patch (z = 42 mm) | Tip rise (z = 250 mm) | Patch-average rise (quasi-1D, includes the hole) |
-|---|---|---|---|---|---|
-| **0.019 in, black paint** (h 9.6) | **0.32** | **18.3 K/W** | **37.3 K** (band 29.8 to 44.7) | 3.4 K | 50.2 K |
-| **0.019 in, bare** (h 5.3) | **0.43** | **25.1 K/W** | **51.0 K** (band 40.8 to 61.2) | 10.2 K | 62.4 K |
-| 1/8 in (3.175 mm), black paint | 0.69 | 8.5 K/W | 17.3 K (band 13.9 to 20.8) | 9.6 K | 19.3 K |
-| 1/8 in, bare | 0.80 | 13.4 K/W | 27.3 K (band 21.8 to 32.8) | 19.1 K | 28.7 K |
+| Fin | η = tanh(mL)/mL | R_fin = 1/(hηA) | **Formula rise at z = 50 mm** (band ±20 %) | Quasi-1D rise at z = 50 mm | Quasi-1D rise at the top of the patch, z = 42 mm | Tip rise (formula / quasi-1D) | Patch-average rise (quasi-1D) |
+|---|---|---|---|---|---|---|---|
+| **0.019 in, black paint** (h 9.6) | **0.32** | **18.3 K/W** | **37.3 K** (29.8 to 44.7) | 35.6 K | 39.9 K | 3.4 / 3.2 K | 50.2 K |
+| **0.019 in, bare** (h 5.3) | **0.43** | **25.1 K/W** | **51.0 K** (40.8 to 61.2) | 47.8 K | 52.1 K | 10.2 / 9.5 K | 62.4 K |
+| 1/8 in (3.175 mm), black paint | 0.69 | 8.5 K/W | 17.3 K (13.9 to 20.8) | 17.0 K | 17.7 K | 9.6 / 9.4 K | 19.3 K |
+| 1/8 in, bare | 0.80 | 13.4 K/W | 27.3 K (21.8 to 32.8) | 26.5 K | 27.1 K | 19.1 / 18.5 K | 28.7 K |
 
 What the fin does to the **motor** (coupled model B-2 inputs, paste contact, 1.0625 A, room 23 °C):
 
@@ -34,15 +47,20 @@ What the fin does to the **motor** (coupled model B-2 inputs, paste contact, 1.0
 | **0.019 in, black paint** | **41.6 °C (rise 18.6 K), 0.72 W through the fin** | **47.3 °C** |
 | 1/8 in, black paint | 35.1 °C (rise 12.1 K), 1.21 W through the fin | 37.7 °C |
 
-Three findings worth a slide: (1) the thin fin carries only about a third of the motor heat (0.72 of 2.03 W) because the motor also sheds
+**Evidence labels.** B-1 (fin only) validates the **fin curve** and is SIMULATED. The motor temperatures in the table above come from the lumped network plus the quasi-1D fin resistance and are
+**CALCULATED** unless you build **B-2 (section 5, required if a slide quotes a motor temperature as SIMULATED)**. The hold test (section 8) is what turns them into MEASURED.
+
+Three findings worth a slide: (1) the thin fin carries only about a third of the motor heat when vented (0.72 of 2.03 W, 35 %; 46 % when sealed) because the motor also sheds
 12 K/W directly to the shell air; (2) paint matters a lot for the *fin* (R_fin 18.3 vs 25.1 K/W) but little for the *motor* (18.6 vs 20.2 K rise);
 (3) the thick fin would cut the motor's rise from 18.6 K to 12.1 K because a 0.483 mm sheet has η = 0.32 (most of its length does almost nothing) against 0.69 for 3.175 mm.
 Alloy uncertainty is minor (section 3.2).
 
-**Cross-check with the presentation sheet.** `docs/presentation/FUNDAMENTALS.md` topic 3 (single h = 7 W/m²K, 1 K/W contact) gives 41 °C vented, 46 °C sealed and 36 °C for the 1/8 in fin;
-the B-2 numbers above (41.6, 47.3 and 35.1 °C) agree to within 1.5 K. This manual adds the finish split (paint versus bare), the hole and spreading effect in the fin, and the thermocouple predictions.
+**Cross-check with the presentation sheet.** Fin share of the motor heat: 35 % vented and 46 % sealed here, 38 % and 50 % in `docs/presentation/FUNDAMENTALS.md` topic 3 (single h = 7 W/m²K, 1 K/W contact, no hole).
+The fin path is 26.0 K/W here (quasi-1D, which includes neck, hole and spreading) against 22.6 K/W there; the higher converged h (8.5 to 8.7) and the lower paste contact resistance cancel most of it.
+Motor temperatures here / there: vented as-built 41.6 / 40.7 °C, sealed as-built 47.3 / 46.0 °C, 1/8 in vented 35.1 / 36.3 °C, 1/8 in sealed 37.7 / 39.4 °C. This manual adds the finish split (paint versus bare), the hole and spreading effect in the fin,
+and the thermocouple predictions.
 
-Passing means: FEA θ at the top of the patch inside the band above, energy balance closes to 1 %, and the picture of the temperature along the fin matches
+Passing means: FEA rise at z = 50 mm inside the band above, energy balance closes to 1 %, and the picture of the temperature along the fin matches
 `img/thermal_hand_calc.png`. The model is **validated** only after the hold test of section 8 agrees with B-2.
 
 ![Hand calc profiles](img/thermal_hand_calc.png)
@@ -133,7 +151,7 @@ New sketch on the back face (Z = 0): rectangle (0.85, 0) to (43.15, 42.15), **Ex
 
 ## 3. Study B-1 setup (15 minutes)
 
-1. Simulation → Options → Default Options → Units: **Metric (G)** (temperature in °C), length mm. If you stay in SI, enter every temperature as °C + 273.15 (23 °C = 296.15 K); the rises are the same.
+1. Simulation → Options → Default Options → Units: choose the unit system, then set **Length/Displacement = mm** and **Temperature = Celsius** explicitly in the drop-downs (the system defaults differ), and confirm that the Thermal legend later reads Celsius. If you stay in Kelvin, enter every temperature as °C + 273.15 (23 °C = 296.15 K); the rises are the same.
 2. Simulation tab → **New Study** → name `B1_6061_paint_0p019` → type **Thermal** (steady state).
 
 ### 3.1 Material (conductivity is the only property steady state needs)
@@ -145,7 +163,7 @@ thermal conductivity **167 W/m·K**, specific heat 896 J/kg·K, density 2700 kg/
 
 Duplicate the study and change only k. Expected results for the painted 0.019 in fin (formula column):
 
-| Alloy | k (W/m·K) | η | R_fin (K/W) | Rise at patch top (K) |
+| Alloy | k (W/m·K) | η | R_fin (K/W) | Formula rise at z = 50 mm (K) |
 |---|---|---|---|---|
 | 3003-H14 | 159 | 0.315 | 18.8 | 38.2 |
 | 5052-H32 | 138 | 0.294 | 20.1 | 40.9 |
@@ -167,7 +185,7 @@ Thermal Loads Advisor (names as in your release):
 
 **Radiation, two ways.** (1) *Recommended and linear:* leave radiation out and use the combined coefficients above. (2) *To see radiation itself:*
 use h = 4.7 (bare) or 4.0 (painted) for convection alone (a pure natural-convection fin at about 10 K) and add a **Radiation** load on the F2 and F3 faces with
-**emissivity 0.10 (bare) or 0.90 (painted)**, ambient 23 °C, view factor 1; this makes the solver nonlinear and slower but the result must agree within a few per cent.
+**emissivity 0.10 (bare) or 0.90 (painted)**, ambient 23 °C, view factor 1; this makes the solver nonlinear and slower but the result must agree within a few per cent. For this option set the Stefan-Boltzmann constant (5.67·10⁻⁸ W/m²K⁴) in the study properties and check that temperatures are treated as absolute (Kelvin) inside the solver.
 
 **Contact resistance (B-1)** does not apply: there is no second body. If you want the motor-flange face temperature from B-1 add R_c × Q (for the paste case 0.07 K/W × 2.03 W = 0.15 K).
 
@@ -198,9 +216,9 @@ Probe the temperature (Results → Probe, *On selected entities*; it reports the
 
 | Output | Where to probe | FEA value | Hand calc (painted) | Hand calc (bare) | Within ±20 %? |
 |---|---|---|---|---|---|
+| **Rise at the shell exit (the formula's base)** | edge at y = 50, centre | | **37.3 K formula** / 35.6 K quasi-1D | **51.0 K** / 47.8 K | |
+| Rise at the top of the patch | edge at y = 42.15, centre | | 39.9 K (quasi-1D) | 52.1 K | n/a (not in the formula) |
 | **Motor-face (patch) average rise** | F1 patch face, back side | | 50.2 K (quasi-1D) | 62.4 K | |
-| **Rise at the top of the patch** | edge at y = 42.15, centre | | 37.3 K formula / 39.9 K quasi-1D | 51.0 K / 52.1 K | |
-| Rise at the shell exit | edge at y = 50 | | 35.6 K | 47.8 K | |
 | **Rise at the thermocouple line** | edge at y = 100 | | 16.6 K | 27.5 K | |
 | **Fin tip rise** | top edge, y = 250 | | 3.2 K (formula 3.4) | 9.5 K (formula 10.2) | |
 | **Heat flow through the fin** | by construction 2.03 W in B-1; check the balance above | | 2.03 W | 2.03 W | |
@@ -208,15 +226,17 @@ Probe the temperature (Results → Probe, *On selected entities*; it reports the
 
 Add your air temperature (23 °C) to each rise. How to read the comparison:
 
-- Formula versus FEA at the patch top: the formula (η and R_fin) assumes a clean 44 mm wide fin starting at the patch top. The FEA also sees the hole and bolt holes
-  (the sheet is only 21.8 mm wide at the hole's widest) and the heat spreading across the 42 mm patch, which adds about **6 K/W for the thin fin (a third of R_fin) and about 1 K/W for the thick one**. So the FEA patch average should land near the quasi-1D column, 22 to 35 % above the formula column for the thin fin,
-  and the rise at the patch top 2 to 7 % above the formula. That is the physics, not a mesh error.
-- If the FEA patch-top rise is outside the ±20 % band, check in this order: the sign and total of the heat power, h on both faces (or 2h on one), the zone boundaries (patch top at y = 42.15), the units (K versus °C is the same for a rise, but 296 K entered as °C is not).
+- **Formula versus FEA.** The formula (η and R_fin, area 2 × 44 × 200 mm, tip at z = 250) is referenced to the **shell exit, z = 50 mm**, not to the patch top. Compare it with the FEA at y = 50: expect the FEA **4 to 5 % below** the formula there for the thin fin (35.6 against 37.3 K painted).
+  The rise at y = 42.15 is about **4 K higher** than at y = 50 because the heat conducts along the 7.85 mm neck between the patch top and the exit (R = L / (k t w) ≈ 2.2 K/W times 2.03 W). The hole and bolt holes (the sheet is only 21.8 mm wide at the hole's widest) and the heat spreading across the 42 mm patch mainly raise the
+  **patch average**, by about 6 K/W for the thin fin (a third of R_fin) and about 1 K/W for the thick one: expect the FEA patch average 22 to 35 % above the formula column for the thin fin. That is the physics, not a mesh error.
+- If the FEA rise at y = 50 is outside the ±20 % band, check in this order: the sign and total of the heat power, h on both faces (or 2h on one), the zone boundaries (patch top at y = 42.15), the units (K versus °C is the same for a rise, but 296 K entered as °C is not).
 - Tip rise is a good h check: the tip is 3.4 K above the air for the painted fin and 10 K for the bare one.
 
 ---
 
-## 5. Optional model B-2: add the motor block (10 minutes)
+## 5. Model B-2: add the motor block (10 minutes; required if a slide quotes a motor temperature as SIMULATED)
+
+Without B-2 the motor temperatures of section 0 are CALCULATED (network plus quasi-1D) and only the fin curve is FEA-validated. With it, the motor block temperature and the heat through the fin are model outputs.
 
 1. Same file, same study duplicated as `B2_6061_paint_0p019`. Assign **Alloy Steel** (k about 50 W/m·K) to the block.
 2. **Heat Power 2.03 W on the block body** (select the solid body), and **delete or suppress** the Heat Power on the patch.
@@ -248,7 +268,7 @@ Add your air temperature (23 °C) to each rise. How to read the comparison:
 |---|---|---|---|
 | η | 0.32 | 0.69 | 2.2 × |
 | R_fin (K/W) | 18.3 | 8.5 | 0.47 |
-| Rise at patch top, all heat through fin (K) | 37.3 | 17.3 | 0.46 |
+| Formula rise at the shell exit, z = 50 mm, all heat through the fin (K) | 37.3 | 17.3 | 0.46 |
 | Tip rise (K) | 3.4 | 9.6 | 2.8 × (the thick fin is used along its whole length) |
 | Motor block rise, vented (K) (B-2) | 18.6 | 12.1 | 0.65 |
 | Heat through the fin (W) (B-2) | 0.72 | 1.21 | 1.7 × |
@@ -279,13 +299,13 @@ The model stays a hand calculation until a measurement agrees with it. The hold 
 
 | Thermocouple | Placement | Predicted rise over room air (as built, painted, 6061, vented) | Predicted if the fin is bare |
 |---|---|---|---|
-| **TC1 motor** | on the motor's metal flange rim at the top edge next to the fin, Kapton tape plus a dab of paste | **18.6 K** (41.6 °C at 23 °C air, 39.2 °C at 20.6 °C) | 20.2 K |
+| **TC1 motor** | on the motor's metal flange rim at the top edge next to the fin, Kapton tape plus a dab of paste | **18.6 K at the motor case mid-length (the lumped motor node, 41.6 °C at 23 °C air, 39.2 °C at 20.6 °C); a thermocouple on the flange rim next to the fin reads between 14.9 K (the fin at the patch top) and 18.6 K** | 20.2 K at mid-length (17.2 to 20.2 K on the rim) |
 | **TC2 fin** | on the fin at **y = 100 mm** from its bottom edge (50 mm above the shell exit), same fixing | **6.5 K** | 9.9 K |
 | Room air (third sensor, optional but needed) | 100 mm away from the fin, shaded | reference | reference |
 
 Reading at 60 minutes (D29's planned length; the presentation sheet assumes 90) is about 94 % of the steady value for a vented shell (95 % at 65 min; a sealed shell takes 104 minutes), so compare the 60-minute reading with 0.94 × the prediction, or run 90 minutes.
 
-**Pass.** TC1 rise within ±20 % of 18.6 K (14.9 to 22.3 K) **and** TC2 / TC1 within ±0.07 of 0.35. Both measure different things: TC1 is dominated by the motor's own path to the shell air (the fin carries only
+**Pass.** TC1 rise inside the 14.9 to 22.3 K window (±20 % of the 18.6 K motor node; the rim placement lowers the reading, so a reading between 14.9 and 18.6 K is the expected outcome) **and** TC2 / TC1 within ±0.07 of 0.35. Both measure different things: TC1 is dominated by the motor's own path to the shell air (the fin carries only
 0.7 W), so it validates the coupled model and the 2.03 W heat estimate; the **ratio TC2/TC1 depends on h and so on the paint**: 0.35 means painted, 0.49 means bare, which is how you will find out what finish the fin has.
 
 **Update the model if it disagrees.**
@@ -299,6 +319,7 @@ Reading at 60 minutes (D29's planned length; the presentation sheet assumes 90) 
 
 ## 9. What this study cannot tell you
 
+- **The fin versus the ceiling.** The fin top is 229 mm above the shaft axis; if the axis is near the 0.15 m anchor depth below the ceiling, the top 80 mm of the fin sits in the ceiling hot-air layer and h there is lower than the free-plate value (the tip rise would be higher). Confirm the station height.
 - **The shell air temperature.** It is an input (26 to 27 °C vented, 32 to 35 °C sealed); the coupled two-node estimate is crude and shell mass sets a slow tail.
 - **Transient behaviour.** Steady state only. The motor plus shell has a time constant of about 20 to 40 minutes (the hold test covers it).
 - **Surface condition.** Paint thickness, bare oxide and the real emissivity, and the unknown alloy (bounded to ±10 % in R_fin).
@@ -317,9 +338,35 @@ Reading at 60 minutes (D29's planned length; the presentation sheet assumes 90) 
 | Mesh fails on the sheet | set the global size to 1.5 mm and the fin control to 0.6 mm, or use the shell option |
 | Temperatures hundreds of °C | the heat power face is tiny or the convection faces are missing; check the balance of section 3.5 |
 | Temperature at the tip equals the base | no convection on F3 or the faces were selected on one side only; use 2 h on one face if the shell has a single side |
-| FEA 40 % above the formula at the patch top | the hole and spreading effect is already in the quasi-1D column; if even that is exceeded, h is half what you entered (one-sided convection) |
+| FEA 40 % above the formula at z = 50 mm (y = 50 on the part) | the hole and spreading effect is already in the quasi-1D column; if even that is exceeded, h is half what you entered (one-sided convection) |
 | Heat power result shows 0 | applied to a face that is not the patch back face, or the split line did not cut the back face |
 | Different units | °C versus K: compare rises, not absolute values |
+
+---
+
+## 11. Results-recording template (paste into `verification/simulation_results_heat_fin.md`)
+
+```
+Study B, aluminium heat fin. Run by: ____  Date: ____  SolidWorks release: ____   Evidence label: SIMULATED (B-1 fin curve) / CALCULATED (motor temperatures) / SIMULATED if B-2 built
+Model: B-1 / B-2   Fin: t ____ mm (0.483 or 3.175), alloy k ____ W/mK, finish bare / painted, h ____ (5.3 / 9.6 B-1; 4.2 / 8.5 B-2), inside strip h 4 at ____ C, air ____ C
+Heat power ____ W (2.03 at 1.0625 A, R_phase 1.8 ohm; measured R ____)   Contact: paste / dry / bowed, R'' ____   Mesh: solid / shell, ____ elements
+
+Energy balance: F3 ____ W (1.94 painted, 1.90 bare), F2 + side strips ____ W (0.10 to 0.13), total ____ W (2.03): closes within 1 %? ____
+| Output (rise over air, K) | FEA | Hand / quasi-1D (painted, 0.483) | Within +/-20 % of the formula? |
+| y = 50 mm (shell exit, the formula's base) | | 37.3 formula / 35.6 | |
+| y = 42.15 mm (top of patch) | | 39.9 | n/a |
+| y = 100 mm (TC2 line) | | 16.6 | |
+| Tip y = 250 mm | | 3.2 (3.4 formula) | |
+| Patch average | | 50.2 | |
+B-2 only: motor block mean ____ C (41.6 vented painted paste), heat through the fin ____ W (0.72), TC2/TC1 ____ (0.35 painted, 0.49 bare)
+Alloy runs (3003 / 5052 / 6061 painted): rise at y = 50 ____ / ____ / ____ (38.2 / 40.9 / 37.3)
+1/8 in repeat: rise at y = 50 ____ (17.3), motor block ____ C (35.1), heat through the fin ____ W (1.21)
+Hold test (60 min, 1.0625 A): TC1 ____ K (window 14.9 to 22.3), TC2 ____ K (6.5 painted, 9.9 bare), TC2/TC1 ____, air ____ C, fitted h ____, fitted R_c ____
+Saved plots: B_temp_fin_0p019.png, B_temp_fin_1over8.png, B_heatflux_0p019.png
+Findings: ____
+```
+
+---
 
 *Links:* [guide](../SIMULATION_GUIDE.md) · [design review R11](../../verification/design_review_gen2.md) ·
 [loads and hand-calc script](../../calculations/simulation_loads.py) · [structural manual](SW_STATIC_STATION_MOUNT.md).

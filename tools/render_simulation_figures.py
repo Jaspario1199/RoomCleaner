@@ -501,18 +501,19 @@ def fig_station_loads():
               _merge([_mesh(sh, 0.15)]) + ((0.7, 0.8, 0.95), 0.16)]
     t = SL.tension_cases()
     arrows, labels = [], []
-    cols = {"D1": rgb(BLUE), "D2": rgb(ORANGE), "D3": rgb(GREEN), "D4": rgb(MAGENTA), "D5": rgb(VIOLET)}
-    for cid, label, th, ps, u, p, F in [(c[0], c[1], c[2], c[3], SL.unit_vector(c[2], c[3]),
-                                         SL.tangent_point(SL.unit_vector(c[2], c[3])), None) for c in SL.CASES]:
+    cols = {"D1": rgb(BLUE), "D2c": rgb(ORANGE), "D3": rgb(GREEN), "D4f": rgb(MAGENTA)}
+    reach = SL.reachable_cases(t)
+    legend = []
+    for cid, label, u, T, p in reach:
         tip = p + u * 75.0
         arrows.append((p, tip, cols[cid]))
         labels.append((tip, f"{cid}", (22, -6), cols[cid]))
+        legend.append((cols[cid], f"{cid}  {label}  ({(f'{T:.2f}' if abs(T - 34.0) > 0.01 else f'{T:.1f}')} N at the slip limit)"))
     arrows += triad((70, -75, -68), 28)
     labels += triad_labels((70, -75, -68), 28)
     render(layers, OUT / "station_assembly_loads.png", view=(1.0, -1.1, 0.55), size=(1700, 1350), zoom=0.95,
-           arrows=arrows, labels=labels,
-           legend=[(cols[c[0]], f"{c[0]}  {c[1]}  (theta {c[2]:.1f}, psi {c[3]:+.0f})") for c in SL.CASES],
-           title="Station frame, line force arrows at the drum load point (not to scale)")
+           arrows=arrows, labels=labels, legend=legend,
+           title="Station frame, the four reachable line directions at the drum load point (not to scale)")
 
 
 # ---------------------------------------------------------------- matplotlib figures
@@ -527,33 +528,46 @@ def _mpl():
 
 def fig_line_directions():
     plt = _mpl()
-    fig, (a, b) = plt.subplots(1, 2, figsize=(12.5, 6.0), dpi=130)
-    cols = {"D1": BLUE, "D2": ORANGE, "D3": GREEN, "D4": MAGENTA, "D5": VIOLET}
+    fig, (a, b) = plt.subplots(1, 2, figsize=(12.5, 6.2), dpi=130)
+    cols = {"D1": BLUE, "D2c": ORANGE, "D3": GREEN, "D4f": MAGENTA, "D2": ORANGE, "D4": MAGENTA, "D5": VIOLET}
+    t = SL.tension_cases()
+    reach = SL.reachable_cases(t)
+    bounds = [(cid, label, SL.unit_vector(th, ps)) for cid, label, th, ps, *_ in SL.CASES if cid in ("D2", "D4", "D5")]
     for ax, (i, j, xl, yl, ttl) in zip((a, b), ((0, 2, "x  out of the wall (mm)", "z  up (mm)", "Side view (x-z)"),
                                                 (0, 1, "x  out of the wall (mm)", "y  along the shaft (mm)", "Top view (x-y)"))):
         ax.set_aspect("equal")
         ax.axhline(0, color="#e4e3dd", lw=0.8)
         ax.axvline(0, color="#e4e3dd", lw=0.8)
-        ax.add_patch(plt.Circle((0, 0) if j == 2 else (0, 18), 7.5, fill=False, ec="#2b2b29", lw=1.4) if j == 2 else
+        ax.add_patch(plt.Circle((0, 0), 7.5, fill=False, ec="#2b2b29", lw=1.4) if j == 2 else
                      plt.Rectangle((-18, 7), 36, 22, fill=False, ec="#2b2b29", lw=1.2))
         if j == 2:
             ax.add_patch(plt.Circle((0, 0), 18, fill=False, ec="#6b6a63", lw=0.8, ls="--"))
         ax.add_patch(plt.Rectangle((-42.3, -68.6 if j == 2 else -94.4), 33.9, 145 if j == 2 else 220, fc="#eeeeee", ec="#6b6a63", lw=0.8))
-        for cid, label, th, ps, *_ in SL.CASES:
-            u = SL.unit_vector(th, ps)
+        # information bounds first, faint and dashed
+        for cid, label, u in bounds:
             p = SL.tangent_point(u)
-            q = np.array([p[0], p[1], p[2]])
-            tip = q + u * 70
-            flat = math.hypot(tip[i] - q[i], tip[j] - q[j]) < 20
+            tip = p + u * 70
+            if math.hypot(tip[i] - p[i], tip[j] - p[j]) < 20:
+                continue
+            ax.annotate("", xy=(tip[i], tip[j]), xytext=(p[i], p[j]),
+                        arrowprops=dict(arrowstyle="-|>", color=cols[cid], lw=1.1, ls="--", alpha=0.35, shrinkA=0, shrinkB=0))
+            ax.text(tip[i] + 3, tip[j] - 8, cid + " bound", color="#8a8980", fontsize=8)
+        for cid, label, u, T, p in reach:
+            tip = p + u * 70
+            flat = math.hypot(tip[i] - p[i], tip[j] - p[j]) < 20
             if not flat:
-                ax.annotate("", xy=(tip[i], tip[j]), xytext=(q[i], q[j]),
-                            arrowprops=dict(arrowstyle="-|>", color=cols[cid], lw=2.0, shrinkA=0, shrinkB=0))
-            ax.plot(q[i], q[j], "o", color=cols[cid], ms=5)
+                ax.annotate("", xy=(tip[i], tip[j]), xytext=(p[i], p[j]),
+                            arrowprops=dict(arrowstyle="-|>", color=cols[cid], lw=2.2, shrinkA=0, shrinkB=0))
+            ax.plot(p[i], p[j], "o", color=cols[cid], ms=5)
             if flat:
-                ax.text(q[i] + 4, q[j] - 9 - 9 * {"D1": 0, "D4": 1, "D5": 2}.get(cid, 0), f"{cid} (points along z, into the page)" if cid == "D1" else cid + " (short: mostly along y)",
-                        color="#2b2b29", fontsize=8.5)
+                txt = (f"{cid} (points along z, into the page)" if cid == "D1" else f"{cid} (short: mostly along y)")
+                if cid == "D1":
+                    ax.annotate("D1: points along z, into the page", xy=(p[i], p[j]), xytext=(18, 95), fontsize=8.5, color="#2b2b29",
+                                arrowprops=dict(arrowstyle="-", color="#6b6a63", lw=0.7))
             else:
-                ax.text(tip[i] + 3, tip[j] + 3, cid, color="#2b2b29", fontsize=11, weight="bold")
+                dx, dy = (3, -13) if (cid == "D4f" and j == 2) else (3, 3)
+                ax.text(tip[i] + dx, tip[j] + dy, cid + (" (under D3 here, shorter)" if (cid == "D4f" and j == 2) else ""),
+                        color="#2b2b29", fontsize=11 if not (cid == "D4f" and j == 2) else 8.5, weight="bold" if not (cid == "D4f" and j == 2) else "normal")
         ax.set_xlabel(xl)
         ax.set_ylabel(yl)
         ax.set_title(ttl, loc="left")
@@ -562,11 +576,12 @@ def fig_line_directions():
         ax.grid(True, color="#e4e3dd", lw=0.6)
         ax.spines[["top", "right"]].set_visible(False)
     a.text(-58, -90, "wall mount (grey), drum core r 7.5 mm and flange r 18 mm", fontsize=8.5, color="#6b6a63")
-    b.text(-14, -96, "spool flanges y 7..29 mm, load plane y 18 mm", fontsize=8.5, color="#6b6a63")
-    t = SL.tension_cases()
-    fig.suptitle("Line directions used for Study A (arrows start at the drum tangent point; length is direction only). "
-                 f"Slip-limit {t['slip']:.1f} N, working {t['work']:.1f} N, dynamic {t['dyn']:.1f} N", x=0.01, ha="left", fontsize=10.5)
-    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    b.text(-4, -96, "spool flanges y 7..29 mm, load plane y 18 mm", fontsize=8.5, color="#6b6a63")
+    fig.suptitle("Study A line directions: solid = the four reachable cases (D1, D2c, D3, D4f), faint dashed = information bounds "
+                 "(D2, D4, D5, not required).\nArrows start at the drum tangent point; length is direction only. "
+                 f"Slip limit {t['slip']:.1f} N, working {t['work']:.2f} N, dynamic {t['dyn']:.1f} N.",
+                 x=0.01, ha="left", fontsize=10)
+    fig.tight_layout(rect=(0, 0, 1, 0.92))
     fig.savefig(OUT / "line_directions.png", facecolor="white")
 
 
@@ -588,7 +603,7 @@ def fig_fin_zones():
                                fc="white", ec="#2b2b29", lw=1.0))
     a.add_patch(Rectangle(((W - SL.FIN["patch_w"]) / 2, 0), SL.FIN["patch_w"], zt, fc="none", ec=RED, lw=1.4, ls="--"))
     a.text(W + 6, 18, "F1  contact patch 42.3 x 42.15\n(motor flange one face, PETG tab\nthe other): heat power, no convection", color="#2b2b29", fontsize=9, va="center")
-    a.text(W + 6, 46, "F2  inside-shell strip\nh = 4 W/m2K, air 27 C", fontsize=9, va="center")
+    a.text(W + 6, 46, "F2  inside-shell strip\nh = 4 W/m2K, air 26 to 27 C (vented)", fontsize=9, va="center")
     a.text(W + 6, 150, "F3  exposed fin, 200 mm\nboth faces: h = 5.3 (bare)\nor 9.6 (painted) W/m2K,\nair 23 C", fontsize=9, va="center")
     for yy, s in ((0, "0"), (zt, "42.15"), (zx, "50"), (H, "250")):
         a.plot([-3, 0], [yy, yy], color="#6b6a63", lw=0.8)
@@ -619,9 +634,9 @@ def fig_fin_zones():
     b.annotate("", xy=(31, 50), xytext=(10, 50), arrowprops=dict(arrowstyle="-|>", color=RED, lw=2))
     b.text(20, 45, "P = 2.03 W of heat", ha="center", color=RED, fontsize=9.5)
     b.text(60, 80, "Model B-1 (required): fin only, heat power on F1,\nconvection on F2 and F3, shell or solid mesh.", fontsize=10, va="top")
-    b.text(60, 62, "Model B-2 (optional): add the motor block,\nbonded to F1 with a contact resistance,\nconvection on its free faces\n(h 10.1 vented / 8.7 sealed, air 27 C).", fontsize=10, va="top")
+    b.text(60, 62, "Model B-2 (required for any motor temperature):\nadd the motor block, bonded to F1 with a\ncontact resistance, convection on its free faces\n(h 10.1 vented / 8.7 sealed, air 26 C vented).", fontsize=10, va="top")
     b.text(60, 36, "Hand-calc targets (painted, 6061, 2.03 W through the fin)\n"
-                   "eta 0.32, R_fin 18.3 K/W, rise at patch top 37 K,\ntip rise 3.4 K.  Bare: 0.43, 25.1 K/W, 51 K, 10 K.\n"
+                   "eta 0.32, R_fin 18.3 K/W, rise at the shell exit z = 50 mm 37 K,\ntip rise 3.4 K.  Bare: 0.43, 25.1 K/W, 51 K, 10 K.\n"
                    "1/8 in painted: 0.69, 8.5 K/W, 17 K, 9.5 K.", fontsize=10, va="top")
     fig.tight_layout()
     fig.savefig(OUT / "heat_fin_zones.png", facecolor="white")

@@ -97,9 +97,12 @@ def workspace_summary(cfg, anchors=None) -> dict | None:
     from .config import triangle_geometry
     A = cfg.anchor_priors() if anchors is None else np.asarray(anchors, float)
     g = triangle_geometry(A[:, :2])
-    lam = cfg.tension_floor_fraction() or 0.0
-    return {"ids": list(cfg.ids), "triangle_area_m2": round(g["area_m2"], 3),
-            "tension_floor_fraction": round(lam, 4),
+    lam = cfg.tension_floor_fraction()
+    out = {"ids": list(cfg.ids), "triangle_area_m2": round(g["area_m2"], 3)}
+    if lam is None:                                      # the margin is T_floor / (m g): not known until claw.mass_kg is set
+        return {**out, "tension_floor_fraction": None, "edge_margin_m": None, "usable_area_m2": None,
+                "note": "claw.mass_kg is not set: the edge margin from the tension floor cannot be computed yet"}
+    return {**out, "tension_floor_fraction": round(lam, 4),
             "edge_margin_m": {s: round(float(lam * g["altitudes_m"][i]), 3) for i, s in enumerate(cfg.ids)},
             "usable_area_m2": round(g["area_m2"] * (1 - 3 * lam) ** 2, 3)}
 

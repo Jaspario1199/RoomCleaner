@@ -395,6 +395,18 @@ def test_a_move_toward_the_missing_corner_is_refused_before_any_motion(seed, tmp
     assert sup.state == "READY"
 
 
+@pytest.mark.parametrize("swap", [(0, 1), (0, 2)])
+def test_swapped_station_wiring_is_still_caught_with_three_cables(swap, tmp_path):
+    """With three stations the slide-direction check has no spare bearing (3 bearings, 3 registration unknowns), so the marker
+    heading / position priors have to do the work: two cables wired to each other's stations must still stop the take-up."""
+    r = SimRobot(fast3(), seed=0, data_dir=tmp_path, world_kw={"swap_stations": swap}, camera_kw={"board": FloorBoard.nominal(0.15)})
+    sup = Supervisor(r.ctx, state_path=tmp_path / "state.json", ledger_path=tmp_path / "ledger.json")
+    rep = sup.start()
+    assert sup.state != "READY" and rep.state != "READY"
+    assert any("slide directions disagree with the anchor entries" in x and "wiring A-B-C" in x for x in rep.reasons), rep.reasons
+    assert rep.measurements["bearing_rms"] > r.cfg.startup.bearing_rms_max and r.world.on_floor
+
+
 def test_the_start_point_check_refuses_a_claw_resting_outside_the_triangle(tmp_path):
     """The startup must start at the centroid: a claw put outside the feasible triangle (here: by the missing corner) is refused
     in INITIAL_LIFT, before any cable pretension or lift, with the start point in the message."""

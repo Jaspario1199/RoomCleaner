@@ -30,18 +30,17 @@ Everything below follows from that.
 ## 2. Placing the stations
 
 ```
-            far wall (9 ft side: y = 2.74 m)
-   D (not mounted)                                  corner
- +----------------------------- C ----------------------------+    C: on the stud nearest the MIDDLE of this 11 ft wall
+        far 11 ft wall (y = 2.74 m)                       x runs along the 11 ft walls (3.35 m), y along the 9 ft walls (2.74 m)
+ +----------------------------- C ----------------------------+    C: on the stud nearest the MIDDLE of this wall
  |                          (1.68, 2.69)                       |       (5 ft 6 in from either corner), same height as A and B
- |                                                             |
+ |                                                             |    The corner at its left end would be D: not mounted.
  |                                                             |
  |                                                             |
  |                          claw start +                       |    + start point (1.68, 0.93) m = the centroid of A, B, C
  |                         (1.68, 0.93)                        |      = 5 ft 6 in along the wall, 3 ft 0.6 in out from the A-B wall
  |                                                             |
  A ----------------------------------------------------------- B
- (0.05, 0.05)       near wall (the 11 ft wall with A and B)     (3.30, 0.05)
+ (0.05, 0.05)       near 11 ft wall (the one with A and B)     (3.30, 0.05)
 ```
 
 * **A and B:** the two corners of one 11 ft (3.35 m) wall, outlets 5 cm in from each corner. These are the same places
@@ -49,11 +48,12 @@ Everything below follows from that.
 * **C:** the **middle of the opposite 11 ft wall**, on the stud nearest the midpoint, at the **same height** as A and B
   (the priors say 2.59 m = 8 ft 6 in, 6 in under the 9 ft ceiling). Sides of the triangle: about 3.25 m (A to B) and
   3.10 m (A to C, B to C): nearly equilateral, which keeps the usable area as large as it can be.
-* **Priors only.** The three anchor entries seed the calibration, which fits the anchors itself. A stud a few inches
-  off the midpoint is fine; type the real position into Setup (a), or into the config, if you know it better. If the
-  stud is a foot or more off the middle, enter its position, because the slide-direction check at the start compares
-  the first pulls with the entered anchors. In simulation the startup still succeeds with C 0.2 m off along the wall
-  (`verification/three_station_mode_results.md`, section 6).
+* **Priors only, but enter the real position.** The three anchor entries seed the calibration, which fits the cable
+  geometry itself, so a stud a few inches off the midpoint does not stop the startup (in simulation it completed with C's
+  entry off by 0.2, 0.4, 0.8 and even 1.2 m). What the entry does decide is where the room is: the fitted C keeps about two
+  thirds of an entry error (0.2 m off -> 0.12 m off after the fit), and the 0.2 m wall margin is only as good as that.
+  Measure the stud (tape measure, +-5 cm) and type it into Setup (a) or the config
+  (`verification/three_station_mode_results.md`, section 7).
 * **Station ids.** The host tells each station its id when it configures it, and the id belongs to the address in the
   config: put the IP:port of the unit on the middle of the far wall under `C`, the corners' units under `A` and `B`.
   Leave `D`'s address `null`. No firmware change.
@@ -139,7 +139,7 @@ outlets (`z <= 2.19 m`), the claw's own height above the floor (`z >= 0.59 m`, o
 * The planner, the calibration poses, the start-up work volume, the ceiling cap and the task layer all use this region.
   A target outside it is refused **before any motion**: `workspace: floor point (...) is 0.53 m outside the edge opposite
   station B of the A/B/C triangle; it must be at least 0.23 m inside`.
-* A 300 mm move away from the start point in any direction stays inside and runs normally (simulated, all three seeds).
+* A 300 mm move from the start point to another point inside the area runs normally (simulated, all three seeds).
 * The room corner near D is outside. Do not ask for it.
 * Outlet angle: the cable leaves each station at **41-43 degrees from vertical** at the start point (A and B 41.7, C 40.3
   with the claw on the floor), 37-53 degrees within 0.3 m of it, and 13 to 78 degrees over the whole usable volume (13-68 up to
@@ -170,7 +170,7 @@ outlets (`z <= 2.19 m`), the claw's own height above the floor (`z >= 0.59 m`, o
   every cable is needed: a station that loses power, trips a fault or slips lets the claw fall. The startup lifts only
   8 cm first; the calibration then moves the claw up to 1.6 m. Keep the floor under it clear.
 * **The claw sits further from the room centre** than the four-cable claw does (it starts 0.44 m toward the near wall and the
-  usable area is a disc of about 0.7 m around the start point). Keep the cables clear of furniture and the hamper in that area.
+  usable area reaches about 0.6 m from the start point). Keep the cables clear of furniture and the hamper in that area.
 * **Less yaw stiffness.** Measured in the rigid-body simulator the yaw stiffness is 0.31 N m/rad (z 0.7 m) against 0.98 for
   four cables, about a third; roll and pitch are the same (1.3 N m/rad, gravity pendulum). The claw settles to a yaw of
   about +11 to +25 degrees on its own, whatever it started at, and a three-cable claw turns more easily if a cable
@@ -180,8 +180,8 @@ outlets (`z <= 2.19 m`), the claw's own height above the floor (`z >= 0.59 m`, o
   centre of mass (`claw.com_body_m` says VERIFY); the lift aborts, holding, if the measured tilt exceeds `startup.max_tilt_rad`
   (8 degrees), a 2.5 degree margin at the start. The grip tilt limit (5 degrees) would refuse most grips: do not run pickup
   tasks tonight. Movement and calibration are the test.
-* **Cables are loaded tightly near the edge of the usable area**: tensions fall toward the 0.5 N floor there, and rise to
-  about 2-3 N elsewhere (0.45 kg claw). Do not push the area's limits with the claw loaded or the cable length uncertain.
+* **Tensions** are about 2 N per cable at the start point (0.45 kg claw) and fall toward the 0.5 N floor at the edge of the
+  usable area; the margin keeps them above it. Do not ask for more than the planner allows, and not with a loaded claw.
 * **Station D is not part of this run.** Nothing in the host talks to it, configures it or arms it. If it is on the network
   it is not a fault and not checked.
 * The recovery commands work over A, B, C. After a station reboot, **lower**; the recover command re-references at most one
@@ -196,4 +196,4 @@ outlets (`z <= 2.19 m`), the claw's own height above the floor (`z >= 0.59 m`, o
 | `unknown config key ['active_stations']` | the key is `stations_active` |
 | `the claw rests where three cables cannot lift it: floor point (x, y) is ... outside the edge opposite station B ...` | the claw is not near the start point; move it to (1.68, 0.93) m and start again |
 | `workspace: floor point (...) is ... outside the edge opposite station ...` | a move target outside the usable area; refused before any motion |
-| `slide directions disagree with the anchor entries ... check station order/wiring A-B-C` | a cable is on the wrong station or C's entry is far from the stud |
+| `slide directions disagree with the anchor entries ... check station order/wiring A-B-C` | a cable is on the wrong station (a swap of A and B, or A and C, is caught in simulation, RMS 8 sigma against a limit of 3) or an anchor entry is far off |

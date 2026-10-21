@@ -105,7 +105,7 @@ function tag(slide, kind, x = W - M - 1.45, y = 0.47, w = 1.45) {
   });
 }
 
-const RAIL = ["TRIGGER", "OPTIONS", "CONSTRAINT", "CHOICE", "RESULT"];
+const RAIL = ["WANTED", "REALIZED", "DECIDED", "RESULT", "BUT"];
 /** Decision rail across the bottom. active = 0..4 (index being discussed). */
 function rail(slide, active, y = H - 1.15) {
   const x0 = M, x1 = W - M, step = (x1 - x0) / RAIL.length;

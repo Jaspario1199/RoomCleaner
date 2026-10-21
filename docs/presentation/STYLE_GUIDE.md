@@ -87,7 +87,8 @@ Two recurring elements, nothing else decorative:
    ("Ø22.5 bore", "40 N limit"). Used on photos and renders to point at the
    thing being discussed. Max three per image.
 2. **Decision rail** — five numbered steps along the bottom of a decision
-   slide: `TRIGGER → OPTIONS → CONSTRAINT → CHOICE → RESULT`. Completed steps
+   slide: `WANTED → REALIZED → DECIDED → RESULT → BUT` (the story flow; BUT = the cost
+   accepted or what is still unproven, never skipped). Completed steps
    are Ink, the step being discussed is Signal, future steps are Fog. It is
    the visual signature of the talk: "here's how I think".
 

@@ -48,10 +48,10 @@ pin("X01", "12V", "+12"); pin("X03", "PGND", "GND")                         # J1
 for r, n in zip((5, 6, 7, 8), ("M2B", "M2A", "M1A", "M1B")): pin(f"X{r:02d}", n, n[1:])   # J2 motor
 pin("C17", "3V3", "3V3"); pin("D17", "GND", "GND"); pin("E17", "SDA", "SDA"); pin("F17", "SCL", "SCL")  # J5 encoder
 pin("H17", "HOME", "NC"); pin("I17", "GND", "COM")                           # J3 switch
-pin("B01", "5V", "JP1"); pin("C01", "5VD", "JP1")                            # JP1 link
-pin("D01", "5VD", "K"); pin("H01", "5VB", "A")                              # D1 1N5819 (stripe = K)
-pin("I01", "5VB", "BUCK OUT+")                                               # buck output wire
-pin("W01", "12V", "buck IN+"); pin("W03", "PGND", "buck IN-")                # buck input wires
+# U1 DROK buck mounted flat, bottom right, on 4 short wire legs at its corner pads
+pin("Q13", "12V", "IN+"); pin("Q17", "PGND", "IN-"); pin("X13", "5VB", "OUT+"); pin("X17", "nc", "OUT-")
+pin("X11", "5VB", "A"); pin("T11", "5VD", "K")                              # D1 1N5819 lying, stripe (K) at T11
+pin("S11", "5VD", "JP1"); pin("R11", "5V", "JP1")                            # JP1 link
 pin("T02", "12V", "C1 +"); pin("T03", "PGND", "C1 -")                        # C1 100uF/50V
 pin("C10", "STEP", "R2"); pin("C11", "GND", "R2")                            # R2 STEP pull-down
 pin("D10", "DIR", "R3"); pin("D11", "GND", "R3")                             # R3 DIR pull-down
@@ -64,7 +64,7 @@ def run(a, b, net):                 # straight run along a row or column
     (ca, ra), (cb, rb) = h(a), h(b)
     assert ca == cb or ra == rb, (a, b)
     BARE.append((a, b, net))
-run("B01", "B03", "5V"); run("C01", "D01", "5VD"); run("H01", "I01", "5VB")
+run("B02", "B03", "5V"); run("S11", "T11", "5VD"); run("X11", "X13", "5VB")
 run("Q01", "X01", "12V"); run("Q01", "Q03", "12V"); run("T01", "T02", "12V")
 run("Q04", "R04", "PGND"); run("R03", "R04", "PGND"); run("R03", "X03", "PGND")
 for r in (5, 6, 7, 8): run(f"Q{r:02d}", f"X{r:02d}", ["M2B", "M2A", "M1A", "M1B"][r - 5])
@@ -78,6 +78,7 @@ WIRES = [  # insulated: (from, to, net, colour)
     ("C03", "B11", "GND", "#222222"), ("D03", "B13", "3V3", "#1f77b4"), ("Q09", "P13", "3V3", "#1f77b4"),
     ("Q10", "P11", "GND", "#222222"), ("L08", "L13", "3V3", "#1f77b4"), ("L06", "K11", "GND", "#222222"),
     ("D17", "D11", "GND", "#222222"), ("I17", "I11", "GND", "#222222"), ("S03", "O11", "GND", "#222222"),
+    ("B02", "R11", "5V", "#e377c2"), ("S01", "Q13", "12V", "#b30000"), ("U03", "Q17", "GND", "#222222"),
 ]
 
 # ---------------- checks: one net per hole, every net connected
@@ -174,17 +175,21 @@ two_lead("H13", "H16", "", "#f2d16b")
 for lab, (c, r) in {"R2": (2.0, 10.5), "R3": (3.0, 10.5), "R1": (4.3, 11.9), "R4": (7.3, 14.6)}.items():
     ax.text(X(c), Y(r), lab, fontsize=9.5, weight="bold", ha="center", va="center", zorder=7,
             bbox=dict(fc="white", ec="none", pad=0.5))
-(cd, rd), (ca_, ra_) = h("D01"), h("H01")
-ax.add_patch(Rectangle((X(cd) + 0.4, Y(rd) - 0.32), X(ca_) - X(cd) - 0.8, 0.64, fc="#111", ec="black", zorder=5))
-ax.add_patch(Rectangle((X(cd) + 0.4, Y(rd) - 0.32), 0.35, 0.64, fc="#dddddd", ec="black", zorder=5.1))
-ax.text((X(cd) + X(ca_)) / 2 + 0.3, Y(rd), "D1 1N5819  stripe ->JP1", color="white", fontsize=8.5,
-        ha="center", va="center", zorder=6)
+(ck, rk), (cA, rA) = h("T11"), h("X11")
+ax.add_patch(Rectangle((X(ck) + 0.4, Y(rk) - 0.32), X(cA) - X(ck) - 0.8, 0.64, fc="#111", ec="black", zorder=5))
+ax.add_patch(Rectangle((X(ck) + 0.4, Y(rk) - 0.32), 0.35, 0.64, fc="#dddddd", ec="black", zorder=5.1))
+ax.text((X(ck) + X(cA)) / 2 + 0.3, Y(rk), "D1 1N5819", color="white", fontsize=8.5, ha="center", va="center", zorder=6)
+ax.text(X(ck) + 0.55, Y(rk) + 0.62, "stripe", color="white", fontsize=8, ha="center", zorder=6)
+ax.add_patch(FancyBboxPatch((X(16) - 0.6, Y(17) - 0.6), X(23) - X(16) + 1.2, Y(13) - Y(17) + 1.2,
+                            boxstyle="round,pad=0.05", fc="#1a5fb4", ec="black", lw=1.5, alpha=0.35, zorder=2))
+ax.text(X(19.5), Y(15), "U1 DROK BUCK\n(flat, pot up)\nset 5.00 V first", ha="center", va="center", fontsize=12,
+        weight="bold", zorder=6)
 ax.add_patch(Circle(((X(19)), (Y(2.5))), 0.95, fc="#2b3a8c", ec="black", zorder=5, alpha=0.9))
 ax.text(X(19), Y(2.5), "C1\n100uF", color="white", fontsize=8, ha="center", va="center", zorder=6)
 ax.text(X(19.9), Y(2.0), "+", color="white", fontsize=12, weight="bold", zorder=6)
 for hole, (net, lab) in PINS.items():
     c, r = h(hole)
-    if lab in ("R1", "R2", "R3", "R4", "C1 +", "C1 -", "K", "A", "JP1", "buck IN+", "buck IN-", "+12", "GND") and not (c <= 7 or c in (11, 16)):
+    if lab in ("R1", "R2", "R3", "R4", "C1 +", "C1 -", "K", "A", "JP1", "+12", "GND") and not (c <= 7 or c in (11, 16)):
         ax.add_patch(Circle((X(c), Y(r)), 0.30, fc="#ffd400", ec="black", lw=0.8, zorder=4.5)); continue
     if c in (1, 2, 3, 4, 5, 6, 7) and r in (3, 9) or c in (11, 16) and 3 <= r <= 10:
         off = {3: 0.55, 9: -0.55}.get(r, 0) if c <= 7 else 0
@@ -195,12 +200,9 @@ for hole, (net, lab) in PINS.items():
         ax.text(X(c) + 0.38, Y(r) + 0.36, lab, fontsize=8.5, weight="bold", ha="left", va="bottom", zorder=7,
                 color="white")
     ax.add_patch(Circle((X(c), Y(r)), 0.30, fc="#ffd400", ec="black", lw=0.8, zorder=4.5))
-ax.text(X(22), Y(1.0) - 0.75, "buck IN+", color="white", fontsize=8.5, weight="bold", ha="center", zorder=7)
-ax.text(X(22), Y(3.0) + 0.55, "buck IN-", color="white", fontsize=8.5, weight="bold", ha="center", zorder=7)
-ax.text(X(8), Y(1.0) + 0.55, "BUCK OUT+", color="white", fontsize=8.5, weight="bold", ha="center", zorder=7)
 # connector outlines
 for (a, b, name) in [("X01", "X03", "J1 12V IN"), ("X05", "X08", "J2 MOTOR"), ("C17", "F17", "J5 ENCODER"),
-                     ("H17", "I17", "J3 SWITCH"), ("B01", "C01", "JP1")]:
+                     ("H17", "I17", "J3 SWITCH"), ("R11", "S11", "JP1")]:
     (ca, ra), (cb, rb) = h(a), h(b)
     ax.add_patch(Rectangle((min(X(ca), X(cb)) - 0.45, min(Y(ra), Y(rb)) - 0.45), abs(X(cb) - X(ca)) + 0.9,
                            abs(Y(rb) - Y(ra)) + 0.9, fc="none", ec="white", lw=2, ls="--", zorder=5))
@@ -210,8 +212,8 @@ for (a, b, name) in [("X01", "X03", "J1 12V IN"), ("X05", "X08", "J2 MOTOR"), ("
     if name.startswith("J2"):
         tx, ty = X(ca) - 1.6, (Y(ra) + Y(rb)) / 2
     ax.text(tx, ty, name, color="white", fontsize=10, weight="bold", ha="center", va="center", zorder=7)
-ax.text(X(17.3), Y(11.0), "<- GND bus (row 11)", color="white", fontsize=9.5, weight="bold", zorder=7)
-ax.text(X(17.3), Y(13.0), "<- 3V3 bus (row 13)", color="white", fontsize=9.5, weight="bold", va="center", zorder=7)
+ax.text(X(9.3), Y(12.0), "^ GND bus (row 11)", color="white", fontsize=9.5, weight="bold", zorder=7)
+ax.text(X(9.3), Y(14.0), "^ 3V3 bus (row 13)", color="white", fontsize=9.5, weight="bold", va="center", zorder=7)
 ax.text(X(17.2), Y(1.0) + 0.45, "+12V", color="white", fontsize=9.5, weight="bold", zorder=7)
 ax.text(X(19.6), Y(3.0) - 0.45, "GND (motor return)", color="white", fontsize=9, weight="bold", va="top", zorder=7)
 ax.text(X(20.3), Y(9.5), "1B 1A pair = coil 1\n2A 2B pair = coil 2", color="white", fontsize=9, zorder=7)

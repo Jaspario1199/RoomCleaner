@@ -270,3 +270,21 @@ every room; the claw and cables hide the grasp spot from above; its floor map
 assumes a flat floor. Cost accepted: the claw camera sees less of the room at
 once, so the robot scans by moving. R7's "keep both cameras" recommendation is
 not adopted. Gen-1 camera parts and code stay in the repo as history.
+
+D34. **Electrical housing carries both cable patterns ("_34")** (Jasper, 10/21: "add a hole configuration on it meant
+for 3 motors, so based on function you can choose"; lead layout).
+- **Four-station mode:** the four corner holes, unchanged.
+- **Three-station mode:** three new Ø2 teardrop holes, 42 mm up the wall, 120° apart:
+  - C on the camera-bay side, above the bay (bay top y 26.9, cover 29.3);
+  - A and B on the side walls, on the side away from the bay.
+  - Each outer mouth has a 0.5 mm chamfer and a debossed letter. At yaw 0 each hole points at its station.
+- **Spec:** cad/GRIPPER_1021_SPEC.md §5 and the lead decisions in §5.1.
+- **Verification:**
+  - built and checked by the implementer, then independently verified PASS (11/11 items, 70 tests);
+  - no cable line intersects the claw: minimum 0.23 mm, a graze along the rim for very steep lines, accepted;
+  - the bay and cover clear by 12.7 mm.
+  - Reports: verification/gripper1021_housing_34_build_notes.md, gripper1021_housing_34_verification.md.
+- **Exports:** exports/step|stl/gripper1021_housing_cambay_34. The previous 4-hole export is kept. The cover is unchanged.
+- **Software (open):** three-station configs must list the new outer-mouth points:
+  - C (0, +0.0450, +0.0342), A (−0.0450, −0.0260, +0.0342), B (+0.0450, −0.0260, +0.0342) m, body frame;
+  - the start yaw stays "camera bay toward station C".

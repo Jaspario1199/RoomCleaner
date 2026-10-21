@@ -1,4 +1,98 @@
-# Independent review of the D27 IMU removal (commits 8adeb8f..HEAD)
+# Round 2: re-review of commit 498ac09 (board attitude path)
+
+Reviewer: calculation-checker (Sonnet 5.5), 2026-10-21. Same rules: no code/config/other tests edited; written: this section, `tests/cdpr/test_imu_removal_review.py`
+(now 16 tests, all pass), `scripts/review_attitude_noise.py`, `scripts/review_board_sim.py`, `scripts/review_drag.py`. Simulation numbers only.
+
+## R2.0 Verdict: ACCEPT WITH CONDITIONS
+
+Every round-1 recommendation is implemented and the key claims reproduce. The covariance model is validated by my own, independent Monte Carlo, no numeric
+acceptance threshold was relaxed, and the printout is correct. Conditions are real hardware/functional risks that the simulator cannot see (R2.2b, R2.2e, R2.4).
+
+## R2.1 The four stale assertions (item 1): fixes confirmed by my own measurements, assertions flipped
+
+| round-1 finding | what I measured now | verdict |
+|---|---|---|
+| F9 double count | `claw_position_cov` result is identical for rot_sigma 0 and 0.010; a legacy frame gets exactly sigma^2 |p|^2 I from `VisionSource` (difference of covariances == (0.010 |p|)^2 I). Frames with `pose_cov` get no extra term. | FIXED |
+| F8c dwell | 5 x 1.25 x 0.8887 = 5.55 s; loaded release: L = (0.6 x 0.196 + 0.9 x 0.5173)/1.5 = 0.389 m, T = 1.251 s, dwell 7.82 s. My compound-pendulum estimate (assumed k = 0.13 m): 5.2 periods unloaded (was 4.2), 5.8 loaded (was 3.3). | FIXED |
+| F8a dwell from start | seen moving until 3 s then lost: now approved at >= 3 s + dwell - 0.5 s; a loaded release waits the full loaded dwell even when the camera says still. | FIXED |
+| F6 still_pose | 30 mm and 25 mm swings rejected at rot_sigma 0.004 AND 0.010, a still claw and a 1 mm swing accepted. Residual (Low): the tolerance is hypot(3 mm, 3 x sqrt(trace cov_cam)); the trace includes the 2.7 mm depth noise of one tag at 0.6 m, so a ~15 mm lateral swing (7 mm RMS) is still accepted for one tag (board: much tighter). | FIXED (was 32 mm RMS) |
+
+Wording: the "two lever terms" test now describes the legacy path only; the "post-correction check is vacuous" test now says: the held-out re-measurement catches a rest tilt that CHANGES
+between the two sets, not a CONSTANT one (a constant 3 deg rest tilt is still absorbed into the mount offset and leaves a level hanging claw reading 3 deg; F7 first half only).
+
+## R2.2 Beyond-spec logic (item 2)
+
+I built a detector-like generator (cv2 IPPE+LM, 0.3 px corner noise, the repo's own `pose_covariance`) and measured `cam_displacement` for a claw that moves 3.6 mm (rigid, tilt about the body origin), 100-150 trials, 0.51 m height, rms error in mm:
+
+| case | absolute pose | `cam_displacement` | `floor_displacement` |
+|---|---|---|---|
+| one tag, no tilt change | 8.8 | 1.3 | 1.3 |
+| one tag, real tilt change 15 / 30 mrad | 8.5 / 8.6 | 7.8 / 15.4 | 7.8 / 15.4 |
+| board p0.25, no tilt change | 0.84 | 0.28 | 0.22 |
+| board p0.25, real tilt change 15 / 30 mrad | 0.84 / 0.77 | **0.84 / 0.77** | **7.8 / 15.6** |
+
+* (a) `cam_displacement`: **sound.** For the board it follows a real tilt change (0.8 mm for 15 mrad) and cancels the lever noise (0.3 vs 0.84 mm); the yaw about the body z axis is the right term (a take-up yaws the
+  claw). Caveats (Medium for the single-tag fallback): kappa = 0.04 (tilt per yaw) and sigma0 are from the simulated rigid body, unverified on hardware; with ONE tag the tilt change is weighted ~0 and the 5-sigma
+  fallback is at ~65 mrad, so a real tilt of 15 mrad is a 7.8 mm error (tilt x 0.5 m lever), documented by the implementer as "2-12 mm".
+* (b) `floor_displacement` (reference tilt only): **sound only if the resting claw cannot tilt.** It is blind to a real tilt change even where the board could see it (7.8 mm for 15 mrad), and a claw that ROCKS about
+  its jaws reads exactly zero displacement (derivation: with fixed R_ref the camera-axes vector from anchor to body does not change under a rigid rotation about the pivot). The simulated claw only slides. A tall 0.6 kg claw pulled at ~0.5 m on a small
+  jaw footprint may tip before it slides (assumed support half-width 40 mm, mu 0.3: tipping at ~0.5 N horizontal, sliding at ~1.8 N). The only remaining guard is the absolute vision tilt > 8 deg (`max_tilt_rad`). Not test-fitting (it is
+  motivated by a real tilt-spike failure), but an unverified physical assumption. **Medium; condition:** keep the measured tilt-change channel when >= 2 tags are in view (noise 1 mrad), or add a rocking check.
+* (c) probe resolvability re-check, pay-back and skip: **sound** (unit test with injected noise; the skip leaves the reading unprobed, never blind). Low: no limit on how often a pose is skipped (coverage is reported).
+* (d) length noise = max(`calibration.attitude_sigma_rad`, pose sigma): **sound and conservative** (the 10 mrad now acts as a floor: 0.6 mm at |b| = 0.06 m; poor poses are not credited more than they deliver).
+  The covariance itself I checked independently: my cv2 Monte Carlo (800 trials) vs `pose_covariance` (inflate 1): roll/pitch of the claw within 20 % of my MC for one tag at 0.52 m (13.4 mrad) and for the 3x3 p0.25 board at 1.0 m (9 tags, 1.5 mrad); default inflate 1.3 = 1.3 x exactly.
+* (e) new config keys: **validated only as finite and > 0.** Accepted by `load_config`: `camera.pose_cov_inflate` 0.05 or 1e6, `camera.corner_sigma_px` 1e-6, `claw.vision_attitude_floor_rad` 1e-9, `tasks.grip_period_margin` 0.05 (the dwell then
+  collapses to the 2 s floor) or 100, `marker.board_layout_file` = a nonexistent path or the integer 5 (fails only at build time). **Medium/Low; condition:** lower bounds that keep the estimator honest
+  (pose_cov_inflate >= 1, grip_period_margin >= 1, floor/corner sigma above a sane minimum, layout file is an existing string).
+
+## R2.3 The claims (item 3)
+
+Reproduced with the unchanged command (`sim_floor_reference_study.py --suite main --only "3c,3i" --seeds 1 --probe --no-whatif`, seed 0, 0.3 px), identical to the report:
+3c old layout: accepted, **13.5 mm**, worst true error 17.5 mm, **94 %** probed, VERIFIED. 3i printed layout: accepted, **16.1 mm**, 17.2 mm, **91 %**, LOCAL_ONLY. The rest of the 6 and the 0.5 px runs I did not repeat (about 7 min per run).
+Observation: the printed layout is not better in absolute sigma than the old one (16.1 vs 13.5 here; reported 13.5-16.1 vs 12.0-14.4) and reached VERIFIED in 1 of 3 seeds against 2 of 3 (n = 3): its benefit is floor-stage robustness, not accuracy.
+
+**3c at 0.5 px seed 1 (drag 11.0 mm vs the 10 mm limit) is a REAL limitation of the old layout, not an artefact.** `scripts/review_drag.py` reproduces it (11.02 mm at the trip) and records the simulator's TRUE claw displacement at every `DragWatch` update:
+the true slide reaches 12.1 mm and the filtered measurement tracks it (median |measured - true| 0.56 mm). The claw really slides in INITIAL_LIFT because the pretension target is built from the absolute vision pose of the one-tag floor view
+(4.6 mrad attitude sigma on the mean, lever 0.5 m); the camera-frame watch measures it correctly.
+
+## R2.4 Thresholds and fixtures (item 4)
+
+* No acceptance threshold was changed: the diff has no edit of `length_sigma_max_m`, witness criteria, `k_sigma`, `norm_rms`, `bearing_rms_max`, `still_spread_max_m`, probe thresholds or `max_lateral_drift`. Two semantic changes to note (Low):
+  the drag-watch is now the mean of 3 frames against `max(10 mm, 4 sigma of the mean)` (equal to the old limit while the camera-frame sigma is < 2.5 mm, i.e. always in the runs; it can follow a noisy view upward); and `test_vision` rotation bound is
+  `max(3 deg, 2 x the frame's own reported sigma)`: of the 12 seeds two exceed 3 deg with LM (3.55 and 3.51 deg, reported sigma 3.6 and 5.6 deg; seed 9 was a clean "ambiguous" refusal with IPPE and is now accepted
+  with a 3.5 deg error): honest if the covariance is honest, but the detector now accepts frames that the ratio rule used to refuse near face-on (IPPE flips are not modelled by the simulator).
+* Board fixtures in `test_system`, `test_garments`, the no-probe margin test: **legitimate** (the board is the D26 floor reference). The implementer says a one-tag lifecycle fixture no longer meets the witness criterion (24.8 mm). I could not reproduce
+  a failure of the one-tag path in general: the shipped sim config (no board, probe on, seed 0) still ends READY / LOCAL_ONLY with a predicted sigma of 13.6 mm. So the one-tag startup is degraded and seed-sensitive, not dead. The shipped
+  `robot.sim.json` has `marker.board_layout_file = null`, i.e. the default config is not the configuration the follow-up was validated for. **Condition:** say in the config/docs that the board is the validated reference, or make the hardware start require a layout.
+* Item placement by statics tilt (`item_offsets_with_small_statics_tilt`): legitimate for isolating the workflow, but it **hides a functional limit**: I evaluated the host's own predicted tilt `R_at` at the grip pose on a 9 x 7 grid of the room
+  (0.4 m inset, nominal anchors, unloaded CoM -0.196 m): **81 % of the points exceed the 5 deg limit** (0.4 deg at the centre to 13 deg at the corners). The grip gate (D27 first implementation, not this commit) would refuse picks over most of the room. Either the cable-model
+  tilt prediction is unrealistic (CoM, 4-point stiffness) or the gate must not use it away from the floor reference. **High for the product, outside this commit; needs a decision** (F8b of round 1 left open).
+
+## R2.5 The printout (item 5)
+
+`prints/floor_board_letter.pdf`: 10 Letter pages; page 1 states 250 mm centre to centre (never more than 280 mm), sheets overlap by about 29 mm along the height and leave a 34 mm gap side by side, "overlap only the blank margins ... NEVER cover any tag or its white border".
+Raster check (200 dpi, sheet 1): black square 150.1 x 150.0 mm, centred horizontally, 5.9 mm above the sheet centre; quiet zone clear to 40.1 mm from the top and 51.9 mm from the bottom, 14.1 mm each side. The overlap bands are 29.4 mm, so the tag and its quiet zone stay
+10.7 mm (top) and 22 mm (bottom) clear of any overlap; only header/footer text (11-36 mm, 236-258 mm) is partly covered. **Correct.** `prints/floor_board_letter_450mm.pdf` is byte-identical to the previous printout (`git show 65beb57:prints/floor_board_letter.pdf`), PNGs kept.
+Gap (Low/Medium): the sheet says "the robot surveys the layout itself", but the startup does not run `BoardSurvey`; `marker.board_layout_file` needs an offline survey JSON that the instructions do not mention.
+
+## R2.6 Tests run
+
+`tests/cdpr/test_imu_removal_review.py` 16 passed (4 stale ones flipped, 2 added). Full suite `pytest -q tests/cdpr tests/firmware`: **278 passed, 4 failed** in 23 min; the 4 failures are the four stale assertions of this file, run from the version collected BEFORE I flipped them (the same four the implementer listed); all 16 tests of the file pass now.
+
+## R2.7 Findings, round 2
+
+| # | sev | finding | action |
+|---|---|---|---|
+| R1 | High (outside commit) | Predicted statics tilt > 5 deg over 81 % of the room: host would refuse most grips; fixtures avoid it | decision: gate on measured tilt where possible, or re-derive the model/limit |
+| R2 | Medium | `floor_displacement` blind to real tilt/rocking; tipping vs sliding of the resting claw unverified | keep the tilt-change channel with >= 2 tags; hardware check of the take-up |
+| R3 | Medium | single-tag fallback: tilt change invisible (7.8 mm / 15 mrad); kappa from the sim | document; board required |
+| R4 | Medium | new config keys lack lower bounds; layout file unvalidated | add bounds |
+| R5 | Low | default config has no board; the one-tag startup runs (seed 0 READY, 13.6 mm) but is not the validated path | announce or require the board |
+| R6 | Low | survey not run by startup; instructions silent | integrate or document |
+| R7 | Low | `test_vision` bound relaxed; LM accepts frames IPPE refused | keep, monitor with real images |
+| R8 | Low | still_pose tolerance ~15 mm amplitude for one tag (trace includes depth noise) | use lateral components |
+
+# Round 1: independent review of the D27 IMU removal (commits 8adeb8f..HEAD)
 
 Reviewer: calculation-checker (Sonnet 5.5), 2026-10-21. Read-only on code, configs and other tests. Files written: this report,
 `tests/cdpr/test_imu_removal_review.py` (14 fast tests, all pass), `scripts/review_attitude_noise.py` (CRB + Monte Carlo),

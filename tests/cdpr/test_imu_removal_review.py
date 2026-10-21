@@ -64,15 +64,14 @@ def _vision_only_cov(rot_sigma, cam_xyz=(0.1, 0.05, 0.6)):
     return o, T_B_C, pix, s
 
 
-def test_the_two_lever_terms_are_one_rotation_error_and_the_second_is_negligible():
-    """The vision-only covariance adds sigma^2 (|camera->body|^2 + |marker->body|^2) I.  The pose error is one rotation of
+def test_legacy_frame_covariance_is_isotropic_and_has_the_marker_lever_only():
+    """(Round 2: the premise of the round-1 test, two lever terms, is gone; what is left is the LEGACY path, a frame without
+    pose_cov, e.g. a fixed-noise source.)  Round 1 text: the vision-only covariance added sigma^2 (|camera->body|^2 + |marker->body|^2) I.  The pose error is one rotation of
     the whole estimate about the marker origin, whose lever on the body origin is |p| only: the 0.09 m camera->body
     term is a (conservative) double count worth ~1-2 % of the variance, i.e. harmless."""
     o, T_B_C, pix, s = _vision_only_cov(0.010)
     lev_cam, lev_p = float(np.linalg.norm(T_B_C[:3, 3])), float(np.linalg.norm(o.p))
     assert 0.55 < lev_p < 0.70                                         # the ~6 mm per frame of the report
-    frac = lev_cam ** 2 / (lev_cam ** 2 + lev_p ** 2)
-    assert 0.005 < frac < 0.03
     # |p| is within 15 % of the camera->marker range (the correct lever for the camera), the difference is the mount offset
     R_C_M, t = N.camera_pose((0.1, 0.05, 0.6))
     assert abs(lev_p / np.linalg.norm(t) - 1) < 0.15
@@ -80,13 +79,16 @@ def test_the_two_lever_terms_are_one_rotation_error_and_the_second_is_negligible
     assert o.cov[2, 2] >= (0.010 * lev_p) ** 2 and abs(o.cov[2, 2] / o.cov[0, 0] - 1) < 0.5
 
 
-def test_claw_position_cov_uses_only_the_camera_to_body_lever_and_perception_adds_the_marker_lever():
-    o, T_B_C, _, _ = _vision_only_cov(0.010)
-    c0 = claw_position_cov(MarkerObservation(True, "", make_T(np.eye(3), [0, 0, 0.6])), T_B_C, 520.0, EDGE_SINGLE,
-                           rot_sigma_rad=0.0)
-    c1 = claw_position_cov(MarkerObservation(True, "", make_T(np.eye(3), [0, 0, 0.6])), T_B_C, 520.0, EDGE_SINGLE,
-                           rot_sigma_rad=0.010)
-    assert (c1 - c0)[0, 0] == pytest.approx((0.010 * np.linalg.norm(T_B_C[:3, 3])) ** 2, rel=1e-6)
+def test_round2_claw_position_cov_no_longer_double_counts_and_the_legacy_frame_gets_one_lever():
+    """Round 2 (F9 fixed): claw_position_cov ignores rot_sigma_rad (no camera->body term); a legacy frame (no pose_cov) gets exactly
+    (sigma |p|)^2 from VisionSource.  Measured here: the covariance difference between rot_sigma 0 and 0.010 is sigma^2 |p|^2 I."""
+    o10, T_B_C, _, _ = _vision_only_cov(0.010)
+    o0, _, _, _ = _vision_only_cov(0.0)
+    c0 = claw_position_cov(MarkerObservation(True, "", make_T(np.eye(3), [0, 0, 0.6])), T_B_C, 520.0, EDGE_SINGLE, rot_sigma_rad=0.0)
+    c1 = claw_position_cov(MarkerObservation(True, "", make_T(np.eye(3), [0, 0, 0.6])), T_B_C, 520.0, EDGE_SINGLE, rot_sigma_rad=0.010)
+    assert np.allclose(c0, c1)
+    lever = float(np.linalg.norm(o10.p))
+    assert np.allclose(o10.cov - o0.cov, np.eye(3) * (0.010 * lever) ** 2, rtol=1e-6, atol=1e-12)
 
 
 def test_averaging_n_frames_reduces_tilt_and_position_noise_as_one_over_sqrt_n_for_independent_noise():
@@ -140,30 +142,32 @@ def test_board_attitude_noise_depends_on_how_many_tags_are_in_view_not_on_the_bo
 
 
 # ====================================================================== 4. settle-then-approve
-def test_dwell_arithmetic_and_its_assumptions():
+def test_dwell_arithmetic_round2():
+    """Round 2 (F8c fixed): dwell = 5 x 1.25 x T with T = 0.8887 s -> 5.55 s; loaded release: L = (0.6 x 0.196 + 0.9 x 0.5173)/1.5 =
+    0.389 m, T = 1.251 s, dwell 7.82 s.  My own compound-pendulum estimate (ASSUMED radius of gyration k = 0.13 m about the CoM):
+    unloaded T = 1.065 s -> 5.55 s is 5.2 periods (was 4.2); loaded T = 1.35 s -> 7.82 s is 5.8 periods (was 3.3)."""
+    from roomcleaner.cdpr.attitude import loaded_pendulum_length_m
     cfg = load_config(SIM)
     L = pendulum_length_m(cfg.claw)
-    assert L == pytest.approx(0.196, abs=1e-3)
     T = pendulum_period_s(L)
-    assert T == pytest.approx(0.8887, abs=1e-3)
-    assert settle_dwell_s(cfg.claw, cfg.tasks) == pytest.approx(5 * T, abs=1e-6) and 4.4 < 5 * T < 4.5
-    # reviewer's estimates (ASSUMED gyration radius k = 0.13 m about the CoM; payload 0.9 kg at 0.5 m below the plane):
-    g, k = 9.81, 0.13
-    T_compound = 2 * math.pi * math.sqrt((L ** 2 + k ** 2) / (g * L))
-    assert 1.0 < T_compound < 1.15                                   # the simple-pendulum period is ~20 % short
-    m, mp, lp = 0.6, 0.9, 0.5
-    I = m * (L ** 2 + k ** 2) + mp * lp ** 2
-    T_loaded = 2 * math.pi * math.sqrt(I / ((m * L + mp * lp) * g))
-    assert 1.2 < T_loaded < 1.5 and 5 * T / T_loaded < 3.8          # a release with the jeans gets < 4 loaded periods
-    # D28: the box and everything above the tube moved 50 mm down relative to the head; with ~60 % of the mass above
-    # the cut the CoM depth below the attachment plane shrinks by ~0.4 x 50 mm -> shorter period, the stale L is conservative
-    L28 = L - 0.4 * 0.050
-    assert pendulum_period_s(L28) < T
+    assert L == pytest.approx(0.196, abs=1e-3) and T == pytest.approx(0.8887, abs=1e-3)
+    d0 = settle_dwell_s(cfg.claw, cfg.tasks)
+    assert d0 == pytest.approx(5 * 1.25 * T, abs=1e-6) and 5.5 < d0 < 5.6
+    Lp = loaded_pendulum_length_m(cfg.claw, 0.9)
+    assert Lp == pytest.approx((0.6 * L + 0.9 * 0.5173) / 1.5, abs=2e-3) and 0.38 < Lp < 0.40
+    d1 = settle_dwell_s(cfg.claw, cfg.tasks, 0.9)
+    assert d1 == pytest.approx(5 * 1.25 * pendulum_period_s(Lp), abs=1e-6) and 7.7 < d1 < 7.9
+    g, k, m, mp, lp = 9.81, 0.13, 0.6, 0.9, 0.5173
+    T_comp = 2 * math.pi * math.sqrt((L ** 2 + k ** 2) / (g * L))
+    T_load = 2 * math.pi * math.sqrt((m * (L ** 2 + k ** 2) + mp * lp ** 2) / ((m * L + mp * lp) * g))
+    assert d0 / T_comp > 5.0 and d1 / T_load > 5.5                     # at least the 5 periods the config promises, by my numbers
+    # a payload on a claw without mass / lowest point falls back to the unloaded length (no crash)
+    assert loaded_pendulum_length_m(SimpleNamespace(com_body_m=cfg.claw.com_body_m, attachment_points_body_m=cfg.claw.attachment_points_body_m), 0.9) == pytest.approx(L)
 
 
-def test_dwell_is_counted_from_the_start_of_waiting_so_a_claw_seen_moving_then_lost_is_approved_early():
-    """Finding: the dwell used when the floor reference leaves the image is max(dwell - waited, 0) where ``waited``
-    includes time during which the camera SAW the claw moving; the claw is approved ~1.4 s after the last observed motion."""
+def test_dwell_is_counted_from_the_last_observed_motion_round2():
+    """Round 2 (F8a fixed): a claw seen moving until t = 3 s and then lost is approved only a full dwell after the last motion.
+    Also: a loaded release applies the full loaded dwell even when the camera reports stillness from the start."""
     cfg = fast_cfg()
     swing = lambda t: 6.0 * math.sin(2 * math.pi * t / 0.9)
     seen_until = 3.0
@@ -171,9 +175,11 @@ def test_dwell_is_counted_from_the_start_of_waiting_so_a_claw_seen_moving_then_l
     res = wait_until_still(ctx)
     dwell = settle_dwell_s(cfg.claw, cfg.tasks)
     assert res.ok and res.method == "dwell"
-    since_last_motion = res.waited_s - seen_until
-    assert res.waited_s == pytest.approx(dwell, abs=0.3)
-    assert since_last_motion < dwell / 2.5                         # < 2 s of quiet after the last observed swing
+    assert res.waited_s - seen_until >= dwell - 0.5                    # quiet time since the last observed motion ~ the dwell
+    ctx2 = FakeCtx(cfg, lambda t: _obs(t))                             # camera: perfectly still
+    res2 = wait_until_still(ctx2, payload_kg=0.9)
+    assert res2.ok and res2.waited_s >= settle_dwell_s(cfg.claw, cfg.tasks, 0.9) - 0.2
+    assert wait_until_still(FakeCtx(cfg, lambda t: _obs(t))).waited_s < 1.0       # unloaded and still: quick
 
 
 def test_still_threshold_vs_image_corner_noise():
@@ -195,16 +201,17 @@ def test_still_threshold_vs_image_corner_noise():
     assert p_pass(0.3) > 0.99 and 0.6 < p_pass(0.5) < 0.9 and p_pass(1.0) < 0.1
 
 
-def test_still_pose_gate_is_blind_to_swing_when_the_covariance_is_large():
-    """perception.still_pose allows scatter hypot(spread_max, 3 sqrt(trace cov)) among n frames: the vision-only lever term
-    inflates cov ~10x, so a ~20 mm swing that the old gate (rot_sigma 4 mrad IMU-like) rejected is now accepted as 'still'."""
+def test_still_pose_gate_rejects_a_swing_at_any_covariance_round2():
+    """Round 2 (F6 fixed): the gate judges the raw camera-frame scatter.  Same one-window experiment as round 1 (fastest part of a
+    2.8 s swing): 30 mm AND 25 mm amplitude are rejected (the tolerance for one tag at 0.6 m is hypot(3 mm, 3 x ~2.7 mm camera-frame depth noise) = ~8.7 mm RMS scatter, i.e. a swing of ~15 mm amplitude is still accepted: depth noise inflates the LATERAL tolerance because the gate uses the trace; round 1 measured 32 mm) at rot_sigma 0.004 and 0.010; a still claw is accepted; a 1 mm swing
+    (inside the 3 mm motion budget) is accepted."""
     def accepts(rot_sigma, amp_m):
         now = {"t": 1.0e6}
         T_B_C = make_T(rpy_to_matrix(np.pi, 0, 0), [0.0, 0.09, -0.0056])
         R_C_M, t = N.camera_pose((0.0, 0.0, 0.6))
 
         def obs(n):
-            x = amp_m * math.sin(2 * math.pi * (n / 1e6) / 2.8)          # long-cable swing, 2.8 s period
+            x = amp_m * math.sin(2 * math.pi * (n / 1e6) / 2.8)
             tt = t + R_C_M @ np.array([x, 0, 0]) * -1.0
             return MarkerObservation(True, "", make_T(R_C_M, tt), 0.3, 50.0, 100.0,
                                      N.project(N.tag_corners(0, 0, EDGE_SINGLE), R_C_M, tt), frame_id=1, capture_us=n)
@@ -213,14 +220,17 @@ def test_still_pose_gate_is_blind_to_swing_when_the_covariance_is_large():
 
         def wait(s):
             now["t"] += s * 1e6
-        sp, _ = v.still_pose(10, wait, interval_s=0.1, max_wait_s=0.95, spread_max_m=0.003)       # ONE window, at the fastest part of the swing
+        sp, _ = v.still_pose(10, wait, interval_s=0.1, max_wait_s=0.95, spread_max_m=0.003)       # ONE window
         return sp is not None
-    assert not accepts(0.004, 0.030)                                   # IMU-era covariance: 30 mm swing rejected
-    assert accepts(0.010, 0.030)                                       # vision-only covariance: accepted (finding)
+    for rs in (0.004, 0.010):
+        assert not accepts(rs, 0.030) and not accepts(rs, 0.025)
+        assert accepts(rs, 0.0) and accepts(rs, 0.001)
 
 
 # ====================================================================== mount offset and hardware refusal
-def test_mount_offset_absorbs_any_rest_tilt_of_the_claw_and_the_post_correction_check_is_vacuous():
+def test_mount_offset_still_absorbs_a_CONSTANT_rest_tilt_round2():
+    """Round 2: the startup now has a held-out check (re-measure 30 frames against the corrected mount), which catches a rest tilt that
+    CHANGES between the sets, not a constant one (the residual below is ~0 by construction for a constant tilt): F7 first half only."""
     R_nom = rpy_to_matrix(np.pi, 0, 0)
     rest = rotvec_to_matrix([math.radians(3.0), 0.0, 0.0])             # claw standing 3 deg off vertical, camera mount exact
     up_cam = (R_nom @ np.eye(3)).T @ (rest.T @ np.array([0, 0, 1.0]))  # marker normal in camera coordinates
@@ -264,3 +274,78 @@ def test_probe_onset_noise_is_dominated_by_per_pose_tilt_lever_that_a_fixed_refe
     assert d["repo_xy_mm"] > 2.0
     assert d["fixedR_xy_mm"] < d["repo_xy_mm"] / 10
     assert d["repo_z_mm"] < 1.0 < d["repo_xy_mm"] / 2          # and the repo's isotropic covariance puts the same sigma on z
+
+
+# ====================================================================== round 2: new covariance and camera-frame displacement
+def _detect(tags, edge, T_M_B, T_B_C, rng, px=0.3):
+    """A detector-like observation with noisy corners (cv2 IPPE + LM, lowest reprojection error) carrying the repo's pose_cov."""
+    import cv2
+    from roomcleaner.cdpr.frames import inv_T
+    from roomcleaner.cdpr.vision.marker import pose_covariance
+    T = inv_T(T_M_B @ T_B_C)
+    R, t = T[:3, :3], T[:3, 3]
+    vis = N.visible(tags, edge, R, t)
+    P = np.vstack([N.tag_corners(x, y, edge) for x, y in vis])
+    uv = N.project(P, R, t) + rng.normal(0, px, (4 * len(vis), 2))
+    flag = cv2.SOLVEPNP_IPPE if len(P) > 4 else cv2.SOLVEPNP_IPPE_SQUARE
+    _, rvs, tvs, _ = cv2.solvePnPGeneric(P, uv, N.K, None, flags=flag)
+    best = None
+    for rv, tv in zip(rvs, tvs):
+        rv, tv = cv2.solvePnPRefineLM(P, uv, N.K, None, rv.copy(), tv.copy())
+        e = float(np.sum((cv2.projectPoints(P, rv, tv, N.K, None)[0].reshape(-1, 2) - uv) ** 2))
+        if best is None or e < best[0]:
+            best = (e, rv, tv)
+    Tn = make_T(cv2.Rodrigues(best[1])[0], best[2].ravel())
+    return MarkerObservation(True, "", Tn, 0.3, 50.0, 100.0, uv[:4], frame_id=1, capture_us=1e6,
+                             pose_cov=pose_covariance(P, Tn, N.K, 0.3, 1.3), anchor_M=P.mean(0), n_tags=len(vis))
+
+
+def test_repo_pose_covariance_matches_my_independent_monte_carlo():
+    """Their Cramer-Rao pose covariance (inflate 1) against my own cv2 Monte Carlo (IPPE+LM, 0.3 px): roll/pitch of the claw for one
+    tag at 0.52 m and for the 3x3 / 0.25 m board at 1.0 m; and the repo default (inflate 1.3) is 1.3x that."""
+    from roomcleaner.cdpr.vision.marker import claw_cov_from_pose, pose_covariance, roll_pitch_sigma
+    T_B_C = make_T(rpy_to_matrix(np.pi, 0, 0), [0.0, 0.09, -0.0056])
+    for tags, edge, cam, lo, hi in (([(0, 0)], EDGE_SINGLE, (0.0, 0.0, 0.52), 11.5, 15.5),
+                                    (N.board_tags(0.25, 0.15), 0.15, (0.0, 0.0, 1.0), 1.0, 2.0)):
+        R, t = N.camera_pose(cam, (0.03, -0.02))
+        vis = N.visible(tags, edge, R, t)
+        P = np.vstack([N.tag_corners(x, y, edge) for x, y in vis])
+        T_mc, _, _ = N.mc(P, R, t, 0.3, n=800, seed=4, refine=True)
+        mc = 1e3 * float(np.sqrt(np.mean(T_mc ** 2)))
+        T_C_M = make_T(R, t)
+        # claw attitude: use a camera-over-origin claw whose camera is the claw camera (mount offset only changes the lever)
+        s1 = 1e3 * roll_pitch_sigma(claw_cov_from_pose(pose_covariance(P, T_C_M, N.K, 0.3, 1.0), T_C_M, T_B_C)[1])
+        s13 = 1e3 * roll_pitch_sigma(claw_cov_from_pose(pose_covariance(P, T_C_M, N.K, 0.3, 1.3), T_C_M, T_B_C)[1])
+        assert lo < mc < hi, (mc, len(vis))
+        assert s1 == pytest.approx(mc, rel=0.2), (s1, mc, len(vis))
+        assert s13 == pytest.approx(1.3 * s1, rel=1e-6)
+
+
+def test_cam_displacement_round2_noise_and_its_blind_spot():
+    """(a) cam_displacement of a claw that moves 3.6 mm (rigid, tilt about the body origin), 150 trials of single frames at 0.51 m
+    height, 0.3 px: error rms in mm.  tilt change 0: single tag ~1.3 (absolute pose 8.8), board ~0.3 (0.8).  A REAL tilt change of
+    15 mrad: board sees it (0.8 mm), one tag does not (7.8 mm = tilt x 0.5 m lever, as documented).  (b) floor_displacement uses the
+    reference tilt only: blind to a real tilt change even with the board (7.8 mm): sound only for a claw that cannot tilt."""
+    from roomcleaner.cdpr.perception import cam_displacement, floor_displacement
+    from roomcleaner.cdpr.frames import rotvec_to_matrix
+    T_B_C = make_T(rpy_to_matrix(np.pi, 0, 0), [0.0, 0.09, -0.0056])
+    rng = np.random.default_rng(0)
+
+    def po(mo):
+        return VisionSource(SimpleNamespace(observe=lambda n: mo), T_B_C, 520.0, 0.15, max_age_s=0.5, now_us=lambda: 1e6).observe()
+
+    def rms(tags, edge, eps, n=100):
+        p0, d = np.array([0.05, 0.02, 0.51]), np.array([0.003, -0.002, 0.0])
+        E = []
+        for _ in range(n):
+            ref = po(_detect(tags, edge, make_T(np.eye(3), p0), T_B_C, rng))
+            o = po(_detect(tags, edge, make_T(rotvec_to_matrix([eps, 0, 0]), p0 + d), T_B_C, rng))
+            E.append([np.linalg.norm(cam_displacement(o, ref)[0] - d), np.linalg.norm(floor_displacement(o, ref)[0] - d),
+                      np.linalg.norm((o.p - ref.p) - d)])
+        return 1e3 * np.sqrt(np.mean(np.square(E), axis=0))
+    one, board = [(0, 0)], N.board_tags(0.25, 0.15)
+    a0, b0 = rms(one, EDGE_SINGLE, 0.0), rms(board, 0.15, 0.0)
+    a1, b1 = rms(one, EDGE_SINGLE, 0.015), rms(board, 0.15, 0.015)
+    assert a0[0] < 2.0 < a0[2] and b0[0] < 0.6 and a0[2] > 5 * b0[0]            # displacement beats the absolute pose
+    assert a1[0] > 5.0 and a1[1] > 5.0                                          # one tag: a real tilt change is NOT seen
+    assert b1[0] < 1.5 and b1[1] > 5.0                                          # board: cam_displacement sees it, floor_displacement does not

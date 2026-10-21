@@ -83,17 +83,18 @@ def capture_sigma(bead, model_sigma: float, payout_per_ustep: float, latency_s: 
                      + (bead.approach_speed_m_s * latency_s) ** 2)
 
 
-def check_capture(length_fn, i, P_cap, bead, sigma, k) -> BeadCheck:
-    """``length_fn(i, P)`` is the current model's external length at position P."""
+def check_capture(length_fn, i, P_cap, bead, sigma, k, sid=None) -> BeadCheck:
+    """``length_fn(i, P)`` is the current model's external length at position P. ``sid``: the station's id (default: the
+    i-th of A-D; three-station mode passes it, as index i is then the place among the ACTIVE stations)."""
     Lp = float(length_fn(i, P_cap))
     r = Lp - bead.trigger_length_m
-    return BeadCheck(IDS[i], float(P_cap), Lp, bead.trigger_length_m, r, sigma, k, abs(r) <= k * sigma)
+    return BeadCheck(sid or IDS[i], float(P_cap), Lp, bead.trigger_length_m, r, sigma, k, abs(r) <= k * sigma)
 
 
 def bead_workspace(ws: Workspace, i: int, min_len: float) -> Workspace:
     mins = ws.min_lengths.copy()
     mins[i] = min_len
-    return Workspace(ws.lo, ws.hi, mins, ws.obstacles)
+    return replace(ws, min_lengths=mins)
 
 
 def approach_pose(model, i, L_target, ws: Workspace, *, mass_kg, t_min, t_max, R=None, prefer=None,
@@ -131,7 +132,7 @@ def approach_pose(model, i, L_target, ws: Workspace, *, mass_kg, t_min, t_max, R
             if best is None or key < best[0]:
                 best = (key, p, t)
     if best is None:
-        return None, f"no feasible approach pose for cable {IDS[i]} at {L_target:.3f} m (rejections: {why})"
+        return None, f"no feasible approach pose for cable {ws.ids[i]} at {L_target:.3f} m (rejections: {why})"
     return best[1], best[2]
 
 
@@ -145,7 +146,7 @@ class BeadVerifier:
         self.latency_s = latency_s
 
     def _length(self, i, P):
-        return self.model.maps[IDS[i]].length(P)
+        return self.model.maps[self.model.ids[i]].length(P)
 
     def _unit(self, i, p):
         return self.model.geometry.unit_vectors(p)[i]
@@ -164,7 +165,7 @@ class BeadVerifier:
         return r, None
 
     def run(self, i: int, *, p_home, repeats: int = 2) -> BeadOutcome:
-        sid = IDS[i]
+        sid = self.model.ids[i]
         bead = self.cfg.stations[i].bead
         k = self.cfg.calibration.bead_k_sigma
         out = BeadOutcome(sid, "BLOCKED", L0_old=self.model.maps[sid].L0)
@@ -209,8 +210,9 @@ class BeadVerifier:
         slow = replace(self.lim, cart_v=bead.approach_speed_m_s, cable_v=bead.approach_speed_m_s,
                        cart_a=min(self.lim.cart_a, bead.approach_speed_m_s / 0.2),
                        cable_a=min(self.lim.cable_a, bead.approach_speed_m_s / 0.2))
-        ref_search = [1 if j == i else 0 for j in range(4)]
-        ref_back = [2 if j == i else 0 for j in range(4)]
+        n_st = len(self.model.ids)
+        ref_search = [1 if j == i else 0 for j in range(n_st)]
+        ref_back = [2 if j == i else 0 for j in range(n_st)]
         caps = []
         for rep in range(repeats):
             p0 = self._pose()
@@ -236,7 +238,7 @@ class BeadVerifier:
                               "trigger length wrong, or switch/wiring fault")
                 return out
             P_cap = float(r.captures[sid]["pos"])
-            chk = check_capture(self._length, i, P_cap, bead, sig, k)
+            chk = check_capture(self._length, i, P_cap, bead, sig, k, sid=sid)
             out.checks.append(chk)
             lg(f"capture {rep + 1}: predicted {chk.L_predicted:.4f} m vs trigger {chk.trigger:.4f} m "
                f"(residual {chk.residual * 1e3:+.2f} mm, limit {k * sig * 1e3:.2f} mm)")

@@ -67,6 +67,43 @@ CHECKLIST = [
 ]
 
 
+def checklist_for(cfg) -> list:
+    """The pre-start checklist for the ACTIVE stations of ``cfg``. Four stations: ``CHECKLIST`` exactly. Three-station mode
+    names the active cables and says where the claw goes (the centroid of the active anchors, not the room centre)."""
+    out = list(CHECKLIST)
+    if cfg.n_active == 4:
+        return out
+    ids = ", ".join(cfg.ids)
+    sx, sy = cfg.start_point_xy()
+    out[2] = (f"Claw upright on the floor at the start point ({sx:.2f}, {sy:.2f}) m, the centroid of anchors {ids} "
+              "(NOT the room centre), marker under the camera")
+    out[3] = f"All active cables ({ids}) attached and routed over their pulleys"
+    return out
+
+
+def start_point_text(cfg) -> str:
+    sx, sy = cfg.start_point_xy()
+    if cfg.n_active == 4:
+        return f"Start point: the middle of the room, ({sx:.2f}, {sy:.2f}) m. Put the claw upright here, marker under the camera."
+    return (f"Start point: ({sx:.2f}, {sy:.2f}) m, the centroid of anchors {', '.join(cfg.ids)} (not the room centre). "
+            "Put the claw upright here, marker under the camera.")
+
+
+def workspace_summary(cfg, anchors=None) -> dict | None:
+    """Three-station mode: the triangle the claw can use and the tension-floor margin from each of its edges (m); None for
+    four stations. ``anchors``: (3, 3) room-frame anchors (default: the configured priors)."""
+    if cfg.n_active != 3:
+        return None
+    from .config import triangle_geometry
+    A = cfg.anchor_priors() if anchors is None else np.asarray(anchors, float)
+    g = triangle_geometry(A[:, :2])
+    lam = cfg.tension_floor_fraction() or 0.0
+    return {"ids": list(cfg.ids), "triangle_area_m2": round(g["area_m2"], 3),
+            "tension_floor_fraction": round(lam, 4),
+            "edge_margin_m": {s: round(float(lam * g["altitudes_m"][i]), 3) for i, s in enumerate(cfg.ids)},
+            "usable_area_m2": round(g["area_m2"] * (1 - 3 * lam) ** 2, 3)}
+
+
 class Service:
     def __init__(self, robot_ctx, *, data_dir=DEFAULT_DATA, config_path=None, token=None, task_factory=None,
                  frame_source=None):
@@ -219,12 +256,25 @@ class Service:
             raise CommandRefused("width_m, depth_m and height_m are required numbers")
         if np.any(room < 1.0) or np.any(room > 10.0):
             raise CommandRefused("room dimensions must be 1-10 m")
+        old_room, old_anchors = cfg.room_m, {s.id: s.anchor_room_m for s in cfg.all_stations}
         cfg.room_m = room
         for sid, a in (body.get("anchors") or {}).items():
             a = np.asarray(a, float)
             if a.shape != (3,) or np.any(a < -0.2) or np.any(a > room + 0.2):
                 raise CommandRefused(f"anchor {sid} outside the room")
-            cfg.station(sid).anchor_room_m = a
+            try:
+                cfg.record(sid).anchor_room_m = a          # any of the four records (an unmounted station's entry too)
+            except KeyError:
+                raise CommandRefused(f"unknown station {sid!r}")
+        if cfg.n_active == 3:                              # three-station mode: the anchors must still span a triangle
+            from .config import ConfigError, _check_triangle
+            try:
+                _check_triangle(cfg)
+            except ConfigError as e:
+                cfg.room_m = old_room                      # a refused edit changes nothing
+                for st in cfg.all_stations:
+                    st.anchor_room_m = old_anchors[st.id]
+                raise CommandRefused(str(e))
         if self.config_path:
             raw = json.loads(self.config_path.read_text())
             raw["room"].update(width_m=room[0], depth_m=room[1], height_m=room[2])
@@ -238,8 +288,17 @@ class Service:
 
     def status(self):
         s = self.sup.status()
-        s.update(busy=self.busy, error=self.last_error, checklist=CHECKLIST,
-                 room_m=self.ctx.cfg.room_m.tolist(), profile=self.ctx.cfg.profile)
+        cfg = self.ctx.cfg
+        s.update(busy=self.busy, error=self.last_error, checklist=checklist_for(cfg),
+                 room_m=cfg.room_m.tolist(), profile=cfg.profile)
+        # three-station mode (docs/THREE_STATION_MODE.md): which stations are mounted, where the claw starts (additive keys)
+        s.update(stations_active=list(cfg.ids), stations_inactive=list(cfg.inactive_ids),
+                 start_point_m=[round(float(v), 4) for v in cfg.start_point_xy()], start_point_text=start_point_text(cfg),
+                 workspace=workspace_summary(cfg),
+                 mode_text=("" if cfg.n_active == 4 else
+                            f"THREE-STATION MODE: cables {', '.join(cfg.ids)} only; station {', '.join(cfg.inactive_ids)} is "
+                            "not used (not configured, not armed). No spare cable (a failed station drops the claw), about a third of the "
+                            "four-cable yaw stiffness, and only the middle of the room is usable."))
         s["trust"] = self.trust_summary()
         # -- phone app additions (every key above is unchanged)
         co, now_us = self.ctx.co, self.ctx.co.rt.now_us()
@@ -774,6 +833,15 @@ def build_marker_detector(cfg, cam):
     return MarkerDetector(cfg.marker.family, cfg.marker.id, cfg.marker.edge_m, cam, **common)
 
 
+def station_addresses(cfg) -> dict:
+    """{id: (ip, port)} of the ACTIVE stations: the only ones that need an address and get a transport (three-station mode:
+    an inactive station is never addressed, configured or armed). SystemExit if an active station or the claw has none."""
+    addrs = {s.id: s.address for s in cfg.stations}
+    if any(v is None for v in addrs.values()) or cfg.claw.address is None:
+        raise SystemExit("station/claw addresses must be set in the config for hardware mode")
+    return {k: (v.split(":")[0], int(v.split(":")[1])) for k, v in addrs.items()}
+
+
 def build_hardware_context(config_path, data_dir):
     """Wire the real transports: UDP stations, HTTP claw, detector."""
     from .claw_link import DetectorFrameSource, HttpClawClient, ThreadedFrameSource
@@ -786,10 +854,7 @@ def build_hardware_context(config_path, data_dir):
     from .vision.camera import CameraModel
     cfg = load_config(config_path)
     rt = RealRuntime()
-    addrs = {s.id: s.address for s in cfg.stations}
-    if any(v is None for v in addrs.values()) or cfg.claw.address is None:
-        raise SystemExit("station/claw addresses must be set in the config for hardware mode")
-    co = Coordinator(cfg, UdpHostTransport({k: (v.split(":")[0], int(v.split(":")[1])) for k, v in addrs.items()}), rt)
+    co = Coordinator(cfg, UdpHostTransport(station_addresses(cfg)), rt)
     cam = CameraModel.load(cfg.camera.intrinsics_file)
     claw = HttpClawClient(f"http://{cfg.claw.address}", now_us=rt.now_us)
     det = build_marker_detector(cfg, cam)
@@ -801,7 +866,7 @@ def build_hardware_context(config_path, data_dir):
     vision = VisionSource(src, cfg.claw.T_body_cam, cam.fx, cfg.marker.edge_m, max_age_s=cfg.camera.max_frame_age_s,
                           now_us=rt.now_us, rot_sigma=cfg.claw.vision_attitude_sigma_rad,
                           rot_floor=cfg.claw.vision_attitude_floor_rad, pixel_sigma=cfg.camera.corner_sigma_px)
-    ctx = RobotContext(cfg, co, claw, vision, cam, TrustLedger(), data_dir=data_dir)
+    ctx = RobotContext(cfg, co, claw, vision, cam, TrustLedger.for_ids(cfg.ids), data_dir=data_dir)
     attach_board_survey(ctx, det, cfg)
     return ctx
 

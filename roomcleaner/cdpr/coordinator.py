@@ -1,4 +1,5 @@
-"""Synchronized execution of a Plan on all four stations.
+"""Synchronized execution of a Plan on all ACTIVE stations (four; three in three-station mode: ``ids`` defaults to
+``cfg.ids``, an inactive station has no link and is never addressed).
 
 Readiness gate (all must hold before a motion starts):
   * every station: fresh telemetry, no fault, IDLE (armed, holding), same boot
@@ -58,11 +59,11 @@ class CoordinatorError(RuntimeError):
 
 
 class Coordinator:
-    def __init__(self, cfg, transport, runtime, ids=("A", "B", "C", "D")):
+    def __init__(self, cfg, transport, runtime, ids=None):
         self.cfg = cfg
         self.tx = transport
         self.rt = runtime
-        self.ids = tuple(ids)
+        self.ids = tuple(cfg.ids if ids is None else ids)
         self.links = {s: StationLink(s) for s in self.ids}
         self.motion_id = int(runtime.now_us()) % 100000 * 10
         self.next_sync = 0.0

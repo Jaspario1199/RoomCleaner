@@ -82,8 +82,11 @@ class StationTrust:
 
 @dataclass
 class TrustLedger:
+    """What the robot may believe, per ACTIVE station. The default is all four stations (A-D); three-station mode builds
+    the ledger with ``TrustLedger.for_ids(cfg.ids)``, so an inactive station has no entry: it can neither be invalid nor
+    block the level, and it never shows up in the status."""
     stations: dict = field(default_factory=lambda: {s: StationTrust() for s in "ABCD"})
-    anchors_room: list | None = None   # 4x3
+    anchors_room: list | None = None   # (n_active)x3
     anchors_sigma: list | None = None
     T_R_M: list | None = None          # marker registration (4x4)
     marker_valid: bool = False
@@ -96,6 +99,32 @@ class TrustLedger:
     claw_supported: bool = False       # FAIL CLOSED: unknown means "may be hanging"; set True only by
                                        # a vision floor check, False before the first lift command
     history: list = field(default_factory=list)
+
+    @classmethod
+    def for_ids(cls, ids) -> "TrustLedger":
+        """A fresh ledger over exactly the stations ``ids`` (the active ones)."""
+        return cls(stations={s: StationTrust() for s in ids})
+
+    def restrict_to(self, ids) -> bool:
+        """Make the ledger cover exactly ``ids`` (a ledger saved by a run with another active set): entries of stations
+        that are not active any more are dropped; an active station the ledger does not know starts invalid. Returns True
+        if anything changed (a ledger that already covers ``ids`` is left exactly as it is)."""
+        ids = list(ids)
+        changed = False
+        for s in list(self.stations):
+            if s not in ids:
+                self._note(f"{s}: not an active station any more; entry dropped")
+                del self.stations[s]
+                changed = True
+        for s in ids:
+            if s not in self.stations:
+                self.stations[s] = StationTrust(note="not in the saved ledger")
+                self._note(f"{s}: new active station, reference not valid")
+                changed = True
+        if changed:
+            self.stations = {s: self.stations[s] for s in ids}
+            self._update_level()
+        return changed
 
     # ------------------------------------------------------------- events
     def _note(self, s):

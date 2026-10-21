@@ -2,6 +2,9 @@
 
 Quasi-static model (the claw is slow and light):
 
+* The world is built with the ACTIVE cables only (``cfg.stations``: four, or three in three-station mode; an inactive
+  station has no spool, no cable and no switch here). With three cables the claw is held with all-positive tensions only
+  inside the triangle of the anchors' floor projection and has little yaw stiffness (see kinematics.py).
 * Each cable has a free (unstretched) length ``ell_i`` set by its spool's
   physical motor position through the TRUE spool geometry. It carries tension
   ``k_i * max(0, d_i - ell_i)`` with ``k_i = EA / ell_i`` (no compression,
@@ -47,12 +50,15 @@ G = 9.81
 
 
 class World:
-    def __init__(self, cfg, stations: dict, *, anchors, T_R_M, claw_xy, claw_yaw=0.0, slack_m=(0.08,) * 4,
-                 mass_kg=None, EA_n=20000.0, mu=0.4, bead_trigger_m=None, payout_scale=(1.0,) * 4,
+    def __init__(self, cfg, stations: dict, *, anchors, T_R_M, claw_xy, claw_yaw=0.0, slack_m=None,
+                 mass_kg=None, EA_n=20000.0, mu=0.4, bead_trigger_m=None, payout_scale=None,
                  line_total_m=None, seed=0, update_s=0.005, suspended_at=None, bead_noise_m=0.0003, rock=None):
         self.cfg = cfg
         self.stations = stations
         self.ids = list(cfg.ids)
+        n = self.n = len(self.ids)                     # active cables: 4, or 3 in three-station mode
+        slack_m = (0.08,) * n if slack_m is None else slack_m
+        payout_scale = (1.0,) * n if payout_scale is None else payout_scale
         self.anchors = np.asarray(anchors, float)
         self.T_R_M = np.asarray(T_R_M, float)
         self.attach = cfg.attachment_points()
@@ -83,7 +89,7 @@ class World:
         self.p = np.array([claw_xy[0], claw_xy[1], self.z_floor])
         self.R = rot_z(claw_yaw)
         self.on_floor = True
-        stretch = np.zeros(4)
+        stretch = np.zeros(n)
         if suspended_at is not None:
             from ..kinematics import Geometry, tension_distribution
             self.p = np.asarray(suspended_at, float)
@@ -106,11 +112,11 @@ class World:
             self.line_total.append(lt)
             self.phi0.append(sp.angle_from_wound(lt - ell))         # angle at physical motor = 0
         self.bead_noise = bead_noise_m
-        self._bead_jit = self.rng.normal(0, bead_noise_m, 4)
-        self._sw = [False] * 4
+        self._bead_jit = self.rng.normal(0, bead_noise_m, n)
+        self._sw = [False] * n
         for k, sid in enumerate(self.ids):
             stations[sid].switch_fn = (lambda kk=k: self._switch(kk))
-        self.tension = np.zeros(4)
+        self.tension = np.zeros(n)
         self.events = []
         self.items: list = []           # {"id","xy","height","mass","state","last_drop"}
         self.held = None
@@ -156,7 +162,7 @@ class World:
         return np.linalg.norm(self.anchors - self.attach_world(p), axis=1)
 
     def ell(self):
-        out = np.zeros(4)
+        out = np.zeros(self.n)
         for k, sid in enumerate(self.ids):
             st = self.stations[sid]
             phi = self.phi0[k] - 2 * math.pi * st.motor / st.spr
@@ -216,7 +222,7 @@ class World:
 
     def _grad_hess(self, p, R, ell, m, c, rot):
         """Gradient and Hessian of the potential energy wrt the twist (dp, w): p <- p + dp, R <- exp([w]x) R."""
-        r = self.attach @ R.T                                           # (4,3) attachment offsets, world frame
+        r = self.attach @ R.T                                           # (n,3) attachment offsets, world frame
         d_vec = self.anchors - (p + r)
         d = np.linalg.norm(d_vec, axis=1)
         n = d_vec / d[:, None]
@@ -230,7 +236,7 @@ class World:
         grad = np.zeros(n_tw)
         grad[:3] = g.sum(0) + gc
         H = np.zeros((n_tw, n_tw))
-        Hq = np.zeros((4, 3, 3))
+        Hq = np.zeros((self.n, 3, 3))
         w_ = np.where(taut, k * ell / d, 0.0)
         Hq[:] = (np.where(taut, k * (1 - ell / d), 0.0))[:, None, None] * np.eye(3) \
             + w_[:, None, None] * n[:, :, None] * n[:, None, :]
@@ -435,7 +441,7 @@ class World:
             excess = float(np.linalg.norm(Fh)) - self.mu * max(N, 0.0)
             if excess <= 1e-6 or not self.rock["slide"]:
                 break
-            kh = sum(k[i] for i in range(4) if T[i] > 0)
+            kh = sum(k[i] for i in range(self.n) if T[i] > 0)
             step = min(excess / max(kh, 1.0), 0.01)
             self.p[:2] += Fh / np.linalg.norm(Fh) * step
         if th < self.rock["max_rad"]:
@@ -455,7 +461,7 @@ class World:
             if excess <= 1e-6:
                 return
             # move along the pull until friction balances (stiffness-scaled step)
-            kh = sum(k[i] for i in range(4) if T[i] > 0)
+            kh = sum(k[i] for i in range(self.n) if T[i] > 0)
             step = min(excess / max(kh, 1.0), 0.01)
             self.p[:2] += Fh / np.linalg.norm(Fh) * step
 
@@ -732,11 +738,15 @@ def default_world(cfg, stations, *, seed=0, anchor_err_m=0.04, marker_xy=None, m
     (i, j) wires station i's cable to corner j and vice versa (an installation
     error the startup must catch)."""
     rng = np.random.default_rng(seed + 1000)
-    anchors = cfg.anchor_priors() + rng.normal(0, anchor_err_m, (4, 3))
+    n = cfg.n_active
+    anchors = cfg.anchor_priors() + rng.normal(0, anchor_err_m, (n, 3))
     if swap_stations is not None:
         i, j = swap_stations
         anchors[[i, j]] = anchors[[j, i]]
-    mxy = cfg.room_m[:2] / 2 + rng.normal(0, 0.15, 2) if marker_xy is None else np.asarray(marker_xy)
+    # the claw starts at the middle of the room (four stations) or at the centroid of the active anchors (three: the room
+    # centre may lie on the triangle's edge), the marker under it, both a little off the configured point
+    start = cfg.room_m[:2] / 2 if n == 4 else cfg.start_point_xy()
+    mxy = start + rng.normal(0, 0.15, 2) if marker_xy is None else np.asarray(marker_xy)
     yaw = cfg.marker.heading_prior_rad + rng.normal(0, marker_yaw_err)
     T_R_M = planar_T(mxy[0], mxy[1], yaw)
     # the claw is placed upright with the marker under the camera
@@ -748,6 +758,6 @@ def default_world(cfg, stations, *, seed=0, anchor_err_m=0.04, marker_xy=None, m
         # way it hangs (a line cannot pass through the box): +-25 deg, same random stream as the point-claw profile
         claw_yaw *= math.radians(25.0) / math.pi
     xy = cam_xy - rot_z(claw_yaw)[:2, :2] @ cam_off_body + np.asarray(claw_offset)
-    slack = kw.pop("slack_m", tuple(rng.uniform(0.03, 0.10, 4)))
+    slack = kw.pop("slack_m", tuple(rng.uniform(0.03, 0.10, n)))
     return World(cfg, stations, anchors=anchors, T_R_M=T_R_M, claw_xy=xy, claw_yaw=claw_yaw, slack_m=slack,
                  seed=seed, **kw)

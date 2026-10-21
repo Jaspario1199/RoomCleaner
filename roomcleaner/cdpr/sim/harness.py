@@ -69,7 +69,7 @@ class SimRobot:
                                    pixel_sigma=ck.get("est_pixel_sigma") or ck["pixel_sigma"],
                                    imu=self.claw if cfg.claw.imu else None,
                                    rot_sigma=cfg.claw.vision_attitude_sigma_rad, rot_floor=cfg.claw.vision_attitude_floor_rad)
-        self.ledger = TrustLedger()
+        self.ledger = TrustLedger.for_ids(cfg.ids)           # active stations only (three-station mode: no entry for the others)
         self.ctx = RobotContext(cfg, self.co, self.claw, self.vision, self.camera, self.ledger, log=log,
                                 data_dir=data_dir)
         # a board floor reference: the excitation design (visibility, predicted covariance) knows its layout, as it would

@@ -2,8 +2,8 @@
 
 The planner never sends "pull one cable, release the opposite one by the same
 amount" or "pay out every cable equally". Every Cartesian move is converted
-through the current geometric model into four cable-length histories, and
-those into four motor-position histories via each station's spool map. All
+through the current geometric model into per-cable length histories (one per ACTIVE station: four, or three in
+three-station mode), and those into motor-position histories via each station's spool map. All
 stations share one timeline (same knot times), so a feed-hold in path time
 keeps the geometry consistent.
 
@@ -43,7 +43,7 @@ class RobotModel:
     """Current best geometric model in the working (room) frame."""
     geometry: Geometry
     maps: dict          # sid -> CableMap (with L0 for the current boot epoch)
-    ids: tuple = ("A", "B", "C", "D")
+    ids: tuple = ("A", "B", "C", "D")   # the ACTIVE stations (model_from sets them from the config: 3 or 4)
 
     def lengths(self, p, R=None):
         return self.geometry.lengths(p, R)
@@ -63,9 +63,9 @@ class RobotModel:
 class Plan:
     """A synchronized motion: knot times shared by all stations."""
     times: np.ndarray                       # (K,) seconds from motion start
-    pos: np.ndarray                         # (K, 4) microsteps
-    vel: np.ndarray                         # (K, 4) microsteps / s
-    ref: np.ndarray                         # (K-1, 4) segment ref flag per station
+    pos: np.ndarray                         # (K, n) microsteps, n = number of active stations (3 or 4)
+    vel: np.ndarray                         # (K, n) microsteps / s
+    ref: np.ndarray                         # (K-1, n) segment ref flag per station
     cart: np.ndarray | None = None          # (K, 3) planned claw positions (if Cartesian)
     label: str = ""
     meta: dict = field(default_factory=dict)
@@ -163,7 +163,8 @@ def _segment_count(T: float, segment_s: float) -> int:
 
 def _noop_plan(start_pos, cart, label, meta) -> Plan:
     """A one-knot plan: the stations stay where they are (see NOOP_CABLE_M)."""
-    return Plan(np.zeros(1), np.asarray(start_pos, float).reshape(1, 4), np.zeros((1, 4)), np.zeros((0, 4), int),
+    start = np.asarray(start_pos, float).reshape(1, -1)
+    return Plan(np.zeros(1), start, np.zeros_like(start), np.zeros((0, start.shape[1]), int),
                 None if cart is None else np.asarray(cart, float).reshape(1, 3), label, {"noop": True, **meta})
 
 
@@ -224,7 +225,7 @@ def plan_line(model: RobotModel, p_from, p_to, lim: Limits, *, R=None, ws: Works
         L = model.lengths(q, R)
         vel[k] = [dl / model.maps[sid].payout_per_ustep(Li) for sid, dl, Li in zip(model.ids, dLdt, L)]
     vel[0] = vel[-1] = 0.0
-    refs = np.zeros((n, 4), int) if ref is None else np.tile(np.asarray(ref, int), (n, 1))
+    refs = np.zeros((n, pos.shape[1]), int) if ref is None else np.tile(np.asarray(ref, int), (n, 1))
     return Plan(times, pos, vel, refs, cart, label, {"v": v, "a": a, "dist": dist})
 
 
@@ -257,7 +258,7 @@ def plan_line_from(model: RobotModel, P_actual, p_to, lim: Limits, *, R=None, p_
         raise PlanError(f"actual positions differ from the model by {np.round(off_m * 1e3, 1).tolist()} mm "
                         "of cable: model and cables disagree")
     if plan.is_noop:                         # already at the target: hold exactly where the stations are
-        plan.pos = P_actual.reshape(1, 4).copy()
+        plan.pos = P_actual.reshape(1, -1).copy()
         plan.cart = np.asarray(p_from, float).reshape(1, 3)
         plan.meta["start_offset_usteps"] = off.tolist()
         plan.meta["start_fk_rms_m"] = rms
@@ -300,7 +301,7 @@ def plan_cable_move(start_pos, delta_usteps, max_rate, max_acc, *, segment_s=0.1
     pos = np.array([start + delta * s(t) for t in times])
     vel = np.array([delta * sd(t) for t in times])
     vel[0] = vel[-1] = 0.0
-    refs = np.zeros((n, 4), int) if ref is None else np.tile(np.asarray(ref, int), (n, 1))
+    refs = np.zeros((n, len(start)), int) if ref is None else np.tile(np.asarray(ref, int), (n, 1))
     return Plan(times, pos, vel, refs, None, label, {})
 
 
@@ -338,4 +339,4 @@ def model_from(geometry: Geometry, cfg, L0: dict) -> RobotModel:
     for s in cfg.stations:
         m = CableMap(s.spool, s.drive.usteps_per_rev)
         maps[s.id] = m.with_reference(L0[s.id]) if L0.get(s.id) is not None else m
-    return RobotModel(geometry, maps)
+    return RobotModel(geometry, maps, tuple(s.id for s in cfg.stations))

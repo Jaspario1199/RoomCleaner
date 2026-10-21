@@ -28,6 +28,22 @@ angles in :class:`Attitude`; the residual moment about the CoM at the R used is
 reported by ``tension_distribution`` so a stability check can reject large
 expected tilt.
 See docs/CONTROL_SYSTEM_V1.md 3.1.
+
+Three-station mode (docs/THREE_STATION_MODE_SPEC.md). Everything here works over however many cables the geometry has
+(3 or 4; ``anchors`` / ``attach`` are (n, 3)). With THREE cables and a point load the tensions are the unique solution
+of a 3 x 3 system (no distribution to choose): ``tension_distribution`` solves it directly and the pose is feasible
+only if every ``T_i >= t_min`` (and ``max <= t_max``). For a claw weight W at floor position p inside the triangle of the
+anchors' floor projection, with barycentric coordinates lambda_i(p) (anchors at one height H, claw z below it):
+
+    T_i = lambda_i(p) * W * L_i / (H - z),        L_i >= H - z   =>   T_i >= lambda_i * W
+
+so ``lambda_i >= T_floor / W`` is sufficient for ``T_i >= T_floor`` at ANY height: :class:`Workspace` keeps the claw's floor
+projection where every lambda_i >= ``lam_min`` = T_floor / (m g) (the edge margin, a fraction of the triangle's altitude:
+distance to edge i = lambda_i * altitude_i). A point outside the triangle has a negative lambda: infeasible. The attitude
+model (:class:`Attitude`) with three cables has 3 force + 2 moment equations for 3 tensions + roll + pitch (yaw held, as
+before) and agrees with the rigid-body simulator's equilibrium to 0.01 deg when evaluated at its yaw; the vertical-axis
+moment left at a held yaw (``yaw_moment``, 0.05-0.1 N m) is what turns the claw to its equilibrium yaw (+11 to +25 deg in
+the simulator), and a three-cable claw has about a third of the four-cable yaw stiffness (verification/three_station_mode_results.md).
 """
 from __future__ import annotations
 
@@ -155,16 +171,20 @@ def _tilt(w):
 
 @dataclass
 class Geometry:
-    anchors: np.ndarray            # (4,3) cable exit points
-    attach: np.ndarray             # (4,3) attachment points in body frame
+    anchors: np.ndarray            # (n,3) cable exit points (n = 4, or 3 in three-station mode)
+    attach: np.ndarray             # (n,3) attachment points in body frame
     com: np.ndarray | None = None  # claw centre of mass in the body frame (default: body origin)
     mass_kg: float | None = None   # claw mass (for the attitude statics)
     payload_body: np.ndarray | None = None   # where a payload acts (jaws), body frame
     yaw: float = 0.0               # held yaw (room frame) used by the attitude predictor
 
     def __post_init__(self):
-        self.anchors = np.asarray(self.anchors, float).reshape(4, 3)
-        self.attach = np.asarray(self.attach, float).reshape(4, 3)
+        self.anchors = np.asarray(self.anchors, float).reshape(-1, 3)
+        self.attach = np.asarray(self.attach, float).reshape(-1, 3)
+        if self.anchors.shape != self.attach.shape or self.anchors.shape[0] not in (3, 4):
+            raise ValueError(f"Geometry needs 3 or 4 cables with one attachment point each, got anchors {self.anchors.shape} "
+                             f"and attachment points {self.attach.shape}")
+        self.n = self.anchors.shape[0]
         self.com = np.zeros(3) if self.com is None else np.asarray(self.com, float).reshape(3)
         if self.payload_body is not None:
             self.payload_body = np.asarray(self.payload_body, float).reshape(3)
@@ -238,24 +258,49 @@ class TensionResult:
 
 def tension_distribution(geo: Geometry, p, mass_kg: float, *, t_min: float, t_max: float,
                          R=None, accel=(0, 0, 0)) -> TensionResult:
-    """Min-max tension distribution supporting weight (+ optional acceleration).
+    """Tension distribution supporting weight (+ optional acceleration).
 
-    Solves  min t  s.t.  sum T_i u_i = m (a - g),  t_min <= T_i <= t.
+    Four cables: min-max over the self-stress family,  min t  s.t.  sum T_i u_i = m (a - g),  t_min <= T_i <= t.
+    Three cables: the unique solution of the 3 x 3 system sum T_i u_i = m (a + g); feasible only if every
+    ``T_i >= t_min`` (and the largest <= ``t_max``). There is no distribution to choose, so a pose outside the anchors'
+    triangle (a negative tension) or too close to its edge (below the floor) is infeasible.
     """
     u = geo.unit_vectors(p, R)
     w = mass_kg * (np.asarray(accel, float) + [0, 0, G])     # force the cables must supply
-    c = np.r_[np.zeros(4), 1.0]
+    n = geo.n
+    if n == 3:
+        try:
+            T = np.linalg.solve(u.T, w)
+        except np.linalg.LinAlgError:
+            return TensionResult(False, np.full(3, np.nan), np.inf, np.nan)
+        ok = bool(np.all(T >= t_min - 1e-9))
+        Rm = geo.R_at(p, R)
+        rw = geo.attach @ Rm.T - Rm @ geo.com
+        M = np.sum(np.cross(rw, T[:, None] * u), axis=0)
+        if not ok:
+            return TensionResult(False, T, float(T.max()), float(np.linalg.norm(M)))
+        return TensionResult(bool(T.max() <= t_max + 1e-9), T, float(T.max()), float(np.linalg.norm(M)))
+    c = np.r_[np.zeros(n), 1.0]
     A_eq = np.hstack([u.T, np.zeros((3, 1))])
-    A_ub = np.hstack([np.eye(4), -np.ones((4, 1))])
-    res = linprog(c, A_ub=A_ub, b_ub=np.zeros(4), A_eq=A_eq, b_eq=w,
-                  bounds=[(t_min, None)] * 4 + [(0, None)], method="highs")
+    A_ub = np.hstack([np.eye(n), -np.ones((n, 1))])
+    res = linprog(c, A_ub=A_ub, b_ub=np.zeros(n), A_eq=A_eq, b_eq=w,
+                  bounds=[(t_min, None)] * n + [(0, None)], method="highs")
     if res.status != 0:
-        return TensionResult(False, np.full(4, np.nan), np.inf, np.nan)
-    T = res.x[:4]
+        return TensionResult(False, np.full(n, np.nan), np.inf, np.nan)
+    T = res.x[:n]
     Rm = geo.R_at(p, R)
     rw = geo.attach @ Rm.T - Rm @ geo.com            # lever arms about the CoM
     M = np.sum(np.cross(rw, T[:, None] * u), axis=0)
     return TensionResult(bool(T.max() <= t_max + 1e-9), T, float(T.max()), float(np.linalg.norm(M)))
+
+
+def barycentric_xy(tri_xy, xy) -> np.ndarray:
+    """Barycentric coordinates (3,) of the floor point ``xy`` in the triangle ``tri_xy`` ((3, 2)); all >= 0 inside it."""
+    P = np.asarray(tri_xy, float).reshape(3, 2)
+    d = np.asarray(xy, float)[:2] - P[2]
+    T = np.array([[P[0, 0] - P[2, 0], P[1, 0] - P[2, 0]], [P[0, 1] - P[2, 1], P[1, 1] - P[2, 1]]])
+    l01 = np.linalg.solve(T, d)
+    return np.array([l01[0], l01[1], 1.0 - l01.sum()])
 
 
 def geometry_from_config(cfg, anchors, yaw: float = 0.0) -> Geometry:
@@ -267,11 +312,35 @@ def geometry_from_config(cfg, anchors, yaw: float = 0.0) -> Geometry:
 
 @dataclass
 class Workspace:
-    """Allowed claw-origin region (room frame) plus cable-length bounds."""
+    """Allowed claw-origin region (room frame) plus cable-length bounds.
+
+    Three-station mode adds the triangle of the active anchors' floor projection (``tri_xy``, (3, 2)): the claw's floor
+    projection must keep every barycentric coordinate >= ``lam_min`` (= T_floor / (m g): the edge margin derived from the
+    tension floor, see the module docstring); ``lam_min`` = 0 means "inside the triangle" only. ``None`` = four cables, no
+    triangle (the box and the tension check are the whole region, exactly as before)."""
     lo: np.ndarray
     hi: np.ndarray
     min_lengths: np.ndarray          # per cable (bead minimum + margin), 0 if none
     obstacles: list
+    ids: tuple = ("A", "B", "C", "D")
+    tri_xy: np.ndarray | None = None
+    lam_min: float = 0.0
+
+    def triangle_violation(self, p) -> str | None:
+        """None if the floor projection of ``p`` is inside the (margin-shrunk) triangle, else why not (three cables only)."""
+        if self.tri_xy is None:
+            return None
+        lam = barycentric_xy(self.tri_xy, p)
+        if lam.min() >= self.lam_min - 1e-9:
+            return None
+        j = int(np.argmin(lam))
+        alt = _altitude(self.tri_xy, j)
+        dist = lam[j] * alt                                  # signed distance inside edge j (opposite vertex j), m
+        need = self.lam_min * alt
+        side = "outside" if lam[j] < 0 else "inside"
+        return (f"floor point ({p[0]:.3f}, {p[1]:.3f}) is {abs(dist):.3f} m {side} the edge opposite station {self.ids[j]} "
+                f"of the {'/'.join(self.ids)} triangle; it must be at least {need:.3f} m inside (cable {self.ids[j]} would "
+                f"carry under {self.lam_min * 100:.0f} % of the weight)")
 
     def violations(self, geo: Geometry, p, R=None, *, allow_low: bool = False) -> list[str]:
         p = np.asarray(p, float)
@@ -284,16 +353,28 @@ class Workspace:
                 out.append(f"{ax}={p[k]:.3f} below {lo[k]:.3f}")
             if p[k] > self.hi[k] + 1e-9:
                 out.append(f"{ax}={p[k]:.3f} above {self.hi[k]:.3f}")
+        tv = self.triangle_violation(p)
+        if tv:
+            out.append(tv)
         L = geo.lengths(p, R)
         for i, (Li, m) in enumerate(zip(L, self.min_lengths)):
             if Li < m - 1e-9:
-                out.append(f"cable {'ABCD'[i]} {Li:.3f} m shorter than minimum {m:.3f} m")
+                out.append(f"cable {self.ids[i]} {Li:.3f} m shorter than minimum {m:.3f} m")
         pts = geo.attach_world(p, R)
         for ob in self.obstacles:
-            for i in range(4):
+            for i in range(len(pts)):
                 if _segment_hits_cylinder(geo.anchors[i], pts[i], ob):
-                    out.append(f"cable {'ABCD'[i]} crosses obstacle {ob.get('name', '')}")
+                    out.append(f"cable {self.ids[i]} crosses obstacle {ob.get('name', '')}")
         return out
+
+
+def _altitude(tri_xy, j) -> float:
+    """Altitude (m) of vertex j of the triangle over its opposite side."""
+    P = np.asarray(tri_xy, float).reshape(3, 2)
+    a, b = P[(j + 1) % 3], P[(j + 2) % 3]
+    side = b - a
+    d = P[j] - a
+    return float(abs(side[0] * d[1] - side[1] * d[0]) / np.linalg.norm(side))
 
 
 def _segment_hits_cylinder(a, b, ob, n=24) -> bool:
@@ -309,6 +390,9 @@ def workspace_from_config(cfg, anchors_room: np.ndarray, *, lowest_point_z: floa
 
     ``lowest_point_z`` is the body-frame z of the lowest claw point (negative),
     so the origin must stay ``-lowest_point_z`` above the floor.
+
+    Three active stations: the triangle of their anchors (floor projection, ``anchors_room``) with the tension-floor edge
+    margin ``lam_min`` = ``cfg.tension_floor_fraction()`` (0 if the claw mass is not set yet) is part of the region.
     """
     m = cfg.motion.workspace_margin_m
     W, D, H = cfg.room_m
@@ -321,4 +405,8 @@ def workspace_from_config(cfg, anchors_room: np.ndarray, *, lowest_point_z: floa
             mins.append(s.bead.trigger_length_m + s.bead.min_length_margin_m)
         else:
             mins.append(0.0)
-    return Workspace(lo, hi, np.array(mins), list(cfg.obstacles))
+    tri, lam = None, 0.0
+    if len(cfg.stations) == 3:
+        tri = np.asarray(anchors_room, float)[:, :2].copy()
+        lam = cfg.tension_floor_fraction() or 0.0
+    return Workspace(lo, hi, np.array(mins), list(cfg.obstacles), tuple(cfg.ids), tri, float(lam))

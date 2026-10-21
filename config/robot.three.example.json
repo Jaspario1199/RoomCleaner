@@ -1,0 +1,346 @@
+{
+  "schema_version": 1,
+  "profile": "hardware",
+  "_comment": "HARDWARE TEMPLATE, THREE-STATION MODE (stations_active = A, B, C; first hardware test, docs/THREE_STATION_MODE.md): A and B in the two corners of one 11 ft wall, C on the stud nearest the middle of the opposite 11 ft wall, all three at the same height. The anchor entries are PRIORS (the robot calibrates them; a stud a few inches off the midpoint is fine). null = not yet measured: stages needing a null field refuse to run. Copy to config/robot.json and fill from measurements; see docs/THREE_STATION_MODE.md and docs/CONTROL_SYSTEM_V1.md. Station D stays here as a record (no address needed) but is never configured or armed.",
+  "room": {
+    "width_m": 3.3528,
+    "depth_m": 2.7432,
+    "height_m": 2.7432,
+    "surveyed": false
+  },
+  "stations_active": [
+    "A",
+    "B",
+    "C"
+  ],
+  "stations": [
+    {
+      "id": "A",
+      "anchor_room_m": [
+        0.05,
+        0.05,
+        2.5932
+      ],
+      "anchor_sigma_m": 0.1,
+      "address": null,
+      "drive": {
+        "full_steps_per_rev": 200,
+        "microsteps": 1,
+        "step_sign": 1,
+        "max_step_rate_hz": null
+      },
+      "encoder": {
+        "counts_per_rev": 4096,
+        "sign": null,
+        "mount": "spool",
+        "max_age_s": null
+      },
+      "spool": {
+        "core_radius_m": 0.0075,
+        "drum_width_m": 0.016,
+        "flange_radius_m": 0.018,
+        "line_diameter_m": null,
+        "packing": 0.85,
+        "line_total_m": null,
+        "payout_scale": 1.0,
+        "payout_table": null
+      },
+      "bead": {
+        "present": true,
+        "trigger_length_m": null,
+        "uncertainty_m": null,
+        "switch_normally_closed": true,
+        "debounce_s": 0.01,
+        "approach_speed_m_s": null,
+        "search_window_m": null,
+        "max_overtravel_m": null,
+        "backoff_m": null,
+        "repeatability_tol_m": null,
+        "min_length_margin_m": 0.02
+      }
+    },
+    {
+      "id": "B",
+      "anchor_room_m": [
+        3.3028,
+        0.05,
+        2.5932
+      ],
+      "anchor_sigma_m": 0.1,
+      "address": null,
+      "drive": {
+        "full_steps_per_rev": 200,
+        "microsteps": 1,
+        "step_sign": 1,
+        "max_step_rate_hz": null
+      },
+      "encoder": {
+        "counts_per_rev": 4096,
+        "sign": null,
+        "mount": "spool",
+        "max_age_s": null
+      },
+      "spool": {
+        "core_radius_m": 0.0075,
+        "drum_width_m": 0.016,
+        "flange_radius_m": 0.018,
+        "line_diameter_m": null,
+        "packing": 0.85,
+        "line_total_m": null,
+        "payout_scale": 1.0,
+        "payout_table": null
+      },
+      "bead": {
+        "present": true,
+        "trigger_length_m": null,
+        "uncertainty_m": null,
+        "switch_normally_closed": true,
+        "debounce_s": 0.01,
+        "approach_speed_m_s": null,
+        "search_window_m": null,
+        "max_overtravel_m": null,
+        "backoff_m": null,
+        "repeatability_tol_m": null,
+        "min_length_margin_m": 0.02
+      }
+    },
+    {
+      "id": "C",
+      "anchor_room_m": [
+        1.6764,
+        2.6932,
+        2.5932
+      ],
+      "anchor_sigma_m": 0.1,
+      "address": null,
+      "drive": {
+        "full_steps_per_rev": 200,
+        "microsteps": 1,
+        "step_sign": 1,
+        "max_step_rate_hz": null
+      },
+      "encoder": {
+        "counts_per_rev": 4096,
+        "sign": null,
+        "mount": "spool",
+        "max_age_s": null
+      },
+      "spool": {
+        "core_radius_m": 0.0075,
+        "drum_width_m": 0.016,
+        "flange_radius_m": 0.018,
+        "line_diameter_m": null,
+        "packing": 0.85,
+        "line_total_m": null,
+        "payout_scale": 1.0,
+        "payout_table": null
+      },
+      "bead": {
+        "present": true,
+        "trigger_length_m": null,
+        "uncertainty_m": null,
+        "switch_normally_closed": true,
+        "debounce_s": 0.01,
+        "approach_speed_m_s": null,
+        "search_window_m": null,
+        "max_overtravel_m": null,
+        "backoff_m": null,
+        "repeatability_tol_m": null,
+        "min_length_margin_m": 0.02
+      }
+    },
+    {
+      "id": "D",
+      "anchor_room_m": null,
+      "anchor_sigma_m": 0.1,
+      "address": null,
+      "drive": {
+        "full_steps_per_rev": 200,
+        "microsteps": 1,
+        "step_sign": 1,
+        "max_step_rate_hz": null
+      },
+      "encoder": {
+        "counts_per_rev": 4096,
+        "sign": null,
+        "mount": "spool",
+        "max_age_s": null
+      },
+      "spool": {
+        "core_radius_m": 0.0075,
+        "drum_width_m": 0.016,
+        "flange_radius_m": 0.018,
+        "line_diameter_m": null,
+        "packing": 0.85,
+        "line_total_m": null,
+        "payout_scale": 1.0,
+        "payout_table": null
+      },
+      "bead": {
+        "present": true,
+        "trigger_length_m": null,
+        "uncertainty_m": null,
+        "switch_normally_closed": true,
+        "debounce_s": 0.01,
+        "approach_speed_m_s": null,
+        "search_window_m": null,
+        "max_overtravel_m": null,
+        "backoff_m": null,
+        "repeatability_tol_m": null,
+        "min_length_margin_m": 0.02
+      }
+    }
+  ],
+  "claw": {
+    "attachment": "spaced",
+    "attachment_points_body_m": [
+      [
+        -0.04207,
+        -0.04207,
+        0.0
+      ],
+      [
+        0.04207,
+        -0.04207,
+        0.0
+      ],
+      [
+        0.04207,
+        0.04207,
+        0.0
+      ],
+      [
+        -0.04207,
+        0.04207,
+        0.0
+      ]
+    ],
+    "mass_kg": null,
+    "camera_in_body": {
+      "translation_m": [
+        0.0,
+        0.09,
+        -0.00563
+      ],
+      "rpy_rad": [
+        3.141592653589793,
+        0,
+        0
+      ]
+    },
+    "lowest_point_body_m": [
+      -0.00045,
+      0.0025,
+      -0.5173
+    ],
+    "imu": false,
+    "grip_tilt_max_rad": 0.08726646259971647,
+    "address": null,
+    "com_body_m": [
+      0.00081,
+      0.0012,
+      -0.19638
+    ],
+    "_provenance": "CAD-derived (scripts/extract_claw_body_frame.py -> verification/claw_body_frame.json): attachment_points_body_m = inner mouths of the four corner cable holes of the electrical box (stations A,B,C,D in order; body frame: origin on the tube axis at the inner-mouth height, +z up, +x = v6 X, +y = -v6 Z so the camera bay is at +y). camera_in_body = lens centre of the camera bay (optical axis down; VERIFY sensor rotation and lens height on the print). lowest_point_body_m = v6 jaw tips (VERIFY: v7 jaws are being redesigned). com_body_m = CAD-solid estimate without electronics (VERIFY). Not measured on hardware."
+  },
+  "marker": {
+    "family": "apriltag_36h11",
+    "id": 0,
+    "edge_m": null,
+    "heading_prior_rad": null,
+    "heading_sigma_rad": 0.3490658503988659,
+    "position_prior_room_m": null,
+    "position_sigma_m": 0.5
+  },
+  "camera": {
+    "intrinsics_file": null,
+    "max_frame_age_s": null,
+    "pose_sigma_m": 0.004,
+    "pose_sigma_rad": 0.01,
+    "min_marker_pixels": 40.0,
+    "max_reprojection_px": 2.0,
+    "ambiguity_ratio_min": 3.0
+  },
+  "motion": {
+    "max_cable_speed_m_s": null,
+    "max_cable_accel_m_s2": null,
+    "max_cart_speed_m_s": null,
+    "max_cart_accel_m_s2": null,
+    "hold_time_s": 0.25,
+    "min_tension_n": 0.5,
+    "max_tension_n": null,
+    "workspace_margin_m": 0.2,
+    "ceiling_margin_m": 0.4,
+    "segment_s": 0.1,
+    "lookahead_s": 0.8,
+    "start_lead_s": 0.4,
+    "task_max_height_m": 1.6
+  },
+  "startup": {
+    "probe_packet_m": null,
+    "probe_speed_m_s": null,
+    "max_slack_m": null,
+    "onset_translation_m": 0.002,
+    "onset_tilt_rad": 0.010471975511965976,
+    "onset_noise_k": 4.0,
+    "onset_backoff_m": null,
+    "lift_packet_m": null,
+    "target_clearance_m": 0.075,
+    "max_lift_m": null,
+    "max_lateral_drift_m": null,
+    "max_tilt_rad": 0.13962634015954636,
+    "still_samples": 10,
+    "settle_s": 0.5,
+    "max_marker_wait_s": 120.0,
+    "slack_probe": false,
+    "probe_step_m": 0.0005,
+    "probe_max_step_m": 0.002,
+    "probe_max_m": 0.04,
+    "probe_rounds": 1,
+    "probe_frames": 10,
+    "probe_frames_max": 40,
+    "probe_settle_s": 0.3,
+    "probe_onset_translation_m": 0.001,
+    "probe_overshoot_max_m": 0.006,
+    "probe_response_sigma": 0.5,
+    "bead_search": false
+  },
+  "faults": {
+    "tracking_tol_counts": null,
+    "tracking_dwell_s": null,
+    "lease_s": null,
+    "clock_uncertainty_max_s": null,
+    "telemetry_max_age_s": null,
+    "sync_interval_s": 0.2
+  },
+  "calibration": {
+    "min_samples": 20,
+    "witness_samples": 5,
+    "witness_rms_max_m": 0.006,
+    "noise_capture_frames": 10,
+    "bead_k_sigma": 3.0,
+    "bead_length_sigma_max_m": 0.01,
+    "local_box_m": [
+      0.15,
+      0.15,
+      0.1
+    ],
+    "expanded_box_m": [
+      0.8,
+      0.8,
+      0.5
+    ],
+    "fit_payout_scale": false
+  },
+  "authorization": {
+    "suspended_motion_authorized": false,
+    "qualified_by": null,
+    "qualification_ref": null
+  },
+  "obstacles": [],
+  "tasks": {
+    "hamper_room_m": null,
+    "hamper_radius_m": 0.2,
+    "max_payload_kg": 0.9
+  }
+}

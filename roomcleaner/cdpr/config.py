@@ -12,6 +12,17 @@ human sign-off after the supervised qualification tests (see docs).
 Nothing in this module invents a value for an unmeasured quantity.
 Simulation profiles (``config/robot.sim.json``) carry plausible numbers so the
 logic can be exercised; they are not hardware settings.
+
+Active stations (docs/THREE_STATION_MODE_SPEC.md)
+-------------------------------------------------
+The product has four stations (A-D); a test set-up may mount only three. ``load_config`` keeps all four station
+records, but ``SystemConfig.stations`` / ``.ids`` hold only the ACTIVE ones, in A-D order, so every loop over
+``cfg.stations`` in the host software (coordinator, supervisor, startup, calibration, planner, simulator, phone app)
+runs over the active set. The records of the others are in ``SystemConfig.inactive_stations``; they have no address
+requirement, no transport, and are never configured or armed. The active set is the JSON key ``stations_active`` (a list
+of 3 or 4 ids; ``"stations.active"`` is accepted as a spelling of the same key); absent = all four, so every existing
+profile is unchanged. Per-station arrays that are indexed A-D in the file (``claw.attachment_points_body_m``,
+``startup.max_slack_m``) stay four long; ``SystemConfig.station_index`` maps an id to its place in them.
 """
 from __future__ import annotations
 
@@ -26,6 +37,12 @@ import numpy as np
 from .frames import make_T, rpy_to_matrix
 
 STATION_IDS = ("A", "B", "C", "D")
+G_ACC = 9.81
+
+# Three-station mode: the active anchors must span a triangle (floor projection) that is not a sliver. A point claw on
+# three cables is held with all-positive tensions only inside that triangle, and the margin from its edges (below) is
+# a fraction of its altitudes, so a triangle whose SHORTEST altitude is under this has no useful workspace.
+MIN_TRIANGLE_ALTITUDE_M = 0.25
 
 
 class ConfigError(ValueError):
@@ -459,17 +476,62 @@ class SystemConfig:
     obstacles: list = field(default_factory=list)   # vertical cylinders {x,y,r,z_low,z_high}
     profile: str = "hardware"
     source: str | None = None
+    inactive_stations: list = field(default_factory=list)   # records of the stations that are not mounted (never configured/armed)
 
     # ---------------------------------------------------------------- access
     def station(self, sid: str) -> StationConfig:
+        """The record of an ACTIVE station (KeyError for an inactive or unknown one: the host never touches those)."""
         for s in self.stations:
+            if s.id == sid:
+                return s
+        raise KeyError(sid)
+
+    def record(self, sid: str) -> StationConfig:
+        """The record of any of the four stations, active or not (the setup page may edit the anchor of an unmounted one)."""
+        for s in self.stations + self.inactive_stations:
             if s.id == sid:
                 return s
         raise KeyError(sid)
 
     @property
     def ids(self) -> list[str]:
+        """Ids of the ACTIVE stations, in A-D order."""
         return [s.id for s in self.stations]
+
+    @property
+    def inactive_ids(self) -> list[str]:
+        return [s.id for s in self.inactive_stations]
+
+    @property
+    def all_stations(self) -> list[StationConfig]:
+        return sorted(self.stations + self.inactive_stations, key=lambda s: STATION_IDS.index(s.id))
+
+    @property
+    def n_active(self) -> int:
+        return len(self.stations)
+
+    def station_index(self, sid: str) -> int:
+        """Place of ``sid`` in the per-station arrays of the file (A-D order, four long)."""
+        return STATION_IDS.index(sid)
+
+    def max_slack_for(self, sid: str) -> float:
+        return float(self.startup.max_slack_m[self.station_index(sid)])
+
+    def start_point_xy(self) -> np.ndarray:
+        """Where the claw starts (floor, room frame): ``marker.position_prior_room_m`` if set; else the room centre for four
+        stations (unchanged), else the centroid of the active anchors' floor projection (three stations: the room centre
+        may lie on the triangle's edge, where one cable goes slack)."""
+        if self.marker.position_prior_room_m is not None:
+            return np.asarray(self.marker.position_prior_room_m, float)
+        if self.n_active == 4:
+            return np.asarray(self.room_m[:2], float) / 2
+        return self.anchor_priors()[:, :2].mean(axis=0)
+
+    def tension_floor_fraction(self) -> float | None:
+        """Three-cable statics: the least share lambda_i of the claw's weight that cable i must carry,
+        ``T_floor / (m g)``; None if the claw mass is not set yet. See ``kinematics.Workspace``."""
+        m = self.claw.mass_kg
+        return None if not m else float(self.motion.min_tension_n) / (float(m) * G_ACC)
 
     def anchor_priors(self) -> np.ndarray:
         """Room-frame anchor priors; missing entries default to upper corners."""
@@ -481,10 +543,11 @@ class SystemConfig:
         return np.array(out, float)
 
     def attachment_points(self) -> np.ndarray:
+        """(n_active, 3) attachment points in the body frame, one per ACTIVE station (the file lists all four, A-D)."""
         b = np.asarray(self.claw.attachment_points_body_m, float)
         if self.claw.attachment == "common":
-            return np.repeat(b[:1], 4, axis=0)
-        return b
+            return np.repeat(b[:1], len(self.stations), axis=0)
+        return b[[STATION_IDS.index(s.id) for s in self.stations]]
 
     # ------------------------------------------------------- authorization
     STAGE_REQUIREMENTS = {
@@ -590,6 +653,69 @@ def _T_from(d, name):
     return make_T(rpy_to_matrix(*r), t)
 
 
+def _parse_active(raw: dict) -> tuple:
+    """The active station ids of a config dict, in A-D order (default: all four). JSON key ``stations_active``
+    (``"stations.active"`` is the same key spelt the way the spec writes it). Refuses, with the reason: a value that is not a
+    list of strings, an unknown id, a duplicate, fewer than three or more than four stations."""
+    keys = [k for k in ("stations_active", "stations.active") if k in raw]
+    vals = [raw[k] for k in keys]
+    if len(vals) == 2 and vals[0] != vals[1]:
+        raise ConfigError(f"stations_active and 'stations.active' are both set and differ ({vals[0]!r} vs {vals[1]!r}): use one")
+    stray = [k for k in raw if k not in ("stations_active", "stations.active") and "active" in k.lower() and "station" in k.lower()]
+    if stray:
+        raise ConfigError(f"unknown config key {stray}: the active stations are chosen with 'stations_active' "
+                          f"(a list of 3 or 4 of {list(STATION_IDS)}); a misspelt key would silently run all four")
+    v = vals[0] if vals else None
+    if v is None:
+        return STATION_IDS
+    if not isinstance(v, (list, tuple)) or not all(isinstance(x, str) for x in v):
+        raise ConfigError(f"stations_active must be a list of station ids such as [\"A\", \"B\", \"C\"], got {v!r}")
+    dup = sorted({x for x in v if list(v).count(x) > 1})
+    if dup:
+        raise ConfigError(f"stations_active {list(v)}: duplicate station id(s) {dup} (list each station once)")
+    unknown = [x for x in v if x not in STATION_IDS]
+    if unknown:
+        raise ConfigError(f"stations_active {list(v)}: unknown station id(s) {unknown} (known ids: {', '.join(STATION_IDS)})")
+    if not 3 <= len(v) <= 4:
+        raise ConfigError(f"stations_active {list(v)}: {len(v)} station(s); three-station mode needs 3 or 4 distinct ids from "
+                          f"{', '.join(STATION_IDS)} (a point claw is not held by two cables)")
+    return tuple(x for x in STATION_IDS if x in v)
+
+
+def triangle_geometry(xy) -> dict:
+    """Area (m^2), the three side lengths (m) and the three altitudes (m, altitude i is vertex i's height over the opposite
+    side) of the triangle with the vertices ``xy`` ((3, 2), floor projection of the anchors)."""
+    P = np.asarray(xy, float).reshape(3, 2)
+    area = 0.5 * abs((P[1, 0] - P[0, 0]) * (P[2, 1] - P[0, 1]) - (P[2, 0] - P[0, 0]) * (P[1, 1] - P[0, 1]))
+    sides = np.array([np.linalg.norm(P[(i + 1) % 3] - P[(i + 2) % 3]) for i in range(3)])      # side i is opposite vertex i
+    alt = 2.0 * area / np.maximum(sides, 1e-12)
+    return {"area_m2": float(area), "sides_m": sides, "altitudes_m": alt}
+
+
+def _check_triangle(cfg: "SystemConfig") -> None:
+    """Three active stations: their anchors' floor projections must span a triangle with positive area (and no sliver)."""
+    if cfg.n_active != 3:
+        return
+    xy = cfg.anchor_priors()[:, :2]
+    ids = "/".join(cfg.ids)
+    if not np.all(np.isfinite(xy)):
+        raise ConfigError(f"stations_active {cfg.ids}: an anchor of stations {ids} is not a finite position")
+    g = triangle_geometry(xy)
+    if g["area_m2"] < 1e-9:
+        raise ConfigError(f"stations_active {cfg.ids}: the anchors of stations {ids} are collinear or coincide (floor-projection "
+                          "triangle of zero area): three cables hold the claw only inside a triangle with positive area. "
+                          "Move one anchor off the line of the other two")
+    if float(np.min(g["altitudes_m"])) < MIN_TRIANGLE_ALTITUDE_M:
+        raise ConfigError(f"stations_active {cfg.ids}: the anchors of stations {ids} span a degenerate triangle (area "
+                          f"{g['area_m2']:.3f} m^2, shortest altitude {float(np.min(g['altitudes_m'])):.2f} m < "
+                          f"{MIN_TRIANGLE_ALTITUDE_M} m): the claw would be held only along a line. Spread the three anchors out")
+    lam = cfg.tension_floor_fraction()
+    if lam is not None and lam >= 1.0 / 3.0:
+        raise ConfigError(f"motion.min_tension_n = {cfg.motion.min_tension_n:g} N is {lam:.2f} of the claw's weight "
+                          f"({cfg.claw.mass_kg:g} kg): with three cables every one must carry at least that share, which is "
+                          "impossible at or above 1/3 (no pose would be feasible). Lower the tension floor")
+
+
 def load_config(path_or_dict) -> SystemConfig:
     if isinstance(path_or_dict, (str, Path)):
         src = str(path_or_dict)
@@ -621,6 +747,7 @@ def load_config(path_or_dict) -> SystemConfig:
     ids = [s.id for s in stations]
     if tuple(ids) != STATION_IDS:
         raise ConfigError(f"stations must be exactly {STATION_IDS} in order, got {ids}")
+    active_ids = _parse_active(raw)
     for s in stations:
         if s.drive.step_sign not in (1, -1):
             raise ConfigError(f"{s.id}: drive.step_sign must be +1/-1")
@@ -668,7 +795,8 @@ def load_config(path_or_dict) -> SystemConfig:
     if md:
         raise ConfigError(f"marker: unknown keys {sorted(md)}")
     cfg = SystemConfig(
-        room_m=room_m, room_surveyed=bool(room.get("surveyed", False)), stations=stations,
+        room_m=room_m, room_surveyed=bool(room.get("surveyed", False)),
+        stations=[s for s in stations if s.id in active_ids], inactive_stations=[s for s in stations if s.id not in active_ids],
         claw=claw, marker=marker,
         camera=_dc(CameraConfig, raw.get("camera"), "camera"),
         motion=_dc(MotionConfig, raw.get("motion"), "motion"),
@@ -681,7 +809,7 @@ def load_config(path_or_dict) -> SystemConfig:
         profile=raw.get("profile", "hardware"), source=src,
     )
     if cfg.startup.max_slack_m is not None and len(cfg.startup.max_slack_m) != 4:
-        raise ConfigError("startup.max_slack_m needs 4 values (A-D)")
+        raise ConfigError("startup.max_slack_m needs 4 values (A-D; the entries of inactive stations are ignored)")
     su = cfg.startup
     for k in ("probe_step_m", "probe_max_step_m", "probe_max_m", "probe_settle_s", "probe_onset_translation_m",
               "probe_overshoot_max_m", "probe_response_sigma"):
@@ -777,6 +905,7 @@ def load_config(path_or_dict) -> SystemConfig:
     k_ = cfg.calibration.bead_k_sigma
     if not isinstance(k_, (int, float)) or isinstance(k_, bool) or not k_ > 0:
         raise ConfigError("calibration.bead_k_sigma must be a positive number")
+    _check_triangle(cfg)
     return cfg
 
 
@@ -789,4 +918,6 @@ def config_to_jsonable(cfg: SystemConfig) -> dict:
         if isinstance(o, list):
             return [conv(v) for v in o]
         return o
-    return conv(asdict(cfg))
+    out = conv(asdict(cfg))
+    out["stations_active"] = list(cfg.ids)
+    return out

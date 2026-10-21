@@ -33,6 +33,9 @@ Rules
   the claw can be recovered or lowered by software.
 * The power strip is the emergency stop (IEC 60204-1 category 0): it drops the
   claw. Nobody stands under the workspace.
+* Everything here runs over the ACTIVE stations (``ctx.ids``: four, or three in
+  three-station mode). A station that is not active is not polled, configured,
+  armed or disarmed, is not in the ledger, and its absence is not a fault.
 """
 from __future__ import annotations
 
@@ -43,7 +46,6 @@ from pathlib import Path
 
 import numpy as np
 
-from .calibration import IDS
 from .perception import cam_displacement, to_marker, to_room
 from .protocol import Fault, State
 from .startup import StartupAbort, StartupSequencer
@@ -112,6 +114,7 @@ class Supervisor:
         prev = None
         if self.ledger_path and self.ledger_path.exists():
             self.ctx.ledger = TrustLedger.load(self.ledger_path)
+            self.ctx.ledger.restrict_to(self.ctx.ids)         # a ledger saved with another active set
         if self.state_path and self.state_path.exists():
             try:
                 prev = json.loads(self.state_path.read_text())
@@ -144,7 +147,7 @@ class Supervisor:
         co.pump()
         self._restore_if_needed()
         invalidated, stopped = False, []
-        for s in IDS:
+        for s in self.ctx.ids:
             ln = co.links[s]
             if ln.boot is not None and self._boots_seen.get(s) not in (None, ln.boot):
                 self.ctx.ledger.on_boot_change(s, ln.boot)
@@ -176,11 +179,12 @@ class Supervisor:
         if not self._needs_restore:
             return
         links = self.ctx.co.links
-        if not all(links[s].boot is not None and links[s].tel is not None for s in IDS):
+        ids = self.ctx.ids
+        if not all(links[s].boot is not None and links[s].tel is not None for s in ids):
             return
-        boots = {s: links[s].boot for s in IDS}
+        boots = {s: links[s].boot for s in ids}
         faults = {s: (None if (links[s].tel or {}).get("flt") in COORDINATED_STOPS else links[s].tel.get("flt"))
-                  for s in IDS}
+                  for s in ids}
         self.ctx.ledger.restore_after_host_restart(boots, faults)
         self._boots_seen = dict(boots)
         self._needs_restore = False
@@ -193,7 +197,7 @@ class Supervisor:
         co = self.ctx.co
         co.wait(300000)
         self.poll()
-        for s in IDS:
+        for s in self.ctx.ids:
             ln = co.links[s]
             st = (ln.tel or {}).get("st")
             if st == State.FAULT:
@@ -213,7 +217,7 @@ class Supervisor:
         seq = StartupSequencer(self.ctx)
         seq._enter = self._wrap_enter(seq._enter)
         rep = seq.run()
-        self._boots_seen = {s: self.ctx.co.links[s].boot for s in IDS}
+        self._boots_seen = {s: self.ctx.co.links[s].boot for s in self.ctx.ids}
         self.reasons.extend(rep.reasons)
         if rep.outcome == "READY":
             self.detail = ""
@@ -312,11 +316,12 @@ class Supervisor:
         L = m.lengths_from_positions(P)
         geo = m.geometry
         f = lambda q, keep: (geo.lengths(q, R) - L)[keep]
-        sol = least_squares(f, p0, args=(list(range(4)),), method="lm")
+        n = len(L)
+        sol = least_squares(f, p0, args=(list(range(n)),), method="lm")
         r = L - geo.lengths(sol.x, R)                    # + = model longer than span (slack)
         j = int(np.argmax(r))
-        if r[j] > 3 * self.ctx.cfg.calibration.length_sigma_m:
-            keep = [i for i in range(4) if i != j]
+        if n >= 4 and r[j] > 3 * self.ctx.cfg.calibration.length_sigma_m:      # three cables: no spare to drop
+            keep = [i for i in range(n) if i != j]
             sol = least_squares(f, sol.x, args=(keep,), method="lm")
         return sol.x
 
@@ -328,7 +333,7 @@ class Supervisor:
         ctx, co, lg = self.ctx, self.ctx.co, self.ctx.ledger
         st = ctx.cfg.startup
         for s in bad:
-            i = IDS.index(s)
+            i = ctx.ids.index(s)
             sp, why = ctx.vision.still_pose(ctx.cfg.calibration.noise_capture_frames, ctx.wait, max_wait_s=20.0)
             if sp is None:
                 raise CommandRefused(f"cannot see the marker: {why}")
@@ -346,7 +351,7 @@ class Supervisor:
                     o = ctx.vision.observe()
                     return "taut" if o.ok and np.linalg.norm(cam_displacement(o, ref)[0]) >= thr else None
                 ppu = ctx.ppu(i)
-                delta = np.zeros(4)
+                delta = np.zeros(len(ctx.ids))
                 delta[i] = -(3 * sig + 0.010) / ppu
                 rate = st.probe_speed_m_s / ppu
                 r = co.execute(plan_cable_move(co.positions(), delta, rate, rate / 0.2,
@@ -377,7 +382,7 @@ class Supervisor:
         not_ready = self._restore_stations()
         if not_ready:
             raise CommandRefused(f"stations not ready: {not_ready}")
-        bad = [s for s in IDS if not lg.stations[s].valid]
+        bad = [s for s in ctx.ids if not lg.stations[s].valid]
         if len(bad) > 1:
             raise CommandRefused(f"{len(bad)} stations invalid ({bad}): use 'lower'")
         self._visual_rereference(bad)
@@ -409,7 +414,7 @@ class Supervisor:
         if sp is None:
             raise CommandRefused(f"cannot see the marker: {why}")
         p = ctx.room_pose(sp)
-        bad = [s for s in IDS if not ctx.ledger.stations[s].valid]
+        bad = [s for s in ctx.ids if not ctx.ledger.stations[s].valid]
         if ctx.model is not None and ctx.result is not None and len(bad) <= 1:
             if bad:
                 ctx.log(f"[supervisor] lowering: provisional visual reference for {bad}")
@@ -451,8 +456,8 @@ class Supervisor:
                 on_floor = True
                 break
             last = z
-            dP = np.array([st.lift_packet_m / ctx.ppu(i) for i in range(4)])
-            rate = st.probe_speed_m_s * 2 / min(ctx.ppu(i) for i in range(4))
+            dP = np.array([st.lift_packet_m / ctx.ppu(i) for i in range(len(ctx.ids))])
+            rate = st.probe_speed_m_s * 2 / min(ctx.ppu(i) for i in range(len(ctx.ids)))
             r = ctx.co.execute(plan_cable_move(ctx.co.positions(), dP, rate, rate / 0.2,
                                                segment_s=cfg.motion.segment_s, label="lower packet"))
             if not r.ok:
@@ -461,8 +466,8 @@ class Supervisor:
             self._set("RECOVERY_REQUIRED", "lowering ended without vision confirming the floor "
                                            "(resting on an object?)")
             raise CommandRefused(self.events[-1][2])
-        dP = np.array([0.03 / ctx.ppu(i) for i in range(4)])
-        rate = st.probe_speed_m_s * 4 / min(ctx.ppu(i) for i in range(4))
+        dP = np.array([0.03 / ctx.ppu(i) for i in range(len(ctx.ids))])
+        rate = st.probe_speed_m_s * 4 / min(ctx.ppu(i) for i in range(len(ctx.ids)))
         ctx.co.execute(plan_cable_move(ctx.co.positions(), dP, rate, rate / 0.2, segment_s=cfg.motion.segment_s,
                                        label="slacken"))
         ctx.ledger.claw_supported = True
@@ -484,7 +489,7 @@ class Supervisor:
             raise CommandRefused("type 'claw_supported' to confirm the claw is resting on a support")
         if not self._floor_confirmed():
             raise CommandRefused("vision does not confirm the claw is on the floor: lower first")
-        for s in IDS:
+        for s in self.ctx.ids:
             self.ctx.co.disarm(s, confirm)
         self.ctx.ledger.claw_supported = True
         self._set("DISARMED", "operator disarm (floor confirmed by vision)")

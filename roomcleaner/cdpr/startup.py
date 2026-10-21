@@ -1,8 +1,14 @@
 """Self-calibrating startup: DISARMED -> ... -> READY.
 
-Operator preconditions: claw upright on the floor near the middle of the room,
+Operator preconditions: claw upright on the floor near the middle of the room
+(three-station mode: at the centroid of the active anchors' floor projection,
+``SystemConfig.start_point_xy``; the room centre may lie on the triangle's edge),
 the marker on the floor under the camera, room/anchor entries in the config,
 the room cleared (nobody under the workspace), power strip within reach.
+
+Everything below runs over the ACTIVE stations (``cfg.ids``: four, or three in
+three-station mode, docs/THREE_STATION_MODE_SPEC.md); an inactive station is not
+configured, armed, taken up, calibrated or watched, and is not a fault.
 
 States (each step has explicit bounds and abort conditions; an abort HOLDS
 motion and never removes holding torque):
@@ -85,7 +91,7 @@ from .trajectory import PlanError, limits_from_config, model_from, plan_cable_mo
 def probe_response(geo, q_room, i, k_rel=None, R=None):
     """Claw displacement (room frame) per unit retraction of cable ``i`` beyond
     the taut point, for equal-modulus cables of stiffness ~ 1/length (the
-    modulus cancels): ``x = (sum_j k_j u_j u_j^T)^-1 k_i u_i`` over all four
+    modulus cancels): ``x = (sum_j k_j u_j u_j^T)^-1 k_i u_i`` over all the active
     cables (a slack cable not yet found is the main source of mismatch, hence the
     prior sigma ``probe_response_sigma``).
 
@@ -99,11 +105,11 @@ def probe_response(geo, q_room, i, k_rel=None, R=None):
     U = geo.unit_vectors(q_room, R)
     k = 1.0 / geo.lengths(q_room, R) if k_rel is None else np.asarray(k_rel, float)
     if not geo.spaced:
-        K = sum(k[j] * np.outer(U[j], U[j]) for j in range(4))
+        K = sum(k[j] * np.outer(U[j], U[j]) for j in range(len(U)))
         return np.linalg.solve(K, k[i] * U[i])
     Rm = geo.R_at(q_room, R)
     r = geo.attach @ Rm.T
-    W = np.hstack([U, np.cross(r, U)])                               # (4, 6) rows w_j
+    W = np.hstack([U, np.cross(r, U)])                               # (n, 6) rows w_j
     K = (W * k[:, None]).T @ W
     x = np.linalg.solve(K + 1e-12 * np.eye(6), k[i] * W[i])
     return x[:3]
@@ -256,6 +262,10 @@ class RobotContext:
         self.cfg, self.co, self.claw, self.vision, self.camera, self.ledger = cfg, co, claw, vision, camera, ledger
         self.log = log
         self.data_dir = Path(data_dir) if data_dir else None
+        self.ids = tuple(cfg.ids)           # the ACTIVE stations (4; 3 in three-station mode): every per-cable array is in this order
+        restrict = getattr(ledger, "restrict_to", None)
+        if restrict is not None:
+            restrict(self.ids)              # a ledger that covers other stations (default: all four) is made to cover the active ones
         self.cal = Calibrator(cfg, {s.id: CableMap(s.spool, s.drive.usteps_per_rev) for s in cfg.stations})
         self.priors = self.cal.priors
         self.T_R_M = planar_T(self.priors.position[0], self.priors.position[1], self.priors.heading)
@@ -319,10 +329,10 @@ class RobotContext:
     def apply_result(self, res, source):
         self.result = res
         self.ledger.anchors_room = res.anchors_room.tolist()
-        self.set_model(res.anchors_room, dict(zip(IDS, res.L0)), res.T_R_M)
+        self.set_model(res.anchors_room, dict(zip(self.ids, res.L0)), res.T_R_M)
         sig = res.sigma()
-        boots = {s: self.co.links[s].boot for s in IDS}
-        for i, s in enumerate(IDS):
+        boots = {s: self.co.links[s].boot for s in self.ids}
+        for i, s in enumerate(self.ids):
             self.ledger.set_reference(s, boots[s], res.L0[i], float(sig[f"L0 {s}"]), source)
         self.ledger.T_R_M = res.T_R_M.tolist()
         self.ledger.marker_valid = True
@@ -334,8 +344,8 @@ class RobotContext:
             return
         from .trust import atomic_write
         st = {"result": self.result.to_state(), "T_R_M": self.T_R_M.tolist(),
-              "L0": {s: self.model.maps[s].L0 for s in IDS},
-              "boots": {s: self.co.links[s].boot for s in IDS},
+              "L0": {s: self.model.maps[s].L0 for s in self.ids},
+              "boots": {s: self.co.links[s].boot for s in self.ids},
               "validated_volume": None if self.validated_volume is None else np.asarray(self.validated_volume).tolist(),
               "mount": {"rotvec": matrix_to_rotvec(self.vision.mount_Q).tolist(), "angle_rad": self.mount_angle_rad,
                         "sigma_rad": self.mount_sigma_rad},
@@ -347,6 +357,11 @@ class RobotContext:
             return False
         from .calibration import CalibrationResult
         d = json.loads((self.data_dir / "model.json").read_text())
+        saved = tuple(d["result"].get("ids") or IDS[: len(d["result"]["anchors_M"])])
+        if saved != self.ids:               # saved by a run with another set of active stations: its model does not fit these cables
+            self.log(f"[startup] saved model is for stations {'/'.join(saved)}, the active stations are {'/'.join(self.ids)}: "
+                     "ignored (lower the claw, then start again)")
+            return False
         self.result = CalibrationResult.from_state(d["result"])
         self.set_model(self.result.anchors_room, d["L0"], d["T_R_M"])
         mt = d.get("mount")
@@ -382,11 +397,11 @@ class RobotContext:
 
     def length_sigma_room(self, q_R):
         if self.result is None:
-            return np.full(4, np.inf)
+            return np.full(len(self.ids), np.inf)
         return self.cal.length_sigma(self.result, to_marker(self.T_R_M, q_R))
 
     def ppu(self, i):
-        sid = IDS[i]
+        sid = self.ids[i]
         P = self.co.positions()[i]
         m = self.model.maps[sid] if self.model is not None and self.model.maps[sid].L0 is not None else None
         if m is None:
@@ -439,6 +454,8 @@ class StartupSequencer:
     def __init__(self, ctx: RobotContext):
         self.ctx = ctx
         self.cfg = ctx.cfg
+        self.ids = tuple(ctx.cfg.ids)           # the ACTIVE stations (4, or 3 in three-station mode)
+        self.n = len(self.ids)
         self.rep = StartupReport()
         self.noise_m = 0.001
         self.p_floor = None
@@ -595,7 +612,7 @@ class StartupSequencer:
         return r
 
     def _cable_rate(self, speed, i=None):
-        ppus = [self.ctx.ppu(j) for j in (range(4) if i is None else [i])]
+        ppus = [self.ctx.ppu(j) for j in (range(self.n) if i is None else [i])]
         return speed / min(ppus)
 
     def _rock_watch(self, ref, where: str) -> RockWatch:
@@ -674,7 +691,7 @@ class StartupSequencer:
         co = ctx.co
         try:
             co.wait(300000)
-            for s_ in IDS:                           # e.g. LEASE latched while parked: safe on the floor
+            for s_ in self.ids:                      # e.g. LEASE latched while parked: safe on the floor
                 if (co.links[s_].tel or {}).get("st") == State.FAULT:
                     co.clear(s_)
             co.configure()
@@ -686,7 +703,7 @@ class StartupSequencer:
         bad = {s: r for s, r in bad.items() if r}
         if bad:
             raise StartupAbort(S, f"stations not healthy: {bad}")
-        sw = {s: (co.links[s].tel or {}).get("sw") for s in IDS}
+        sw = {s: (co.links[s].tel or {}).get("sw") for s in self.ids}
         if any(sw.values()):
             raise StartupAbort(S, f"switch open at {[s for s, v in sw.items() if v]}: bead at switch or broken wire")
         try:
@@ -698,6 +715,13 @@ class StartupSequencer:
         if bad:
             raise StartupAbort(S, f"stations not ready after arming: {bad}")
         self.p_floor = sp
+        self.rep.measurements["active_stations"] = list(self.ids)
+        if self.n < 4:
+            self.rep.measurements["inactive_stations"] = list(cfg.inactive_ids)
+            self.rep.measurements["start_point_room_m"] = [round(float(v), 4) for v in cfg.start_point_xy()]
+            ctx.log(f"[startup] THREE-STATION MODE: active cables {'/'.join(self.ids)} (inactive {'/'.join(cfg.inactive_ids)}: "
+                    "not configured, not armed); the claw must rest at the centroid of the active anchors, floor point "
+                    f"({cfg.start_point_xy()[0]:.3f}, {cfg.start_point_xy()[1]:.3f}) m")
         self.rep.measurements["vision_noise_m"] = self.noise_m
         self.rep.measurements["vision_noise_absolute_m"] = sp.spread_m
         self.rep.measurements["floor_tags_in_view"] = sp.n_tags
@@ -711,7 +735,7 @@ class StartupSequencer:
         thr = max(st.onset_translation_m, st.onset_noise_k * self.noise_m)
         bearing_d = max(st.bearing_translation_m, 2 * thr)
         ctx.onsets = []
-        for i, sid in enumerate(IDS):
+        for i, sid in enumerate(self.ids):
             ref = self._still(state=S)
             rw = self._rock_watch(ref, f"station {sid} take-up")
             mon = {"next": 0.0, "onset": None, "lost": 0.0, "max_disp": 0.0, "rocked": False}
@@ -744,15 +768,16 @@ class StartupSequencer:
                 return None
 
             ppu = ctx.ppu(i)
-            delta = np.zeros(4)
-            delta[i] = -st.max_slack_m[i] / ppu
+            max_slack = cfg.max_slack_for(sid)
+            delta = np.zeros(self.n)
+            delta[i] = -max_slack / ppu
             rate = st.probe_speed_m_s / ppu
             plan = plan_cable_move(ctx.co.positions(), delta, rate, rate / 0.2, segment_s=cfg.motion.segment_s,
                                    label=f"slack {sid}")
             r = self._execute(plan, S, suspended=False, monitor=monitor)
             if r.reason != "onset":
                 if r.ok:
-                    raise StartupAbort(S, f"station {sid}: no taut onset within {st.max_slack_m[i] * 1e3:.0f} mm "
+                    raise StartupAbort(S, f"station {sid}: no taut onset within {max_slack * 1e3:.0f} mm "
                                           "(cable unattached, wrong winding direction, or station order)")
                 raise StartupAbort(S, f"station {sid}: {r.reason}")
             ctx.wait(st.settle_s)
@@ -771,7 +796,7 @@ class StartupSequencer:
                     f"toward {math.degrees(o.bearing):.0f} deg (marker frame)"
                     + (f"; the claw ROCKED {rw.last_tilt_rad * 1e3:.1f} mrad on its jaws (limit {rw.last_thr_rad * 1e3:.1f}), "
                        "stopped at the tilt onset" if mon["rocked"] else ""))
-            back = np.zeros(4)
+            back = np.zeros(self.n)
             back[i] = st.onset_backoff_m / ppu
             rb = self._execute(plan_cable_move(ctx.co.positions(), back, rate * 2, rate * 10,
                                                segment_s=cfg.motion.segment_s, label=f"backoff {sid}"),
@@ -785,7 +810,7 @@ class StartupSequencer:
         self.rep.measurements["bearing_rms"] = rms
         if rms > st.bearing_rms_max:
             raise StartupAbort(S, f"slide directions disagree with the anchor entries (RMS {rms:.1f} sigma): "
-                                  "check station order/wiring A-D and anchor coordinates")
+                                  f"check station order/wiring {'-'.join(self.ids)} and anchor coordinates")
         res = self._pumped(ctx.cal.fit, [], ctx.onsets, psi_inits=[psi])
         ctx.apply_result(res, "onset")
         self.rep.measurements["L0_onset"] = res.L0.tolist()
@@ -797,7 +822,7 @@ class StartupSequencer:
         dL = geo.lengths(p_to_R) - geo.lengths(p_from_R)
         P = ctx.co.positions()
         newP = []
-        for i, sid in enumerate(IDS):
+        for i, sid in enumerate(self.ids):
             m = ctx.model.maps[sid]
             newP.append(m.position(m.length(P[i]) + dL[i]))
         delta = np.array(newP) - P
@@ -812,9 +837,14 @@ class StartupSequencer:
         st = cfg.startup
         sp = self._still(state=S)
         p0 = ctx.room_pose(sp)
+        tv = None if ctx.ws is None else ctx.ws.triangle_violation(p0)
+        if tv:                                      # three cables only: outside the triangle one cable cannot hold the claw
+            sx, sy = cfg.start_point_xy()
+            raise StartupAbort(S, f"the claw rests where three cables cannot lift it: {tv}. Put it at the centroid of the "
+                                  f"{'/'.join(self.ids)} anchors, floor point ({sx:.2f}, {sy:.2f}) m, and start again")
         ctx.ledger.claw_supported = False          # durable BEFORE the first command that can lift
         ctx.persist()
-        # bring all four to just-taut at the current pose (they were backed off)
+        # bring every cable to just-taut at the current pose (they were backed off)
         P = ctx.co.positions()
         target = ctx.model.positions_for(p0)
         rate = self._cable_rate(st.probe_speed_m_s * 2)
@@ -916,21 +946,21 @@ class StartupSequencer:
         """Pay out ``back`` metres of cable ``i`` (undo part or all of a probe retraction; below half a microstep nothing)."""
         ctx, cfg, st = self.ctx, self.cfg, self.cfg.startup
         if back > 0.5 * ctx.ppu(i):
-            pb = np.zeros(4)
+            pb = np.zeros(self.n)
             pb[i] = back / ctx.ppu(i)
             rate = st.probe_speed_m_s
             rb = self._execute(plan_cable_move(ctx.co.positions(), pb, rate / ctx.ppu(i), rate / ctx.ppu(i) / 0.2,
-                                               segment_s=cfg.motion.segment_s, label=f"probe back {IDS[i]}"),
+                                               segment_s=cfg.motion.segment_s, label=f"probe back {self.ids[i]}"),
                                state, suspended=True)
             if not rb.ok:
-                raise StartupAbort(state, f"station {IDS[i]}: probe pay-out {rb.reason}", suspended=True)
+                raise StartupAbort(state, f"station {self.ids[i]}: probe pay-out {rb.reason}", suspended=True)
 
     def _probe_cable(self, i, ref, n_frames, state):
         """Retract cable ``i`` in small steps until the claw moves (taut onset), measure the slack, leave
         the cable just taut. ``ref`` is a still pose (``n_frames`` frames) with the cable as it is. Returns a
         record dict. Aborts (hold) when the cable never goes taut within ``probe_max_m``."""
         ctx, cfg = self.ctx, self.cfg
-        st, sid = cfg.startup, IDS[i]
+        st, sid = cfg.startup, self.ids[i]
         q_room = ctx.room_pose(ref)
         v, vn, sig_proj, rho = self._probe_geometry(i, ref)
         rec = {"station": sid, "status": "ok", "response_per_m": vn, "detect_overshoot_m": rho,
@@ -951,7 +981,7 @@ class StartupSequencer:
             h = min(step, st.probe_max_m - r)
             ppu = ctx.ppu(i)
             P_b = float(ctx.co.positions()[i])
-            delta = np.zeros(4)
+            delta = np.zeros(self.n)
             delta[i] = -h / ppu
             plan = plan_cable_move(ctx.co.positions(), delta, rate / ppu, rate / ppu / 0.2,
                                    segment_s=cfg.motion.segment_s, label=f"probe {sid}")
@@ -1011,13 +1041,13 @@ class StartupSequencer:
         n_base = st.probe_frames
         ref = self._still(n=n_base, state=state, suspended=True)
         need = {}
-        for i in range(4):
+        for i in range(self.n):
             _, _, _, rho = self._probe_geometry(i, ref)
             n_i = n_base if rho <= st.probe_overshoot_max_m else int(math.ceil(n_base * (rho / st.probe_overshoot_max_m) ** 2))
             if n_i <= st.probe_frames_max:
                 need[i] = n_i
             else:
-                recs[i] = {"station": IDS[i], "status": "skipped", "detect_overshoot_m": rho,
+                recs[i] = {"station": self.ids[i], "status": "skipped", "detect_overshoot_m": rho,
                            "reason": f"vision too noisy: detecting onset needs {rho * 1e3:.1f} mm of over-retraction "
                                      f"(> {st.probe_overshoot_max_m * 1e3:.1f} mm) even with {st.probe_frames_max} frames"}
         todo = sorted(need)
@@ -1049,12 +1079,12 @@ class StartupSequencer:
                     thr = max(st.probe_onset_translation_m, k * math.sqrt(float(u @ (c_a + c_b) @ u)))
                     if dist >= thr:
                         todo.append(i)
-        taut = np.array([recs[i]["status"] == "ok" for i in range(4)])
+        taut = np.array([recs[i]["status"] == "ok" for i in range(self.n)])
         sigma = np.array([recs[i].get("sigma_m", 0.0) * (1.0 + self.PROBE_MARGIN_SIGMA) if taut[i] else 0.0
-                          for i in range(4)])
-        slack = [recs[i].get("slack_m", float("nan")) for i in range(4)]
+                          for i in range(self.n)])
+        slack = [recs[i].get("slack_m", float("nan")) for i in range(self.n)]
         return {"taut": taut, "sigma_m": sigma, "slack_m": slack, "rounds": n_rounds, "t_s": ctx.now_s() - t0,
-                "frames": n_pose, "cables": {IDS[i]: recs[i] for i in range(4)}}
+                "frames": n_pose, "cables": {self.ids[i]: recs[i] for i in range(self.n)}}
 
     def _restore_positions(self, P_target, state):
         """Back to the model-consistent motor positions the planner started from (pay-out only)."""
@@ -1062,7 +1092,7 @@ class StartupSequencer:
         delta = np.asarray(P_target, float) - ctx.co.positions()
         if np.max(np.abs(delta)) < 0.5:
             return
-        ppus = np.array([ctx.ppu(j) for j in range(4)])
+        ppus = np.array([ctx.ppu(j) for j in range(self.n)])
         rate = st.probe_speed_m_s / float(np.min(ppus))
         r = self._execute(plan_cable_move(ctx.co.positions(), delta, rate, rate / 0.2, segment_s=cfg.motion.segment_s,
                                           label="probe restore"), state, suspended=True)
@@ -1258,7 +1288,7 @@ class StartupSequencer:
         ok = [(i, r) for r in L for i, c in enumerate(r["taut"]) if c]
         sl = np.array([r["slack_m"][i] for i, r in ok]) if ok else np.zeros(0)
         return {"poses": len(L), "time_s": float(sum(r["t_s"] for r in L)),
-                "readings_probed": len(ok), "readings_skipped": 4 * len(L) - len(ok),
+                "readings_probed": len(ok), "readings_skipped": self.n * len(L) - len(ok),
                 "slack_median_m": float(np.median(sl)) if len(sl) else None,
                 "slack_max_m": float(sl.max()) if len(sl) else None,
                 "peak_retraction_max_m": float(max((c.get("peak_m", 0.0) for r in L for c in r["cables"].values()),
@@ -1270,8 +1300,9 @@ class StartupSequencer:
         lo[2] += cfg.startup.target_clearance_m
         pts = box_candidates((lo + hi) / 2, (hi - lo) / 2, n)
         geo = geometry_from_config(cfg, res.anchors_room, ctx.claw_yaw_room)
-        return [q for q in pts if tension_distribution(geo, q, cfg.claw.mass_kg, t_min=cfg.motion.min_tension_n,
-                                                       t_max=cfg.motion.max_tension_n).feasible]
+        return [q for q in pts if ctx.ws.triangle_violation(q) is None
+                and tension_distribution(geo, q, cfg.claw.mass_kg, t_min=cfg.motion.min_tension_n,
+                                         t_max=cfg.motion.max_tension_n).feasible]
 
     # ------------------------------------------------- REFERENCE_VERIFICATION
     def _margin_volume(self, res, n=(9, 9, 5)):
@@ -1281,8 +1312,9 @@ class StartupSequencer:
         lo[2] = min(lo[2] + cfg.startup.target_clearance_m, hi[2])
         pts = box_candidates((lo + hi) / 2, (hi - lo) / 2, n)
         geo = geometry_from_config(cfg, res.anchors_room, ctx.claw_yaw_room)
-        return [q for q in pts if tension_distribution(geo, q, cfg.claw.mass_kg, t_min=cfg.motion.min_tension_n,
-                                                       t_max=cfg.motion.max_tension_n).feasible]
+        return [q for q in pts if ctx.ws.triangle_violation(q) is None
+                and tension_distribution(geo, q, cfg.claw.mass_kg, t_min=cfg.motion.min_tension_n,
+                                         t_max=cfg.motion.max_tension_n).feasible]
 
     def _margin_scan(self, res, smp):
         """The scan of ``assess_margin_trust`` (c): over the commanded-workspace poses (405 tension LPs and one ``boundary_sigma`` each,
@@ -1403,7 +1435,7 @@ class StartupSequencer:
                                self.cfg.calibration.payout_scale_sigma * np.abs(Lh - np.array(
                                    [s.bead.trigger_length_m for s in self.cfg.stations])))
             bv = BeadVerifier(self.cfg, ctx.co, ctx.model, ctx.lim, ctx.ws, lambda q: sig_abs, log=ctx.log)
-            for i, sid in enumerate(IDS):
+            for i, sid in enumerate(self.ids):
                 out = bv.run(i, p_home=home)
                 outcomes[sid] = out
                 if out.status == "FAULT":
@@ -1426,7 +1458,7 @@ class StartupSequencer:
                 ctx.apply_result(res, "visual+bead")
                 for sid, o in outcomes.items():
                     if o.status == "VERIFIED":
-                        i = IDS.index(sid)
+                        i = self.ids.index(sid)
                         ctx.ledger.set_reference(sid, ctx.co.links[sid].boot, res.L0[i],
                                                  float(ctx.cal.absolute_sigma(res)[i]), "bead", bead=True)
                 self.rep.measurements["absolute_sigma_after_beads_m"] = ctx.cal.absolute_sigma(res).tolist()

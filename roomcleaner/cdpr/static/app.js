@@ -210,8 +210,10 @@ function renderStatus(s) {
   $("trustText").textContent = trustText(t);
   $("trustReasons").replaceChildren(...((t.reasons || []).map(r => h("li", {}, r))));
 
-  // stations and claw
-  $("stations").replaceChildren(...Object.entries(s.stations || {}).sort().map(([id, v]) => stationTile(id, v)));
+  // stations and claw: only the ACTIVE stations (three-station mode shows three tiles; the service lists no other)
+  const tiles = Object.entries(s.stations || {}).sort();
+  $("stations").style.gridTemplateColumns = `repeat(${Math.max(tiles.length, 1)}, minmax(0, 1fr))`;
+  $("stations").replaceChildren(...tiles.map(([id, v]) => stationTile(id, v)));
   renderClaw(s.claw || {});
 
   // camera line
@@ -245,7 +247,11 @@ function renderSetup(s) {
   for (const id of ["rw", "rd", "rh"]) $(id).disabled = !editable;
   document.querySelectorAll("#anchors input").forEach(x => { x.disabled = !editable; });
   $("saveRoom").disabled = !editable;
-  $("roomNote").textContent = editable ? "Anchors are the corner points of the four cables (x, y, z)." : "Room and anchors can only be edited while DISARMED or PARKED.";
+  const nAct = (s.stations_active || ["A", "B", "C", "D"]).length;
+  $("roomNote").textContent = editable ? `Anchors are the cable exit points of the ${nAct === 4 ? "four cables" : nAct + " active cables (" + s.stations_active.join(", ") + ")"} (x, y, z).` : "Room and anchors can only be edited while DISARMED or PARKED.";
+  // three-station mode: which cables are used and where the claw goes (the centroid of the active anchors)
+  $("modeNote").hidden = !s.mode_text; $("modeNote").textContent = s.mode_text || "";
+  $("startPoint").textContent = s.start_point_text || "";
   if (!roomInit && s.room_m) {
     roomInit = true;
     [$("rw").value, $("rd").value, $("rh").value] = s.room_m.map(x => +x.toFixed(3));
@@ -328,7 +334,9 @@ async function refreshCalib() {
     box.append(kv("Accepted", h("span", {class: val.accepted ? "ok" : "badc"}, val.accepted ? "yes" : "NO")));
     if (res.norm_rms != null) box.append(kv("Fit residual (normalised RMS)", res.norm_rms.toFixed(2)));
     if (val.witness_rms_m != null) box.append(kv("Witness RMS", (val.witness_rms_m * 1e3).toFixed(1) + " mm"));
-    (res.anchors_room_m || []).forEach((a, i) => box.append(kv("Anchor " + "ABCD"[i] + " (m)", a.map(x => x.toFixed(3)).join(", "))));
+    (res.anchors_room_m || []).forEach((a, i) => box.append(kv("Anchor " + (res.ids || ["A", "B", "C", "D"])[i] + " (m)", a.map(x => x.toFixed(3)).join(", "))));
+    const idn = res.identifiability || {};
+    if (idn.condition_number != null && res.ids && res.ids.length < 4) box.append(kv("Identifiability (condition number)", idn.condition_number.toFixed(0)));
     (val.reasons || []).forEach(x => box.append(kv("Note", x)));
   } else {
     box.append(h("p", {class: "muted"}, "No calibration yet. The startup makes it."));

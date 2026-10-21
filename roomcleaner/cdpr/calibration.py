@@ -4,9 +4,9 @@ Problem
 -------
 Unknowns (the *physical* parameters ``theta``):
 
-* ``a_i^M``  cable exit points in the **marker** frame (12)
-* ``L0_i``   external length at motor position 0 of the current boot epoch (4)
-* ``s_i``    optional payout-scale corrections (4, off by default)
+* ``a_i^M``  cable exit points in the **marker** frame (3 per active station: 12, or 9 in three-station mode)
+* ``L0_i``   external length at motor position 0 of the current boot epoch (1 per active station)
+* ``s_i``    optional payout-scale corrections (1 per active station, off by default)
 
 plus the marker's pose in the room ``psi = (x, y, yaw)`` (the marker lies flat
 on the floor, so z = roll = pitch = 0) and one nuisance position ``p_k`` per
@@ -42,6 +42,13 @@ Acceptance is never "the optimiser converged":
 4. prediction: posterior 1-sigma of every cable length over the accepted
    volume <= ``length_sigma_max_m``;
 5. witnesses: held-out poses are predicted within ``witness_rms_max_m``.
+
+Three-station mode (docs/THREE_STATION_MODE_SPEC.md): everything above runs over the ACTIVE stations only (``Calibrator.ids``,
+3 or 4); the inactive ones are not unknowns. With three cables there is no redundancy: a hanging claw has every cable taut
+(statics), so no slack hypothesis is formed, and the length rows of one pose constrain the pose exactly (the vision pose is
+what pins it). The identifiability check (singular values of the data information, prior-normalised, plus the condition
+number and the posterior standard deviations in ``Identifiability`` / ``CalibrationResult.sigma``) is the evidence of what
+the data pin down.
 """
 from __future__ import annotations
 
@@ -61,8 +68,8 @@ IDS = ("A", "B", "C", "D")
 # ---------------------------------------------------------------- samples
 @dataclass
 class PoseSample:
-    """Claw pose from vision (marker frame) with the four motor positions."""
-    P: np.ndarray                 # (4,) microsteps, all in the current boot epochs
+    """Claw pose from vision (marker frame) with the motor positions of the active stations (four, or three)."""
+    P: np.ndarray                 # (n,) microsteps, all in the current boot epochs
     p: np.ndarray                 # (3,) body origin in the marker frame
     R: np.ndarray                 # (3,3) body orientation in the marker frame
     cov: np.ndarray               # (3,3) covariance of p (m^2)
@@ -72,8 +79,8 @@ class PoseSample:
     # tautened by motion onset at this pose are flagged here. Such a reading is
     # a taut-cable length (never a slack hypothesis candidate) whose extra
     # 1-sigma (probe uncertainty) is added in quadrature to the length noise.
-    taut: np.ndarray | None = None          # (4,) bool or None (not probed)
-    taut_sigma_m: np.ndarray | None = None  # (4,) extra 1-sigma per probed reading (m)
+    taut: np.ndarray | None = None          # (n,) bool or None (not probed)
+    taut_sigma_m: np.ndarray | None = None  # (n,) extra 1-sigma per probed reading (m)
     probe: dict | None = None               # raw probe record (logs only)
     # 1-sigma of this pose's roll or pitch from its own frames (tag geometry, vision/marker.py); None = unknown. The
     # attachment-lever term of the length noise uses max(calibration.attitude_sigma_rad, this): the configured value is
@@ -81,19 +88,20 @@ class PoseSample:
     att_sigma_rad: float | None = None
 
     def __post_init__(self):
-        self.P = np.asarray(self.P, float).reshape(4)
+        self.P = np.asarray(self.P, float).reshape(-1)
         self.p = np.asarray(self.p, float).reshape(3)
         self.R = np.asarray(self.R, float).reshape(3, 3)
         self.cov = np.asarray(self.cov, float).reshape(3, 3)
         if self.taut is not None:
-            self.taut = np.asarray(self.taut, bool).reshape(4)
-            self.taut_sigma_m = (np.zeros(4) if self.taut_sigma_m is None
-                                 else np.asarray(self.taut_sigma_m, float).reshape(4))
+            n = len(self.P)
+            self.taut = np.asarray(self.taut, bool).reshape(n)
+            self.taut_sigma_m = (np.zeros(n) if self.taut_sigma_m is None
+                                 else np.asarray(self.taut_sigma_m, float).reshape(n))
 
     def length_sigma(self, sl: float) -> np.ndarray:
-        """(4,) 1-sigma of this sample's length readings given the base noise ``sl``."""
+        """(n,) 1-sigma of this sample's length readings given the base noise ``sl``."""
         if self.taut is None:
-            return np.full(4, sl)
+            return np.full(len(self.P), sl)
         return np.where(self.taut, np.hypot(sl, self.taut_sigma_m), sl)
 
 
@@ -122,22 +130,23 @@ class BeadObs:
 # ------------------------------------------------------------- the model
 @dataclass
 class Layout:
-    """Index bookkeeping for the parameter vector."""
+    """Index bookkeeping for the parameter vector. ``n_st`` = number of active stations (4; 3 in three-station mode)."""
     n_samples: int
     fit_scale: bool
+    n_st: int = 4
 
     @property
     def n_theta(self):
-        return 12 + 4 + (4 if self.fit_scale else 0)
+        return 3 * self.n_st + self.n_st + (self.n_st if self.fit_scale else 0)
 
     def a(self, i):
         return slice(3 * i, 3 * i + 3)
 
     def L0(self, i):
-        return 12 + i
+        return 3 * self.n_st + i
 
     def s(self, i):
-        return 16 + i if self.fit_scale else None
+        return 4 * self.n_st + i if self.fit_scale else None
 
     @property
     def psi(self):
@@ -151,21 +160,23 @@ class Layout:
     def n(self):
         return self.n_theta + 3 + 3 * self.n_samples
 
-    def names(self):
+    def names(self, ids=None):
+        ids = IDS[: self.n_st] if ids is None else tuple(ids)
         out = []
-        for i, sid in enumerate(IDS):
+        for i, sid in enumerate(ids):
             out += [f"anchor {sid}.{ax}" for ax in "xyz"]
-        out += [f"L0 {sid}" for sid in IDS]
+        out += [f"L0 {sid}" for sid in ids]
         if self.fit_scale:
-            out += [f"scale {sid}" for sid in IDS]
+            out += [f"scale {sid}" for sid in ids]
         return out
 
 
 class CableLengthModel:
     """L_i(P; L0_i, s_i) built on each station's spool map."""
 
-    def __init__(self, maps: dict):
-        self.maps = [maps[s] for s in IDS]
+    def __init__(self, maps: dict, ids=None):
+        self.ids = tuple(ids) if ids is not None else tuple(s for s in IDS if s in maps)
+        self.maps = [maps[s] for s in self.ids]
 
     def length(self, i, P, L0, s=1.0):
         m = self.maps[i].with_reference(L0)
@@ -196,8 +207,8 @@ class CableLengthModel:
 
 @dataclass
 class Priors:
-    anchors_room: np.ndarray          # (4,3)
-    anchor_sigma: np.ndarray          # (4,)
+    anchors_room: np.ndarray          # (n,3)
+    anchor_sigma: np.ndarray          # (n,)
     heading: float
     heading_sigma: float
     position: np.ndarray              # (2,)
@@ -208,9 +219,7 @@ class Priors:
     def from_config(cls, cfg):
         a = cfg.anchor_priors()
         sig = np.array([s.anchor_sigma_m for s in cfg.stations], float)
-        pos = cfg.marker.position_prior_room_m
-        if pos is None:
-            pos = cfg.room_m[:2] / 2
+        pos = cfg.start_point_xy()      # marker prior, else the room centre (four stations) / centroid of the active anchors (three)
         if cfg.marker.heading_prior_rad is None:
             raise ValueError("marker.heading_prior_rad must be set (which way the marker +X points)")
         return cls(a, sig, float(cfg.marker.heading_prior_rad), float(cfg.marker.heading_sigma_rad),
@@ -228,6 +237,15 @@ class Identifiability:
     weak: list                        # [(sv, description)] below threshold
     ok: bool
 
+    @property
+    def condition_number(self) -> float:
+        """Largest / smallest singular value of the prior-normalised data information (inf if a direction has none)."""
+        sv = np.asarray(self.singular_values, float)
+        if sv.size == 0:
+            return float("nan")
+        lo = float(sv.min())
+        return float("inf") if lo <= 0 else float(sv.max() / lo)
+
 
 @dataclass
 class CalibrationResult:
@@ -239,14 +257,15 @@ class CalibrationResult:
     chi2: float
     norm_rms: float
     n_rows: int
-    residuals_m: np.ndarray           # (K,4) length residuals of fit samples (m)
+    residuals_m: np.ndarray           # (K,n) length residuals of fit samples (m)
     outliers: list
     identifiability: Identifiability
     alternates: list = field(default_factory=list)
     ambiguous: bool = False
     fit_scale: bool = False
-    slack: np.ndarray | None = None   # (K,4) readings classified as slack cables
+    slack: np.ndarray | None = None   # (K,n) readings classified as slack cables
     notes: list = field(default_factory=list)
+    ids: tuple = IDS                  # the stations the arrays are about (the active ones; 4, or 3 in three-station mode)
 
     @property
     def T_R_M(self) -> np.ndarray:
@@ -257,9 +276,9 @@ class CalibrationResult:
         return self.anchors_M @ rot_z(self.psi[2]).T + [self.psi[0], self.psi[1], 0.0]
 
     def sigma(self) -> dict:
-        lay = Layout(0, self.fit_scale)
+        lay = Layout(0, self.fit_scale, len(self.ids))
         sd = np.sqrt(np.diag(self.cov_theta))
-        names = lay.names() + ["marker x", "marker y", "marker yaw"]
+        names = lay.names(self.ids) + ["marker x", "marker y", "marker yaw"]
         return dict(zip(names, sd))
 
     def to_state(self) -> dict:
@@ -267,7 +286,7 @@ class CalibrationResult:
         return {"anchors_M": self.anchors_M.tolist(), "L0": self.L0.tolist(), "scale": self.scale.tolist(),
                 "psi": self.psi.tolist(), "cov_theta": self.cov_theta.tolist(), "chi2": self.chi2,
                 "norm_rms": self.norm_rms, "n_rows": self.n_rows, "residuals_m": np.asarray(self.residuals_m).tolist(),
-                "outliers": self.outliers, "fit_scale": self.fit_scale, "notes": self.notes,
+                "outliers": self.outliers, "fit_scale": self.fit_scale, "notes": self.notes, "ids": list(self.ids),
                 "ident": {"sv": self.identifiability.singular_values.tolist(),
                           "weak": [[float(a), b] for a, b in self.identifiability.weak],
                           "ok": self.identifiability.ok}}
@@ -280,16 +299,21 @@ class CalibrationResult:
                    chi2=d["chi2"], norm_rms=d["norm_rms"], n_rows=d["n_rows"], residuals_m=a("residuals_m"),
                    outliers=d["outliers"], identifiability=Identifiability(np.asarray(idt["sv"]),
                                                                            [tuple(w) for w in idt["weak"]], idt["ok"]),
-                   fit_scale=d["fit_scale"], notes=d.get("notes", []))
+                   fit_scale=d["fit_scale"], notes=d.get("notes", []),
+                   ids=tuple(d.get("ids") or IDS[: np.asarray(d["anchors_M"]).shape[0]]))
 
     def to_jsonable(self) -> dict:
-        return {"anchors_marker_m": self.anchors_M.tolist(), "anchors_room_m": self.anchors_room.tolist(),
-                "L0_m": dict(zip(IDS, self.L0.tolist())), "payout_scale": dict(zip(IDS, self.scale.tolist())),
+        return {"ids": list(self.ids), "anchors_marker_m": self.anchors_M.tolist(), "anchors_room_m": self.anchors_room.tolist(),
+                "L0_m": dict(zip(self.ids, self.L0.tolist())), "payout_scale": dict(zip(self.ids, self.scale.tolist())),
                 "marker_in_room": {"x_m": self.psi[0], "y_m": self.psi[1], "yaw_rad": self.psi[2]},
                 "sigma": {k: float(v) for k, v in self.sigma().items()}, "chi2": self.chi2,
                 "norm_rms": self.norm_rms, "outliers": self.outliers,
                 "identifiability": {"ok": self.identifiability.ok,
-                                    "weak": [[float(a), b] for a, b in self.identifiability.weak]},
+                                    "weak": [[float(a), b] for a, b in self.identifiability.weak],
+                                    "singular_value_min": float(np.min(self.identifiability.singular_values)),
+                                    "singular_value_max": float(np.max(self.identifiability.singular_values)),
+                                    "condition_number": (self.identifiability.condition_number
+                                                         if math.isfinite(self.identifiability.condition_number) else None)},
                 "ambiguous": self.ambiguous, "notes": self.notes,
                 "slack_readings": int(self.slack.sum()) if self.slack is not None else 0}
 
@@ -299,7 +323,9 @@ class Calibrator:
     def __init__(self, cfg, maps: dict, *, attach=None, priors: Priors | None = None):
         self.cfg = cfg
         self.cc = cfg.calibration
-        self.lm = CableLengthModel(maps)
+        self.ids = tuple(cfg.ids)                     # the ACTIVE stations (4, or 3 in three-station mode)
+        self.n = len(self.ids)
+        self.lm = CableLengthModel(maps, self.ids)
         self.attach = np.asarray(cfg.attachment_points() if attach is None else attach, float)
         self.priors = priors or Priors.from_config(cfg)
         self.beads: list = []             # BeadObs included in every fit once verified
@@ -344,9 +370,9 @@ class Calibrator:
         x = np.zeros(lay.n)
         xR, yR, yaw = psi0
         aM = (self.priors.anchors_room - [xR, yR, 0.0]) @ rot_z(yaw)       # R^T applied row-wise
-        for i in range(4):
+        for i in range(self.n):
             x[lay.a(i)] = aM[i]
-        for i in range(4):
+        for i in range(self.n):
             if L0_init is not None and np.isfinite(L0_init[i]):
                 x[lay.L0(i)] = L0_init[i]
                 continue
@@ -361,7 +387,7 @@ class Calibrator:
                 Lk = float(np.linalg.norm(aM[i] - q))
                 x[lay.L0(i)] = self.lm.solve_L0(i, o.P, Lk, Lk)
         if lay.fit_scale:
-            for i in range(4):
+            for i in range(self.n):
                 x[lay.s(i)] = 1.0
         x[lay.psi] = psi0
         for k, smp in enumerate(samples):
@@ -369,10 +395,10 @@ class Calibrator:
         return x
 
     def _len_sigmas(self, samples) -> np.ndarray:
-        """(K,4) 1-sigma of every length reading (probe uncertainty added to probed ones)."""
+        """(K,n) 1-sigma of every length reading (probe uncertainty added to probed ones)."""
         sl = self.cc.length_sigma_m
         if not samples:
-            return np.zeros((0, 4))
+            return np.zeros((0, self.n))
         out = np.array([smp.length_sigma(sl) for smp in samples])
         if self.spaced:        # attitude error moves the attachment point: |b_i| * sigma_R along the line, at most
             att = np.array([max(self.cc.attitude_sigma_rad, smp.att_sigma_rad or 0.0) for smp in samples])[:, None]
@@ -384,11 +410,11 @@ class Calibrator:
         """Whitened residual vector and dense Jacobian."""
         sl = self.cc.length_sigma_m
         sg = self._len_sigmas(samples)
-        aM = np.array([x[lay.a(i)] for i in range(4)])
+        aM = np.array([x[lay.a(i)] for i in range(self.n)])
         rs, Js = [], []
         K = len(samples)
         # length rows
-        for i in range(4):
+        for i in range(self.n):
             L0 = x[lay.L0(i)]
             s = x[lay.s(i)] if lay.fit_scale else 1.0
             P = np.array([smp.P[i] for smp in samples])
@@ -467,7 +493,7 @@ class Calibrator:
             xR, yR, yaw = x[lay.psi]
             Rz = rot_z(yaw)
             dRz = np.array([[-math.sin(yaw), -math.cos(yaw), 0], [math.cos(yaw), -math.sin(yaw), 0], [0, 0, 0]])
-            for i in range(4):
+            for i in range(self.n):
                 sg = pr.anchor_sigma[i]
                 aR = Rz @ aM[i] + [xR, yR, 0.0]
                 J = np.zeros((3, lay.n))
@@ -487,7 +513,7 @@ class Calibrator:
                 rs.append((x[lay.psi][ax] - pr.position[ax]) / pr.position_sigma)
                 Js.append(J)
             if lay.fit_scale:
-                for i in range(4):
+                for i in range(self.n):
                     J = np.zeros(lay.n)
                     J[lay.s(i)] = 1 / pr.scale_sigma
                     rs.append((x[lay.s(i)] - 1.0) / pr.scale_sigma)
@@ -497,7 +523,7 @@ class Calibrator:
     def _bounds(self, lay):
         lo = np.full(lay.n, -np.inf)
         hi = np.full(lay.n, np.inf)
-        for i in range(4):
+        for i in range(self.n):
             lo[lay.L0(i)] = 0.05
             hi[lay.L0(i)] = self.lm.maps[i].cfg.line_total_m - 0.05
             if lay.fit_scale:
@@ -511,11 +537,14 @@ class Calibrator:
         than slack_k sigma; a fixed penalty prefers 'all taut' when in doubt."""
         sl = self.cc.length_sigma_m
         sg = self._len_sigmas(samples)
-        aM = np.array([x[lay.a(i)] for i in range(4)])
+        aM = np.array([x[lay.a(i)] for i in range(self.n)])
         K = len(samples)
-        out = np.zeros((K, 4), bool)
-        Lm = np.zeros((K, 4))
-        for i in range(4):
+        out = np.zeros((K, self.n), bool)
+        if self.n < 4:
+            return out      # three cables: every cable of a hanging claw is taut (statics) and a dropped one leaves the pose
+                            # undetermined by the lengths, so no slack hypothesis is formed (see the module docstring)
+        Lm = np.zeros((K, self.n))
+        for i in range(self.n):
             if K:
                 Lm[:, i] = self.lm.length(i, [s.P[i] for s in samples], x[lay.L0(i)],
                                           x[lay.s(i)] if lay.fit_scale else 1.0)
@@ -527,10 +556,10 @@ class Calibrator:
                 d = np.linalg.norm(aM - (q[None, :] + att.T), axis=1)
                 return np.r_[((Lm[k] - d) / sg[k])[keep], W @ (q - smp.p)]
             best = None
-            for drop in (None, 0, 1, 2, 3):
+            for drop in (None, *range(self.n)):
                 if drop is not None and smp.taut is not None and smp.taut[drop]:
                     continue                          # probed taut by motion onset: never a slack candidate
-                keep = [i for i in range(4) if i != drop]
+                keep = [i for i in range(self.n) if i != drop]
                 sol = least_squares(res, x[lay.p(k)], args=(keep,), method="lm")
                 cost = float(sol.fun @ sol.fun)
                 if drop is not None:
@@ -546,25 +575,26 @@ class Calibrator:
 
     def _solve(self, x0, lay, samples, onsets):
         K = len(samples)
-        w_len = np.ones((K, 4))
+        n = self.n
+        w_len = np.ones((K, n))
         w_vis = np.ones(K)
         w_on = np.ones(len(onsets))
         hk = self.cc.huber_k
         x = x0.copy()
-        slack = np.zeros((K, 4), bool)
+        slack = np.zeros((K, n), bool)
         for _ in range(8):                         # IRLS: Huber weights on measurement rows
             fun = lambda z: self._rows(z, lay, samples, onsets, w_len, w_vis, w_on)[0]
             jac = lambda z: self._rows(z, lay, samples, onsets, w_len, w_vis, w_on)[1]
             sol = least_squares(fun, x, jac=jac, method="trf", x_scale="jac", max_nfev=200,
                                 bounds=self._bounds(lay))
             x = sol.x
-            r, _, _ = self._rows(x, lay, samples, onsets, np.ones((K, 4)), np.ones(K), np.ones(len(onsets)),
+            r, _, _ = self._rows(x, lay, samples, onsets, np.ones((K, n)), np.ones(K), np.ones(len(onsets)),
                                  include_priors=False)
-            rl = r[: 4 * K].reshape(4, K).T            # unweighted whitened length residuals
-            rv = np.linalg.norm(r[4 * K: 7 * K].reshape(K, 3), axis=1) / math.sqrt(3) if K else np.zeros(0)
+            rl = r[: n * K].reshape(n, K).T            # unweighted whitened length residuals
+            rv = np.linalg.norm(r[n * K: (n + 3) * K].reshape(K, 3), axis=1) / math.sqrt(3) if K else np.zeros(0)
             no = len(onsets)
-            ro = np.abs(r[7 * K: 7 * K + no])
-            rb = iter(np.abs(r[7 * K + no:]))
+            ro = np.abs(r[(n + 3) * K: (n + 3) * K + no])
+            rb = iter(np.abs(r[(n + 3) * K + no:]))
             ro = np.array([max(ro[j], next(rb)) if o.bearing is not None else ro[j] for j, o in enumerate(onsets)])
             new_len = np.minimum(1.0, hk / np.maximum(np.abs(rl), 1e-12)) ** 0.5
             # A common-point claw hangs on three cables whenever the commanded
@@ -606,10 +636,10 @@ class Calibrator:
         onsets = list(onsets)
         if fit_s:
             self.note_yaw_M(fit_s[-1].R, fit_s[-1].p)
-        lay = Layout(len(fit_s), self.cc.fit_payout_scale)
-        for i in range(4):
+        lay = Layout(len(fit_s), self.cc.fit_payout_scale, self.n)
+        for i in range(self.n):
             if not any(o.i == i for o in onsets) and not fit_s:
-                raise ValueError(f"no observation of cable {IDS[i]}: its L0 is undetermined")
+                raise ValueError(f"no observation of cable {self.ids[i]}: its L0 is undetermined")
         pr = self.priors
         starts = [np.array([pr.position[0], pr.position[1], _wrap(pr.heading + d)])
                   for d in (0, math.pi / 2, math.pi, -math.pi / 2)]
@@ -634,7 +664,7 @@ class Calibrator:
         alternates, ambiguous = [], False
         for c2, xa, *_ in sols[1:]:
             dyaw = abs(_wrap(xa[lay.psi][2] - x[lay.psi][2]))
-            dA = float(np.max(np.abs(xa[:12] - x[:12])))
+            dA = float(np.max(np.abs(xa[:3 * self.n] - x[:3 * self.n])))
             if dyaw > 0.05 or dA > 0.02:
                 if dyaw <= 0.05 and self._same_valley(x, xa, chi2, c2, lay, fit_s, onsets, wts_best):
                     continue        # same marker heading, no barrier: a flat direction of one optimum, not an alignment
@@ -648,27 +678,27 @@ class Calibrator:
         cov = cov_all[np.ix_(keep, keep)]
         # whitened residual RMS of measurement rows (unweighted by IRLS)
         K = len(fit_s)
-        r0, _, _ = self._rows(x, lay, fit_s, onsets, np.ones((K, 4)), np.ones(K), np.ones(len(onsets)),
+        r0, _, _ = self._rows(x, lay, fit_s, onsets, np.ones((K, self.n)), np.ones(K), np.ones(len(onsets)),
                               include_priors=False)
         keep_rows = np.ones(len(r0), bool)
         for k in range(K):
-            for i in range(4):
+            for i in range(self.n):
                 keep_rows[i * K + k] = not slack[k, i]
         norm_rms = float(np.sqrt(np.mean(r0[keep_rows] ** 2))) if len(r0) else 0.0
-        res_m = (r0[: 4 * K].reshape(4, K).T * self._len_sigmas(fit_s)) if K else np.zeros((0, 4))
+        res_m = (r0[: self.n * K].reshape(self.n, K).T * self._len_sigmas(fit_s)) if K else np.zeros((0, self.n))
         outliers = []
         for k in range(K):
-            for i in range(4):
+            for i in range(self.n):
                 if not slack[k, i] and abs(r0[i * K + k]) > self.cc.outlier_k:
-                    outliers.append({"sample": k, "station": IDS[i], "sigma": float(r0[i * K + k])})
+                    outliers.append({"sample": k, "station": self.ids[i], "sigma": float(r0[i * K + k])})
         ident = self.identifiability(x, lay, fit_s, onsets, slack)
         res = CalibrationResult(
-            anchors_M=np.array([x[lay.a(i)] for i in range(4)]),
-            L0=np.array([x[lay.L0(i)] for i in range(4)]),
-            scale=np.array([x[lay.s(i)] for i in range(4)]) if lay.fit_scale else np.ones(4),
+            anchors_M=np.array([x[lay.a(i)] for i in range(self.n)]),
+            L0=np.array([x[lay.L0(i)] for i in range(self.n)]),
+            scale=np.array([x[lay.s(i)] for i in range(self.n)]) if lay.fit_scale else np.ones(self.n),
             psi=x[lay.psi].copy(), cov_theta=cov, chi2=chi2, norm_rms=norm_rms, n_rows=len(r),
             residuals_m=res_m, outliers=outliers, identifiability=ident, alternates=alternates,
-            ambiguous=ambiguous, fit_scale=lay.fit_scale, slack=slack)
+            ambiguous=ambiguous, fit_scale=lay.fit_scale, slack=slack, ids=self.ids)
         if norm_rms > self.cc.norm_rms_max:
             res.notes.append(f"residual RMS {norm_rms:.2f} sigma exceeds {self.cc.norm_rms_max}: model inadequate")
         if ambiguous:
@@ -681,7 +711,7 @@ class Calibrator:
         the prior scales so 1.0 means 'the data constrain this direction as well as
         the prior does'."""
         K = len(samples)
-        w = np.ones((K, 4)) if slack is None else (~slack).astype(float)
+        w = np.ones((K, self.n)) if slack is None else (~slack).astype(float)
         _, J, n_meas = self._rows(x, lay, samples, onsets, w, np.ones(K), np.ones(len(onsets)),
                                   include_priors=False)
         Jm = J[:n_meas]
@@ -693,13 +723,13 @@ class Calibrator:
             Itp = I[np.ix_(np.arange(nt), pidx)]
             Ipp = I[np.ix_(pidx, pidx)]
             Itt = Itt - Itp @ np.linalg.solve(Ipp, Itp.T)
-        scale = np.r_[np.repeat(self.priors.anchor_sigma, 3), np.full(4, 0.10)]
+        scale = np.r_[np.repeat(self.priors.anchor_sigma, 3), np.full(self.n, 0.10)]
         if lay.fit_scale:
-            scale = np.r_[scale, np.full(4, self.priors.scale_sigma)]
+            scale = np.r_[scale, np.full(self.n, self.priors.scale_sigma)]
         D = np.diag(scale)
         ev, V = np.linalg.eigh(D @ Itt @ D)
         sv = np.sqrt(np.clip(ev, 0, None))
-        names = lay.names()
+        names = lay.names(self.ids)
         weak = []
         for k in np.argsort(sv):
             if sv[k] >= self.cc.data_sv_min:
@@ -712,14 +742,14 @@ class Calibrator:
 
     # -- prediction -------------------------------------------------------------
     def length_sigma(self, res: CalibrationResult, q_M, R=None) -> np.ndarray:
-        """Posterior 1-sigma (m) of the four cable lengths commanded for a claw
+        """Posterior 1-sigma (m) of the cable lengths (one per active station) commanded for a claw
         pose q (marker frame): uncertainty in anchors, L0 and scale."""
         R = self.predicted_R(res.anchors_M, q_M, R)
-        lay = Layout(0, res.fit_scale)
+        lay = Layout(0, res.fit_scale, self.n)
         nt = lay.n_theta
         C = res.cov_theta[:nt, :nt]
-        out = np.zeros(4)
-        for i in range(4):
+        out = np.zeros(self.n)
+        for i in range(self.n):
             d = res.anchors_M[i] - (np.asarray(q_M) + R @ self.attach[i])
             u = d / np.linalg.norm(d)
             g = np.zeros(nt)
@@ -732,19 +762,19 @@ class Calibrator:
         """1-sigma of each cable's ABSOLUTE length at a given motor position
         (what a bead checks). Vision constrains it only through the range of
         the anchors, so it is usually much larger than length_sigma()."""
-        lay = Layout(0, res.fit_scale)
-        return np.sqrt(np.array([res.cov_theta[lay.L0(i), lay.L0(i)] for i in range(4)]))
+        lay = Layout(0, res.fit_scale, self.n)
+        return np.sqrt(np.array([res.cov_theta[lay.L0(i), lay.L0(i)] for i in range(self.n)]))
 
     def position_sigma(self, res: CalibrationResult, q_M, R=None) -> float:
         """RMS 1-sigma (m) of the claw position the model would reach for a
         commanded pose: the length errors mapped through the forward kinematics."""
         R = self.predicted_R(res.anchors_M, q_M, R)
-        lay = Layout(0, res.fit_scale)
+        lay = Layout(0, res.fit_scale, self.n)
         nt = lay.n_theta
         C = res.cov_theta[:nt, :nt]
-        G = np.zeros((4, nt))
-        Hq = np.zeros((4, 3))
-        for i in range(4):
+        G = np.zeros((self.n, nt))
+        Hq = np.zeros((self.n, 3))
+        for i in range(self.n):
             d = res.anchors_M[i] - (np.asarray(q_M) + R @ self.attach[i])
             u = d / np.linalg.norm(d)
             G[i, lay.a(i)] = u
@@ -780,32 +810,33 @@ class Calibrator:
           ``wall_x``, ``wall_y`` (sd of the room x / y error) and ``wall`` = the larger.
         """
         R = self.predicted_R(res.anchors_M, q_M, R)
-        lay = Layout(0, res.fit_scale)
+        lay = Layout(0, res.fit_scale, self.n)
         nt = lay.n_theta
         C = np.asarray(res.cov_theta, float)                      # (nt + 3)^2 : theta then psi
         n = C.shape[0]
-        U = np.zeros((4, 3))
-        G = np.zeros((4, n))
-        for i in range(4):
+        U = np.zeros((self.n, 3))
+        G = np.zeros((self.n, n))
+        for i in range(self.n):
             d = res.anchors_M[i] - (np.asarray(q_M, float) + R @ self.attach[i])
             u = d / np.linalg.norm(d)
             U[i] = u
             G[i, lay.a(i)] = u
             G[i, lay.L0(i)] = -1.0
-        Ce = np.zeros((4, 4)) if extra_len_sigma is None else np.diag(np.asarray(extra_len_sigma, float) ** 2)
+        Ce = np.zeros((self.n, self.n)) if extra_len_sigma is None else np.diag(np.asarray(extra_len_sigma, float) ** 2)
         Rz = rot_z(float(res.psi[2]))
         w = Rz @ np.asarray(q_M, float)                           # marker origin -> claw, in the room frame
-        solutions = [np.linalg.pinv(U)]                           # (3, 4) maps length mismatch -> dq
-        for omit in range(4):
-            Pm = np.zeros((3, 4))
-            keep = [i for i in range(4) if i != omit]
-            Pm[:, keep] = np.linalg.pinv(U[keep])
-            solutions.append(Pm)
+        solutions = [np.linalg.pinv(U)]                           # (3, n) maps length mismatch -> dq
+        if self.n >= 4:                                           # three cables: the one solution is exact, no cable can be slack
+            for omit in range(self.n):
+                Pm = np.zeros((3, self.n))
+                keep = [i for i in range(self.n) if i != omit]
+                Pm[:, keep] = np.linalg.pinv(U[keep])
+                solutions.append(Pm)
         out = dict.fromkeys(("ceiling_z", "ceiling_dist", "wall_x", "wall_y"), 0.0)
         for Pm in solutions:
             Aq = Pm @ G                                           # dq = Aq eps  (marker frame)
             Cq_extra = Pm @ Ce @ Pm.T
-            for i in range(4):                                    # ceiling: relative to each true anchor
+            for i in range(self.n):                               # ceiling: relative to each true anchor
                 S = np.zeros((3, n))
                 S[:, lay.a(i)] = np.eye(3)
                 M = S - Aq
@@ -830,18 +861,18 @@ class Calibrator:
         reasons = []
         geo_err, len_res, nchi = [], [], []
         for w in witnesses:
-            L = np.array([self.lm.length(i, w.P[i], res.L0[i], res.scale[i])[0] for i in range(4)])
-            # forward kinematics in the marker frame from the four lengths
+            L = np.array([self.lm.length(i, w.P[i], res.L0[i], res.scale[i])[0] for i in range(self.n)])
+            # forward kinematics in the marker frame from the cable lengths
             def f(q):
-                return np.array([np.linalg.norm(res.anchors_M[i] - (q + w.R @ self.attach[i])) for i in range(4)]) - L
+                return np.array([np.linalg.norm(res.anchors_M[i] - (q + w.R @ self.attach[i])) for i in range(self.n)]) - L
             sol = least_squares(f, w.p, method="lm")
-            # a slack witness cable is longer than its span: drop the clearly longest
+            # a slack witness cable is longer than its span: drop the clearly longest (four cables only: three leave no spare)
             rf = -sol.fun / self._len_sigmas([w])[0]
             if w.taut is not None:
                 rf = np.where(w.taut, -np.inf, rf)    # probed taut by motion onset: not a slack candidate
             j = int(np.argmax(rf))
-            if rf[j] > self.cc.slack_k:
-                keep = [i for i in range(4) if i != j]
+            if self.n >= 4 and rf[j] > self.cc.slack_k:
+                keep = [i for i in range(self.n) if i != j]
                 sol = least_squares(lambda q: f(q)[keep], w.p, method="lm")
             e = sol.x - w.p
             geo_err.append(e @ e - np.trace(w.cov))        # vision noise removed in quadrature
@@ -885,7 +916,7 @@ class Calibrator:
         d = res.anchors_M[i] - q
         Lv = float(np.linalg.norm(d))
         u = d / Lv
-        lay = Layout(0, res.fit_scale)
+        lay = Layout(0, res.fit_scale, self.n)
         g = np.zeros(lay.n_theta)
         g[lay.a(i)] = u
         var = g @ res.cov_theta[:lay.n_theta, :lay.n_theta] @ g + u @ np.asarray(cov) @ u
@@ -896,10 +927,13 @@ class Calibrator:
                             p_guess=None) -> tuple[float, np.ndarray]:
         """New L0 for station i from the other three (trusted) cables: the claw
         position is solved from three lengths, then cable i's span follows.
-        Requires all three to be taut, so use only while suspended and still."""
+        Requires all three to be taut, so use only while suspended and still. Four cables only: with three
+        active stations the other two cannot fix a position."""
+        if self.n < 4:
+            raise ValueError("geometric_reference needs the other three cables: not available with three active stations")
         q_guess = np.mean(res.anchors_M, axis=0) - [0, 0, 1.5] if p_guess is None else np.asarray(p_guess, float)
         R = self.predicted_R(res.anchors_M, q_guess, R)
-        others = [j for j in range(4) if j != i]
+        others = [j for j in range(self.n) if j != i]
         L = {j: float(self.lm.length(j, P[j], res.L0[j], res.scale[j])[0]) for j in others}
 
         def f(q):
@@ -914,12 +948,12 @@ def align_from_bearings(priors: Priors, claw_M, bearings_M, sigma_rad=0.15):
     """Marker pose in the room from the directions the claw slid when each
     cable alone became taut on the floor (horizontal pull points at the anchor).
 
-    ``claw_M``: (4,3) claw positions (marker frame) at each onset;
-    ``bearings_M``: (4,) slide directions (rad, marker frame), NaN if unknown.
+    ``claw_M``: (n,3) claw positions (marker frame) at each onset (n = active stations);
+    ``bearings_M``: (n,) slide directions (rad, marker frame), NaN if unknown.
     Returns (psi, covariance, whitened residual RMS)."""
     claw_M = np.asarray(claw_M, float)
     b = np.asarray(bearings_M, float)
-    use = [i for i in range(4) if np.isfinite(b[i])]
+    use = [i for i in range(len(b)) if np.isfinite(b[i])]
 
     def res(psi):
         x, y, yaw = psi
@@ -951,11 +985,11 @@ def sample_information(cal: Calibrator, res_or_state, q_M, cov_p, R=None) -> np.
     marginalised): G^T S^-1 G with S = sigma_L^2 I + H cov_p H^T."""
     anchors = res_or_state.anchors_M
     R = cal.predicted_R(anchors, q_M, R)
-    lay = Layout(0, cal.cc.fit_payout_scale)
+    lay = Layout(0, cal.cc.fit_payout_scale, cal.n)
     nt = lay.n_theta
-    G = np.zeros((4, nt))
-    H = np.zeros((4, 3))
-    for i in range(4):
+    G = np.zeros((cal.n, nt))
+    H = np.zeros((cal.n, 3))
+    for i in range(cal.n):
         d = anchors[i] - (np.asarray(q_M) + R @ cal.attach[i])
         u = d / np.linalg.norm(d)
         G[i, lay.a(i)] = -u
@@ -963,7 +997,7 @@ def sample_information(cal: Calibrator, res_or_state, q_M, cov_p, R=None) -> np.
         if lay.fit_scale:
             G[i, lay.s(i)] = float(np.linalg.norm(d)) - res_or_state.L0[i]
         H[i] = u
-    sig_len = np.full(4, cal.cc.length_sigma_m)
+    sig_len = np.full(cal.n, cal.cc.length_sigma_m)
     if cal.spaced:
         sig_len = np.hypot(sig_len, cal.cc.attitude_sigma_rad * np.linalg.norm(cal.attach, axis=1))
     S = np.diag(sig_len ** 2) + H @ cov_p @ H.T
@@ -971,10 +1005,10 @@ def sample_information(cal: Calibrator, res_or_state, q_M, cov_p, R=None) -> np.
 
 
 def prior_information(cal: Calibrator) -> np.ndarray:
-    lay = Layout(0, cal.cc.fit_payout_scale)
-    d = np.r_[np.repeat(cal.priors.anchor_sigma, 3), np.full(4, 1.0)]   # L0: effectively unconstrained
+    lay = Layout(0, cal.cc.fit_payout_scale, cal.n)
+    d = np.r_[np.repeat(cal.priors.anchor_sigma, 3), np.full(cal.n, 1.0)]   # L0: effectively unconstrained
     if lay.fit_scale:
-        d = np.r_[d, np.full(4, cal.priors.scale_sigma)]
+        d = np.r_[d, np.full(cal.n, cal.priors.scale_sigma)]
     return np.diag(1.0 / d ** 2)
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run KiCad 7's real Electrical Rules Checker headlessly and save its report.
+"""Run KiCad 7's real Electrical Rules Checker headlessly and save its report (claw Rev B copy of the station runner).
 
 kicad-cli 7.0.11 has NO `sch erc` subcommand (it arrived in KiCad 8.0), so this script drives the
 eeschema GUI under Xvfb with synthetic X11 events (ctypes + libX11 + libXtst, no extra packages):

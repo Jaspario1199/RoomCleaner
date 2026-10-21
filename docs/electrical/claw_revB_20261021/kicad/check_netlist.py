@@ -14,6 +14,8 @@ Expected data = claw_spec.py (the "Nets" table, "Unconnected" line and "Parts" t
 """
 import sys
 import xml.etree.ElementTree as ET
+
+sys.dont_write_bytecode = True
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent

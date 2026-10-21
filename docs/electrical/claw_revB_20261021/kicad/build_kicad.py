@@ -277,7 +277,7 @@ def build_sheet():
     # ====================== battery, fuse, switch, charger =====================
     sh.text((15.24, 33.02), "BATTERY, FUSE, MAIN SWITCH (load side) and CHARGER (pack side)", size=1.8, bold=True)
     bt1 = part("BT1", (40.64, 50.8), rot=270, fields={"Reference": (0, -6.35, "center", 90),
-                                                                 "Value": (0, 6.35, "center", 90)})
+                                                                 "Value": (-3.81, 8.89, "left", 90)})
     f1 = part("F1", (66.04, 50.8), rot=90, fields={"Reference": (0, -4.445, "center", 90),
                                                                  "Value": (0, 4.445, "center", 90)})
     sw1 = part("SW1", (91.44, 50.8), fields={"Reference": (0, -5.08, "center"), "Value": (0, 3.81, "center")})
@@ -306,8 +306,8 @@ def build_sheet():
     sh.route("U1", "2", [(-5.08, 0)])                                     # IN-  GND
     sh.route("U1", "3", [(5.08, 0)])                                      # OUT+ +6V_SERVO
     sh.route("U1", "4", [(5.08, 0)])                                      # OUT- GND
-    sh.text((101.6, 99.06), "U1: ZTW UBEC (6 A continuous / 10 A peak), jumper set to 6.0 V.\n"
-            "Servo only. Measure the output before connecting the servo.", size=1.27)
+    sh.text((101.6, 96.52), "U1: ZTW UBEC (6 A continuous / 10 A peak),\n"
+            "jumper set to 6.0 V. Servo only. Measure the\noutput before connecting the servo.", size=1.27)
 
     u2 = part("U2", (60.96, 139.7), fields={"Reference": (0, -12.7, "center"), "Value": (0, 12.7, "center")})
     d1 = part("D1", (101.6, 134.62), rot=180, fields={"Reference": (0, -3.81, "center"), "Value": (0, 3.81, "center")})

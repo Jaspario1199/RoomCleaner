@@ -404,3 +404,60 @@ GRIPV6R_PIVOT_HOLE_D_FOR_SHOULDER_D4 = 4.2   # NOTE only: Ø4 shoulder screws wo
 GRIPV6R_PIN_D = 7.0               # housing pin on the compound / follower axes (his integral Ø7 pins)
 GRIPV6R_BRG_OD = 14.0             # 687 bearings in his pockets
 GRIPV6R_DENSITY_PETG = 1.27       # g/cm3 (cad/materials.py)
+
+
+# =============================================================================
+# GRIPPER 1021 -- Jasper's final gripper (cad/reference/gripper_1021) : HANDS (GRIP1021_*)
+# Master values for cad/parts/gripper1021_hands.py.  Source of truth: cad/GRIPPER_1021_SPEC.md.
+# Units mm / deg.  World frame of Jasper's assembly: tube axis = line x = GRIP1021_AXIS_X,
+# z = GRIP1021_AXIS_Z, along y; +y up (toward the housing), +z toward the servo.
+# =============================================================================
+# --- four-bar (lead analysis, cad/reference/gripper_1021/fourbar.py) -----------------------------------------------
+GRIP1021_AXIS_X = 951.8475            # tube axis x (the two grip faces meet on this plane at the closed pose)
+GRIP1021_AXIS_Z = 1103.99             # tube axis z
+GRIP1021_O2 = (969.997, 721.413)      # compound (right crank) axis
+GRIP1021_O4 = (963.847, 685.391)      # right arm pivot (gear-housing pin)
+GRIP1021_CRANK_R = 53.0               # crank pin A at this radius from O2
+GRIP1021_ROCKER_R = 50.0              # arm: O4 -> tip hole B
+GRIP1021_COUPLER = 34.67              # the HAND: A -> B
+GRIP1021_THETA_CLOSED_DEG = -62.0     # compound crank angle, grip faces meet
+GRIP1021_THETA_FILE_DEG = -52.1       # Jasper's file pose
+GRIP1021_THETA_OPEN_DEG = -5.0        # max open
+GRIP1021_FOLLOWER_MESH_DEG = -6.0     # follower is rotated this much (about its axis) into mesh, then moves mirror-wise
+GRIP1021_SWEEP_DEG = (-5.0, -10.0, -20.0, -30.0, -40.0, -50.0, -60.0, -62.0)   # required sweep angles
+
+# --- stacking in z (print bed = z 1090, the whole hand stands on it) -------------------------------------------------
+GRIP1021_Z_BED = 1090.0
+GRIP1021_Z_PLATE_TOP = 1098.0         # link plate z 1090..1098
+GRIP1021_Z_PALM_TOP = 1118.0          # palm and finger, full width z 1090..1118
+GRIP1021_Z_BOSS_A_RIGHT = 1098.99     # A boss top = underside of the compound crank boss
+GRIP1021_Z_BOSS_A_LEFT = 1099.99      # follower crank sits 1 mm higher (the only non-mirror difference)
+GRIP1021_Z_BOSS_B = 1101.49           # B boss top = underside of the arm (both hands)
+
+# --- joints -----------------------------------------------------------------------------------------------------------
+GRIP1021_PLATE_R_A = 8.0              # link plate hull: circle at A
+GRIP1021_PLATE_R_B = 8.5              # circle at B
+GRIP1021_BOSS_D = 8.0                 # washer-face boss diameter on both joints
+GRIP1021_PIN_HOLE_D = 3.2             # M3 screw used as a pin
+GRIP1021_NUT_AF = 5.7                 # M3 nyloc pocket, across flats (vertices point sideways, across the link)
+GRIP1021_NUT_DEPTH = 4.2              # pocket depth from the bed face, coaxial with the pin
+GRIP1021_SCREW_LEN = 20.0             # M3 x 20 button head from the top (NOTE only, not modelled)
+
+# --- palm and finger (below the cut line) -------------------------------------------------------------------------------
+GRIP1021_PALM_CUT_Y = 628.4           # = B_y(closed) - 12.5 ; nothing above the plate for y > this except the two bosses
+GRIP1021_PALM_B_CLEAR = 12.5          # B_y - cut line (spec); checked against the solved B in the part
+GRIP1021_TIP_Y = 575.0                # fingertip (lowest point) at the closed pose
+GRIP1021_FINGER_T = 9.0               # finger thickness (x 951.85 .. 960.85)
+GRIP1021_TIP_ROUND_R = 3.0            # R3 round on the grip-face bottom edge
+GRIP1021_TIP_CHAMFER_DEG = 30.0       # outer bottom edge: 30 deg off the tip plane (a shallow scraping wedge)
+GRIP1021_RIDGE_DEPTH = 0.8            # grip ridges cut into the face (never proud: the faces still meet)
+GRIP1021_RIDGE_PITCH = 3.0
+GRIP1021_RIDGE_LAND = 0.8             # flat crest between grooves (groove width at the face = pitch - land)
+GRIP1021_RIDGE_Y0 = 580.0             # first groove starts here (above the R3 round, which ends at TIP_Y + 3)
+GRIP1021_RIDGE_N = 16
+GRIP1021_WALL_MIN = 3.0               # lightening windows keep walls >= this (spec)
+GRIP1021_MASS_MAX_G = 22.0            # spec target, solid PETG
+GRIP1021_PETG_G_CM3 = 1.27            # cad/materials.py
+GRIP1021_GUSSET_DROP = 30.0           # strut leaves the finger outer face this far below the cut line
+GRIP1021_WINDOW_FILLET_R = 1.5        # corner round of every lightening window
+GRIP1021_WALL_FROM_RIDGE_ROOT = True  # True: walls are measured from the groove ROOT (crest wall = WALL_MIN + RIDGE_DEPTH)

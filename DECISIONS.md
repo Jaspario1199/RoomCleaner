@@ -234,3 +234,10 @@ with the on-claw charger"; lead kept it, with the condition that the module is
 verified as an 8.4 V CC/CV type at ≤ 1 A before first charge). Supersedes the
 Rev A two-5 V-regulator / FSR / buffer drawing and the 10/18 18650 proposal
 (both kept as history). Schematic: docs/electrical/claw_revB_20261021/.
+D31 consequence — charging rule (lead, 2026-10-21): the standing rule "balance-
+charge the LiPo with the pack off the robot" is replaced for the Tenergy pack
+by: charge only with SW1 OFF, attended, on a non-flammable surface, with an
+8.4 V CC/CV charger at ≤ 1 A; the pack's protection PCB must provide per-cell
+overcharge/over-discharge protection (confirm on the label/datasheet before the
+first charge, because a 2-wire pack cannot be balance-charged). Deck B7, the
+phone-app start checklist and the claw spec follow this wording.

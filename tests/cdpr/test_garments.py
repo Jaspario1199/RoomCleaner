@@ -14,7 +14,7 @@ from roomcleaner.cdpr.supervisor import Supervisor
 from roomcleaner.cdpr.tasks import TaskRunner
 from roomcleaner.cdpr.vision.camera import CameraModel
 
-from .simkit import fast_cfg
+from .simkit import assert_no_eq_failures, fast_cfg
 
 
 # ---------------------------------------------------------------- (a) mapper
@@ -61,6 +61,7 @@ def rig(tmp_path_factory):
     sup = Supervisor(r.ctx, state_path=d / "state.json", ledger_path=d / "ledger.json")
     rep = sup.start()
     assert sup.state == "READY", rep.reasons
+    assert_no_eq_failures(r, "garments rig startup")
     r.world.hamper = (np.asarray(cfg.tasks.hamper_room_m), cfg.tasks.hamper_radius_m)
     return r, sup
 
@@ -108,6 +109,7 @@ def test_task_delivers_items_with_visual_verification(rig):
     assert len(out["done"]) == 2, (out, per.log)
     assert not out["failed"] and sup.state == "READY"
     assert all(it["state"] == "hamper" for it in r.world.items)
+    assert_no_eq_failures(r, "garment task")
     holds = [line for line in per.log if line.startswith("holding:")]
     # per item: held after the lift-and-shift, then NOT held after the release
     assert [h.endswith("-> True") for h in holds] == [True, False, True, False], per.log

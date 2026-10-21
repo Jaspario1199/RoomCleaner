@@ -26,7 +26,7 @@ from roomcleaner.cdpr.supervisor import Supervisor
 from roomcleaner.cdpr.tasks import ItemPerception, TaskRunner, TrustedVolume
 from roomcleaner.cdpr.trust import TrustLedger
 
-from .simkit import fast_cfg
+from .simkit import assert_no_eq_failures, fast_cfg
 from .test_service import Client
 
 SIM = "config/robot.sim.json"
@@ -204,6 +204,7 @@ def board_probe(tmp_path_factory):
         rep = svc.sup.start()
     finally:
         StartupSequencer.study_board = None
+    assert_no_eq_failures(r, "margin fixture: board + probe startup")
     return r, svc, c, rep
 
 
@@ -387,6 +388,7 @@ def test_without_the_probe_the_robot_stays_local_only(tmp_path):
     sup = Supervisor(r.ctx, state_path=tmp_path / "state.json", ledger_path=tmp_path / "ledger.json")
     rep = sup.start()
     assert sup.state == "READY", rep.reasons
+    assert_no_eq_failures(r, "no-probe startup")
     lg = r.ctx.ledger
     assert lg.level == "LOCAL_ONLY" and lg.verified_basis is None
     m = rep.measurements["margin_trust"]

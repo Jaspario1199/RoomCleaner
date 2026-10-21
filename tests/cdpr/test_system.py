@@ -20,7 +20,7 @@ from roomcleaner.cdpr.startup import RobotContext
 from roomcleaner.cdpr.transport import SimHostTransport
 from roomcleaner.cdpr.trust import TrustLedger
 
-from .simkit import bring_up, build, fast_cfg
+from .simkit import assert_no_eq_failures, bring_up, build, fast_cfg
 
 
 def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
@@ -30,7 +30,9 @@ def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
     assert sup.state == "DISARMED"
     rep = sup.start()
     assert sup.state == "READY", rep.reasons
+    assert_no_eq_failures(r, "lifecycle: startup")
     m = rep.measurements
+    assert m["camera_mount_offset_rad"] > 0 and r.ctx.mount_angle_rad == m["camera_mount_offset_rad"]   # D27: measured
     # floor stage: every cable found taut within its bound, bearings consistent
     assert all(0 < m[f"slack_{s}_m"] < cfg.startup.max_slack_m[i] for i, s in enumerate(IDS))
     assert m["bearing_rms"] < cfg.startup.bearing_rms_max
@@ -51,9 +53,13 @@ def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
     r.world.hamper = (np.asarray(cfg.tasks.hamper_room_m), cfg.tasks.hamper_radius_m)
     r.world.add_item("sock", c + [-0.3, 0.2])
     r.world.add_item("jeans", c + [0.2, 0.35], mass=0.9, height=0.08)
-    out = sup.run_task(TaskRunner(r.ctx, SimItemPerception(r.world)))
+    runner = TaskRunner(r.ctx, SimItemPerception(r.world))
+    out = sup.run_task(runner)
     assert out["done"] == ["sock", "jeans"] and sup.state == "READY"
     assert all(it["state"] == "hamper" for it in r.world.items)
+    # D27: every grip and release was approved on the host after settling (no IMU, no claw-side gate)
+    assert len(runner.approvals) == 4 and all(a.get("approved") and a["still_ok"] for a in runner.approvals)
+    assert_no_eq_failures(r, "lifecycle: tasks")
     # the host stalls longer than the lease while the claw hangs: every station
     # holds itself; that is a coordinated stop, references are kept (review C2)
     r.rt.wait(1.0e6)
@@ -61,6 +67,7 @@ def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
     assert sup.state == "FAULT" and r.ctx.ledger.all_valid()
     sup.acknowledge()
     assert sup.state == "READY", sup.reasons[-3:]
+    assert_no_eq_failures(r, "lifecycle: lease stall")
     # a station reboots while the claw hangs: recovery is required, nothing resumes
     r.stations["B"].reboot()
     r.co.wait(500000)
@@ -83,6 +90,8 @@ def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
         sup2.disarm("claw_supported")
     assert sup2.recover(), sup2.reasons[-3:]
     assert ctx2.ledger.all_valid()
+    assert ctx2.mount_angle_rad == r.ctx.mount_angle_rad and ctx2.mount_angle_rad > 0   # restored from the saved model
+    assert_no_eq_failures(r, "lifecycle: recovery")
     # pause while lowering stops the descent; lowering again completes
     t_pause = r.rt.t + 3.0e6
     r.rt.hooks.append(lambda t: sup2.pause("operator") if abs(t - t_pause) < 500 else None)
@@ -95,6 +104,7 @@ def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
         sup2.disarm("yes")
     sup2.disarm("claw_supported")
     assert sup2.state == "DISARMED"
+    assert_no_eq_failures(r, "lifecycle: end")
 
 
 def test_crash_mid_calibration_fails_closed(tmp_path):
@@ -120,6 +130,7 @@ def test_crash_mid_calibration_fails_closed(tmp_path):
     with pytest.raises(CommandRefused):
         sup2.disarm("claw_supported")
     assert all(r.co.links[s].tel["st"] != 0 for s in IDS)       # torque still on everywhere
+    assert_no_eq_failures(r, "crash mid-calibration")
 
 
 def test_host_restart_while_suspended_never_resumes(tmp_path):
@@ -137,6 +148,7 @@ def test_host_restart_while_suspended_never_resumes(tmp_path):
 def run_startup(cfg, **kw):
     r = SimRobot(cfg, **kw)
     rep = StartupSequencer(r.ctx).run()
+    assert_no_eq_failures(r, "startup")
     return r, rep
 
 
@@ -160,6 +172,7 @@ def test_covered_marker_pauses_instead_of_guessing():
     r.simcam.covered = True
     rep = StartupSequencer(r.ctx).run()
     assert rep.outcome == "PAUSED" and "marker" in rep.reasons[-1]
+    assert_no_eq_failures(r, "covered marker")
 
 
 @pytest.mark.parametrize("change,reason", [
@@ -204,6 +217,7 @@ def test_bead_verification_with_a_good_model():
     bv = BeadVerifier(cfg, co, model, limits_from_config(cfg), ws, lambda q: np.full(4, 0.0005), log=lambda s: None)
     out = bv.run(0, p_home=home)
     assert out.status == "VERIFIED", out.reason
+    assert_no_eq_failures(w, "bead verification")
     assert len(out.captures) == 2 and out.spread_m <= cfg.stations[0].bead.repeatability_tol_m
     # the model was 2 mm long; the capture residual says so
     assert all(abs(c.residual - 0.002) < 0.002 for c in out.checks)
@@ -217,3 +231,4 @@ def test_bead_disagreeing_with_the_model_blocks_and_changes_nothing():
     assert out.status == "BLOCKED"
     assert "pre-update" in out.reason or "not found" in out.reason
     assert {s: model.maps[s].L0 for s in IDS} == L0_before
+    assert_no_eq_failures(w, "bead disagreement")

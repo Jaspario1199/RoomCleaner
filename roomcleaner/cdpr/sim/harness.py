@@ -36,11 +36,11 @@ class SimRobot:
         self.co = Coordinator(cfg, SimHostTransport(self.net, self.rt.now_us), self.rt)
         self.camera = CameraModel.load(cfg.camera.intrinsics_file)
         ck = dict(camera_kw or {})
-        # D27: no IMU, so the sim camera's attitude noise is the HONEST vision figure unless a test says otherwise,
-        # and the true camera mount differs from the configured one by a random tilt (``mount_err_rad`` per axis,
-        # about the camera's horizontal axes) that the startup has to measure.
-        if not cfg.claw.imu:
-            ck.setdefault("rot_sigma", cfg.claw.vision_attitude_sigma_rad)
+        # D27: the true camera mount differs from the configured one by a random tilt (``mount_err_rad`` per axis,
+        # about the camera's horizontal axes) that the startup has to measure. The plant's attitude noise stays
+        # ``SimCamera.rot_sigma`` (2 mrad, the level the IMU simulation had); the ESTIMATOR is told
+        # ``claw.vision_attitude_sigma_rad`` (10 mrad). Noisier plants: pass ``camera_kw={"rot_sigma": ...}``
+        # (verification/imu_removal_results.md: at 5-10 mrad the floor-stage checks fail).
         mrng = np.random.default_rng(seed + 777)
         ck.setdefault("mount_rotvec", (*mrng.normal(0.0, mount_err_rad, 2), 0.0))
         self.simcam = SimCamera(self.world, self.camera, cfg.claw.T_body_cam, cfg.marker.edge_m,

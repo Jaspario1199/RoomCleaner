@@ -1206,8 +1206,11 @@ def test_d28_tube_length_and_ends(previews):
     assert P.GRIPV7_TUBE_LEN == 254.8 and P.GRIPV7_TUBE_LEN_V6 - P.GRIPV7_TUBE_LEN == pytest.approx(D28_CUT)
 
 
-def test_d28_only_the_four_parts_moved_exactly_50(previews, comb, cover):
+def test_d28_only_the_four_parts_moved_exactly_50(previews):
     old, new = previews
+    # fresh imports: BoundingBox() of a shape that already carries a triangulation (shared module fixtures) is not tight
+    comb = cq.importers.importStep(os.path.join(STEP, "gripper_electric_housing_with_camera_bay.step")).val()
+    cover = cq.importers.importStep(os.path.join(STEP, "claw_camera_bay_cover.step")).val()
     moved, same = [], 0
     for i, (a, b) in enumerate(zip(old, new)):
         da = _bb(b) - _bb(a)

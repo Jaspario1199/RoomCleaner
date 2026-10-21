@@ -148,3 +148,65 @@ Port `cad/parts/claw_camera_bay.py` (the verified v6 bay, D27 no IMU) to this ho
   - bay keep-outs and cable-line clearance;
   - STEP re-import, with volume and bounding box agreeing;
   - standard renders.
+
+## 5. Three-cable holes on the electrical housing (lead, 2026-10-21)
+
+Jasper, 10/21: "I haven't printed the electrical housing yet. Can you add a hole configuration on it meant for 3
+motors? So based on function you can choose." The housing keeps its four corner holes for the four-station robot and
+gains a second, three-hole pattern for the three-station test (docs/THREE_STATION_MODE_SPEC.md). The lines are
+threaded through one pattern or the other; the unused holes stay empty.
+
+**Layout reasoning.**
+- The three-station layout is A and B in the corners of one wall and C at the middle of the opposite wall. Seen from the
+  start point (the centroid), the stations lie at room azimuths 90° (C), 208° (A) and 332° (B): nearly 120° apart.
+- At yaw 0 the claw body frame matches the room (verification/claw_body_frame.json: body +x = box +x, body +y = −box z,
+  camera bay at body +y). So the holes sit at body azimuths **C 90°, A 210°, B 330°**.
+- C is on the bay side. Its hole goes **high on the wall, above the bay**:
+  - bay and cover top out at box y = 26.9 and 29.3; the wire window ends at y ≈ 20.5;
+  - every line rises toward the ceiling, so a line leaving at y = 42 can never come down onto the bay.
+- A and B sit on the side away from the bay. All three holes are at the same height, so the attachment plane is level.
+
+**Geometry (box frame of cad/parts/gripper1021_housing_cambay.py: origin on the tube axis in the box bottom plane, +y up):**
+
+| Hole | Station (3-mode) | Axis direction (x, z) | Outer mouth centre (x, y, z) | Inner mouth centre (x, y, z) |
+|---|---|---|---|---|
+| T_C | C | (0, −1) | (0, 42.0, −45.0) | (0, 42.0, −40.0) |
+| T_A | A | (−0.8660, +0.5) | (−45.0, 42.0, +25.98) | (−40.0, 42.0, +23.09) |
+| T_B | B | (+0.8660, +0.5) | (+45.0, 42.0, +25.98) | (+40.0, 42.0, +23.09) |
+
+- **Hole form:**
+  - Ø2.0, horizontal axis along the listed (x, z) direction, through the 5 mm upper wall (pocket 40 to wall 45);
+  - teardrop profile with a 45° tip pointing up (+y), so it prints without support with the box upright;
+  - 0.5 × 45° chamfer at the outer mouth, so the line does not chafe where it turns up toward its station.
+- **Labels:** deboss "A", "B", "C" on the outer wall, 4 mm tall, 0.4 mm deep, centred 5 mm above each mouth. Text must read
+  upright with the box printing bottom-down. If CadQuery text fails, skip the labels and say so; do not hide the failure.
+- **Keep-outs (≥ 5 mm clear):** corner holes, wire window, bay body, bay cover, lid-seat ledge (y 50), the 8 × Ø3.3 floor
+  holes, and any existing feature of Jasper's housing. Each hole must cut only wall material: the removed volume per hole
+  must match a Ø2 bore of its wall length, within 10 %. If an existing feature conflicts, stop and report; do not move a
+  hole on your own.
+- **Nothing else changes:**
+  - the difference to the current part lies only within 3 mm of the three holes and their labels;
+  - the corner holes, bay, cover and pocket are unchanged.
+- **Cable lines (3-mode):** take lines from each outer mouth to its station's anchor prior:
+  - anchor priors A (0.05, 0.05, 2.5932), B (3.3028, 0.05, 2.5932), C (1.6764, 2.6932, 2.5932) m;
+  - claw positions over the three-station workspace (floor projection inside the A-B-C triangle, 0.2 m from the walls,
+    heights from the lowest working height to 0.4 m below the anchors);
+  - claw yaw −15° to +15°.
+  - Minimum distance from each line to the housing + bay + cover, away from its own mouth, must be ≥ 5 mm.
+  - Report the minimum and where it occurs. Adapt `scripts/analyze_cable_lines_claw_camera_bay.py`; keep the original.
+- **Claw body frame for the software:** give the three outer-mouth centres in the body frame of
+  verification/claw_body_frame.json, re-derived for the 1021 box:
+  - origin on the tube axis at the corner-hole inner-mouth height (box y = 7.82);
+  - +x = box x, +y = −box z, +z up.
+  - Expected: C (0, +0.0450, +0.0342), A (−0.0450, −0.0260, +0.0342), B (+0.0450, −0.0260, +0.0342) m.
+  - Give the four 1021 corner-hole points in the same frame too. The configs still carry the v6 values (±0.04207).
+- **Parameters:** a new `CAMBAY1021_TRI_*` block in cad/params.py. Existing values do not change.
+- **Exports, as new files (the current housing exports stay untouched):**
+  - `exports/step/gripper1021_housing_cambay_34.step` and `exports/stl/gripper1021_housing_cambay_34.stl`;
+  - the cover is unchanged and is reused.
+- **Renders:** `renders/gripper1021/gripper1021_housing_cambay_34_{iso,front,rear,left,right,top,bottom}.png`, plus one
+  close-up per hole.
+- **Use:**
+  - **four stations:** lines through the corner holes, as before;
+  - **three stations:** lines through T_A, T_B and T_C; the claw starts with the camera bay facing station C. Inside,
+    each line is tied off on a washer or bead larger than the hole: a knot alone can pull through Ø2.

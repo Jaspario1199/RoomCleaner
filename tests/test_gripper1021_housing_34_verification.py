@@ -351,8 +351,8 @@ def test_02b_modified_wall_faces_keep_their_outer_boundary_and_only_gain_inner_l
         kind, hid = _wall_face_kind(bf[i])
         fb = bf[i]
         # counterpart in the part: planar, same plane, large
-        cands = [pf[j] for j in un_p if _wall_face_kind(pf[j]) == (kind, hid)]
-        assert len(cands) == 1, f"{kind} {hid}: {len(cands)} counterparts"
+        cands = [pf[j] for j in un_p if _wall_face_kind(pf[j]) == (kind, hid) and pf[j].Area() > 100.0]
+        assert len(cands) == 1, f"{kind} {hid}: {len(cands)} large counterparts"
         fp = cands[0]
         ob = sorted(round(e.Length(), 5) for e in fb.outerWire().Edges())
         op = sorted(round(e.Length(), 5) for e in fp.outerWire().Edges())

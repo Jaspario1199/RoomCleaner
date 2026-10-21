@@ -505,3 +505,30 @@ CAMBAY1021_WIN_BAY_FLARE = 6.0        # funnel growth per side at r_out
 CAMBAY1021_WIN_ROOF_CH = 2.5          # 45 deg roof-corner chamfers (printable bridge)
 CAMBAY1021_COVER_VENT_X = (-6.0, 0.0, 6.0)   # three 2 x 5 slots in the cover next to the box wall (as v6)
 CAMBAY1021_COVER_VENT_R = (2.0, 7.0)         # ... from COVER_R0 + 2 to COVER_R0 + 7
+
+
+# =============================================================================
+# THREE-CABLE HOLES ON THE 1021 ELECTRICAL HOUSING (CAMBAY1021_TRI_*)   cad/GRIPPER_1021_SPEC.md section 5
+# A second hole pattern, for the three-station test (docs/THREE_STATION_MODE_SPEC.md); the four corner holes stay.
+# Box frame of cad/parts/gripper1021_housing_cambay.py: origin on the tube axis in the box bottom plane, +y up.
+# Body frame (verification/claw_body_frame.json, re-derived for the 1021 box): origin on the tube axis at the corner-hole
+# inner-mouth height, +x = box x, +y = -box z, +z up.  Each hole axis is horizontal and RADIAL (it passes through the tube axis),
+# so the body azimuth fixes the whole hole: outer mouth where that ray meets the outer wall plane (|x| or |z| =
+# CAMBAY1021_BOX_UPPER_HALF), inner mouth where it meets the pocket wall plane (CAMBAY1021_BOX_POCKET_HALF).
+# =============================================================================
+CAMBAY1021_TRI_IDS = ("C", "A", "B")                 # station served by each hole (order of every tuple below)
+CAMBAY1021_TRI_AZ_BODY_DEG = (90.0, 210.0, 330.0)    # body-frame azimuth of each hole axis (ccw from body +x); C on the bay side
+CAMBAY1021_TRI_Y = 42.0               # hole axis height above the box bottom plane (all three equal: level attachment plane)
+CAMBAY1021_TRI_HOLE_D = 2.0           # bore diameter (circle of the teardrop)
+CAMBAY1021_TRI_TIP_HALF_DEG = 45.0    # teardrop tip: flanks are this far off the vertical (tip points +y, prints without support)
+CAMBAY1021_TRI_CHAMFER = 0.5          # 0.5 x 45 deg chamfer at the outer mouth (no chafe where the line turns up)
+CAMBAY1021_TRI_LABEL_H = 4.0          # deboss letter height (glyph bounding box)
+CAMBAY1021_TRI_LABEL_DEPTH = 0.4      # deboss depth into the outer wall
+CAMBAY1021_TRI_LABEL_ABOVE = 5.0      # label centre this far above the mouth centre (on the outer wall plane)
+CAMBAY1021_TRI_KEEPOUT = 5.0          # required clear distance to every other feature of the housing
+CAMBAY1021_TRI_CONFINE = 3.0          # the part may differ from the 1021 housing only within this distance of the holes / labels
+CAMBAY1021_TRI_CORNER_R = 10.0        # box outer and pocket corner radius (measured on Jasper's housing; flat wall half = HALF - R)
+CAMBAY1021_TRI_BODY_ORIGIN_Y = CAMBAY1021_CORNER_HOLE_INNER_Y   # body-frame origin height in the box frame (corner-hole inner mouth, 7.82)
+# Station anchor priors, room frame (x east, y north, z up), metres: docs/THREE_STATION_MODE_SPEC.md (C, A, B in IDS order).
+CAMBAY1021_TRI_ANCHORS_ROOM_M = ((1.6764, 2.6932, 2.5932), (0.05, 0.05, 2.5932), (3.3028, 0.05, 2.5932))
+CAMBAY1021_TRI_YAW_RANGE_DEG = 15.0   # claw yaw range of the cable-line analysis (+-)

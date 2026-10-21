@@ -20,6 +20,11 @@ What changed against v6 (everything else is read from the unchanged CAMBAY_* blo
   * root gusset ribs land on the new wall (x <= 30, r = 44.5) and the wire window funnel is re-derived for the 5 mm wall;
   * corner cable holes: Ø2, mouth |x| = |z| = 43.22 at y = 9.95; the keep-out asserts use these.
 
+Option "_34" (spec section 5, CAMBAY1021_TRI_*): make_34() / export_all_34() add a second, three-hole cable pattern for the
+three-station test to the same housing: three Ø2 teardrop holes (C, A, B) through the 5 mm upper wall at box y = 42, 0.5 x 45 deg
+chamfers at the outer mouths, and the letters A, B, C debossed 5 mm above each mouth.  make() / export_all() are unchanged and
+still produce the original housing (same volume and bounding box).
+
 Print orientation: housing + bay as the box prints (bottom plane on the bed, +Y up; STL = bay frame rotated +90 deg about X,
 z min = 0).  Cover: outer face flat on the bed, lip / pegs / antenna corral up.
 """
@@ -28,6 +33,7 @@ from __future__ import annotations
 
 import math
 import os
+import sys
 
 import cadquery as cq
 
@@ -360,6 +366,147 @@ def make():
     return combine(load_housing_bay_frame()), make_cover()
 
 
+# --- three-cable holes: option "_34" (spec section 5; CAMBAY1021_TRI_*) ----------------------------------------------------------
+TRI_IDS = P.CAMBAY1021_TRI_IDS
+TRI_Y = P.CAMBAY1021_TRI_Y
+TRI_R = P.CAMBAY1021_TRI_HOLE_D / 2
+TRI_TIP_K = math.radians(P.CAMBAY1021_TRI_TIP_HALF_DEG)         # teardrop flank angle off the vertical
+TRI_CH = P.CAMBAY1021_TRI_CHAMFER
+TRI_WALL_T = BOX_UPPER_HALF - POCKET_HALF                       # 5.0: pocket wall plane -> outer wall plane
+TRI_BORE_EXT = 2.0                                              # bore cutter starts / ends this far beyond the two wall planes
+TRI_SLAB_HALF = 8.0                                             # half size of the local wall slab used to form the chamfered cutter
+assert len(P.CAMBAY1021_TRI_AZ_BODY_DEG) == len(TRI_IDS) == len(P.CAMBAY1021_TRI_ANCHORS_ROOM_M) == 3
+assert 0.0 < TRI_TIP_K < math.pi / 2 and TRI_WALL_T > 0.0
+assert LID_SEAT_Y - (TRI_Y + TRI_R / math.sin(TRI_TIP_K) + TRI_CH / math.sin(TRI_TIP_K)) >= P.CAMBAY1021_TRI_KEEPOUT, \
+    "hole top (tip + chamfer) must stay >= 5 mm below the lid-seat ledge"
+
+
+def tri_hole_frames() -> dict:
+    """Per hole id: axis (unit, horizontal, outward), outer / inner mouth centres (box frame), outward wall normal, reading direction of
+    its label, wall length of the bore.  The axis is radial (passes through the tube axis); body azimuth -> box direction:
+    box x = cos(az), box z = -sin(az) (body +y = -box z)."""
+    out = {}
+    for hid, az in zip(TRI_IDS, P.CAMBAY1021_TRI_AZ_BODY_DEG):
+        a = math.radians(az)
+        dx, dz = math.cos(a), -math.sin(a)
+        dx, dz = (0.0 if abs(dx) < 1e-12 else dx), (0.0 if abs(dz) < 1e-12 else dz)
+        assert abs(abs(dx) - abs(dz)) > 0.1, "hole axis must not point at a box corner: the wall is ambiguous"
+        scale = 1.0 / max(abs(dx), abs(dz))                       # ray -> wall plane
+        axis = cq.Vector(dx, 0.0, dz)
+        outer = cq.Vector(scale * dx * BOX_UPPER_HALF, TRI_Y, scale * dz * BOX_UPPER_HALF)
+        inner = cq.Vector(scale * dx * POCKET_HALF, TRI_Y, scale * dz * POCKET_HALF)
+        normal = cq.Vector(math.copysign(1.0, dx), 0.0, 0.0) if abs(dx) > abs(dz) else cq.Vector(0.0, 0.0, math.copysign(1.0, dz))
+        lateral = outer.x if abs(normal.z) > 0.5 else outer.z       # position along the wall face
+        lateral_in = inner.x if abs(normal.z) > 0.5 else inner.z
+        mouth_extent = (TRI_R + TRI_CH) / abs(normal.dot(axis)) + TRI_CH
+        assert abs(lateral) + mouth_extent < BOX_UPPER_HALF - P.CAMBAY1021_TRI_CORNER_R, "outer mouth must lie on the flat wall"
+        assert abs(lateral_in) + TRI_R / abs(normal.dot(axis)) < POCKET_HALF - P.CAMBAY1021_TRI_CORNER_R, "inner mouth must lie on the flat pocket wall"
+        up = cq.Vector(0.0, 1.0, 0.0)
+        out[hid] = {"az_body_deg": az, "axis": axis, "outer": outer, "inner": inner, "normal": normal,
+                    "reading_dir": up.cross(normal), "length": (outer - inner).Length}
+    return out
+
+
+def teardrop_area(r: float = TRI_R, k: float = TRI_TIP_K) -> float:
+    """Area of the circle of radius r plus its tangent tip (flanks k off the vertical): r^2 (pi/2 + k + cot k)."""
+    return r * r * (math.pi / 2.0 + k + 1.0 / math.tan(k))
+
+
+def _plane(origin: cq.Vector, normal: cq.Vector) -> cq.Plane:
+    """Plane with local y = world +y (so the profile 'up' is the box up) and local z = normal (horizontal)."""
+    return cq.Plane(origin=origin, xDir=cq.Vector(0.0, 1.0, 0.0).cross(normal), normal=normal)
+
+
+def _teardrop_prism(fr: dict) -> cq.Workplane:
+    """Ø2 teardrop bore (tip up) along the hole axis, from TRI_BORE_EXT inside the pocket plane to TRI_BORE_EXT beyond the outer plane."""
+    r, k = TRI_R, TRI_TIP_K
+    tip = r / math.sin(k)                                       # apex distance from the axis
+    tx, ty = r * math.cos(k), r * math.sin(k)                   # tangent points
+    start = fr["inner"] - fr["axis"] * TRI_BORE_EXT
+    wp = (cq.Workplane(_plane(start, fr["axis"])).moveTo(tx, ty).lineTo(0.0, tip).lineTo(-tx, ty)
+          .threePointArc((0.0, -r), (tx, ty)).close())
+    return wp.extrude(fr["length"] + 2 * TRI_BORE_EXT)
+
+
+def tri_hole_cutters() -> list:
+    """Three cutters (bore + 0.5 x 45 deg outer chamfer), box frame.  Built on a local slab of the flat 5 mm wall: slab minus bore,
+    chamfer the mouth edge loop on the outer face, cutter = slab minus that; so the chamfer is a true CAD chamfer on the edge."""
+    cutters = []
+    for hid, fr in tri_hole_frames().items():
+        slab = (cq.Workplane(_plane(fr["outer"], fr["normal"])).rect(2 * TRI_SLAB_HALF, 2 * TRI_SLAB_HALF)
+                .extrude(-TRI_WALL_T))
+        holed = slab.cut(_teardrop_prism(fr)).val()
+        mouth = [e for e in holed.Edges()
+                 if (e.Center() - fr["outer"]).Length < 3.0 and abs((e.Center() - fr["outer"]).dot(fr["normal"])) < 1e-6]
+        assert mouth, f"hole {hid}: no mouth edges found"
+        chamfered = holed.chamfer(TRI_CH, None, mouth)
+        removed = slab.val().cut(chamfered)
+        assert chamfered.isValid() and removed.isValid()
+        # Extend the cutter straight out through the outer wall plane (the chamfer outline extruded by OVERTRAVEL) and straight into the
+        # pocket (the bore section at the pocket plane extruded by TRI_BORE_EXT), so no cutter face lies in a wall plane of the housing.
+        faces = [f for f in removed.Faces() if f.geomType() == "PLANE"]
+        top = [f for f in faces if f.normalAt().dot(fr["normal"]) > 0.999 and abs((f.Center() - fr["outer"]).dot(fr["normal"])) < 1e-6]
+        bottom = [f for f in faces if f.normalAt().dot(fr["normal"]) < -0.999
+                  and abs((f.Center() - fr["inner"]).dot(fr["normal"])) < 1e-6]
+        assert len(top) == 1 and len(bottom) == 1, f"hole {hid}: expected one outer and one inner end face"
+        skirt = cq.Solid.extrudeLinear(top[0], fr["normal"] * OVERTRAVEL)
+        stub = cq.Solid.extrudeLinear(bottom[0], fr["normal"] * -TRI_BORE_EXT)
+        cutter = removed.fuse(skirt, stub).clean()
+        assert cutter.isValid() and len(cutter.Solids()) == 1, f"hole {hid}: cutter is not one valid solid"
+        cutters.append(cq.Workplane("XY").add(cutter))
+    return cutters
+
+
+def _glyph(ch: str) -> cq.Shape:
+    """Letter `ch` in the XY plane: glyph bounding box exactly LABEL_H tall and centred on the origin, extruded from z = -LABEL_DEPTH
+    (into the wall) to z = +OVERTRAVEL (outside it, for a clean cut).  Raises if CadQuery cannot make text."""
+    depth = P.CAMBAY1021_TRI_LABEL_DEPTH
+    probe_size = 4.0
+    probe = cq.Workplane("XY").text(ch, probe_size, depth, combine=False, halign="center", valign="center").val()
+    pb = probe.BoundingBox()
+    size = probe_size * P.CAMBAY1021_TRI_LABEL_H / (pb.ymax - pb.ymin)
+    g = cq.Workplane("XY").text(ch, size, depth + OVERTRAVEL, combine=False, halign="center", valign="center").val()
+    b = g.BoundingBox()
+    assert g.isValid() and len(g.Solids()) >= 1, f"label {ch}: text solid is not valid"
+    return g.moved(cq.Location(cq.Vector(-(b.xmin + b.xmax) / 2, -(b.ymin + b.ymax) / 2, -depth - b.zmin)))
+
+
+def tri_label_cutters() -> list:
+    """Debossed letters (cutters) on each outer wall, centred LABEL_ABOVE above the mouth, reading upright seen from outside."""
+    out = []
+    for hid, fr in tri_hole_frames().items():
+        origin = fr["outer"] + cq.Vector(0.0, P.CAMBAY1021_TRI_LABEL_ABOVE, 0.0)
+        plane = cq.Plane(origin=origin, xDir=fr["reading_dir"], normal=fr["normal"])
+        out.append(cq.Workplane("XY").add(_glyph(hid).moved(cq.Location(plane))))
+    return out
+
+
+def combine_34(box: cq.Workplane) -> cq.Workplane:
+    """combine() (bay + wire window) plus the three-cable holes, chamfers and labels."""
+    out = combine(box)
+    for c in tri_hole_cutters() + tri_label_cutters():
+        out = out.cut(c)
+    return out
+
+
+def make_34():
+    """(housing + bay + three-cable holes and labels, cover), bay frame.  The cover is the unchanged one."""
+    return combine_34(load_housing_bay_frame()), make_cover()
+
+
+def export_all_34(step_dir: str = STEP_DIR, stl_dir: str = STL_DIR) -> dict:
+    """STEP (assembly world frame) and STL (print orientation) of the _34 housing; the original exports are not touched."""
+    os.makedirs(step_dir, exist_ok=True)
+    os.makedirs(stl_dir, exist_ok=True)
+    housing, _ = make_34()
+    name = "gripper1021_housing_cambay_34"
+    step = os.path.join(step_dir, name + ".step")
+    cq.exporters.export(cq.Workplane("XY").add(to_world(housing.val())), step)
+    stl = os.path.join(stl_dir, name + ".stl")
+    cq.exporters.export(housing_to_print(housing), stl, tolerance=0.05, angularTolerance=0.2)
+    return {name: {"step": step, "stl": stl}}
+
+
 def export_all(step_dir: str = STEP_DIR, stl_dir: str = STL_DIR) -> dict:
     """STEP in the assembly world frame (drops into Jasper's assembly at the origin), STL in print orientation."""
     os.makedirs(step_dir, exist_ok=True)
@@ -376,7 +523,22 @@ def export_all(step_dir: str = STEP_DIR, stl_dir: str = STL_DIR) -> dict:
     return out
 
 
-if __name__ == "__main__":
+def _main_34():
+    housing, _ = make_34()
+    base, _ = make()
+    c = housing.val()
+    bb = c.BoundingBox()
+    print(f"housing_34: valid={c.isValid()} solids={len(housing.solids().vals())} "
+          f"bbox x[{bb.xmin:.2f},{bb.xmax:.2f}] y[{bb.ymin:.2f},{bb.ymax:.2f}] z[{bb.zmin:.2f},{bb.zmax:.2f}] "
+          f"vol={c.Volume():.1f} mm3 mass={c.Volume() * P.GRIP1021_PETG_G_CM3 / 1000:.2f} g "
+          f"(current housing {base.val().Volume():.1f} mm3 {base.val().Volume() * P.GRIP1021_PETG_G_CM3 / 1000:.2f} g)")
+    for k, d in export_all_34().items():
+        print(k, d["step"], d["stl"])
+
+
+if __name__ == "__main__" and "--34" in sys.argv:
+    _main_34()
+elif __name__ == "__main__":
     housing, cover = make()
     orig = load_housing_bay_frame().val()
     for n, s in (("housing+bay", housing), ("cover", cover)):

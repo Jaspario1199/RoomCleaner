@@ -256,10 +256,43 @@ def draw():
                 arrowprops=dict(arrowstyle="->"))
     ax.annotate("ENCODER  SDA -> a9, SCL -> a10,\nVCC -> T+, GND -> T-", xy=xy("a9"), xytext=(10.5, 13.6), fontsize=8,
                 arrowprops=dict(arrowstyle="->"))
-    ax.annotate("SWITCH  NC -> i8, COM -> B-", xy=xy("i8"), xytext=(1.0, -5.6), fontsize=8, arrowprops=dict(arrowstyle="->"))
+    # KW12-3 homing microswitch, drawn off the board with its three terminals and the two wires that go to the board
+    sx0, sy0, sw, sh = 0.6, -7.9, 5.4, 1.5                      # body (drawing units: 1 = one breadboard row)
+    ax.add_patch(FancyBboxPatch((sx0, sy0), sw, sh, boxstyle="round,pad=0.05", fc="#2b2b2b", ec="#111", zorder=6))
+    ax.text(sx0 + sw / 2, sy0 + sh / 2 + 0.15, "KW12-3 homing switch", color="white", fontsize=7.5, weight="bold",
+            ha="center", va="center", zorder=7)
+    ax.text(sx0 + sw / 2, sy0 + sh / 2 - 0.35, "(off the board, at the pulley)", color="#dddddd", fontsize=6.3,
+            ha="center", va="center", zorder=7)
+    ax.plot([sx0 + 0.4, sx0 + sw - 0.3], [sy0 + sh + 0.05, sy0 + sh + 0.55], color="#9a9a9a", lw=2.2, zorder=6)   # lever
+    ax.add_patch(_Circle((sx0 + sw - 0.3, sy0 + sh + 0.6), 0.22, fc="#cfcfcf", ec="#555", zorder=6.5))            # roller
+    ax.text(sx0 + 0.35, sy0 + sh + 0.62, "lever (the bead pushes it)", fontsize=6.3, ha="left", va="bottom", zorder=7)
+    term = {"C (COM)": sx0 + 0.9, "NO": sx0 + 2.7, "NC": sx0 + 4.5}
+    ty = sy0 - 0.05
+    for name, tx in term.items():
+        ax.add_patch(Rectangle((tx - 0.18, ty - 0.55), 0.36, 0.55, fc="#d4af37", ec="#111", zorder=6.5))
+        ax.text(tx + 0.28, ty - 0.45, name, fontsize=7, weight="bold", ha="left", va="center", zorder=7)
+    ax.text(term["NO"] + 0.28, ty - 1.0, "(leave empty)", fontsize=6.3, ha="left", va="center", color="#555", zorder=7)
+    # NC -> i8 (HOME net: XIAO D10 at h8, R4 pull-up at j8)
+    xi8, yi8 = xy("i8")
+    ax.plot([term["NC"], term["NC"], xi8, xi8], [ty - 0.55, ty - 1.9, ty - 1.9, yi8], color="#8c564b", lw=2.2, zorder=6,
+            solid_capstyle="round")
+    ax.plot(xi8, yi8, "o", ms=6.5, mfc="#8c564b", mec="#111", zorder=9)
+    ax.text(xi8 + 0.25, -5.1, "NC wire -> i8\n(row 8 = XIAO D10 HOME;\nR4 pull-up is j8)", fontsize=6.8, color="#8c564b", weight="bold",
+            ha="left", va="center", zorder=9, bbox=dict(fc="white", ec="#8c564b", lw=0.6, pad=0.5))
+    # COM -> bottom GND rail, row 1 (routed round the left of the switch body)
+    xg, yg = xy("B-", 1)
+    ax.plot([term["C (COM)"], term["C (COM)"], sx0 - 0.45, sx0 - 0.45, xg, xg],
+            [ty - 0.55, ty - 1.55, ty - 1.55, yg - 0.8, yg - 0.8, yg], color="#222222", lw=2.2, zorder=6, solid_capstyle="round")
+    ax.plot(xg, yg, "o", ms=6.5, mfc="#222222", mec="#111", zorder=9)
+    ax.text(sx0 - 0.7, -5.6, "COM wire ->\nB- (GND rail)", fontsize=6.8, weight="bold", ha="right", va="center", zorder=9,
+            bbox=dict(fc="white", ec="#222", lw=0.6, pad=0.5))
+    ax.text(sx0 + sw + 0.3, sy0 + 0.35, "Read C / NO / NC printed on YOUR switch; the order can differ.\n"
+            "NC is used on purpose: at rest NC-COM is closed, so D10 reads LOW; the bead opens it and R4 pulls D10 HIGH.\n"
+            "A broken wire also reads HIGH = STOP (fail-safe). Check with a meter: NC-COM beeps at rest, opens when pressed.",
+            fontsize=6.8, ha="left", va="center", zorder=7, bbox=dict(fc="#fffbe8", ec="#bbb", lw=0.5, pad=0.6))
     ax.text(24, 13.6, "12 V is ONLY in row 20 (f-j) and the red wire j20 -> j36.  Both + rails are 3V3, both - rails are GND.",
             fontsize=9, color="#c2352b", weight="bold")
-    ax.set_xlim(-6, RMAX + 3.5); ax.set_ylim(-7.4, 14.6); ax.set_aspect("equal"); ax.axis("off")
+    ax.set_xlim(-6, RMAX + 3.5); ax.set_ylim(-10.6, 14.6); ax.set_aspect("equal"); ax.axis("off")
     ax.set_title("RoomCleaner winch station Rev D on a breadboard (full-size 830). Same nets as the perfboard and KiCad schematic.",
                  fontsize=11, loc="left")
     for ext in ("png", "pdf"):

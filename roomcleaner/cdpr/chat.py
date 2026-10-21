@@ -13,7 +13,11 @@ Safety rules this module enforces (docs/PHONE_APP_SPEC.md, "Safety rules"):
 * ``start`` is never run unless the operator has ticked the pre-start checklist themselves (the client says so with
   ``checklist=True``; the chat never ticks it). Without it the reply sends the operator to the Setup tab.
 * ``disarm`` is not available here at all (Setup screen, typed confirmation).
-* The pending question is keyed by the session token, so one phone cannot confirm another's question.
+* The pending question belongs to the CLIENT that asked (``key``: the id every page load generates, review F1), never to
+  the shared session token: another phone's "yes" finds nothing waiting. A request without an id (a script) uses one
+  separate legacy bucket that no id-carrying client can reach.
+* The pause reply states only what the stations report (``hold_report``): "holding" only when every active station
+  reports IDLE; DISARMED, an OFF station or missing telemetry are said plainly (review F2).
 
 ``host`` interface (duck-typed; the service implements it):
 
@@ -31,6 +35,8 @@ from collections import deque
 from dataclasses import dataclass
 
 CONFIRM_TTL_S = 30.0
+PRUNE_AFTER_S = 120.0        # an expired question is forgotten this long after it lapsed
+MAX_LAPSED = 64              # timed-out notes kept (one per client id)
 MOTION = ("start", "resume", "recover", "lower", "grip_open", "grip_close")
 ESTOP_LINE = "Emergency stop = the switched power strip. It drops the claw: nobody under the robot."
 
@@ -54,6 +60,55 @@ STATE_HINT = {
     "READY": "Calibrated and holding position.",
     "DISARMED": "Say 'start' after ticking the checklist on Setup.",
 }
+
+
+def _stations(ids) -> str:
+    return ("station " if len(ids) == 1 else "stations ") + ", ".join(ids)
+
+
+def hold_report(s: dict) -> dict:
+    """What the stations REALLY report, for the pause reply and the PAUSE toast (review F2): ``{"kind", "text"}``.
+
+    ``s`` is the /api/status dict (``state`` and ``stations[*].state / online``). "Holding position with torque on" is said
+    only when every active station reports IDLE and is online. Otherwise: DISARMED -> nothing is holding; an OFF station ->
+    NOT holding; a station with no (or stale) telemetry, or in FAULT -> the holding state is unknown, the claw may be
+    hanging, stay clear; RUN / HOLD -> still stopping. Kinds: holding, stopping, disarmed, not_holding, unknown."""
+    st = s.get("state") or "?"
+    if st == "DISARMED":
+        return {"kind": "disarmed",
+                "text": "Pause sent, but nothing is holding position: the robot is DISARMED and the stations are not armed "
+                        "(no holding torque). The claw should be resting on the floor."}
+    off, silent, fault, moving = [], [], [], []
+    for sid, v in sorted((s.get("stations") or {}).items()):
+        sv = v.get("state")
+        if sv is None or v.get("online") is False:
+            silent.append(sid)
+        elif sv == "OFF":
+            off.append(sid)
+        elif sv == "FAULT":
+            fault.append(sid)
+        elif sv in ("RUN", "HOLD"):
+            moving.append(sid)                                   # anything else (IDLE) is holding
+    problems = []
+    if off:
+        problems.append(f"{_stations(off)} OFF (no holding torque)")
+    if silent:
+        problems.append(f"no current telemetry from {_stations(silent)}")
+    if fault:
+        problems.append(f"{_stations(fault)} reports FAULT (stopped, holding not confirmed)")
+    if not (s.get("stations") or {}):
+        problems.append("no station telemetry at all")
+    if problems:
+        head = "NOT holding: " if off else "Holding state UNKNOWN: "
+        return {"kind": "not_holding" if off else "unknown",
+                "text": head + "; ".join(problems) + f" (state {st}). The claw may be hanging or falling: stay clear."}
+    if moving:
+        return {"kind": "stopping",
+                "text": f"Pause sent: {_stations(moving)} still stopping (RUN or HOLD). They hold position once they have "
+                        f"stopped; watch the station tiles on Home (state {st})."}
+    return {"kind": "holding",
+            "text": f"Paused: every station reports IDLE, holding position with torque on (state {st})."}
+
 
 # ---------------------------------------------------------------------------------------------------- parsing
 _PAUSE_WORDS = {"pause", "stop", "halt", "freeze", "abort", "emergency", "estop"}
@@ -221,6 +276,14 @@ class Chat:
         self._lapsed: dict = {}              # key -> cmd of a question that timed out (so a late "yes" is explained)
         self._lock = threading.Lock()
 
+    def _prune(self, now):
+        """Bound the per-client tables (every page load brings a new id): drop questions that expired long ago and keep
+        only the newest ``MAX_LAPSED`` timed-out notes."""
+        for k in [k for k, p in list(self._pending.items()) if now > p.expires + PRUNE_AFTER_S]:   # pause pops without the lock
+            self._pending.pop(k, None)
+        while len(self._lapsed) > MAX_LAPSED:
+            self._lapsed.pop(next(iter(self._lapsed)), None)
+
     # -- introspection (tests, status)
     def pending(self, key=""):
         p = self._pending.get(key)
@@ -236,6 +299,7 @@ class Chat:
             return self._pause()
         with self._lock:
             now = self.clock()
+            self._prune(now)
             pend = self._pending.get(key)
             if pend is not None and now > pend.expires:          # timed out: drop it, remember why
                 self._pending.pop(key, None)
@@ -272,9 +336,8 @@ class Chat:
             self.host.pause()
         except Exception as e:                                   # never hide a failed pause: say so, point at the strip
             return self._out(f"Pause FAILED ({type(e).__name__}: {e}). Use the PAUSE button. {ESTOP_LINE}")
-        st = self._snap().get("state", "?")
-        return self._out(f"Paused: holding position with torque on (state {st}). This is not an emergency stop. "
-                         + ESTOP_LINE, run="pause")
+        rep = hold_report(self._snap())                          # follows the stations' own telemetry (review F2)
+        return self._out(f"{rep['text']} This is not an emergency stop. " + ESTOP_LINE, run="pause")
 
     def _confirm(self, key, pend, checklist):
         if pend is None:

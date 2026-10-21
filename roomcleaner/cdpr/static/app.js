@@ -38,11 +38,36 @@ const store = {
   get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
   set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* private mode: fine */ } },
 };
+// Who is talking: a random id made at every page load and sent with every request. The chat keeps a pending "yes?" question
+// per client id, so another phone (which shares the session token) cannot confirm it (review F1). crypto.randomUUID needs
+// https, so build the id from getRandomValues (works on plain http).
+function newClientId() {
+  const a = new Uint8Array(16);
+  try { crypto.getRandomValues(a); } catch (e) { for (let i = 0; i < a.length; i++) a[i] = Math.floor(Math.random() * 256); }
+  return Array.from(a, b => b.toString(16).padStart(2, "0")).join("");
+}
+const CLIENT = newClientId();
+// The token stays in sessionStorage; take it out of the address bar and history (review F6). Only when it was really stored,
+// so a reload still works where storage is blocked.
+function stripTokenFromUrl() {
+  try {
+    const u = new URL(location.href);
+    u.searchParams.delete("token");
+    const hp = new URLSearchParams(u.hash.replace(/^#/, ""));
+    hp.delete("token");
+    u.hash = hp.toString();
+    history.replaceState(history.state, "", u.pathname + u.search + u.hash);
+  } catch (e) { /* very old browser: the token stays visible */ }
+}
 function readToken() {
   const q = new URLSearchParams(location.search).get("token");
   const f = new URLSearchParams(location.hash.replace(/^#/, "")).get("token");
   const t = q || f;
-  if (t) { store.set("rc_token", t); return t; }
+  if (t) {
+    store.set("rc_token", t);
+    if (store.get("rc_token") === t) stripTokenFromUrl();
+    return t;
+  }
   return store.get("rc_token") || "";
 }
 TOKEN = readToken();
@@ -64,7 +89,7 @@ function layout() {            // sheets and toasts sit just above the PAUSE doc
 
 // ------------------------------------------------------------------------------------------------ network
 async function api(path, body) {
-  const headers = {"X-Token": TOKEN};
+  const headers = {"X-Token": TOKEN, "X-Client": CLIENT};
   const opt = {headers, cache: "no-store"};
   if (body !== undefined) { opt.method = "POST"; headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
   let r;
@@ -91,6 +116,7 @@ function setConn(ok) {
 function showConnect(note) {
   if (note) $("connectNote").textContent = note;
   $("connect").hidden = false;
+  layout();            // the overlay ends above PAUSE and the emergency-stop line (review F14): it needs the dock height
 }
 $("connectForm").addEventListener("submit", e => {
   e.preventDefault();
@@ -131,8 +157,12 @@ async function cmd(name, extra) {
 }
 async function doPause() {
   const r = await api("/api/command", {cmd: "pause"});
-  if (r.ok) toast("Paused: holding position, torque stays on. This is not an emergency stop.");
-  else toast("PAUSE DID NOT REACH THE ROBOT SERVICE. Use the power strip if the claw is in danger. " + ((r.data && r.data.error) || ""), true);
+  if (r.ok) {            // the wording comes from the service, built from what the stations really report (review F2)
+    const hd = r.data && r.data.hold || {};
+    const calm = ["holding", "stopping", "disarmed"].includes(hd.kind);
+    toast((hd.text || "Pause sent, but the stations' holding state was not reported: check the station tiles on Home and stay clear of the claw.")
+      + " This is not an emergency stop.", !calm, 5000);
+  } else toast("PAUSE DID NOT REACH THE ROBOT SERVICE. Use the power strip if the claw is in danger. " + ((r.data && r.data.error) || ""), true);
   setTimeout(tick, 100);
 }
 $("pause").addEventListener("click", doPause);

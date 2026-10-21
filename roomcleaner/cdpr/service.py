@@ -32,13 +32,19 @@ supervisor, so an idle READY robot never lease-faults unnoticed and station
 reboots/faults reach the trust ledger within ~100 ms.
 
 Access (review H3): every /api call needs the session token printed at start
-(``X-Token`` header; the page reads it from its URL) and a JSON content type;
-the custom header also blocks cross-site form posts.
+(``X-Token`` header; the page reads it from its URL and then removes it from the address bar) and a JSON content type;
+the custom header also blocks cross-site form posts. The token is redacted from the werkzeug access log (review F6; the
+one startup line printed by ``print_phone_url`` is the only place it is written).
+
+Chat (review F1): the pending "yes?" question belongs to the client that asked: the page sends a random id generated at
+every page load (``X-Client`` header) and the question is keyed on it, not on the token that every phone shares.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import logging
+import re
 import secrets
 import socket
 import sys
@@ -49,7 +55,7 @@ from pathlib import Path
 import numpy as np
 from flask import Flask, Response, jsonify, request, send_from_directory
 
-from .chat import STATE_HINT, STATE_TEXT, Chat, EventLog, Refused, chips_for
+from .chat import STATE_HINT, STATE_TEXT, Chat, EventLog, Refused, chips_for, hold_report
 from .supervisor import ALLOWED, STATES, CommandRefused, Supervisor
 
 STATIC = Path(__file__).parent / "static"
@@ -57,6 +63,7 @@ STREAM_PERIOD_S = 0.2            # MJPEG pace (~5 fps)
 MAX_STREAMS = 4                  # open camera streams (each holds a server thread)
 CLAW_POLL_S = 2.0                # claw telemetry refresh (background thread, never from a request)
 CLAW_STALE_S = 10.0
+STREAM_NOFRAME_S = 5.0           # a stream that has no frame to send for this long ends (and frees its slot)
 BUSY_BACKOFF_S = 0.005           # host loop sleep while a command holds the robot lock (it pumps the stations itself)
 LOCK_WAIT_S = 0.3                # how long an operator command waits for the idle host loop to release the robot lock
 DEFAULT_DATA = Path(__file__).resolve().parents[2] / "data" / "cdpr"
@@ -366,7 +373,7 @@ class Service:
             text = " ".join(x for x in (f"{label}." if not why else f"{label}: {why}.", hint) if x)
             self.events.add("state", text, host_t=host_t)
         elif label.startswith("pause in "):
-            self.events.add("pause", f"Pause pressed in {label[9:]}: holding position. {why}".strip(), host_t=host_t)
+            self.events.add("pause", f"Pause pressed in {label[9:]}. {why}".strip(), host_t=host_t)   # no claim about holding (review F2)
         elif label.startswith("TASK/"):
             self.events.add("step", f"Task step {label[5:].replace('_', ' ').lower()}. {why}".strip(), host_t=host_t)
         else:
@@ -436,6 +443,7 @@ class Service:
 
     # -- chat ----------------------------------------------------------------------------------------------
     def say(self, text, *, key="", checklist=False):
+        """``key`` is the asking client's id (the question belongs to it, review F1); the Flask route builds it."""
         return self.chat.handle(text, key=key, checklist=checklist)
 
     def can(self, cmd):
@@ -618,8 +626,45 @@ class SimFrameSource:
         return {**d, "ok": True, "n_tags": 1, "text": f"marker in view ({side:.0f} px; modelled, not drawn)"}
 
 
+class _RedactToken(logging.Filter):
+    """Werkzeug logs the whole request line, and the page load and the camera stream carry ``?token=`` (an <img> cannot send
+    headers). Rewrite every ``token=<value>`` query parameter to ``token=<redacted>`` before any handler sees the record
+    (review F6). One shared instance on the "werkzeug" logger covers the console, a log file and any test handler."""
+    _RX = re.compile(r"([?&]token=)[^&\s\"']*", re.I)
+
+    def _clean(self, v):
+        return self._RX.sub(r"\1<redacted>", v) if isinstance(v, str) else v
+
+    def filter(self, record):
+        record.msg = self._clean(record.msg)
+        if isinstance(record.args, tuple):
+            record.args = tuple(self._clean(a) for a in record.args)
+        return True
+
+
+def redact_token_in_access_log():
+    """Install the filter once (create_app calls this; calling it again does nothing)."""
+    lg = logging.getLogger("werkzeug")
+    if not any(isinstance(f, _RedactToken) for f in lg.filters):
+        lg.addFilter(_RedactToken())
+
+
+CLIENT_ID_RX = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
+
+
+def chat_key(client_id, token):
+    """The chat key of a request: ``c:<id>`` for a page's own id; the token itself (the pre-F1 key, one shared bucket) when no
+    id was sent (scripts, curl, old pages). A token never contains ":", so the two namespaces never meet: an id-less request
+    cannot confirm a question that an id-carrying client asked and the other way round (review F1). ``None`` if the id is
+    malformed."""
+    if not client_id:
+        return token
+    return "c:" + client_id if CLIENT_ID_RX.match(client_id) else None
+
+
 def create_app(service: Service) -> Flask:
     app = Flask(__name__, static_folder=None)
+    redact_token_in_access_log()
 
     def refuse(e, code=409):
         return jsonify({"ok": False, "error": str(e)}), code
@@ -678,7 +723,14 @@ def create_app(service: Service) -> Flask:
             service.command(body.get("cmd"), body)
         except CommandRefused as e:
             return refuse(e)
-        return jsonify({"ok": True, "state": service.sup.state})
+        out = {"ok": True, "state": service.sup.state}
+        if body.get("cmd") == "pause":                       # what the stations really report, for the PAUSE toast (review F2)
+            try:
+                out["hold"] = hold_report(service.status())
+            except Exception as e:                           # the pause itself already ran: say that the report failed
+                out["hold"] = {"kind": "unknown", "text": f"Pause sent, but I could not read the station states "
+                                                          f"({type(e).__name__}): check the station tiles and stay clear of the claw."}
+        return jsonify(out)
 
     @app.get("/api/calibration")
     def calibration():
@@ -705,7 +757,9 @@ def create_app(service: Service) -> Flask:
             return refuse("text is required", 400)
         if len(text) > 500:
             return refuse("text too long (500 characters)", 400)
-        key = request.headers.get("X-Token", "")           # the pending question is keyed by the (guard-checked) token
+        key = chat_key(request.headers.get("X-Client", ""), request.headers.get("X-Token", ""))   # the question belongs to the asking client, not to the shared token
+        if key is None:
+            return refuse("X-Client must be 8-64 characters of A-Z a-z 0-9 _ -", 400)
         return jsonify({"ok": True, **service.say(text, key=key, checklist=body.get("checklist") is True)})
 
     @app.get("/api/frame.jpg")
@@ -719,24 +773,42 @@ def create_app(service: Service) -> Flask:
 
     @app.get("/api/stream.mjpg")
     def stream():
+        headers = {"Cache-Control": "no-store", "X-Accel-Buffering": "no"}
+        mimetype = "multipart/x-mixed-replace; boundary=frame"
+        if request.method == "HEAD":                         # no body, so no generator: it must not take (and leak) a slot (F4)
+            return Response(mimetype=mimetype, headers=headers)
+        if service.latest_frame() is None:                   # nothing to stream: a generator that yields nothing sends no bytes,
+            return refuse("no camera frame yet", 503)        # never notices that the client left and would hold its slot (F5)
         if not service.stream_slot():
             return refuse(f"too many camera streams open (max {MAX_STREAMS})", 429)
+        once = threading.Lock()
+
+        def release():                                       # exactly once, whichever of the two closers runs first
+            if once.acquire(blocking=False):
+                service.release_stream()
 
         def gen():
             try:
-                last, sent = None, 0.0
+                last, sent, no_frame_since = None, 0.0, None
                 while not service._stop.is_set():
                     f = service.latest_frame()               # cache read: this loop never touches the claw or the host loop
                     now = time.monotonic()
-                    if f is not None and (f is not last or now - sent >= 1.0):
-                        last, sent = f, now
-                        yield (b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\nX-Frame-Age-S: %.2f\r\n\r\n"
-                               % (len(f.jpeg), f.age_s())) + f.jpeg + b"\r\n"
+                    if f is None:
+                        no_frame_since = now if no_frame_since is None else no_frame_since
+                        if now - no_frame_since >= STREAM_NOFRAME_S:
+                            return                           # the page falls back to stills; the slot is freed below
+                    else:
+                        no_frame_since = None
+                        if f is not last or now - sent >= 1.0:
+                            last, sent = f, now
+                            yield (b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\nX-Frame-Age-S: %.2f\r\n\r\n"
+                                   % (len(f.jpeg), f.age_s())) + f.jpeg + b"\r\n"
                     time.sleep(STREAM_PERIOD_S)
             finally:
-                service.release_stream()
-        return Response(gen(), mimetype="multipart/x-mixed-replace; boundary=frame",
-                        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
+                release()
+        resp = Response(gen(), mimetype=mimetype, headers=headers)
+        resp.call_on_close(release)                          # also when the generator never ran
+        return resp
 
     return app
 

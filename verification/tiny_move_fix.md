@@ -72,7 +72,15 @@ Results:
 
 * `tests/cdpr/test_tiny_moves.py`: 52 passed (9 s).
 * `tests/cdpr/test_garments.py`: 8 passed (216 s), including the two that failed since commit 8fa242a.
-* Full `tests/cdpr` suite: FULL_SUITE_RESULT_PLACEHOLDER
+* Full `tests/cdpr` suite: **527 passed in 1889 s (31 min), exit 0** (`OMP_NUM_THREADS=1 python3 -m pytest tests/cdpr -q`).
+  Caveat: the working tree was being edited concurrently by another session (three-station generalisation of
+  `trajectory.py` / `coordinator.py` / `homing.py` / `startup.py` / `tasks.py` / `supervisor.py` etc., plus new tests), so the
+  suite ran on that moving tree (501 tests at the first run, 527 at the second). An earlier full run (501 tests) gave
+  500 passed, 1 failed: `test_keepalive_pumping.py::test_a_full_simulated_startup_never_leaves_the_armed_stations_unpumped_for_a_third_of_the_lease`,
+  `expanded: motion not ready: clock uncertainty 5125 us` (budget 5000 us) on a wall-coupled startup with a 23 ms largest pump gap.
+  Diagnosis: wall-clock sensitivity of the clock-sync estimate on a shared VM, not this fix: the same test passes alone (twice)
+  and in the second full run, and an instrumented full startup executed 62 plans of which 0 were no-op, 0 floored, 0 shorter than
+  100 ms, so none of the new code paths ran in it.
 
 ## Remaining risk
 

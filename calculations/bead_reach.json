@@ -1,0 +1,47 @@
+[
+ {
+  "homing_height_m": 0.3,
+  "cable_length_at_home_m": 3.107,
+  "reachable_percent": 0.0
+ },
+ {
+  "homing_height_m": 0.6,
+  "cable_length_at_home_m": 2.892,
+  "reachable_percent": 0.4
+ },
+ {
+  "homing_height_m": 0.8,
+  "cable_length_at_home_m": 2.758,
+  "reachable_percent": 1.8
+ },
+ {
+  "homing_height_m": 1.0,
+  "cable_length_at_home_m": 2.633,
+  "reachable_percent": 4.7
+ },
+ {
+  "homing_height_m": 1.2,
+  "cable_length_at_home_m": 2.517,
+  "reachable_percent": 9.1
+ },
+ {
+  "homing_height_m": 1.5,
+  "cable_length_at_home_m": 2.364,
+  "reachable_percent": 17.1
+ },
+ {
+  "homing_height_m": 1.8,
+  "cable_length_at_home_m": 2.241,
+  "reachable_percent": 25.0
+ },
+ {
+  "homing_height_m": 2.0,
+  "cable_length_at_home_m": 2.178,
+  "reachable_percent": 29.1
+ },
+ {
+  "homing_height_m": 2.19,
+  "cable_length_at_home_m": 2.134,
+  "reachable_percent": 32.0
+ }
+]

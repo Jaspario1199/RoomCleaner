@@ -203,10 +203,10 @@ def test_f9_checklist_ticks_have_no_expiry():
 # ---------------------------------------------------------------------------------------------- F10 JSON hygiene
 @pytest.mark.parametrize("path,body", [("/api/command", [1]), ("/api/command", "str"), ("/api/command", {"cmd": [1]}),
                                        ("/api/say", [1]),
-                                       ("/api/room", {"width_m": 3, "depth_m": 3, "height_m": 3, "anchors": [1]}),
-                                       ("/api/room", {"width_m": 3, "depth_m": 3, "height_m": 3, "anchors": {"Z": [0, 0, 0]}})])
+                                       ("/api/room", {"width_m": 3, "depth_m": 3, "height_m": 3, "anchors": [1]})])
 def test_f10_non_object_or_malformed_json_gives_a_500_not_a_400(tmp_path, path, body):
-    """Fixed when each of these answers 400 with a JSON error."""
+    """Fixed when each of these answers 400 with a JSON error. (A fifth case, anchors for an unknown station id "Z", gave a
+    500 KeyError at 953822d; the uncommitted three-station work in the tree already answers 400 "unknown station", so it is not pinned.)"""
     r, svc, c, app = make(tmp_path)
     app.testing = False
     res = Client(app, svc.token).post(path, json=body)

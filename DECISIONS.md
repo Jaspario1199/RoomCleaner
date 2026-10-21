@@ -193,3 +193,12 @@ gripping; 33 g saved. Recommended cut was 100 mm; the remaining cut up to the
 ~206 mm limit stays available. Everything above the tube (box, camera bay,
 cover, cylinder) moves down 50 mm relative to the head. The claw body frame
 and the approach hover follow from this.
+
+D29. **Winch drivers at 1.35 A on the existing A4988s, vented shells**
+(Jasper, 2026-10-21). The BOM is fixed (no driver swap); shells are already
+vented. Estimate (gen2_motor_thermal model, 0.019 in fin, ~23 °C near the
+ceiling): motor case ~52 °C vented, A4988 junction ~82–127 °C vented (165 °C
+shutdown). Cable tension ~43 N (from 32 N at 1.0 A), so the claw mass budget
+rises to ~750 g with a 1 lb payload at the 0.4 m ceiling margin. Vref = 8 × I
+× Rsense: R100 → 1.08 V, R050 → 0.54 V. Confirmation: 60 min hold test; if the
+driver heatsink exceeds ~70 °C, drop to 1.25 A. Station schematic Rev D.

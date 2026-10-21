@@ -54,8 +54,10 @@ review's conditions; the review IDs (M1, L2, ...) are given so you can look up t
 6. Tick the checklist (it names the three cables and the start point) and start. Stay out from under the robot.
 7. The startup takes up slack on A, B, C one at a time, pretensions, lifts a few cm, calibrates, and ends READY.
    `LOCAL_ONLY` with the reason "slack probe was off" is the normal, safe result (section 6).
-   **Expect that some starts stop in PRETENSION with `claw dragged while tensioning`** (M1, a known false alarm,
-   section 8): the claw is still on the floor. Disarm (type `claw_supported`), check the claw sits at the start point, Start again.
+   **With the corner-hole claw, expect that some starts stop in PRETENSION with `claw dragged while tensioning`** (M1, a
+   known false alarm, 3 of 8 simulated starts; section 8): the claw is still on the floor. Disarm (type `claw_supported`),
+   check the claw sits at the start point, Start again. With the three-cable housing the same simulated starts (seeds 3, 5,
+   7, plus 0) all ended READY: it hangs almost level, so the alarm should not appear.
 8. Move only inside the usable area (section 5). A move toward the missing corner is refused before any motion.
 9. When done: **Lower** from Setup, wait for PARKED, then Disarm. The power strip is the emergency stop and it drops the claw.
 
@@ -242,7 +244,10 @@ outlets (`z <= 2.19 m`), the claw's own height above the floor (`z >= 0.59 m`, o
   | [0.4, 0.4, 0.3] (first run) | 0.61-1.21 m | 60 / 60 / 58 | 26-35 % |
   | [0.3, 0.3, 0.2] | 0.61-1.01 m | 55 / 55 / 53 | 8-14 % |
 
-  No box keeps every cable inside 40 degrees, because the start point is already at 41-43. For the first run:
+  No box keeps every cable inside 40 degrees, because the start point is already at 41-43. The smaller box still
+  calibrates: in simulation (corner holes, seeds 0 and 6) it ended READY / `LOCAL_ONLY` with one extra reason,
+  "predicted length sigma 5.3 to 5.6 mm > 5.0 mm in the requested volume" (12 to 14 of the 15 work-volume points
+  validated). That is fine for moving inside the box tonight. For the first run:
   1. Set `calibration.expanded_box_m` to [0.4, 0.4, 0.3].
   2. One person watches each outlet where the line leaves the collar (three people, nobody under the claw).
   3. **Pause** at the first sign of the line rubbing the collar edge, scraping noise or fuzz on the line, then Lower.
@@ -313,7 +318,7 @@ outlets (`z <= 2.19 m`), the claw's own height above the floor (`z >= 0.59 m`, o
 | `the claw rests where three cables cannot lift it: floor point (x, y) is ... outside the edge opposite station B ...` | the claw is not near the start point; move it to (1.68, 0.93) m and start again |
 | `workspace: floor point (...) is ... outside the edge opposite station ...` | a move target outside the usable area; refused before any motion |
 | `slide directions disagree with the anchor entries ... check station order/wiring A-B-C` | a cable is on the wrong station (a swap of A and B, or A and C, is caught in simulation, RMS 8 sigma against a limit of 3) or an anchor entry is far off |
-| `pretension: claw dragged while tensioning` (or `claw rocking on its jaws while tensioning`) | **known false alarm (M1)**, seen on 3 of 8 simulated corner-hole starts. The "just taut" pretension overshoots by 0.3-0.6 mm, the three cables take the whole weight, the claw lifts off its jaws and tilts about 6 degrees, and the drag watch (which assumes the resting claw cannot tilt) reads that as 15-18 mm of drag. The claw is still on the floor and the stations hold. **Disarm** (type `claw_supported`), check the claw sits upright at the start point, **Start** again (in simulation the second start reached READY). |
+| `pretension: claw dragged while tensioning` (or `claw rocking on its jaws while tensioning`) | **known false alarm (M1)**, seen on 3 of 8 simulated corner-hole starts and on none of 4 with the three-cable housing (the same seeds 3, 5, 7, plus 0). The "just taut" pretension overshoots by 0.3-0.6 mm, the three cables take the whole weight, the claw lifts off its jaws and tilts about 6 degrees, and the drag watch (which assumes the resting claw cannot tilt) reads that as 15-18 mm of drag. The claw is still on the floor and the stations hold. **Disarm** (type `claw_supported`), check the claw sits upright at the start point, **Start** again (in simulation the second start reached READY). |
 | `busy with 'None'` on every command | the laptop runs code from before the H1 fix: `git pull` (commit `e42e2d4` or later) and restart the service |
 | `busy with 'start'` (or another command) | a command is really running; wait for it, or press PAUSE |
 | state RECOVERY_REQUIRED right after launch: `host restarted while the claw may be suspended ...` | the data directory holds an earlier run, often the rehearsal's (M3). If the claw may be hanging: **Lower**. If it is certainly on the floor: stop the service and start it again with a new `--data` directory (section 1, step 4) |

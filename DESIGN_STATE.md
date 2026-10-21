@@ -508,3 +508,22 @@ slack_probe default (keep false until probe H1/M2 are closed).
   (fix running). `faults.lease_s` must still be sized on the real host.
 - D31: claw power (Tenergy 2S, ZTW 6 V, MP1584 5 V, on-claw charger) and its
   charging rule.
+
+## Three-station mode — reviewed, ready for the first hardware test (10/21 late, lead)
+- Independent review: `verification/three_station_mode_review.md`. FAIL as shipped (H1: on the
+  hardware loop, operator commands never got the robot lock), PASS WITH CONDITIONS after the
+  fix. H1 fixed in `Service._run` (wait up to 0.3 s for the idle loop), commit e42e2d4; the pin
+  test now asserts acceptance; 119 service and phone-app tests pass.
+- Operator guide `docs/THREE_STATION_MODE.md` carries every condition: separate `--data`
+  directories (M3); one config per claw, including `robot.three34.example.json` for the `_34`
+  housing; printed floor board (M5); weighed mass (L4) and measured CoM (M6); outlet watch with a
+  first-run calibration box of [0.4, 0.4, 0.3] (M4); the false pretension-drag abort and what to
+  do about it (M1); corrected margins and distances (L1, L2); quiet laptop (L7); new refusal rows.
+- Simulated startups (`verification/three_station_34_profile.md`): the `_34` profile reached READY
+  on seeds 3, 5, 7 and 0, where the corner-hole profile hits M1 on seeds 3, 5 and 7. The smaller
+  calibration box still reached READY (corner holes, seeds 0 and 6; LOCAL_ONLY, predicted length
+  sigma 5.3-5.6 mm).
+- Open: M4 outlet decision (bench outlet vs a wider cone vs a planner outlet-angle limit), Jasper's;
+  M1 code fix for the corner-hole claw (pretension short of lift-off or a tilt-aware drag watch); M2
+  unknown-top-level-key check in `load_config`; L5, L6. Phone-app review F1, F2, F4, F5, F6 and F14
+  being fixed by an implementer (not yet verified).

@@ -205,7 +205,7 @@ content("Goal and constraints", [
   const sl = pres.addSlide({ masterName: "CONTENT", sectionTitle: "Opening" });
   head(sl, "Opening", "Outline");
   const items = [["How a cable robot works", "Position vectors, statics, the winch"],
-                 ["From one box to modular stations", "Wiring, a controller per winch, the slide-in housing, plug-in power, cooling and the fin"],
+                 ["From one box to modular stations", "Wiring, a controller per winch, the slide-in housing, plug-in power, cooling and the horn-inspired fin"],
                  ["Homing and calibration", "Bead homing, why it limited the motion, the camera-based method"],
                  ["The claw", "Gripper evolution, the four-bar hands, overhead camera to claw camera, weight vs lift"],
                  ["Manufacturing", "Printed PETG parts, and a heat fin cut and drilled on a manual mill"],
@@ -359,12 +359,26 @@ content("Cooling", [
   "Fin in parallel with the shell:  1/R = 1/R_shell + 1/R_fin",
 ] } });
 
+content("Bio-inspired fin: antelope horns", [
+  "Idea from my bio-inspired design class: antelope horns",
+  "A horn is a heat exchanger: warm blood flows into its core, heat leaves through the surface",
+  "The fin copies that: one tall, thin blade rising straight up from the heat source",
+  "- heat conducts up from the motor and leaves along the length; the tip runs cooler, like a horn's",
+  "Vertical, so warm air rises freely off both faces",
+  "Motor width (44 mm): adds height, not width, to the station",
+], { file: [PH("16_heat_fin_on_motor_straight.jpg"), PH("18_heat_fin_on_motor_closeup.jpg")], alt: "Heat fin on the motor", caption: "The fin on the motor: one tall blade rising from the heat source" },
+"Background (not on the slide): Taylor's goat experiments found a dense blood supply under the horn sheath and estimated horns carry 1-15 % of the animal's heat loss; Picard et al. found climate-dependent horn structure in bovids. The next slide sizes the length.",
+{ eq: { lines: [
+  "Horn and fin both shed heat by convection:  q = h · A · (T_s − T_{∞})",
+  "Tall and thin: large area for little mass,  A = 2 w L",
+] } });
+
 content("Heat fin: how much length is useful", [
   "The far end runs cooler, so each extra mm does less",
   "**0.019 in sheet (built):** 95 % of a long fin's heat by **136 mm**",
   "**1/8 in plate (drawn):** 95 % by **349 mm**",
   "Built 200 mm above the cover: past 136 mm the sheet adds < 5 %",
-  "Looks: straight up at motor width (44 mm), matte black, one clean line",
+  "Looks: horn-like, straight up at motor width (44 mm), matte black",
   "- black radiates more than bare aluminium",
 ], { sheet: "heat_fin", tab: "Heat fin" },
 "Efficiency at the built length: 37 % (sheet) vs 74 % (plate); fin resistance 22.1 vs 10.9 K/W. The 200 mm length was sized for the 1/8 in plate; the thin sheet would do the same job at about 140 mm.",

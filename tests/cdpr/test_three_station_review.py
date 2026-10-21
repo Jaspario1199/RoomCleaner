@@ -648,6 +648,56 @@ def test_a_ready_robot_moves_300_mm_refuses_the_missing_corner_before_motion_and
     assert sup.state == "DISARMED"
 
 
+def test_m4_pin_the_calibration_box_sends_most_poses_far_outside_the_40_degree_outlet_cone():
+    """PIN F-M4 (Medium, known open item): there is no outlet-angle limit in the planner. For a 0.45 kg claw, over the feasible poses of the
+    startup's calibration box (start point +-0.8 m, z 0.59 to 1.6 m) the cable leaves the outlet up to 68 degrees from vertical and more than
+    80 % of the poses are above 40 degrees at each of A, B and C (the start point itself: A 41.7, B 41.7, C 40.3 for the point claw of the guide; 40.8 / 40.9 / 39.6 with the real attachment points and tilt). Fixed when the planner or the
+    calibration box respects an outlet limit: flip to a bound on the maximum angle."""
+    raw = raw_of(SIM3)
+    raw["claw"]["mass_kg"] = 0.45
+    cfg = load_config(raw)
+    A = cfg.anchor_priors()
+    geo = geometry_from_config(cfg, A, 0.0)
+    ws = workspace_from_config(cfg, A, lowest_point_z=float(cfg.claw.lowest_point_body_m[2]))
+    c = cfg.start_point_xy()
+    p0 = np.array([c[0], c[1], 0.517])
+    ang_pt = np.degrees(np.arccos(Geometry(A, np.zeros((3, 3))).unit_vectors(p0)[:, 2]))
+    assert ang_pt == pytest.approx([41.7, 41.7, 40.3], abs=0.1)                 # the guide's numbers are for the point claw
+    ang0 = np.degrees(np.arccos(geo.unit_vectors(p0)[:, 2]))                    # real attachment points and predicted tilt
+    assert ang0 == pytest.approx([40.8, 40.9, 39.6], abs=0.3) and np.max(np.abs(ang0 - ang_pt)) < 1.3
+    mx, over, tot = np.zeros(3), np.zeros(3), 0
+    for dx in np.arange(-0.8, 0.801, 0.1):
+        for dy in np.arange(-0.8, 0.801, 0.1):
+            for z in np.arange(0.592, 1.6, 0.1):
+                p = np.array([c[0] + dx, c[1] + dy, z])
+                if ws.violations(geo, p) or not tension_distribution(geo, p, 0.45, t_min=0.5, t_max=11.25).feasible:
+                    continue
+                ang = np.degrees(np.arccos(np.clip(geo.unit_vectors(p)[:, 2], -1, 1)))
+                mx, over, tot = np.maximum(mx, ang), over + (ang > 40), tot + 1
+    assert tot > 1500 and np.all(mx > 60) and np.all(mx < 72), (tot, mx)
+    assert np.all(over / tot > 0.80), over / tot
+
+
+def test_m5_l4_pin_the_guide_is_silent_on_the_floor_board_and_on_weighing_the_claw():
+    """PIN F-M5 / F-L4 (documentation): the guide never mentions the printed floor board (``marker.board_layout_file``) although every
+    simulated three-station startup of the results uses it, says the single-tag LOCAL_ONLY reason is "slack probe was off", and gives
+    "the budget is 0.45 kg" for ``claw.mass_kg`` without saying to enter the weighed mass. Fixed when the guide says so: flip."""
+    text = GUIDE.read_text().lower()
+    assert "board" not in text and "board_layout_file" not in text
+    assert "weigh" not in text and "the budget is 0.45 kg" in text
+
+
+def test_l5_pin_the_start_point_check_is_skipped_when_the_workspace_is_missing(tmp_path):
+    """PIN F-L5 (Low): ``tv = None if ctx.ws is None else ...`` (startup.py): with no workspace the INITIAL_LIFT start-point check passes
+    silently. Not reachable after the take-up fit (``apply_result`` always sets ``ws``). Fixed when ``None`` refuses: flip."""
+    src = (CDPR / "startup.py").read_text()
+    assert "tv = None if ctx.ws is None else ctx.ws.triangle_violation(p0)" in src
+    from roomcleaner.cdpr.startup import RobotContext
+    r = SimRobot(fast3(), seed=0, data_dir=tmp_path)
+    assert r.ctx.ws is None                                                  # a fresh context has none until the model is set
+    assert isinstance(r.ctx, RobotContext)
+
+
 def test_d1_pin_a_simulator_rehearsal_leaves_state_that_makes_the_real_service_start_in_recovery_required(tmp_path):
     """PIN F-M3 (Medium, operator guide): steps 3 and 4 of the guide run the simulator and then the real service with the SAME default
     ``--data`` directory (``data/cdpr``): the guide never mentions ``--data``. A rehearsal that ends READY (or any aborted

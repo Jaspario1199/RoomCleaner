@@ -454,6 +454,139 @@ def print_hands_report(rep):
         print(f"dense sweep ({len(rep['sweep_dense'])} poses): worst overlap {worst:.4f} mm3")
 
 
+# --------------------------------------------------------------------------------------------------------------------
+# HOUSING + CAMERA BAY: measurements
+# --------------------------------------------------------------------------------------------------------------------
+def housing_load():
+    from cad.parts import gripper1021_housing_cambay as G
+    orig = G.load_housing_bay_frame()
+    housing, cover = G.make()
+    return G, orig, housing, cover
+
+
+def hole_cylinders(G, length_out=30.0):
+    """The four Ø2 corner cable holes as solid cylinders (bay frame): from 2 mm inside the pocket corner to
+    `length_out` mm beyond the outer mouth, along the axis (rising by CORNER_HOLE_ELEV_DEG toward the outside)."""
+    el = math.radians(P.CAMBAY1021_CORNER_HOLE_ELEV_DEG)
+    out = []
+    for sx in (1, -1):
+        for sz in (1, -1):
+            d = cq.Vector(sx * math.cos(el) / math.sqrt(2.0), math.sin(el), sz * math.cos(el) / math.sqrt(2.0))
+            a = cq.Vector(sx * P.CAMBAY1021_CORNER_HOLE_EXIT_XZ, P.CAMBAY1021_CORNER_HOLE_EXIT_Y,
+                          sz * P.CAMBAY1021_CORNER_HOLE_EXIT_XZ)
+            start = a - d * (a.sub(cq.Vector(sx * P.CAMBAY1021_CORNER_HOLE_INNER_XZ, P.CAMBAY1021_CORNER_HOLE_INNER_Y,
+                                              sz * P.CAMBAY1021_CORNER_HOLE_INNER_XZ)).Length + 2.0)
+            length = (a - start).Length + length_out
+            out.append(cq.Solid.makeCylinder(P.CAMBAY1021_CORNER_HOLE_D / 2, length, start, d))
+    return out
+
+
+def thin_features(shape, z, r_open=0.95, pix=0.05, region=None):
+    """Features of the planar section at height z that are thinner than 2 * r_open (opening by a disc).  Returns
+    [(area_mm2, x, y)] of thin spots (area > 0.4 mm2) whose centroid lies in region = (xmin, xmax, ymin, ymax)."""
+    import numpy as np
+    from scipy import ndimage as ndi
+    mask, x0, y0, pix = raster_section(shape, z, pix, margin=1.0)
+    d = ndi.distance_transform_edt(mask) * pix
+    opened = ndi.distance_transform_edt(~(d >= r_open)) * pix <= r_open
+    lab, n = ndi.label(mask & ~opened)
+    out = []
+    for i in range(1, n + 1):
+        m = lab == i
+        a = m.sum() * pix * pix
+        if a <= 0.4:
+            continue
+        yy, xx = np.nonzero(m)
+        X, Y = x0 + (xx.mean() + 0.5) * pix, y0 + (yy.mean() + 0.5) * pix
+        if region is None or (region[0] <= X <= region[1] and region[2] <= Y <= region[3]):
+            out.append((float(a), float(X), float(Y)))
+    return out
+
+
+def housing_report():
+    """Boolean and geometric measurements of housing + bay + cover."""
+    G, orig, housing, cover = housing_load()
+    o, c, cv = orig.val(), housing.val(), cover.val()
+    rep = {}
+    rep["valid"] = c.isValid() and cv.isValid()
+    rep["solids"] = (len(housing.solids().vals()), len(cover.solids().vals()))
+    rep["vol"] = {"orig": o.Volume(), "housing_bay": c.Volume(), "bay_net": c.Volume() - o.Volume(), "cover": cv.Volume()}
+    rep["mass_g"] = {k: v * P.GRIP1021_PETG_G_CM3 / 1000.0 for k, v in rep["vol"].items()}
+    win = G.wire_window_cutter().val()
+    removed = o.cut(c)
+    rep["removed_vol"] = removed.Volume()
+    rep["removed_outside_window"] = removed.cut(win).Volume()
+    rep["orig_inter_window"] = o.intersect(win).Volume()
+    pocket = cq.Solid.makeBox(2 * G.POCKET_HALF, 50.0, 2 * G.POCKET_HALF, cq.Vector(-G.POCKET_HALF, G.POCKET_FLOOR_Y, -G.POCKET_HALF))
+    added = c.cut(o)
+    rep["added_vol"] = added.Volume()
+    rep["added_in_pocket"] = added.intersect(pocket).Volume()
+    rep["removed_in_pocket"] = removed.intersect(pocket).Volume()
+    bb = c.BoundingBox()
+    rep["bbox"] = [bb.xmin, bb.xmax, bb.ymin, bb.ymax, bb.zmin, bb.zmax]
+    cb = cv.BoundingBox()
+    rep["cover_bbox"] = [cb.xmin, cb.xmax, cb.ymin, cb.ymax, cb.zmin, cb.zmax]
+    bottom = [f for f in c.Faces() if f.geomType() == "PLANE" and f.normalAt().y < -0.999 and abs(f.BoundingBox().ymin) < 1e-6]
+    rep["bottom_faces"] = [(f.Area()) for f in bottom]
+    rep["bottom_area_orig"] = sum(f.Area() for f in o.Faces() if f.geomType() == "PLANE" and f.normalAt().y < -0.999
+                                  and abs(f.BoundingBox().ymin) < 1e-6)
+    rep["cover_vs_housing_overlap"] = cv.intersect(c).Volume()
+    # lens centre and the v6 reference
+    from cad.parts import claw_camera_bay as V6
+    rep["lens_world"] = tuple(G.LENS_CENTER_WORLD)
+    rep["lens_world_v6"] = tuple(a + b for a, b in zip(V6.LENS_CENTER_BAY, V6.BAY_ORIGIN_WORLD))
+    # the bay head beyond r = 78 is identical to the verified v6 bay (symmetric difference of the bay bodies)
+    assert G.S == -1, "regions below assume the bay on -Z"
+    far = cq.Solid.makeBox(60, 40, 32, cq.Vector(-30, -1, -110))          # r >= 78 (ribs and columns end before 78)
+    b_new, b_v6 = G.make_bay_body().val(), V6.make_bay_body().val()
+    nf, vf = b_new.intersect(far), b_v6.intersect(far)
+    rep["head_vs_v6_symdiff"] = nf.cut(vf).Volume() + vf.cut(nf).Volume()
+    rep["head_vol"] = nf.Volume()
+    far2 = cq.Solid.makeBox(60, 40, 45, cq.Vector(-30, -1, -110))          # r >= 65 for the cover (lips, pegs, corral)
+    cn, c6 = G.make_cover().val().intersect(far2), V6.make_cover().val().intersect(far2)
+    rep["cover_vs_v6_symdiff"] = cn.cut(c6).Volume() + c6.cut(cn).Volume()
+    # keep-out distances to the corner cable holes
+    holes = hole_cylinders(G)
+    bay_all = added.fuse(cv)
+    rep["dist_bay_to_holes"] = [bay_all.distance(h) for h in holes]
+    rep["dist_cover_to_holes"] = [cv.distance(h) for h in holes]
+    # bay solids exist only on the -Z side outside the housing envelope
+    rep["bay_added_bbox"] = [added.BoundingBox().xmin, added.BoundingBox().xmax, added.BoundingBox().ymin,
+                             added.BoundingBox().ymax, added.BoundingBox().zmin, added.BoundingBox().zmax]
+    # thin walls: opening by a 1.9 mm disc on print-frame sections of the housing (bay region only) and the cover
+    hp = G.housing_to_print(housing).val()
+    cp = G.cover_to_print(cover).val()
+    thin = {}
+    for z in (1.0, 2.3, 2.6, 5.0, 8.0, 9.8, 10.1, 12.0, 14.0, 17.9, 18.1, 20.0, 24.0, 26.5):
+        thin[("housing", z)] = thin_features(hp, z, region=(-25, 25, 47, 110))
+    for z in (1.2, 2.9, 3.6, 6.0):
+        thin[("cover", z)] = thin_features(cp, z, region=(-30, 30, -10, 120))
+    rep["thin"] = {f"{k[0]}@{k[1]}": v for k, v in thin.items()}
+    return rep
+
+
+def reimport_housing(rep_unused=None):
+    G, orig, housing, cover = housing_load()
+    paths = G.export_all(STEP_DIR, STL_DIR)
+    out = {}
+    for name, wp in (("gripper1021_housing_cambay", housing), ("gripper1021_housing_cambay_cover", cover)):
+        out[name] = reimport_check(paths[name]["step"], G.to_world(wp.val()))
+    return out
+
+
+def assembly_interference():
+    """Housing + bay and cover vs every Jasper part at the file pose; the 1 mm gap-free contact with the cylinder is a face."""
+    G, orig, housing, cover = housing_load()
+    parts = load_jasper()
+    hw, cw = G.to_world(housing.val()), G.to_world(cover.val())
+    rows = {}
+    for k, shp in parts.items():
+        if k == "elec_housing":
+            continue
+        rows[k] = (overlap_volume(hw, shp), overlap_volume(cw, shp))
+    return rows
+
+
 def main(argv):
     what = argv[1] if len(argv) > 1 else "hands"
     if what == "hands-renders":

@@ -464,3 +464,44 @@ GRIP1021_WINDOW_FILLET_R = 1.5        # corner round of every lightening window
 GRIP1021_WALL_FROM_RIDGE_ROOT = False # False: walls are measured from the nominal grip face (grooves excluded, root wall = WALL_MIN - RIDGE_DEPTH); True: from the groove root
 GRIP1021_PALM_RIGHT_DX = -3.0         # palm top-right corner (strut apex) relative to B_x
 GRIP1021_WEB_FOOT_W = 10.0            # web foot (where the link plate lands on the palm top bar), width along x
+
+
+# =============================================================================
+# CAMERA BAY ON JASPER'S 1021 ELECTRICAL HOUSING (CAMBAY1021_*)
+# Box-dependent values for cad/parts/gripper1021_housing_cambay.py.  Everything that is NOT box dependent (cradle,
+# lens window, USB-C notch, fence, locating ribs, cover pegs, insert columns, wall rules, bay frame placement) is
+# read from the unchanged CAMBAY_* block, so the studied v6 bay / D28 camera view still applies.
+# Bay frame is the same as v6: origin on the tube axis in the box bottom plane (world y = 1091.1905), axes parallel to
+# the world axes, +y up, bay on -Z (CAMBAY_SIDE), optical axis at r = CAMBAY_CAM_R = 90 mm pointing -y.
+# Housing: cad/reference/gripper_1021/parts/05_Gripper_Electric_Housing_Base_2__NAUO5.step, MEASURED (probes + faces):
+# =============================================================================
+CAMBAY1021_BAY_ORIGIN_WORLD = (951.8475, 1091.1905, 1103.9899)   # tube axis @ box bottom plane (his file z carries -0.000129 mm)
+CAMBAY1021_BOX_FLANGE_HALF = 50.0     # 100 x 100 base, R20 corners
+CAMBAY1021_BOX_FLANGE_T = 5.0         # flat flange / pocket floor height above the bottom plane
+CAMBAY1021_BOX_UPPER_HALF = 45.0      # 90 x 90 box, 5 mm walls, R10 corners
+CAMBAY1021_BOX_BLEND_R = 75.0         # concave R75 blend, flange -> upper wall
+CAMBAY1021_BOX_BLEND_TOP_Y = 31.926   # = FLANGE_T + sqrt(R^2 - (R - 5)^2): blend ends tangent to the vertical wall (world 1123.12)
+CAMBAY1021_BOX_POCKET_HALF = 40.0     # box interior half-width (80 mm pocket, R10 corners)
+CAMBAY1021_BOX_POCKET_FLOOR_Y = 5.0
+CAMBAY1021_BOX_LID_SEAT_Y = 50.0      # lid seat ledge (world 1141.19)
+CAMBAY1021_BOX_TOP_Y = 55.0           # rim (world 1146.19)
+CAMBAY1021_TUBE_HOLE_D = 30.0
+CAMBAY1021_CORNER_HOLE_D = 2.0        # four cable-line holes through the corner walls, on the diagonals
+CAMBAY1021_CORNER_HOLE_ELEV_DEG = 13.764   # rise toward the outside
+CAMBAY1021_CORNER_HOLE_EXIT_XZ = 43.22     # outer mouth centre |x| = |z| (box frame)
+CAMBAY1021_CORNER_HOLE_EXIT_Y = 9.95       # ... at this height above the bottom plane (world 1101.14)
+CAMBAY1021_CORNER_HOLE_INNER_XZ = 37.07    # where the axis leaves the pocket corner (R10 about (30, 30))
+CAMBAY1021_CORNER_HOLE_INNER_Y = 7.82
+CAMBAY1021_CORNER_HOLE_KEEPOUT = 5.0       # required clear distance from those holes
+
+# --- bay geometry that depends on the wall (re-derived for the 5 mm wall, r 40..45 upper, r 45..50 over the blend) -----
+CAMBAY1021_BODY_R_IN = 42.5           # bay solid starts INSIDE the box wall (pocket 40 < 42.5 < wall outer 45): nothing enters the pocket
+CAMBAY1021_COVER_WALL_GAP = 0.8       # cover inner edge off the box wall
+CAMBAY1021_RIB_P0 = (12.9, 76.0)      # root gusset ribs: start on the neck side wall (x, r) ...
+CAMBAY1021_RIB_P1 = (30.0, 44.5)      # ... end inside the box wall (r 44.5 < wall 46..50), x <= 30 (flat part of the wall)
+CAMBAY1021_NECK_TIE_RC = 70.4         # wire-tie slots straddle this radius (unchanged from v6: 10.3 mm inboard of the cradle)
+CAMBAY1021_WIN_R_OUT = 66.0           # wire window funnel ends here on the bay side
+CAMBAY1021_WIN_BAY_FLARE = 6.0        # funnel growth per side at r_out
+CAMBAY1021_WIN_ROOF_CH = 2.5          # 45 deg roof-corner chamfers (printable bridge)
+CAMBAY1021_COVER_VENT_X = (-6.0, 0.0, 6.0)   # three 2 x 5 slots in the cover next to the box wall (as v6)
+CAMBAY1021_COVER_VENT_R = (2.0, 7.0)         # ... from COVER_R0 + 2 to COVER_R0 + 7

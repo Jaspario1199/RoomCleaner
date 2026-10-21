@@ -33,7 +33,7 @@ Status:
 ## Simulated startups (lead, 2026-10-21, after the independent review)
 
 Fast profile (`tests/cdpr/test_three_station.py::fast3`), 3 x 3 floor board (`FloorBoard.nominal(0.15)`), full
-`Supervisor.start()`, scratch script (not in the repo). Each startup took 85 to 115 s of wall time.
+`Supervisor.start()`, scratch script (not in the repo). Each startup took 72 to 115 s of wall time.
 
 | profile | calibration box | seed | outcome | trust level and reasons | station faults |
 |---|---|---|---|---|---|
@@ -43,6 +43,8 @@ Fast profile (`tests/cdpr/test_three_station.py::fast3`), 3 x 3 floor board (`Fl
 | `robot.sim3_34.json` | default | 0 | READY | LOCAL_ONLY, "slack probe was off" | none |
 | `robot.sim3.json` (corner holes) | [0.4, 0.4, 0.3] | 0 | READY | LOCAL_ONLY, "predicted length sigma 5.3 mm > 5.0 mm in the requested volume", "slack probe was off"; 14/15 points validated | none |
 | `robot.sim3.json` (corner holes) | [0.4, 0.4, 0.3] | 6 | READY | LOCAL_ONLY, "predicted length sigma 5.6 mm > 5.0 mm ...", "slack probe was off"; 12/15 points validated | none |
+| `robot.sim3_34.json` | [0.4, 0.4, 0.3] | 3 | READY | LOCAL_ONLY, "predicted length sigma 5.1 mm > 5.0 mm ...", "slack probe was off"; 13/15 points validated | none |
+| `robot.sim3_34.json` | [0.4, 0.4, 0.3] | 6 | READY | LOCAL_ONLY, "predicted length sigma 5.4 mm > 5.0 mm ...", "slack probe was off"; 12/15 points validated | none |
 
 - **Review finding M1** (false "pretension: claw dragged while tensioning") hit seeds 3, 5 and 7 with the corner-hole
   profile. It did not occur with the `_34` profile on the same seeds. The likely reason, inferred from the review's mechanism

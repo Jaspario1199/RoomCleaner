@@ -245,9 +245,9 @@ outlets (`z <= 2.19 m`), the claw's own height above the floor (`z >= 0.59 m`, o
   | [0.3, 0.3, 0.2] | 0.61-1.01 m | 55 / 55 / 53 | 8-14 % |
 
   No box keeps every cable inside 40 degrees, because the start point is already at 41-43. The smaller box still
-  calibrates: in simulation (corner holes, seeds 0 and 6) it ended READY / `LOCAL_ONLY` with one extra reason,
-  "predicted length sigma 5.3 to 5.6 mm > 5.0 mm in the requested volume" (12 to 14 of the 15 work-volume points
-  validated). That is fine for moving inside the box tonight. For the first run:
+  calibrates: in simulation (corner holes, seeds 0 and 6; three-cable housing, seeds 3 and 6) it ended READY /
+  `LOCAL_ONLY` with one extra reason, "predicted length sigma 5.1 to 5.6 mm > 5.0 mm in the requested volume" (12 to 14 of
+  the 15 work-volume points validated). That is fine for moving inside the box tonight. For the first run:
   1. Set `calibration.expanded_box_m` to [0.4, 0.4, 0.3].
   2. One person watches each outlet where the line leaves the collar, from the side of the room, never under the claw or
      a line. With fewer people, one person can watch two outlets from a spot where both are in view.

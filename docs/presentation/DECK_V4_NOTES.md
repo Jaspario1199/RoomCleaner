@@ -29,3 +29,29 @@ Styling follows plain engineering-company conventions:
   - `deck_v4/build_deck_v4.js` builds `RoomCleaner_Buntinx_Oct27_v4.pptx` / `.pdf` (46 slides, validated).
   - Figures and Sheet charts are read from `deck_v3/fig`.
   - v1, v2 and v3 stay unchanged.
+
+## v4.1 (2026-10-21, Jasper: "a segment on the logic difference and the final logic, zoomed out"; "how does the robot deal with obstacles?")
+
+New **section 7, Control logic** (51 slides now; validated). Section 6 is now *Electronics* (station board, bring-up);
+*Status and next steps* is section 8, and the outline lists all eight sections.
+
+| slide | headline | evidence |
+|---|---|---|
+| 37 | section divider: Control logic | |
+| 38 | The first logic trusted its model; the final logic measures, then checks | native table, gen 1 vs final, seven rows: where the claw is, geometry, who runs the motors, finding laundry, grab check, faults, where it may move |
+| 39 | Five layers run the robot, and only the bottom one turns a motor | native layer stack: phone, supervisor, startup and tasks, planner and coordinator, stations; the claw beside the task layer. Equation box: path-point length and tension check, lease rule |
+| 40 | One run: start up and calibrate, then pick, check and deliver each item | native four-stage flow with the repeat loop and the stop rule |
+| 41 | The phone is the operator's only control, and every move asks first | the phone-app slide from v4 section 6, rewritten so it does not repeat slide 39 |
+| 42 | It plans around known obstacles but cannot yet detect new ones | native side view along the A-C diagonal. Example: a 1.9 m shelf 1 m out from corner A; the room-centre claw is clear at 1.5 m and refused at 0.8 m. Checked with the planner's own segment-cylinder test (`kinematics._segment_hits_cylinder`). Equation box: the cable segment and the cylinder hit test |
+
+Facts behind the obstacle slide (code, not hardware):
+- `config.obstacles` holds vertical cylinders {x, y, r, z_low, z_high}.
+- `Workspace.violations` checks every planned path point: each cable segment (pulley exit to the claw hole) against each
+  cylinder, plus the wall, ceiling and bead limits and, for three stations, the triangle. The planner also checks cable tension
+  with the payload and dynamics. A failing path raises `PlanError` before any motion.
+- No re-routing: moves are straight lines.
+- Gap found while writing it: in a task, an item whose approach is refused stops the whole task (FAULT, claw held) instead
+  of being skipped (`tasks.py` `_move` raises `StartupAbort`).
+- While moving, the robot detects a jammed or stalled cable (station TRACKING fault) and a failed grip (camera). It cannot
+  detect a person, a pet or a moved chair: the claw camera looks down and has no depth.
+- Gen 1 had the same keep-out idea for the ceiling fan (`roomcleaner/config.py` `FanZone`, exact segment test).

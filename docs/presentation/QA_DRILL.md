@@ -252,7 +252,7 @@ If pushed: None of this has run on four stations, and the control behaviour is S
 
 **Q26. "What else could go wrong in the room: the swinging claw, the wall, the battery?"**
 
-"Three things. A hanging claw swings, so grips wait for a settle dwell and a tilt check. The stations are designed to screw into studs, but the screw pattern and slide-in lock are still open, which is why the pull test matters. And the claw's 2S LiPo is charged only with a matched external balance charger with the pack off the robot, and no mains goes inside printed housings. Above all, nobody stands under the robot."
+"Three things. A hanging claw swings, so grips wait for a settle dwell and a tilt check. The stations are designed to screw into studs, but the screw pattern and slide-in lock are still open, which is why the pull test matters. And the claw's 2S LiPo is charged on the claw only with the main switch off, attended, at 8.4 V CC/CV and at most 1 A (decision D31), and no mains goes inside printed housings. Above all, nobody stands under the robot."
 
 Fundamental: Pendulum period T = 2π√(L/g), compound pendulum T = 2π√((k² + L²)/(gL)); tilt θ ≈ M_v/(W·L); swing amplitude decays as e^(−2πζn).
 
@@ -293,6 +293,26 @@ If pushed: Checking is not testing. CALCULATED and SIMULATED are not MEASURED, a
 Fundamental: A budget is not a measurement. ΣF = 0 on the claw node with W = m·g·(1 + a/g); the capacity check is Σm_claw + m_payload ≤ m_held.
 
 If pushed: A second one: I trusted a nominal logic rail until the meter read 1.14 V on a motor that would not move, and since then I measure the supply before I touch code. That reading was on my meter and was not logged or photographed. The as-built board still needs its meter checklist, and the 18 V read at the supply against a 12 V label is still to re-measure under load. [fill in: exact readings, dates, and what you tried first.]
+
+---
+
+## 9. Control logic and obstacles (deck section 7, added 10/21)
+
+**Q31. "What is the difference between your first control logic and the one that runs now?"**
+
+"The first logic was written against a simulator, so it trusted its model: the claw was wherever the cables were told to put it, the anchors came from a tape measure, one central board stepped all four motors, a ceiling camera found the laundry, and a grab was assumed to work once the claw closed. The final logic measures before it trusts and checks after it acts. The claw camera reads a floor board and the robot refits its own anchors and cable lengths at every startup. Each station runs time-stamped segments and holds if the host goes quiet. The camera confirms every pickup and delivery, and the robot moves only where the calibration earned trust."
+
+Fundamental: Same inverse kinematics in both, L_i = ‖a_i − p‖. What changed is where a_i and the cable zero lengths come from: a weighted least-squares fit, min Σ (L_{i0} + d_{ik} − ‖a_i − p_k‖)², accepted only if the held-out poses agree.
+
+If pushed: Five layers, top to bottom: phone, supervisor (one robot state), startup and tasks, planner and coordinator, stations. Only the stations turn motors, and no fault removes holding torque. All of it is SIMULATED end to end; the first hardware test runs the startup and a short move, not a pickup.
+
+**Q32. "How does it deal with obstacles? Can it see them?"**
+
+"Known obstacles, like a tall shelf, a lamp or a ceiling fan, are entered as keep-out cylinders. Before any motion the planner checks every point of the path: each cable line from its pulley to the claw against each cylinder, plus the wall and ceiling margins, the 1.6 m task height and the cable tensions. A path that fails is refused before anything moves. What it cannot do yet is see an obstacle it was not told about. The claw camera looks down at the floor and has no depth, so a person, a pet or a moved chair under a cable is not detected. That is why the rule is nobody under the robot, with PAUSE and the power strip."
+
+Fundamental: Cable i is the segment q(s) = a_i + s(b_i − a_i), 0 ≤ s ≤ 1. It hits a cylinder if, for some s, z_low ≤ q_z ≤ z_high and (q_x − x_c)² + (q_y − y_c)² ≤ r². Example on the slide: a 1.9 m shelf 1 m out from corner A; the claw at the room centre is clear at 1.5 m and refused at 0.8 m, because cable A would pass through the shelf.
+
+If pushed: While moving, the encoder catches a cable that jams or stalls its motor (TRACKING fault: stop, holding torque kept), and the camera catches a failed grip. A snag that does not stall the motor is not detected. The planner refuses rather than re-routes. One gap I found writing this: an item it cannot reach stops the whole task instead of being skipped; that is a small fix. Next: keep-out zones drawn in the app, and furniture footprints mapped from the claw camera's scans. No obstacle list is configured for my room yet.
 
 ---
 

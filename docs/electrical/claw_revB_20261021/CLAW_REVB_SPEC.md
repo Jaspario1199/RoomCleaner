@@ -54,6 +54,13 @@ their defaults; U4 USB-C input (external adapter).
 - UBEC near empty: 6.8 V in for 6.0 V out leaves little headroom; the servo rail may sag
   near cutoff, which is acceptable because the firmware stops lifts at 6.8 V.
 
+## Charging rule (D31)
+
+Charge only with SW1 OFF, attended, on a non-flammable surface, with an 8.4 V
+CC/CV charger at ≤ 1 A. The pack's protection PCB must provide per-cell
+overcharge / over-discharge protection: confirm it on the label or datasheet
+before the first charge (a 2-wire pack cannot be balance-charged).
+
 ## Before the first power-up
 
 1. Set U1 to 6.0 V and U2 to 5.00 V with a meter, with nothing connected to their outputs.

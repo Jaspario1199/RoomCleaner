@@ -51,3 +51,10 @@ The range in each cell spans task-height limits from 1.0 m to 1.6 m.
 
 ## Recommendation
 Do the pull test first (option 4). If running pull at a full spool is under about 25 N, which is likely, adopt option 1 for gen 3 and use option 3 for the Oct 27 demo. Record the choice as D31.
+
+**Update (review of the simulation manuals):** in full-step mode the A4988
+drives both coils at about 0.71 × I_trip. If the motor's holding torque is
+specified for both phases at rated current, then torque scales with 0.71 ×
+1.06 A rather than 1.06 A. That would cut every pull number above by up to
+about 30 % (running pull at the core about 17 N), which makes the pull test
+and the reduction more important, not less.

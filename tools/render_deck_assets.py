@@ -202,6 +202,31 @@ JOBS = {
     ],
 }
 
+REF1021 = "cad/reference/gripper_1021/parts/"
+NAVY = (0x1F / 255, 0x3A / 255, 0x5F / 255)
+
+
+def _gripper1021(head_only=False):
+    """Jasper's final 1021 assembly with the lead-designed hands and the housing + camera bay (deck v2)."""
+    keep = ["03_Gripper_gear_housing_NAUO3", "07_Gripper_gear_housing_Part2_NAUO7", "04_Simple_18T_Pinionvlast_NAUO4",
+            "08_Claw_arm_extension3_NAUO8", "09_Claw_arm_extension3_NAUO9", "10_gripper_v6r_compound_36T_24T_norelief_NAUO10",
+            "11_gripper_v6r_follower_NAUO11", "01_Body_40x19x38_tabs_and_boss_ESTIMATED_step_NAUO13"]
+    if not head_only:
+        keep += ["00_Griper_Cylinder_NAUO1"]
+    layers = [(*load(S(REF1021 + k + ".step"), 0.2, 0.3), PETG, False) for k in keep]
+    if not head_only:
+        layers.append((*load(S(REF1021 + "06_aluminum_tubing_NAUO6.step"), 0.2, 0.3), ALU, True))
+        layers.append((*load(S("exports/step/gripper1021_housing_cambay.step"), 0.2, 0.3), PETG, False))
+        layers.append((*load(S("exports/step/gripper1021_housing_cambay_cover.step"), 0.2, 0.3), NAVY, False))
+    for h in ("right", "left"):
+        layers.append((*load(S(f"exports/step/gripper1021_hand_{h}.step"), 0.15, 0.25), NAVY, False))
+    return layers
+
+
+JOBS["gripper1021_final"] = lambda: _gripper1021(False)
+JOBS["gripper1021_head"] = lambda: _gripper1021(True)
+
+
 def _v6_part(name):
     """One of Jasper's v6 solids, by name, from the v6 assembly STEP (read-only)."""
     sys.path.insert(0, str(ROOT))
@@ -224,6 +249,8 @@ for n in ("v6r_compound", "v6r_follower", "v6r_pinion_1brg"):
     OPTS[n] = dict(view=(0.7, -0.9, 1.1))
 OPTS["v6_compound_original"] = dict(view=(0.7, -0.9, 1.1))
 OPTS["gripper_v7"] = {**YUP, "view": (1, 0.9, 1)}
+OPTS["gripper1021_final"] = {**YUP, "view": (1, 0.55, -1.1), **TALL}
+OPTS["gripper1021_head"] = {**YUP, "view": (0.9, 0.5, -1.2)}
 for n in ("claw_v6", "claw_v6_camera_bay", "wall_mount_v3"):
     OPTS[n] = {**OPTS[n], **TALL}
 

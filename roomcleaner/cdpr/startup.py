@@ -270,6 +270,7 @@ class RobotContext:
         self.claw_yaw_room = 0.0            # last measured claw yaw (room frame): the yaw the attitude statics hold
         self.claw_ref_room = None           # (p, R) of the last measured claw pose (room frame)
         self.floor_board = None             # vision.board.BoardGeometry of the surveyed floor-reference layout (None = single tag)
+        self.board_survey = None            # board_startup.FloorBoardSurveyor over the live layout (None = no survey: single tag / off)
 
     @property
     def T_B_C(self):

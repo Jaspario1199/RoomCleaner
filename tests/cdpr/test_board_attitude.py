@@ -251,7 +251,7 @@ def test_service_builds_the_board_detector_only_when_a_layout_is_configured(tmp_
     from roomcleaner.cdpr.service import build_marker_detector
     cfg = load_config(SIM)
     assert isinstance(build_marker_detector(cfg, CAM), MarkerDetector)
-    FloorBoardLayout.nominal(EDGE_B).save(tmp_path / "layout.json")
+    FloorBoardLayout.nominal(cfg.marker.edge_m).save(tmp_path / "layout.json")      # tag size = the measured marker.edge_m (checked)
     raw = json.load(open(SIM))
     raw["marker"]["board_layout_file"] = str(tmp_path / "layout.json")
     det = build_marker_detector(load_config(raw), CAM)

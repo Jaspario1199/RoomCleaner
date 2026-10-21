@@ -307,10 +307,16 @@ def build_marker_detector(cfg, cam):
                   ambiguity_ratio_min=cfg.camera.ambiguity_ratio_min, corner_sigma_px=cfg.camera.corner_sigma_px,
                   cov_inflate=cfg.camera.pose_cov_inflate)
     if cfg.marker.board_layout_file:
+        from .board_startup import adopt_edge
         from .vision.board import BoardDetector, FloorBoardLayout
         layout = FloorBoardLayout.load(cfg.marker.board_layout_file)
         if not layout.surveyed_ids():
             raise SystemExit(f"marker.board_layout_file {cfg.marker.board_layout_file}: no surveyed tag")
+        # the tags are the only ruler: a layout with nothing surveyed yet takes the measured marker.edge_m, a surveyed one that
+        # disagrees with it is refused (before the detector is built from its tag size)
+        msg = adopt_edge(layout, cfg.marker.edge_m)
+        if msg:
+            raise SystemExit(f"marker.board_layout_file {cfg.marker.board_layout_file}: {msg}")
         return BoardDetector(layout, cam, **common)
     return MarkerDetector(cfg.marker.family, cfg.marker.id, cfg.marker.edge_m, cam, **common)
 
@@ -343,10 +349,24 @@ def build_hardware_context(config_path, data_dir):
                           now_us=rt.now_us, rot_sigma=cfg.claw.vision_attitude_sigma_rad,
                           rot_floor=cfg.claw.vision_attitude_floor_rad, pixel_sigma=cfg.camera.corner_sigma_px)
     ctx = RobotContext(cfg, co, claw, vision, cam, TrustLedger(), data_dir=data_dir)
-    if getattr(det, "layout", None) is not None:          # board detector: the excitation design sees the same tags
-        from .vision.board import BoardGeometry
-        ctx.floor_board = BoardGeometry.from_layout(det.layout)
+    attach_board_survey(ctx, det, cfg)
     return ctx
+
+
+def attach_board_survey(ctx, det, cfg):
+    """Board detector: the excitation design sees the same tags (``ctx.floor_board``) and, unless ``startup.board_survey`` is
+    off, the startup surveys the layout the detector shares (``board_startup.FloorBoardSurveyor``: the sheets the resting claw
+    sees; the layout file named by ``marker.board_layout_file`` is updated in place)."""
+    layout = getattr(det, "layout", None)
+    if layout is None:
+        return
+    from .board_startup import FloorBoardSurveyor
+    from .vision.board import BoardGeometry
+    ctx.floor_board = BoardGeometry.from_layout(layout)
+    if cfg.startup.board_survey:
+        ctx.board_survey = FloorBoardSurveyor(layout, ctx.camera, path=cfg.marker.board_layout_file,
+                                              corner_sigma_px=cfg.camera.corner_sigma_px,
+                                              min_side_px=cfg.camera.min_marker_pixels, log=ctx.log)
 
 
 if __name__ == "__main__":

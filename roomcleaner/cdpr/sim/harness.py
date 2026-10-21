@@ -18,7 +18,8 @@ from .world import SimCamera, SimClaw, default_world
 
 class SimRobot:
     def __init__(self, cfg_or_path="config/robot.sim.json", *, seed=0, latency_us=2000, jitter_us=1500,
-                 loss=0.0, world_kw=None, camera_kw=None, log=None, data_dir=None, mount_err_rad=0.02):
+                 loss=0.0, world_kw=None, camera_kw=None, log=None, data_dir=None, mount_err_rad=0.02,
+                 board_truth=None, board_start=None, board_path=None):
         cfg = load_config(cfg_or_path) if isinstance(cfg_or_path, str) else cfg_or_path
         self.cfg = cfg
         self.log_lines = []
@@ -47,6 +48,19 @@ class SimRobot:
         ck.setdefault("mount_rotvec", (*mrng.normal(0.0, mount_err_rad, 2), 0.0))
         ck.setdefault("pixel_sigma", cfg.camera.corner_sigma_px)
         ck.setdefault("cov_inflate", cfg.camera.pose_cov_inflate)
+        # Board SURVEY mode: ``board_truth`` (vision.board.FloorBoardLayout, the TRUE planar poses of the sheets, tag 0 at the
+        # identity) is imaged through the real BoardDetector over the live layout the startup surveys. The robot starts from
+        # ``board_start`` (a layout, e.g. one surveyed earlier or a template) or, by default, knowing only tag 0; ``board_path``
+        # is the layout file the survey saves to (marker.board_layout_file).
+        self.board_layout = None
+        if board_truth is not None:
+            from ..vision.board import BoardDetector, FloorBoardLayout
+            self.board_layout = board_start.copy() if board_start is not None else FloorBoardLayout(board_truth.edge_m)
+            ck["board_truth"] = board_truth
+            ck["board_detector"] = BoardDetector(
+                self.board_layout, self.camera, min_side_px=cfg.camera.min_marker_pixels,
+                max_reprojection_px=cfg.camera.max_reprojection_px, ambiguity_ratio_min=cfg.camera.ambiguity_ratio_min,
+                corner_sigma_px=cfg.camera.corner_sigma_px, cov_inflate=cfg.camera.pose_cov_inflate)
         self.simcam = SimCamera(self.world, self.camera, cfg.claw.T_body_cam, cfg.marker.edge_m,
                                 min_side_px=cfg.camera.min_marker_pixels, seed=seed, **ck)
         self.claw = SimClaw(self.world, self.simcam, seed=seed)
@@ -61,3 +75,10 @@ class SimRobot:
         # a board floor reference: the excitation design (visibility, predicted covariance) knows its layout, as it would
         # from the surveyed layout file on the hardware (marker.board_layout_file)
         self.ctx.floor_board = ck.get("board")
+        if self.board_layout is not None:
+            from ..board_startup import FloorBoardSurveyor
+            from ..vision.board import BoardGeometry
+            self.ctx.floor_board = BoardGeometry.from_layout(self.board_layout)
+            self.ctx.board_survey = FloorBoardSurveyor(self.board_layout, self.camera, path=board_path,
+                                                       corner_sigma_px=cfg.camera.corner_sigma_px,
+                                                       min_side_px=cfg.camera.min_marker_pixels, log=log)

@@ -556,7 +556,8 @@ class SimCamera:
 
     def __init__(self, world: World, camera, T_B_C, edge_m, *, pixel_sigma=0.3, rot_sigma=0.002,
                  dropout=0.0, min_side_px=40.0, seed=0, bias_m=(0, 0, 0), board_span_m=None, board=None,
-                 mount_rotvec=(0.0, 0.0, 0.0), noise_model="tags", est_pixel_sigma=None, cov_inflate=1.3):
+                 mount_rotvec=(0.0, 0.0, 0.0), noise_model="tags", est_pixel_sigma=None, cov_inflate=1.3,
+                 board_detector=None, board_truth=None):
         if noise_model not in ("tags", "fixed"):
             raise ValueError("noise_model must be 'tags' or 'fixed'")
         self.w = world
@@ -582,6 +583,13 @@ class SimCamera:
         self.board_span = board_span_m
         self.covered = False          # injected: marker hidden (laundry on it, person walking)
         self.board = board            # FloorBoard (multi-tag floor reference); None = single marker
+        # Survey mode: ``board_truth`` (vision.board.FloorBoardLayout with the TRUE planar pose of every sheet, tag 0 at the
+        # identity) is imaged with iid corner noise ``pixel_sigma`` and the real ``board_detector`` (vision.board.BoardDetector
+        # over the LIVE layout that the startup survey fills in) turns the detections into the observation, so what the estimator
+        # knows of the layout is exactly what was surveyed and the frame carries every detected tag (``obs.dets``).
+        self.board_detector = board_detector
+        self.board_truth = board_truth
+        self._prev_T_C_M = None
         self.last_att_sigma = None    # plant truth of the last frame: 1-sigma of roll/pitch (tags model), for studies
 
     # -- measurement noise ---------------------------------------------------
@@ -630,8 +638,35 @@ class SimCamera:
         side = float(np.mean([np.linalg.norm(uv[k] - uv[(k + 1) % 4]) for k in range(4)]))
         return self._measure(T_C_M, self.board.corners_for(ks), side, uv, t_us, edge)
 
+    def _observe_detected(self, t_us) -> MarkerObservation:
+        """Survey mode (see ``board_detector``): synthetic corner detections of the TRUE layout through the real detector."""
+        if self.covered:
+            return MarkerObservation(False, "marker not found", frame_id=self.frame, capture_us=t_us)
+        T_C_M = inv_T(self.w.T_M_B() @ self.T_B_C)
+        truth, dets = self.board_truth, {}
+        for i in truth.expected_ids:
+            pc = truth.corners_M(i) @ T_C_M[:3, :3].T + T_C_M[:3, 3]
+            if np.any(pc[:, 2] <= 0.05):
+                continue
+            uv = self.cam.project(pc)
+            if not np.all(self.cam.in_image(uv, 4)):
+                continue
+            if float(np.mean([np.linalg.norm(uv[k] - uv[(k + 1) % 4]) for k in range(4)])) < self.min_side:
+                continue
+            dets[i] = uv + self.rng.normal(0.0, self.pixel_sigma, uv.shape)
+        if not dets or self.rng.random() < self.dropout:
+            return MarkerObservation(False, "marker not found" if not dets else "ambiguous pose",
+                                     frame_id=self.frame, capture_us=t_us)
+        # the same up prior the hardware frame source gives its detector (camera looking down)
+        obs = self.board_detector.pose_from_detections(dets, prev_T_C_M=self._prev_T_C_M, up_in_cam=(0.0, 0.0, -1.0),
+                                                       frame_id=self.frame, capture_us=t_us)
+        self._prev_T_C_M = obs.T_C_M if obs.ok else None
+        return obs
+
     def observe(self, t_us) -> MarkerObservation:
         self.frame += 1
+        if self.board_detector is not None:
+            return self._observe_detected(t_us)
         if self.board is not None:
             return self._observe_board(t_us)
         T_C_M = inv_T(self.w.T_M_B() @ self.T_B_C)

@@ -2,9 +2,14 @@
 
     python -m tools.print_floor_board --out prints/floor_board_letter.pdf [--png-dpi 100]
     python -m tools.print_floor_board --out sheet3.pdf --ids 3 --edge-mm 150 --no-instructions
+    python -m tools.print_floor_board --layout-json data/floor_board.json --no-pdf      # the starting layout file for the config
 
 Page 1 is the layout instructions (sheets about 250 mm centre to centre: US Letter is 279 mm tall, so neighbours above and
-below overlap by ~30 mm - overlap the blank paper margins, never a tag; verification/imu_removal_review.md F3); then one
+below overlap by ~30 mm - overlap the blank paper margins, never a tag; verification/imu_removal_review.md F3). It says what the
+robot really does with the layout: at every startup (roomcleaner/cdpr/board_startup.py) it SURVEYS the sheets that its camera
+sees from the resting claw - sheet 0 and about 2-3 neighbours, not all nine - and writes their measured positions into the
+layout file named by marker.board_layout_file; sheets out of its view are not surveyed and not used. The starting layout file
+(only sheet 0 known) is written by `--layout-json PATH`. Then one
 US Letter sheet per tag id (default
 ids 0..8, AprilTag 36h11, black square 150 mm = 8 cells of 18.75 mm, white
 quiet zone of 1 cell, everything inside the 6.35 mm printer margins).
@@ -164,8 +169,10 @@ def _layout_sheet(c, ids, origin_id, edge_mm, pitch_mm=DEFAULT_PITCH_MM):
         f"2. Measure the black square of sheet {origin_id} (should be {edge_mm:.0f} mm) and enter it, in metres, as marker.edge_m.",
         f"3. Put sheet {origin_id} in the middle, directly under where the claw rests at startup.",
         f"4. Lay the other {len(ids) - 1} sheets as drawn below, {pitch_mm:.0f} mm centre to centre (tag centre to tag centre; never more than",
-        f"   {MAX_PITCH_MM:.0f} mm: the resting claw must see at least TWO tags). Exact spacing and rotation do not matter - the robot",
-        "   surveys the layout itself - but a closer, tighter grid is better than a wide one.",
+        f"   {MAX_PITCH_MM:.0f} mm: the resting claw must see at least TWO tags). Exact spacing and rotation do not matter: at EVERY startup the",
+        "   robot SURVEYS the sheets its camera sees from the resting claw (sheet 0 and usually 2-3 neighbours, from ~30 frames) and",
+        "   writes their measured positions into the layout file (step 7). Sheets it cannot see from the resting claw are NOT surveyed",
+        "   and are NOT used; a closer, tighter grid puts more of them in view, and the claw may rest at any heading.",
         (f"   Letter sheets are {LETTER_MM[1]:.0f} mm tall, so at this pitch sheets above/below each other OVERLAP by about {overlap:.0f} mm"
          if overlap > 0.5 else "   The sheets do not overlap at this pitch."),
         (f"   (side by side they leave a {gap_x:.0f} mm gap). Overlap only the blank paper margins (the header with the big number at the"
@@ -175,7 +182,11 @@ def _layout_sheet(c, ids, origin_id, edge_mm, pitch_mm=DEFAULT_PITCH_MM):
         "   across a tag, avoid glare (close curtains / matte paper). Carpet ridges and rugs that slide are not OK.",
         f"6. Sheet {origin_id} defines the frame: its +X points right as printed. Enter the approximate room heading of",
         "   that +X as marker.heading_prior_rad.",
-        "7. Do NOT move or bump any sheet once startup begins. If one moves, stop and run the survey again.",
+        "7. Layout file: set marker.board_layout_file to a layout file that exists (make the starting one, only sheet 0 known, with",
+        "   `python -m tools.print_floor_board --layout-json data/floor_board.json --no-pdf`). The robot rewrites it after a survey and",
+        "   keeps the previous contents as <file>.bak. Set marker.edge_m to the measured edge of sheet 0 (step 2); the layout must agree.",
+        "8. Do NOT move or bump any sheet during a run: nothing re-surveys it until the next startup. Between startups a sheet that is in",
+        "   view and moved by about 10 mm or more is found at the next startup and surveyed again; a sheet out of view is trusted as saved.",
     ]
     steps = [x for x in steps if x]
     for k, ln in enumerate(steps):
@@ -241,6 +252,20 @@ def build_pdf(out, ids=range(9), edge_mm=DEFAULT_EDGE_MM, family="apriltag_36h11
         _tag_sheet(c, i, k, len(ids), edge_mm, family, origin_id, ids)
         c.showPage()
     c.save()
+    return out
+
+
+def write_layout_template(path, ids=range(9), edge_mm=DEFAULT_EDGE_MM, family="apriltag_36h11", *, origin_id=None):
+    """The starting ``marker.board_layout_file``: a FloorBoardLayout JSON with the origin sheet known (it defines the frame) and
+    every other sheet UNSURVEYED. The robot's startup surveys the sheets in view of the resting claw and rewrites the file
+    (roomcleaner/cdpr/board_startup.py). ``edge_mm`` is the requested size; the startup adopts the measured ``marker.edge_m``
+    for a layout that has nothing surveyed yet."""
+    from roomcleaner.cdpr.vision.board import FloorBoardLayout
+    ids = [int(i) for i in ids]
+    lay = FloorBoardLayout(edge_mm / 1000.0, ids, family=family, origin_id=ids[0] if origin_id is None else origin_id)
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    lay.save(out)
     return out
 
 
@@ -330,9 +355,18 @@ def main(argv=None):
     ap.add_argument("--pitch-mm", type=float, default=DEFAULT_PITCH_MM,
                     help=f"sheet centre-to-centre pitch stated on the layout page (default {DEFAULT_PITCH_MM:g}, max {MAX_PITCH_MM:g})")
     ap.add_argument("--no-instructions", action="store_true", help="omit the layout page")
+    ap.add_argument("--layout-json", metavar="PATH", help="also write the starting floor-board layout file (only the origin sheet "
+                    "known; the robot surveys the rest at startup): the file marker.board_layout_file points at")
+    ap.add_argument("--no-pdf", action="store_true", help="write only --layout-json, no PDF")
     ap.add_argument("--png-dpi", type=int, default=0, help="also write page PNGs at this dpi (needs pdftoppm)")
     a = ap.parse_args(argv)
     ids = _ids(a.ids)
+    if a.layout_json:
+        p = write_layout_template(a.layout_json, ids, a.edge_mm, a.family)
+        print(f"wrote {p} (starting layout: sheet {ids[0]} known, {len(ids) - 1} to be surveyed at startup; "
+              "set marker.board_layout_file to it)")
+        if a.no_pdf:
+            return
     out = build_pdf(a.out, ids, a.edge_mm, a.family, instructions=not a.no_instructions, pitch_mm=a.pitch_mm)
     try:
         for line in verify_pdf(out, ids, a.edge_mm, a.family, instructions=not a.no_instructions):

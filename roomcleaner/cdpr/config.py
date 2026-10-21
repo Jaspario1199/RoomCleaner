@@ -130,6 +130,8 @@ def _check_board_layout_file(v):
     if not isinstance(v, str) or not v.strip():
         raise ConfigError(f"marker.board_layout_file must be a path string or null, got {v!r}")
     p = Path(v)
+    if p.exists() and not p.is_file():
+        raise ConfigError(f"marker.board_layout_file {v!r} is not a file")
     if not p.is_file():
         raise ConfigError(f"marker.board_layout_file {v!r} does not exist (relative paths are taken from the working directory): "
                           "create the starting layout with `python -m tools.print_floor_board --layout-json PATH` or leave "

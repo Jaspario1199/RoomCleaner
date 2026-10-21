@@ -218,6 +218,11 @@ def test_interference_3d_zero(parts):
         assert r["pinion_compound"] <= 0.5 and r["compound_follower"] <= 0.5, r
 
 
+def test_interference_check_is_sensitive(parts):
+    c = G.interference_control(3.0)
+    assert c["compound_follower"] > 5.0 and c["pinion_compound"] > 5.0, c
+
+
 def test_swept_clearance_lugs(parts):
     sw = G.swept_clearance(np.linspace(0.0, P.GRIPV6R_SWEEP_DEG, 5))
     assert sw["min"]["distance_mm"] >= P.GRIPV6R_SWEEP_CLEAR_MIN, sw["min"]

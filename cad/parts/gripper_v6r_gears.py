@@ -44,6 +44,7 @@ from scipy.spatial import cKDTree
 
 from OCP.BRepAdaptor import BRepAdaptor_Curve, BRepAdaptor_Surface
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Section
+from OCP.BRepBuilderAPI import BRepBuilderAPI_Copy
 from OCP.BRepTools import BRepTools
 from OCP.GeomAbs import GeomAbs_Cylinder, GeomAbs_Plane
 
@@ -466,9 +467,16 @@ def part(name: str) -> cq.Shape:
     return mk().val()
 
 
+def deep_copy(shape: cq.Shape) -> cq.Shape:
+    """Independent copy (meshing / STL export attaches triangulations to the shared faces and makes isValid() report
+    False on the original -- always mesh a copy)."""
+    return cq.Shape.cast(BRepBuilderAPI_Copy(shape.wrapped, True).Shape())
+
+
 def print_pose(name: str, shape: cq.Shape) -> cq.Shape:
-    """Print orientation: gear axis vertical, lowest face on the bed (z min = 0)."""
-    return shape.moved(cq.Location(cq.Vector(0, 0, -shape.BoundingBox().zmin)))
+    """Print orientation (independent copy): gear axis vertical, lowest face on the bed (z min = 0)."""
+    z0 = shape.BoundingBox().zmin
+    return deep_copy(shape).moved(cq.Location(cq.Vector(0, 0, -z0)))
 
 
 def place(shape: cq.Shape, axis_xy, rot_deg: float = 0.0) -> cq.Shape:
@@ -559,6 +567,16 @@ def interference_3d(deltas, compound: str = "compound") -> list:
                          compound_follower=common_volume(s["compound"], s["follower"]),
                          pinion_follower=common_volume(s["pinion"], s["follower"])))
     return rows
+
+
+def interference_control(extra_deg: float = 3.0) -> dict:
+    """Positive control for the boolean check: the same pairs with the second gear turned `extra_deg` off the clearance
+    window (backlash window is only about +-0.7 deg) MUST show a real overlap volume."""
+    s = pose_shapes(0.0)
+    fol = place(part("follower"), P.GRIPV6R_F_XY, extra_deg)
+    pin = place(part("pinion"), P.GRIPV6R_S_XY, extra_deg)
+    return dict(extra_deg=extra_deg, compound_follower=common_volume(s["compound"], fol),
+                pinion_compound=common_volume(pin, s["compound"]))
 
 
 LUG_X0 = P.GRIPV6R_ARM_R - 32.0          # arm-frame x where the lug / fork piece starts (R21, 1.5 mm outside the 24T tips)
@@ -672,6 +690,7 @@ def _surface_census(shape: cq.Shape):
     """(on-axis cylinders, off-axis cylinders): {(R, z0, z1): (face count, total area mm2)}.  Areas are compared, not
     face counts: a boolean or a rotation may split / merge the seam of a periodic cylinder face."""
     on, off = {}, {}
+    BRepTools.Clean_s(shape.wrapped)      # a stale / foreign mesh would inflate the face bounding boxes
     for f in shape.Faces():
         a = BRepAdaptor_Surface(f.wrapped)
         if a.GetType() != GeomAbs_Cylinder:

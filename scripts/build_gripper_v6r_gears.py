@@ -143,9 +143,10 @@ def render_all(parts_json: dict):
     os.makedirs(REN_DIR, exist_ok=True)
     col = {"pinion": (0.35, 0.60, 0.85), "compound": (0.85, 0.55, 0.20), "follower": (0.35, 0.70, 0.40),
            "his": (0.62, 0.62, 0.66)}
-    mesh = {k: tessellate(G.part(k), tol=0.05, ang=0.3) for k in EXPORTS}
-    his = {"compound": tessellate(G.home_compound(), 0.05, 0.3), "follower": tessellate(G.home_follower(), 0.05, 0.3),
-           "pinion": tessellate(G.home_pinion(), 0.05, 0.3)}
+    mesh = {k: tessellate(G.deep_copy(G.part(k)), tol=0.05, ang=0.3) for k in EXPORTS}
+    his = {"compound": tessellate(G.deep_copy(G.home_compound()), 0.05, 0.3),
+           "follower": tessellate(G.deep_copy(G.home_follower()), 0.05, 0.3),
+           "pinion": tessellate(G.deep_copy(G.home_pinion()), 0.05, 0.3)}
     views = {"iso": (28, 35), "iso_under": (-28, 215), "top": (90, -90)}
     for key, base in EXPORTS.items():
         for vn, (el, az) in views.items():
@@ -180,7 +181,7 @@ def render_all(parts_json: dict):
     # closed and open pose, all three gears placed at the v7 centres, top view
     for name, d in (("closed", 0.0), ("open", P.GRIPV6R_SWEEP_DEG)):
         s = G.pose_shapes(d)
-        ms = [(*tessellate(s[k], tol=0.05, ang=0.3), col[k], 1.0) for k in ("pinion", "compound", "follower")]
+        ms = [(*tessellate(G.deep_copy(s[k]), tol=0.05, ang=0.3), col[k], 1.0) for k in ("pinion", "compound", "follower")]
         render(ms, os.path.join(REN_DIR, "assembly_top_%s.png" % name), 90, -90, title="v6r gears at the v7 centres, %s pose" % name,
                bounds=((-60, -70, 0), (60, 60, 40)))
         render(ms, os.path.join(REN_DIR, "assembly_iso_%s.png" % name), 30, 35, title="v6r gears at the v7 centres, %s pose" % name,
@@ -242,7 +243,9 @@ def main():
         i3 = [-30.0, -20.0, -10.0, 0.0, 10.0, 20.0, 30.0, 45.0, 60.0, P.GRIPV6R_SWEEP_DEG]
         out["interference_3d"] = dict(
             relief=G.interference_3d(i3), norelief=G.interference_3d([0.0, 30.0, P.GRIPV6R_SWEEP_DEG], "compound_norelief"),
-            threshold_mm3=0.5, note="OCC boolean common volume of the full solids, three gear pairs")
+            positive_control=G.interference_control(),
+            threshold_mm3=0.5, note="OCC boolean common volume of the full solids, three gear pairs; the positive control turns "
+                                    "the second gear 3 deg out of the clearance window and must show overlap")
         print("3D interference done (%.0f s)" % (time.time() - t0), flush=True)
 
     out["notes"] = dict(

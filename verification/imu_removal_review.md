@@ -115,6 +115,9 @@ against the 5 mm criterion (the same reason as IMU-on). Absolute-length sigma 18
 smaller span and a worse scale/depth term; the p0.42 board (span 1.0 m) gives 11-15 mm and VERIFIED only if the estimator is told the true
 low noise (F) AND the floor stage works, which needs the rest pose to see >= 2 tags. A hybrid (4-5 sheets near the rest position at
 <= 0.28 m pitch plus an outer ring at ~0.45 m) is the layout I would try; it is not simulated here (`FloorBoard` is a regular grid).
+Sensitivity: at 0.5 px corner noise (pitch 0.25, seed 1, 3 tags, 3.3 mrad) the floor stage already faults again (slide directions 3.6 sigma; one seed run
+only, the second was stopped), so the floor stage is marginal against corner noise and the real OV2640 corner noise must be measured (F2 would remove this
+dependence).
 Shifting the p0.42 grid by half a pitch gave 2 tags in 6 of 8 seeds in a static check but "marker not found" in the real runs (fragile:
 a +-1 cm margin separates 2 tags from none), so I do not recommend relying on placement alone.
 

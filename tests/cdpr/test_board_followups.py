@@ -571,9 +571,11 @@ def test_printed_instructions_describe_the_survey_as_it_is_and_the_starting_layo
     texts = {"built": " ".join(pypdf.PdfReader(str(pfb.build_pdf(tmp_path / "b.pdf"))).pages[0].extract_text().split()),
              "shipped": " ".join(pypdf.PdfReader(str(root / "floor_board_letter.pdf")).pages[0].extract_text().split())}
     for name, flat in texts.items():
-        assert "surveys the layout itself" not in flat, name                        # the old promise
-        assert "at EVERY startup the robot SURVEYS the sheets its camera sees from the resting claw" in flat, name
-        assert "NOT surveyed and are NOT used" in flat and "usually 2-3 neighbours" in flat, name
+        assert "- the robot surveys the layout itself -" not in flat, name               # the old, unqualified promise
+        assert "the robot SURVEYS the layout itself during startup" in flat, name
+        assert "surveys the sheets its camera sees (sheet 0 and usually 2-3 neighbours" in flat, name
+        assert "the others are surveyed while the claw hangs and calibrates, as they come into view" in flat, name
+        assert "NOT surveyed and NOT used" in flat, name
         assert "marker.board_layout_file" in flat and "--layout-json" in flat and ".bak" in flat, name
         assert "nothing re-surveys it until the next startup" in flat, name
         assert "run the survey again" not in flat, name                              # there is no such tool

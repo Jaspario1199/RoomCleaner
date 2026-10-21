@@ -6,10 +6,10 @@
 
 Page 1 is the layout instructions (sheets about 250 mm centre to centre: US Letter is 279 mm tall, so neighbours above and
 below overlap by ~30 mm - overlap the blank paper margins, never a tag; verification/imu_removal_review.md F3). It says what the
-robot really does with the layout: at every startup (roomcleaner/cdpr/board_startup.py) it SURVEYS the sheets that its camera
-sees from the resting claw - sheet 0 and about 2-3 neighbours, not all nine - and writes their measured positions into the
-layout file named by marker.board_layout_file; sheets out of its view are not surveyed and not used. The starting layout file
-(only sheet 0 known) is written by `--layout-json PATH`. Then one
+robot really does with the layout: it SURVEYS the sheets during startup (roomcleaner/cdpr/board_startup.py) - at SELF_CHECK
+those its camera sees from the resting claw (sheet 0 and about 2-3 neighbours), then, while the claw hangs and calibrates, the others as
+they come into view - and writes their measured positions into the layout file named by marker.board_layout_file; sheets never seen are
+not surveyed and not used. The starting layout file (only sheet 0 known) is written by `--layout-json PATH`. Then one
 US Letter sheet per tag id (default
 ids 0..8, AprilTag 36h11, black square 150 mm = 8 cells of 18.75 mm, white
 quiet zone of 1 cell, everything inside the 6.35 mm printer margins).
@@ -169,10 +169,10 @@ def _layout_sheet(c, ids, origin_id, edge_mm, pitch_mm=DEFAULT_PITCH_MM):
         f"2. Measure the black square of sheet {origin_id} (should be {edge_mm:.0f} mm) and enter it, in metres, as marker.edge_m.",
         f"3. Put sheet {origin_id} in the middle, directly under where the claw rests at startup.",
         f"4. Lay the other {len(ids) - 1} sheets as drawn below, {pitch_mm:.0f} mm centre to centre (tag centre to tag centre; never more than",
-        f"   {MAX_PITCH_MM:.0f} mm: the resting claw must see at least TWO tags). Exact spacing and rotation do not matter: at EVERY startup the",
-        "   robot SURVEYS the sheets its camera sees from the resting claw (sheet 0 and usually 2-3 neighbours, from ~30 frames) and",
-        "   writes their measured positions into the layout file (step 7). Sheets it cannot see from the resting claw are NOT surveyed",
-        "   and are NOT used; a closer, tighter grid puts more of them in view, and the claw may rest at any heading.",
+        f"   {MAX_PITCH_MM:.0f} mm: the resting claw must see at least TWO tags). Exact spacing and rotation do not matter: the robot SURVEYS the",
+        "   layout itself during startup (step 7). From the resting claw it surveys the sheets its camera sees (sheet 0 and usually",
+        "   2-3 neighbours, ~30 frames); the others are surveyed while the claw hangs and calibrates, as they come into view. A sheet",
+        "   that is never seen clearly is NOT surveyed and NOT used. A closer, tighter grid is better than a wide one.",
         (f"   Letter sheets are {LETTER_MM[1]:.0f} mm tall, so at this pitch sheets above/below each other OVERLAP by about {overlap:.0f} mm"
          if overlap > 0.5 else "   The sheets do not overlap at this pitch."),
         (f"   (side by side they leave a {gap_x:.0f} mm gap). Overlap only the blank paper margins (the header with the big number at the"
@@ -183,10 +183,10 @@ def _layout_sheet(c, ids, origin_id, edge_mm, pitch_mm=DEFAULT_PITCH_MM):
         f"6. Sheet {origin_id} defines the frame: its +X points right as printed. Enter the approximate room heading of",
         "   that +X as marker.heading_prior_rad.",
         "7. Layout file: set marker.board_layout_file to a layout file that exists (make the starting one, only sheet 0 known, with",
-        "   `python -m tools.print_floor_board --layout-json data/floor_board.json --no-pdf`). The robot rewrites it after a survey and",
+        "   `python -m tools.print_floor_board --layout-json data/floor_board.json --no-pdf`). The robot rewrites it after surveying and",
         "   keeps the previous contents as <file>.bak. Set marker.edge_m to the measured edge of sheet 0 (step 2); the layout must agree.",
-        "8. Do NOT move or bump any sheet during a run: nothing re-surveys it until the next startup. Between startups a sheet that is in",
-        "   view and moved by about 10 mm or more is found at the next startup and surveyed again; a sheet out of view is trusted as saved.",
+        "8. Do NOT move or bump any sheet during a run: nothing re-surveys it until the next startup. A sheet that is in view at the",
+        "   next startup and has moved by more than a few mm is found and surveyed again; a sheet out of view is trusted as saved.",
     ]
     steps = [x for x in steps if x]
     for k, ln in enumerate(steps):

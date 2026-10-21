@@ -133,7 +133,7 @@ endobj
 endobj
 17 0 obj
 <<
-/Length 5538
+/Length 5525
 >>
 stream
 1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
@@ -150,13 +150,13 @@ BT 1 0 0 1 29.33858 673.5118 Tm (3. Put sheet 0 in the middle, directly under wh
 BT /F1 8.2 Tf 9.84 TL ET
 BT 1 0 0 1 29.33858 659.622 Tm (4. Lay the other 8 sheets as drawn below, 250 mm centre to centre \(tag centre to tag centre; never more than) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 645.7323 Tm (   280 mm: the resting claw must see at least TWO tags\). Exact spacing and rotation do not matter: at EVERY startup the) Tj T* ET
+BT 1 0 0 1 29.33858 645.7323 Tm (   280 mm: the resting claw must see at least TWO tags\). Exact spacing and rotation do not matter: the robot SURVEYS the) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 631.8425 Tm (   robot SURVEYS the sheets its camera sees from the resting claw \(sheet 0 and usually 2-3 neighbours, from ~30 frames\) and) Tj T* ET
+BT 1 0 0 1 29.33858 631.8425 Tm (   layout itself during startup \(step 7\). From the resting claw it surveys the sheets its camera sees \(sheet 0 and usually) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 617.9528 Tm (   writes their measured positions into the layout file \(step 7\). Sheets it cannot see from the resting claw are NOT surveyed) Tj T* ET
+BT 1 0 0 1 29.33858 617.9528 Tm (   2-3 neighbours, ~30 frames\); the others are surveyed while the claw hangs and calibrates, as they come into view. A sheet) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 604.063 Tm (   and are NOT used; a closer, tighter grid puts more of them in view, and the claw may rest at any heading.) Tj T* ET
+BT 1 0 0 1 29.33858 604.063 Tm (   that is never seen clearly is NOT surveyed and NOT used. A closer, tighter grid is better than a wide one.) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
 BT 1 0 0 1 29.33858 590.1732 Tm (   Letter sheets are 279 mm tall, so at this pitch sheets above/below each other OVERLAP by about 29 mm) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
@@ -174,13 +174,13 @@ BT 1 0 0 1 29.33858 506.8346 Tm (   that +X as marker.heading_prior_rad.) Tj T* 
 BT /F1 8.2 Tf 9.84 TL ET
 BT 1 0 0 1 29.33858 492.9449 Tm (7. Layout file: set marker.board_layout_file to a layout file that exists \(make the starting one, only sheet 0 known, with) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 479.0551 Tm (   `python -m tools.print_floor_board --layout-json data/floor_board.json --no-pdf`\). The robot rewrites it after a survey and) Tj T* ET
+BT 1 0 0 1 29.33858 479.0551 Tm (   `python -m tools.print_floor_board --layout-json data/floor_board.json --no-pdf`\). The robot rewrites it after surveying and) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
 BT 1 0 0 1 29.33858 465.1654 Tm (   keeps the previous contents as <file>.bak. Set marker.edge_m to the measured edge of sheet 0 \(step 2\); the layout must agree.) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 451.2756 Tm (8. Do NOT move or bump any sheet during a run: nothing re-surveys it until the next startup. Between startups a sheet that is in) Tj T* ET
+BT 1 0 0 1 29.33858 451.2756 Tm (8. Do NOT move or bump any sheet during a run: nothing re-surveys it until the next startup. A sheet that is in view at the) Tj T* ET
 BT /F1 8.2 Tf 9.84 TL ET
-BT 1 0 0 1 29.33858 437.3858 Tm (   view and moved by about 10 mm or more is found at the next startup and surveyed again; a sheet out of view is trusted as saved.) Tj T* ET
+BT 1 0 0 1 29.33858 437.3858 Tm (   next startup and has moved by more than a few mm is found and surveyed again; a sheet out of view is trusted as saved.) Tj T* ET
 BT /F2 8.5 Tf 10.2 TL ET
 BT 1 0 0 1 164.2677 410.7402 Tm (Schematic, looking down at the floor \(not to scale; the 0 sheet is the thick one\)) Tj T* ET
 .6 w
@@ -850,15 +850,15 @@ xref
 0000002345 00000 n 
 0000002669 00000 n 
 0000002788 00000 n 
-0000008378 00000 n 
-0000011538 00000 n 
-0000014387 00000 n 
-0000017158 00000 n 
-0000020007 00000 n 
-0000022827 00000 n 
-0000025681 00000 n 
-0000028529 00000 n 
-0000031285 00000 n 
+0000008365 00000 n 
+0000011525 00000 n 
+0000014374 00000 n 
+0000017145 00000 n 
+0000019994 00000 n 
+0000022814 00000 n 
+0000025668 00000 n 
+0000028516 00000 n 
+0000031272 00000 n 
 trailer
 <<
 /ID 
@@ -870,5 +870,5 @@ trailer
 /Size 27
 >>
 startxref
-34139
+34126
 %%EOF

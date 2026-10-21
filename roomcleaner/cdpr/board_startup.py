@@ -7,18 +7,23 @@ corner rays on the floor plane and refined by a planar bundle adjustment over al
 (``marker.board_layout_file``) is updated in place. The detector shares the layout object, so the board pose of every later
 frame (floor stage, mount offset, suspended poses) already uses what was just surveyed.
 
-What it can and cannot do (be honest about it in the report and the printed instructions):
+Two stages (both write the layout file when something changed):
 
-* It surveys the sheets the resting claw SEES: the camera is ~0.52 m up, so about 3-4 of the 9 sheets at the 0.25 m pitch
-  (``DEFAULT_PITCH_M``). Sheets out of its view stay unsurveyed and are simply not used (the detector falls back to the
-  surveyed tags and the covariance says so); they are picked up as soon as a startup (or any other survey) sees them. There is
-  no survey flight: it would move the claw before the stations are known to be healthy.
-* A sheet surveyed earlier that is in view again is CHECKED: the bundle adjustment flags a sheet that moved by about 10 mm or
-  more, it is cleared and surveyed afresh in the same startup; a moved origin sheet clears all other sheets (the frame is
-  re-established around the sheet now under the claw). A sheet that is not in view is trusted as saved, until it is seen.
-* The survey needs a still claw and a still board. It never moves the claw and it never aborts the startup because a sheet
-  is missing; it aborts only when the layout cannot be the board that was printed (its tag size is not the measured
-  ``marker.edge_m``).
+1. SELF_CHECK, on the floor (:meth:`FloorBoardSurveyor.run`): it surveys the sheets the RESTING claw sees (the camera is ~0.52 m up:
+   sheet 0 and about 2-3 neighbours of the nine, at any rest heading). A sheet surveyed earlier that is in view again is CHECKED: the
+   detector's consistency check / the bundle adjustment flag one that moved by more than a few mm, it is cleared and surveyed afresh
+   in the same startup (a moved origin sheet clears all the others); a sheet that is not in view is trusted as saved.
+2. While the claw hangs (:meth:`offer` from every suspended still window, :meth:`flush` at each calibration sample): the sheets that
+   the resting claw could not see come into view as the claw rises and moves; their still frames (thinned, <= ``max_pending``) are
+   given to the survey, and a sheet is accepted once it has >= 8 views with a camera pose from surveyed sheets and passes the survey's
+   consistency checks. Simulation (verification/board_followups_results.md): all nine sheets known by the end of calibration, and the
+   startup as good as with the layout known in advance. No survey flight: nothing is moved for the survey. Cost: a few PnP solves per
+   flush and a bundle adjustment (~1 s) when a sheet is ready; on hardware that is time in which the keep-alive is not pumped.
+
+Limits: a sheet that is never seen clearly stays unsurveyed and unused (reported in ``measurements["board_survey"]``); a sheet that
+moves during a run is not re-surveyed until the next startup; the survey needs the claw and the board still and a flat floor. It never
+aborts the startup because a sheet is missing; it aborts only when the layout cannot be the board that was printed (its tag size is not
+the measured ``marker.edge_m``).
 """
 from __future__ import annotations
 

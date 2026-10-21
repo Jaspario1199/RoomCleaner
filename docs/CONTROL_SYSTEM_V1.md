@@ -171,21 +171,34 @@ consumes whichever the frame gave; the excitation design uses the same tags (`Ro
 the single tag is used: the board is the validated floor reference (all simulation evidence below is with it), the single-tag
 start is the degraded fallback (tilt 13 mrad per frame, no rocking check).
 
-**Board survey at startup** (`board_startup.FloorBoardSurveyor`, `startup.board_survey`, default on; SELF_CHECK, before the mount
-offset). The printed instructions say the sheets need not be placed exactly because the robot surveys them; this is that survey.
-After a stillness check, `startup.board_survey_frames` (30) frames of the still claw are given to `vision.board.BoardSurvey` (tag 0
-defines the frame; each other tag is placed by its corner rays on the floor plane and refined by a planar bundle adjustment; known
-tag size, 1.2 % size check, duplicate-id and curl/inconsistency rejection), and the layout file is rewritten (atomically; the
-previous contents stay as `<file>.bak`; only for a real change: a sheet added or cleared, or moved by > 1 mm). The detector shares the
-layout object, so the mount offset, the floor pose and every later frame already use what was surveyed, and `ctx.floor_board` (the
-excitation design) is refreshed. What it does **not** do: there is no survey flight, so it surveys only the sheets the *resting*
-claw sees (camera ≈ 0.52 m up: sheet 0 and about 2–3 neighbours of the nine, at any rest heading); the others stay unsurveyed, are not
-used, and are listed in the report (`measurements["board_survey"]`: `surveyed_ids`, `unsurveyed` with reasons, `max_sigma_xy_m`,
-`cleared`, `warnings`) and the log. A sheet surveyed earlier that is in view again is checked: ≥ ~6 mm off (the detector's
-consistency check) it is cleared and surveyed afresh in the same startup (a moved origin sheet clears all the others); less is refined
-away by the bundle adjustment; a sheet out of view is trusted as saved. A sheet that moves *during* a run is not re-surveyed until the
-next startup. The layout's tag size must be the measured `marker.edge_m` (±0.5 %): an unsurveyed template adopts it, a surveyed layout
-that disagrees is refused (service start-up and SELF_CHECK abort). A layout file that cannot be written is reported, not fatal.
+**Board survey at startup** (`board_startup.FloorBoardSurveyor`, `startup.board_survey`, default on). The printed instructions say the
+sheets need not be placed exactly because the robot surveys them; this is that survey, in two stages:
+
+1. *SELF_CHECK, claw resting.* After a stillness check, `startup.board_survey_frames` (30) frames are given to `vision.board.BoardSurvey`
+   (tag 0 defines the frame; each other tag is placed by its corner rays on the floor plane and refined by a planar bundle adjustment;
+   known tag size, 1.2 % size check, duplicate-id and curl/inconsistency rejection) and the layout file is rewritten (atomically; the
+   previous contents stay as `<file>.bak`; only for a real change: a sheet added or cleared, or moved by > 1 mm). The detector shares the
+   layout object, so the mount offset, the floor pose and every later frame already use what was surveyed, and `ctx.floor_board` (the
+   excitation design) is refreshed. The resting claw (camera ≈ 0.52 m up) sees sheet 0 and about 2–3 neighbours, not all nine. A sheet
+   surveyed earlier that is in view again is checked: more than a few mm off (the detector's consistency check, ≥ ~6 mm in the tests) it
+   is cleared and surveyed afresh in the same startup (a moved origin sheet clears all the others), less is refined away by the
+   bundle adjustment; a sheet out of view is trusted as saved.
+2. *While suspended (top-up).* Every suspended still window offers its frames (thinned: ≥ 0.3 s apart, ≤ 60 pending) that show a sheet not
+   surveyed yet (`offer`, cheap); each calibration sample flushes them (`_survey_topup`, claw hanging still): a sheet is accepted once
+   it has ≥ 8 views with a camera pose from surveyed sheets and passes the survey's checks, then the file, `ctx.floor_board` and the
+   report are updated. Nothing is moved for the survey (no survey flight). A flush costs a few PnP solves and, when a sheet is ready, one
+   bundle adjustment (~1 s): on hardware that is time in which the keep-alive is not pumped (the stations hold on their own lease; the
+   existing calibration fits already block similarly; measure it against `faults.lease_s`).
+
+Result in simulation (jittered layout, ±15 mm and ±0.1 rad of sloppiness, probe on, seeds 0–2, `scripts/sim_board_survey_study.py`):
+all nine sheets are known by the end of calibration (surveyed to ≤ 0.1 mm sigma, ≤ 0.15 mm true error) and the startup is as good as
+with the layout known in advance (absolute sigma 12.4–16.7 mm against 13.5–16.1 mm, same READY/trust pattern). With the survey
+at SELF_CHECK only, the same runs end at 18–22 mm (one seed's worst L0 error 71 mm, 3.3σ): the outer sheets are needed in flight, which is why
+the top-up exists. What it does **not** do: a sheet never seen clearly stays unsurveyed and unused (listed in
+`measurements["board_survey"]`: `surveyed_ids`, `unsurveyed` with reasons, `max_sigma_xy_m`, `cleared`, `topups`, `warnings`, and
+in the log); a sheet that moves *during* a run is not re-surveyed until the next startup; the layout's tag size must be the measured
+`marker.edge_m` (±0.5 %): an unsurveyed template adopts it, a surveyed layout that disagrees is refused (service start-up and SELF_CHECK
+abort); a layout file that cannot be written is reported, not fatal. Real corner noise, glare, curl and a real floor are untested.
 
 **Detector.** `MarkerDetector` polishes each IPPE candidate with Levenberg–Marquardt (`cv2.solvePnPRefineLM`; IPPE alone is
 ~5× noisier in tilt face-on: 55 vs 10 mrad at 0.46 m); when LM maps both candidates to one pose there is one ML solution,
@@ -372,11 +385,11 @@ abort conditions. Aborts **hold**; they never disable.
 
 | State | Does | Aborts (→ FAULT / PAUSED / RECOVERY_REQUIRED) |
 |---|---|---|
-| SELF_CHECK | config complete for the stage, suspended motion authorised; stations configured (param hash), synced, fault-free, switches closed, armed; claw online, battery ≥ min; camera calibration id recorded; marker visible and still; **floor board surveyed** (when `marker.board_layout_file` is set: the sheets in view of the resting claw, §3.2; aborts only on a tag-size mismatch); **camera-to-body tilt offset measured** (30 frames of the board pose when ≥ 2 tags are in view, else the single tag; claw resting upright on its jaws over the printout, D27) and stored, then **checked on a held-out set**: 30 fresh frames read through the corrected mount must agree with body z within 4× the combined standard error (≥ 3 mrad); claw on the floor at the expected height (±3 cm) | any check fails, the measured mount offset > `claw.mount_offset_max_rad`, or the held-out set disagrees ("camera-mount offset not reproducible": claw rocking or disturbed) |
+| SELF_CHECK | config complete for the stage, suspended motion authorised; stations configured (param hash), synced, fault-free, switches closed, armed; claw online, battery ≥ min; camera calibration id recorded; marker visible and still; **floor board surveyed** (when `marker.board_layout_file` is set: the sheets in view of the resting claw, §3.2; aborts only on a tag-size mismatch; the other sheets are surveyed later, while suspended); **camera-to-body tilt offset measured** (30 frames of the board pose when ≥ 2 tags are in view, else the single tag; claw resting upright on its jaws over the printout, D27) and stored, then **checked on a held-out set**: 30 fresh frames read through the corrected mount must agree with body z within 4× the combined standard error (≥ 3 mrad); claw on the floor at the expected height (±3 cm) | any check fails, the measured mount offset > `claw.mount_offset_max_rad`, or the held-out set disagrees ("camera-mount offset not reproducible": claw rocking or disturbed) |
 | SLACK_TAKEUP | one station at a time, a slow continuous retraction (claw on the floor = stations uncoupled), bounded by `max_slack_m`. Each vision frame is checked; claw motion (camera-frame displacement from the still pose taken at the start of this station's take-up, §3.2) ≥ max(onset_translation, k·noise) marks taut onset, noise = the raw camera-frame scatter measured at SELF_CHECK. Pulling continues to `bearing_translation_m` so the **slide direction** is measured (or, with ≥ 2 floor tags, until the **tilt change** of a claw tipping about a jaw edge exceeds the rocking threshold: that is the onset, §3.2), then a hold and a pay-out of `onset_backoff_m` | no onset within max slack (cable unattached, wrong winding direction, station order); marker lost > 1 s; tilt |
 | — after all four | slide bearings vs anchor entries (catches **swapped station wiring**); first fit → L0 per station + marker registration | bearing RMS > limit |
 | INITIAL_LIFT | all cables to just-taut (pretension watched by the filtered camera-frame drag-watch, §3.2), then vertical packets computed from the model's cable directions; vision after each | claw dragged or rocking on its jaws while tensioning (§3.2), lateral drift > max, tilt > max, commanded − observed lift > budget, no clearance by `max_lift_m` |
-| VISUAL_INITIALIZATION | still pose while suspended → refit (with `startup.slack_probe`: probed first, §6.1a) | marker lost |
+| VISUAL_INITIALIZATION | still pose while suspended → refit (with `startup.slack_probe`: probed first, §6.1a); every suspended sample also flushes the board-survey top-up (§3.2) | marker lost |
 | CALIBRATION | staged excitation: local box → intermediate → expanded, D-optimal poses + held-out witnesses, refit between stages (with `startup.slack_probe`: every pose probed first, §6.1a) | witness, residual, ambiguity or outlier failure; probe: no taut onset within `probe_max_m`, claw moved > 10 mm without onset |
 | REFERENCE_VERIFICATION | the trust decision (§6.5): margin check `assess_margin_trust`; the bead search per station (§6.4) only if `startup.bead_search` (default off), verified captures refit jointly | bead fault; refit rejected |
 | READY | trust level VERIFIED (basis `margin`, or `beads` if every bead was verified) or LOCAL_ONLY with stated reasons | — |
@@ -811,6 +824,11 @@ measurements and failures (`data/cdpr/` holds calibration and trust JSON).
   link outage stop spread ≈ 18 ms.
 * Vision: marker detection and pose ambiguity handling (12 cases), marker
   sheet scale, ChArUco calibration recovery.
+* Board follow-ups (`tests/cdpr/test_board_followups.py`, `verification/board_followups_results.md`): physical ranges of the new
+  configuration keys and the layout-file check; the rocking check (tilt change vs `floor_displacement`, `RockWatch` false-alarm / spike
+  / yaw / one-tag behaviour, the simulator's `rock` option, the board take-up stopping at the tilt onset, the one-tag run that cannot see
+  it, the pretension watch); the board survey at SELF_CHECK and its top-up, moved sheets, tag-size mismatch, unwritable file, service
+  wiring, and the printed instructions.
 * Vision-only attitude with the board (`tests/cdpr/test_board_attitude.py`, `test_slack_probe.py`, `test_margin_trust.py`):
   LM vs IPPE, the covariance against Monte Carlo, anisotropy, no double-counted lever, board / single-tag fallback, layout and
   printout (0.25 m, overlap text, 450 mm version kept), camera-frame displacement (noise, yaw of the claw), the filtered

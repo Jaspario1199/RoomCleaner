@@ -464,3 +464,30 @@ Adafruit 3886 MPU-6050 as selected, "not recorded ordered").
   docs/presentation/FUNDAMENTALS.md (12 topics, sources per input).
 - CoM depth 0.196 m (v6) is stale; v7 head + 50 mm cut ≈ 0.116 m, which
   raises predicted corner tilt from ~13° to ~21° (tilt-gate decision pending).
+- Update (10/21, later): a second measurement reached **Vref 0.85 V → ≈1.06 A**;
+  D30 sets the winch current at the carrier's maximum (supersedes D29's 1.35 A).
+  The "pending" decision in the 0.79 V entry above is closed by D30.
+
+## Session milestone (10/21 night, lead, while Jasper slept)
+Done (all committed):
+- Interview deck: storyline v3 (WANTED → REALIZED → DECIDED → RESULT → BUT per
+  decision), 24 slides with a FUNDAMENTALS box on every decision slide
+  (equations from statics, machine design, heat transfer, controls), fact-check
+  (7 High / 22 Medium / 11 Low; all High and Medium applied), presenter notes.
+  Files: docs/presentation/deck/RoomCleaner_SpaceX_draft.pptx/.pdf,
+  DECK_STORYLINE.md, FUNDAMENTALS.md, deck/QA_NOTES.md, PREP_CHECKLIST.md.
+- SolidWorks manuals: docs/simulation/SW_STATIC_STATION_MOUNT.md (linear static,
+  SF 3 at 34 N / 1.5 at 68 N against derated PETG 8.33 MPa, exit deflection
+  ≤ 0.5 mm) and SW_THERMAL_HEAT_FIN.md; independently reviewed twice (USE WITH
+  FIXES, fixes applied). Read each "Before you run" box first.
+- Winch capacity erratum + memo (docs/decisions/WINCH_CAPACITY_20261021.md) and
+  pull-test procedure (docs/tests/WINCH_PULL_TEST.md). Earlier chat figure of
+  34–43 N was holding torque; running pull is 17.9–23.8 N.
+- Board-attitude follow-ups (config bounds, rocking watch, board survey at
+  startup) implemented and independently reviewed: ACCEPT WITH CONDITIONS
+  (verification/board_followups_review.md). H1 keep-alive starvation during
+  survey flush / calibration fits being fixed (see next entry).
+Open decisions for Jasper: winch capacity after the pull test (3:1 reduction
+vs lighter claw); grip-tilt gate (~12° + aim with predicted tilt, recommended);
+compound web 6 vs 7 holes; Ø10 bearing-floor opening after a spin test;
+slack_probe default (keep false until probe H1/M2 are closed).

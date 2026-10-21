@@ -732,7 +732,7 @@ async function build() {
   s.addText("My best decisions were deletions.", { placeholder: "title" });
   {
     eyebrowLabel(s, "DELETED", M, 2.55, 4, C.text2);
-    ["The IMU", "The yaw guard", "Five fingers, now two jaws", "50 mm of tube", "The housing block, now an open frame (−600 g)", "The contactor e-stop"].forEach((t, i) => {
+    ["The IMU", "The yaw guard", "Five fingers, now two jaws", "50 mm of tube", "The housing block, now an open frame (−600 g)", "The 5 lb reserve: a 1 lb gate first"].forEach((t, i) => {
       const y = 2.95 + i * 0.52;
       s.addText("−", { x: M, y, w: 0.3, h: 0.45, fontSize: 20, bold: true, fontFace: "Arial", color: C.text2, margin: 0, valign: "middle", isTextBox: true });
       s.addText(t, { x: M + 0.4, y, w: 5.6, h: 0.45, fontSize: 17, color: C.background1, margin: 0, valign: "middle", isTextBox: true });
@@ -749,7 +749,7 @@ async function build() {
   }
   s.addNotes(notes({
     say: "My best decisions were deletions: every part I removed was a part that could not fail, so I measured, deleted, and then simplified.",
-    numbers: "Deleted: the IMU (D27); the yaw guard; five fingers became two jaws; 50 mm of tube (32.5 g); the housing block replaced by an open frame (-600 g, per the storyline); a contactor e-stop replaced by the switched power strip as the only stop (D21). Lessons: measure before you trust a margin (Vref 0.85 V, 1.14 V rail); print the coupon before the part (spool bore Ø5.2 to Ø5.45; a 54-hole coupon is planned); stall and steady state are the design cases (gear stall; motor holding heat). With half the time again: buy pulleys and couplers sooner; build one station to test before four.",
+    numbers: "Deleted: the IMU (D27); the yaw guard; five fingers became two jaws; 50 mm of tube (32.5 g); the housing block replaced by an open frame (-600 g, per the storyline); the 5 lb payload reserve replaced by a 1 lb test gate first (D19): question the requirement before designing to it. Do NOT present the switched power strip as a deletion: if asked about the stop, say it is a deliberate category-0 stop with nobody under the robot (backup B7), and that a controlled stop is a gen-3 item. Lessons: measure before you trust a margin (Vref 0.85 V, 1.14 V rail); print the coupon before the part (spool bore Ø5.2 to Ø5.45; a 54-hole coupon is planned); stall and steady state are the design cases (gear stall; motor holding heat). With half the time again: buy pulleys and couplers sooner; build one station to test before four.",
     qa: [["What would you do differently?", "Buy standard pulleys and couplers instead of designing them, and build and test one complete station before building four."]],
     need: "Confirm what the 'yaw guard' was and the source of the -600 g open-frame figure (storyline only); say whether you want the contact line left on the slide.",
     src: "DECK_STORYLINE.md slide 17; DECISIONS.md D21, D27.",

@@ -338,7 +338,7 @@ GRIPV6R_SRC_PINION = "Simple_18T_Pinionvlast"
 GRIPV6R_SRC_COMPOUND = "06_compound_54T_24T"
 GRIPV6R_SRC_FOLLOWER = "24T_Follower"
 # his world coordinates (measured from his solids; the module re-measures and asserts to GRIPV6R_SRC_TOL)
-GRIPV6R_SRC_Z0 = 1080.48987       # mm, bottom of his gear stack
+GRIPV6R_SRC_Z0 = 1080.489871025   # mm, bottom of his gear stack (plane location in his STEP; layers are exactly 16 + 20 above it)
 GRIPV6R_SRC_C_XY = (969.8474967, 707.9863920)      # compound axis
 GRIPV6R_SRC_F_XY = (933.8474967, 707.9863920)      # follower axis
 GRIPV6R_SRC_S_XY = (961.8474967, 761.3905117)      # pinion / servo axis

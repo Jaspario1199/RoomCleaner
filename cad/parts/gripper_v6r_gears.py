@@ -44,6 +44,7 @@ from scipy.spatial import cKDTree
 
 from OCP.BRepAdaptor import BRepAdaptor_Surface
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Section
+from OCP.BRepTools import BRepTools
 from OCP.GeomAbs import GeomAbs_Cylinder
 
 from cad import params as P
@@ -137,6 +138,7 @@ def rotate_z(shape: cq.Shape, deg: float, about=(0.0, 0.0)) -> cq.Shape:
 
 
 def _single_solid(shape: cq.Shape, what: str) -> cq.Solid:
+    BRepTools.Clean_s(shape.wrapped)      # drop stale triangulations inherited from his faces (they corrupt bounding boxes / STL)
     solids = shape.Solids()
     if len(solids) != 1 or not shape.isValid():
         raise RuntimeError("%s: %d solids, valid=%s" % (what, len(solids), shape.isValid()))
@@ -406,9 +408,9 @@ def main_phase_deg() -> float:
     to 1e-3 deg."""
     def solve():
         ph = _main_phase_guess_deg()
-        pin = pinion_outline()
+        pin = outer_outline(home_pinion(), 8.0, 0.05)          # coarse outlines: this only centres the window
         for _ in range(5):
-            ring = Outline(outer_outline(involute_ring(Z_MAIN, 1.0, ph), 0.5)).placed(0.0, P.GRIPV6R_C_XY)
+            ring = Outline(outer_outline(involute_ring(Z_MAIN, 1.0, ph), 0.5, 0.05)).placed(0.0, P.GRIPV6R_C_XY)
             lo, hi = rotation_window(ring, pin, P.GRIPV6R_S_XY, 0.0)
             centre = 0.5 * (lo + hi)                  # pinion rotation that would centre it
             if abs(centre) < 1e-3:
@@ -521,3 +523,265 @@ def radii_report() -> dict:
                                   "his_24T_follower": pitch_tooth_thickness(o["sync_f"], Z_SYNC)[0],
                                   "ideal_pitch_circle": math.pi * M / 2.0},
         nominal_cd=dict(main=M * (Z_PIN + Z_MAIN) / 2.0, sync=M * Z_SYNC))
+
+
+# =============================================================================================================
+# 3D checks on the real solids
+# =============================================================================================================
+def common_volume(a: cq.Shape, b: cq.Shape) -> float:
+    r = a.intersect(b)
+    return float(r.Volume()) if r.Solids() else 0.0
+
+
+def interference_3d(deltas, compound: str = "compound") -> list:
+    """Boolean common volume (mm3) of each gear pair at each crank offset (all three gears, full solids)."""
+    rows = []
+    for d in deltas:
+        s = pose_shapes(d, compound)
+        rows.append(dict(delta_deg=float(d),
+                         pinion_compound=common_volume(s["pinion"], s["compound"]),
+                         compound_follower=common_volume(s["compound"], s["follower"]),
+                         pinion_follower=common_volume(s["pinion"], s["follower"])))
+    return rows
+
+
+LUG_X0 = P.GRIPV6R_ARM_R - 32.0          # arm-frame x where the lug / fork piece starts (R21, 1.5 mm outside the 24T tips)
+
+
+def lug_piece(shape: cq.Shape, arm_deg: float) -> cq.Shape:
+    """The lug / fork of a closed-pose part: everything beyond arm-frame x = LUG_X0 and above the pinion / 36T layer."""
+    s = rotate_z(shape, -arm_deg)
+    piece = s.intersect(_box(LUG_X0, 400.0, -400.0, 400.0, P.GRIPV6R_L1_Z1 - 0.001, 60.0))
+    return rotate_z(piece, arm_deg)
+
+
+def pocket_ranges(shape: cq.Shape, r_pocket: float = P.GRIPV6R_POCKET_R):
+    """z ranges of the on-axis bearing-pocket cylinders (his Ø14.075), merged."""
+    zs = set()
+    for f in shape.Faces():
+        a = BRepAdaptor_Surface(f.wrapped)
+        if a.GetType() == GeomAbs_Cylinder and abs(a.Cylinder().Radius() - r_pocket) < 1e-3:
+            bb = f.BoundingBox()
+            zs.add((round(bb.zmin, 3), round(bb.zmax, 3)))
+    return sorted(zs)
+
+
+def hardware_cylinders(axis_xy, ranges):
+    """Ø7 pin (z -3 .. 39) and Ø14 bearing envelopes in his pockets, at a placed axis."""
+    out = [("pin", _cyl(P.GRIPV6R_PIN_D / 2.0, -3.0, 39.0, axis_xy[0], axis_xy[1]))]
+    for z0, z1 in ranges:
+        out.append(("bearing %.2f..%.2f" % (z0, z1), _cyl(P.GRIPV6R_BRG_OD / 2.0, z0, z1, axis_xy[0], axis_xy[1])))
+    return out
+
+
+def swept_clearance(deltas) -> dict:
+    """Minimum 3D distance of each crank lug / fork to the other gear, the other lug, the pins and bearings and the
+    pinion over the stroke."""
+    comp, fol = part("compound"), part("follower")
+    lug_c0, lug_f0 = lug_piece(comp, P.GRIPV6R_ARM_DEG_C), lug_piece(fol, P.GRIPV6R_ARM_DEG_F)
+    rc, rf = pocket_ranges(comp), pocket_ranges(fol)
+    rows = []
+    for d in deltas:
+        s = pose_shapes(d)
+        lug_c = place(lug_c0, P.GRIPV6R_C_XY, d)
+        lug_f = place(lug_f0, P.GRIPV6R_F_XY, -d)
+        t_c = [("follower gear", s["follower"]), ("follower lug", lug_f), ("pinion", s["pinion"])] \
+            + [("F " + n, c) for n, c in hardware_cylinders(P.GRIPV6R_F_XY, rf)]
+        t_f = [("compound gear", s["compound"]), ("compound lug", lug_c), ("pinion", s["pinion"])] \
+            + [("C " + n, c) for n, c in hardware_cylinders(P.GRIPV6R_C_XY, rc)]
+        for who, lug, targets in (("compound lug", lug_c, t_c), ("follower lug", lug_f, t_f)):
+            for name, tgt in targets:
+                rows.append(dict(delta_deg=float(d), lug=who, target=name, distance_mm=float(lug.distance(tgt))))
+    best = min(rows, key=lambda r: r["distance_mm"])
+    return dict(rows=rows, min=best)
+
+
+def top_face_z_36T_layer(shape: cq.Shape) -> float:
+    """z of the (largest) upward planar face of the 36T layer below the 24T layer: 16.0 as built by him, 15.7 with the relief."""
+    best = None
+    for f in shape.Faces():
+        a = BRepAdaptor_Surface(f.wrapped)
+        if a.GetType() == GeomAbs_Plane:
+            pl = a.Plane()
+            nz = pl.Axis().Direction().Z()
+            z = pl.Location().Z()
+            if nz > 0.999 and 10.0 < z < P.GRIPV6R_L1_Z1 + 1e-6 and (best is None or f.Area() > best[0]):
+                best = (f.Area(), z)
+    return best[1]
+
+
+def axial_gaps() -> dict:
+    comp, compn, fol, pin = part("compound"), part("compound_norelief"), part("follower"), part("pinion")
+    fol_zmin = min(z for z in (pl_z for pl_z in _plane_levels(fol)) if z > 0)
+    boss_plane = pin.BoundingBox().zmax + P.GRIPV6R_PINION_BOSS_GAP
+    return dict(follower_bottom_z=fol_zmin,
+                big_gear_top_z_relief=top_face_z_36T_layer(comp),
+                big_gear_top_z_norelief=top_face_z_36T_layer(compn),
+                follower_to_36T_relief=fol_zmin - top_face_z_36T_layer(comp),
+                follower_to_36T_norelief=fol_zmin - top_face_z_36T_layer(compn),
+                pinion_top_z=pin.BoundingBox().zmax, servo_boss_plane_z=boss_plane,
+                pinion_to_boss=boss_plane - pin.BoundingBox().zmax)
+
+
+def _plane_levels(shape: cq.Shape):
+    out = set()
+    for f in shape.Faces():
+        a = BRepAdaptor_Surface(f.wrapped)
+        if a.GetType() == GeomAbs_Plane:
+            pl = a.Plane()
+            if abs(abs(pl.Axis().Direction().Z()) - 1.0) < 1e-9 and f.Area() > 20.0:
+                out.add(round(pl.Location().Z(), 4))
+    return sorted(out)
+
+
+def radial_36T_to_follower() -> dict:
+    """36T tip circle against the follower in the 36T layer (z < 16).  His follower has no material below z = 16;
+    the radial numbers are to its axis hardware and to a bearing-sized hub, with the axial separation."""
+    tip36 = tip_r(Z_MAIN)
+    cd = P.GRIPV6R_CD_SYNC
+    fol = part("follower")
+    return dict(
+        follower_material_below_z16_mm3=float(common_volume(fol, _box(-200, 200, -200, 200, -5.0, P.GRIPV6R_L1_Z1 - 1e-4))),
+        tip36_radius=tip36,
+        radial_to_follower_pin_r3p5=cd - tip36 - P.GRIPV6R_PIN_D / 2.0,
+        radial_to_follower_bearing_envelope_r7=cd - tip36 - P.GRIPV6R_BRG_OD / 2.0,
+        radial_to_follower_pocket_wall_r7p0375=cd - tip36 - P.GRIPV6R_POCKET_R,
+        max_bearing_od_for_1mm=2.0 * (cd - tip36 - P.GRIPV6R_RADIAL_36T_FOLLOWER_MIN))
+
+
+# =============================================================================================================
+# feature-by-feature diff against his originals
+# =============================================================================================================
+def _surface_census(shape: cq.Shape):
+    """(on-axis cylinders, off-axis cylinders, planar levels) with counts."""
+    from collections import Counter
+    on, off = Counter(), Counter()
+    for f in shape.Faces():
+        a = BRepAdaptor_Surface(f.wrapped)
+        if a.GetType() != GeomAbs_Cylinder:
+            continue
+        c = a.Cylinder()
+        loc = c.Axis().Location()
+        bb = f.BoundingBox()
+        key = (round(c.Radius(), 4), round(bb.zmin, 3), round(bb.zmax, 3))
+        (on if math.hypot(loc.X(), loc.Y()) < 0.01 else off)[key] += 1
+    return on, off
+
+
+def arm_section(shape: cq.Shape, arm_deg: float, z: float, xs):
+    """y crossings (sorted) of the section loops with the lines x = const in the arm frame (axis along +x)."""
+    res = {}
+    loops = [_rot2(p, -arm_deg) for p in outlines(shape, z, 0.05)]
+    for x in xs:
+        ys = []
+        for p in loops:
+            a, b = p[:-1], p[1:]
+            m = (a[:, 0] - x) * (b[:, 0] - x) < 0
+            t = (x - a[m, 0]) / (b[m, 0] - a[m, 0])
+            ys += list(a[m, 1] + t * (b[m, 1] - a[m, 1]))
+        res[x] = [round(float(v), 3) for v in sorted(ys)]
+    return res
+
+
+def pivot_hole(shape: cq.Shape):
+    """(diameter, distance from the axis, angle deg) of the off-axis hole of the lug / fork band."""
+    for f in shape.Faces():
+        a = BRepAdaptor_Surface(f.wrapped)
+        if a.GetType() == GeomAbs_Cylinder:
+            c = a.Cylinder()
+            loc = c.Axis().Location()
+            d = math.hypot(loc.X(), loc.Y())
+            bb = f.BoundingBox()
+            if d > 30.0 and bb.zlen < 10.5 and c.Radius() < 5.0:
+                return (2 * c.Radius(), d, math.degrees(math.atan2(loc.Y(), loc.X())))
+    raise RuntimeError("no pivot hole")
+
+
+_INTENDED = {
+    "compound": {
+        "big gear tip radius": "intended: 54T -> 36T tooth count",
+        "big gear root radius": "intended: 54T -> 36T tooth count",
+        "big gear root fillets R0.4": "intended: 54T -> 36T tooth count",
+        "lightening hole faces R6": "intended: holes re-laid for the 36T ring",
+        "layer-1 top level": "intended: 0.30 mm relief (flagged functional change)",
+    }}
+
+
+def feature_diff(which: str) -> list:
+    """Rows {feature, original, modified, status} comparing the final part against his homed original."""
+    if which == "pinion":
+        o, n = home_pinion(), part("pinion")
+    elif which in ("compound", "compound_norelief"):
+        o, n = home_compound(), part(which)
+    elif which == "follower":
+        o, n = home_follower(), part("follower")
+    else:
+        raise KeyError(which)
+    rows = []
+
+    def add(feature, a, b, intended=None):
+        same = (a == b) or (isinstance(a, float) and isinstance(b, float) and abs(a - b) < 1e-3)
+        status = "identical" if same else (intended or "CHANGED (UNINTENDED)")
+        rows.append(dict(feature=feature, original=a, modified=b, status=status))
+
+    on_o, off_o = _surface_census(o)
+    on_n, off_n = _surface_census(n)
+    tooth_on = {round(tip_r(Z_MAIN), 4): "big gear tip radius", round(root_r(Z_MAIN), 4): "big gear root radius",
+                round(tip_r(54), 4): "big gear tip radius", round(root_r(54), 4): "big gear root radius"}
+    if which.startswith("compound"):
+        for k in sorted(set(on_o) | set(on_n)):
+            if k[0] in tooth_on and k[1] == 0.0:
+                continue
+            add("axis cylinder R%.4f z %.3f..%.3f (pocket / lip / shoulder / bore / 24T tip + root)" % k,
+                on_o.get(k, 0), on_n.get(k, 0))
+        tip_o = [k for k in on_o if k[0] == round(tip_r(54), 4)]
+        tip_n = [k for k in on_n if k[0] == round(tip_r(Z_MAIN), 4)]
+        add("big gear tip radius (mm)", tip_o[0][0], tip_n[0][0], _INTENDED["compound"]["big gear tip radius"])
+        rt_o = [k for k in on_o if k[0] == round(root_r(54), 4)]
+        rt_n = [k for k in on_n if k[0] == round(root_r(Z_MAIN), 4)]
+        add("big gear root radius (mm)", rt_o[0][0], rt_n[0][0], _INTENDED["compound"]["big gear root radius"])
+        add("big gear teeth (tip faces)", on_o[tip_o[0]], on_n[tip_n[0]], "intended: 54T -> 36T tooth count")
+        k04 = lambda off: sum(v for k, v in off.items() if k[0] == 0.4 and k[1] == 0.0)
+        add("big gear root fillets R0.4 (faces, 2 per tooth)", k04(off_o), k04(off_n),
+            _INTENDED["compound"]["big gear root fillets R0.4"])
+        add("lightening hole radius R6.0 (faces, 2 per hole; his 8 holes -> %d)" % P.GRIPV6R_LIGHT_N,
+            sum(v for k, v in off_o.items() if k[0] == 6.0), sum(v for k, v in off_n.items() if k[0] == 6.0),
+            _INTENDED["compound"]["lightening hole faces R6"])
+        for k in sorted(set(off_o) | set(off_n)):
+            if (k[0] == 0.4 and k[1] == 0.0) or k[0] == 6.0:
+                continue
+            add("off-axis cylinder R%.4f z %.3f..%.3f" % k, off_o.get(k, 0), off_n.get(k, 0))
+    else:
+        for k in sorted(set(on_o) | set(on_n)):
+            add("axis cylinder R%.4f z %.3f..%.3f" % k, on_o.get(k, 0), on_n.get(k, 0))
+        for k in sorted(set(off_o) | set(off_n)):
+            add("off-axis cylinder R%.4f z %.3f..%.3f" % k, off_o.get(k, 0), off_n.get(k, 0))
+    lv_o, lv_n = _plane_levels(o), _plane_levels(n)
+    extra = [z for z in lv_n if z not in lv_o]
+    if which == "compound" and extra:
+        add("planar levels (z) with area > 20 mm2 (face widths 16 / 20, pocket floors, lug band 16..26)",
+            [z for z in lv_o], [z for z in lv_n if z not in extra],
+            None)
+        add("planar level added by the relief", None, extra, "intended: 0.30 mm relief (flagged functional change)")
+    else:
+        add("planar levels (z) with area > 20 mm2 (face widths, pocket floors, lug band)", lv_o, lv_n)
+    if which in ("compound", "compound_norelief", "follower"):
+        a_o = P.GRIPV6R_SRC_ARM_DEG_C if which.startswith("compound") else P.GRIPV6R_SRC_ARM_DEG_F
+        a_n = P.GRIPV6R_ARM_DEG_C if which.startswith("compound") else P.GRIPV6R_ARM_DEG_F
+        ho, hn = pivot_hole(o), pivot_hole(n)
+        add("pivot hole diameter (mm)", round(ho[0], 3), round(hn[0], 3))
+        add("pivot radius from the axis (mm)", round(ho[1], 3), round(hn[1], 3), "intended: crank R75 -> R53")
+        add("lug angle (deg, CCW from +x)", round(ho[2], 3), round(hn[2], 3),
+            "intended: re-phased to the v7 closed pose")
+        sh = P.GRIPV6R_ARM_SHORTEN
+        xs_o = [25.0, 60.0, 70.0]
+        so = arm_section(o, a_o, 1101.0 - P.GRIPV6R_SRC_Z0, xs_o)
+        sn = arm_section(n, a_n, 1101.0 - P.GRIPV6R_SRC_Z0, [x - (sh if x > P.GRIPV6R_ARM_CUT_X + sh else 0.0) for x in xs_o])
+        for x, xn in zip(xs_o, sn):
+            add("lug / fork section y crossings at arm x = %.0f (orig) / %.0f (new)" % (x, xn), so[x], sn[xn])
+        zl_o = sorted({z for z in _plane_levels(o) if 15.9 < z < 26.1})
+        zl_n = sorted({z for z in _plane_levels(n) if 15.9 < z < 26.1})
+        add("lug / fork thickness band z (mm)", [z for z in zl_o if z in (16.0, 26.0)], [z for z in zl_n if z in (16.0, 26.0)])
+    ob, nb = o.Volume(), n.Volume()
+    rows.append(dict(feature="volume (mm3)", original=round(ob, 1), modified=round(nb, 1), status="info"))
+    return rows

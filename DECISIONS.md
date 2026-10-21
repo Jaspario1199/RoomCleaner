@@ -202,3 +202,11 @@ shutdown). Cable tension ~43 N (from 32 N at 1.0 A), so the claw mass budget
 rises to ~750 g with a 1 lb payload at the 0.4 m ceiling margin. Vref = 8 × I
 × Rsense: R100 → 1.08 V, R050 → 0.54 V. Confirmation: 60 min hold test; if the
 driver heatsink exceeds ~70 °C, drop to 1.25 A. Station schematic Rev D.
+
+D30. **Winch current set to the carrier's maximum, Vref ≈ 0.85 V (≈1.06 A),
+superseding D29's 1.35 A** (Jasper, 2026-10-21). Measured: the red R100 A4988
+clones top out at ~0.79–0.85 V Vref on 3.3 V logic, so 1.35 A is not
+reachable without board rework (rejected); VDD stays 3.3 V. Cable tension
+returns to ~34 N (32 N at 1.0 A, scaled). Shells stay vented; thermal margin
+is now large. Lift capacity must come from claw mass, ceiling margin, or a
+smaller spool drum (Ø10 core study pending).

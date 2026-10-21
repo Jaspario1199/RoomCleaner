@@ -175,7 +175,7 @@ bottom of the slide (rename the rail labels in the style kit):
 **Claim: "Making the station removable moved the anchor from a screw to a slide — so I stress-tested the slide."**
 - **WANTED:** to swap a station without re-calibrating the room.
 - **REALIZED:** anchor error turns 1:1 into claw position error, so the slide-in must not move. The line pulls the station *away* from the wall, so the stud screws see pull-out, not shear.
-- **DECIDED:** a fixed wall frame plus a slide-in housing with positive retention, sized for the slip-limit tension × dynamic factor, with SF ≥ 3 on derated PETG.
+- **DECIDED:** a fixed wall frame plus a slide-in housing with positive retention, checked at SF ≥ 3 at the 34 N slip-limit tension and SF ≥ 1.5 at 68 N (dynamic ×2), on derated PETG.
 - **RESULT:** SolidWorks linear static study (PLANNED → fill in): peak stress, safety factor, deflection at the cable exit against a ≤ 0.5 mm limit. See `docs/simulation/SW_STATIC_STATION_MOUNT.md`.
 - **BUT:** linear statics can't see creep or layer weakness, so a physical pull test closes the gap.
 - Fundamentals box: σ = Mc/I at the rail root; screw pull-out; δ = FL³/(3EI) for the exit lever.

@@ -40,6 +40,7 @@ EDGE_COMPANIONS = {
     "tasks.grip_period_margin": {"tasks.grip_settle_timeout_s": 120.0},
     "tasks.grip_settle_periods": {"tasks.grip_settle_timeout_s": 120.0},
     "tasks.grip_settle_min_s": {"tasks.grip_settle_timeout_s": 120.0},
+    "camera.corner_sigma_px": {"tasks.grip_still_rate_rad_s": 0.1},     # review M1: the still-rate limit must clear the noise floor
 }
 
 
@@ -112,9 +113,9 @@ def test_layout_version_known_to_the_config_is_the_one_of_the_board_module():
 
 
 def test_the_settle_dwell_has_to_fit_into_the_timeout():
-    """5 periods x 3 x 1.5 s = 22.5 s > 15 s: a loaded release could never be approved."""
-    with pytest.raises(ConfigError, match="loaded release could never be approved"):
-        load_config(_raw(**{"tasks.grip_period_margin": 3.0}))
+    """Review L2: wait_until_still extends a loaded release's timeout to max(timeout, dwell + 2 dt), so a dwell longer than
+    the timeout is runnable and the former refusal was removed (verification/keepalive_fix_results.md)."""
+    assert load_config(_raw(**{"tasks.grip_period_margin": 3.0}))
     assert load_config(_raw(**{"tasks.grip_period_margin": 3.0, "tasks.grip_settle_timeout_s": 30.0}))
 
 

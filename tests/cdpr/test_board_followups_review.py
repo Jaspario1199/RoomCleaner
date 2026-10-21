@@ -8,6 +8,7 @@ Runtime: about 15 seconds (a few thousand frames through the real BoardDetector,
 """
 import inspect
 import math
+import time
 from types import SimpleNamespace
 
 import numpy as np
@@ -93,11 +94,13 @@ def _noisy_still(rng, px, n_tags=3):
     return obs
 
 
-def test_still_claw_image_rate_noise_is_10_mrad_per_s_not_4_so_the_lower_bound_and_its_reason_are_wrong():
-    """config.ATTITUDE_BOUNDS says a still claw's rate noise is 0.3 px x sqrt(2) / (520 px x 0.1 s) = 8e-3 rad/s per corner and
+# converted after fix: M1
+def test_still_claw_image_rate_noise_is_10_mrad_per_s_not_4_so_the_lower_bound_and_its_reason_are_wrong_fixed():
+    """config.ATTITUDE_BOUNDS said a still claw's rate noise is 0.3 px x sqrt(2) / (520 px x 0.1 s) = 8e-3 rad/s per corner and
     4e-3 over the four corners of a tag. image_motion_rad_s averages the corner shift NORMS, which do not average to zero
-    (Rayleigh mean 1.2533 sigma): the noise-only rate is 1.0e-2 rad/s however many corners, so a limit between the stated lower
-    bound 0.005 and ~0.010 never opens, and it does not scale away with more tags."""
+    (Rayleigh mean 1.2533 sigma): the noise-only rate is 1.0e-2 rad/s however many corners, so a limit between the old lower
+    bound 0.005 and ~0.010 never opens, and it does not scale away with more tags. FIXED: the lower bound is now above that
+    noise floor (0.015 = 1.4 x 1.0e-2), a limit under it is refused by load_config, and the shipped 0.02 still opens."""
     rng = np.random.default_rng(1)
     fx = CAM.fx
     for n_tags in (1, 3, 4):
@@ -109,26 +112,41 @@ def test_still_claw_image_rate_noise_is_10_mrad_per_s_not_4_so_the_lower_bound_a
             r.append(image_motion_rad_s(a, b, fx))
         r = np.array(r)
         assert 0.0095 < r.mean() < 0.0110                       # 2.5 x the stated 4e-3, independent of the number of corners
-        assert np.mean(r <= 0.005) < 0.05                        # the range's lower bound is below the noise floor
-    # the lower bound is accepted by load_config; with it (or anything under ~0.009) a still claw is never approved
+        assert np.mean(r <= 0.005) < 0.05                        # the OLD lower bound (0.005) was below the noise floor
+        assert np.mean(r <= 0.015) > 0.90                        # the new lower bound passes >= 95 % of the pairs (one tag; more with more tags)
+        assert ATTITUDE_BOUNDS["tasks.grip_still_rate_rad_s"][0] > r.mean()
+    # the lower bound is now above the noise floor and load_config refuses a limit under it, because a still claw is never
+    # approved with it (anything under ~0.009)
     lo = ATTITUDE_BOUNDS["tasks.grip_still_rate_rad_s"][0]
-    assert lo == 0.005
-    cfg = fast_cfg(**{"tasks.grip_still_rate_rad_s": 0.008})
+    assert lo == 0.015
+    with pytest.raises(ConfigError, match=r"tasks\.grip_still_rate_rad_s = 0\.008 .*outside the physically sensible range"):
+        fast_cfg(**{"tasks.grip_still_rate_rad_s": 0.008})
+    cfg = fast_cfg()
+    cfg.tasks.grip_still_rate_rad_s = 0.008                              # bypass load_config: what the gate itself does with it
     res = wait_until_still(FakeCtx(cfg, _noisy_still(np.random.default_rng(2), 0.3)))
     assert not res.ok and "still moving" in res.reason
-    # ... while the shipped 0.02 opens at the stated corner noise
+    # ... the new lowest accepted limit and the shipped 0.02 open at the stated corner noise
+    res = wait_until_still(FakeCtx(fast_cfg(**{"tasks.grip_still_rate_rad_s": lo}), _noisy_still(np.random.default_rng(2), 0.3)))
+    assert res.ok and res.method == "camera"
     res = wait_until_still(FakeCtx(fast_cfg(), _noisy_still(np.random.default_rng(3), 0.3)))
     assert res.ok and res.method == "camera"
 
 
-def test_no_cross_check_between_corner_noise_and_the_still_rate_limit():
+# converted after fix: M1
+def test_no_cross_check_between_corner_noise_and_the_still_rate_limit_fixed():
     """corner_sigma_px may be anything up to 2 px and the still-rate limit anything down to 0.005, independently: at 1 px the
     noise-only rate (0.034 rad/s) is above the shipped 0.02, so the settle gate can never open (fail-closed, an availability
-    fault, not a safety one). load_config accepts the combination."""
-    cfg = fast_cfg(**{"camera.corner_sigma_px": 1.0})
-    assert cfg.camera.corner_sigma_px == 1.0 and cfg.tasks.grip_still_rate_rad_s == 0.02
+    fault, not a safety one). load_config used to accept the combination; FIXED: it refuses a limit under 1.4 x the noise-only
+    rate of the configured corner noise, and says why."""
+    with pytest.raises(ConfigError, match=r"grip_still_rate_rad_s = 0\.02 rad/s is below 1\.4 x the image rate .*corner_sigma_px = 1 px"):
+        fast_cfg(**{"camera.corner_sigma_px": 1.0})
+    cfg = fast_cfg()
+    cfg.camera.corner_sigma_px = 1.0                                       # bypass load_config: the combination the old code accepted
+    assert cfg.tasks.grip_still_rate_rad_s == 0.02
     res = wait_until_still(FakeCtx(cfg, _noisy_still(np.random.default_rng(4), 1.0)))
-    assert not res.ok
+    assert not res.ok                                                      # the gate really cannot open: the refusal is warranted
+    ok = fast_cfg(**{"camera.corner_sigma_px": 1.0, "tasks.grip_still_rate_rad_s": 0.05})     # 1.4 x 0.034 = 0.048
+    assert wait_until_still(FakeCtx(ok, _noisy_still(np.random.default_rng(4), 1.0))).ok
     # and 0.5 px, inside the range and one of the two values the brief asks about, passes only about 90 % of the pairs
     rng = np.random.default_rng(5)
     base = np.vstack([np.array([[100, 100], [150, 100], [150, 150], [100, 150]], float) + 60 * k for k in range(3)])
@@ -136,16 +154,19 @@ def test_no_cross_check_between_corner_noise_and_the_still_rate_limit():
                                      SimpleNamespace(corners=base + rng.normal(0, 0.5, base.shape), t_us=1e5), CAM.fx)
                   for _ in range(1500)])
     assert 0.80 < np.mean(r <= 0.02) < 0.95
+    with pytest.raises(ConfigError, match="corner_sigma_px = 0.5 px"):       # ... so 0.5 px with the shipped 0.02 is refused as well
+        fast_cfg(**{"camera.corner_sigma_px": 0.5})
+    assert fast_cfg(**{"camera.corner_sigma_px": 0.5, "tasks.grip_still_rate_rad_s": 0.025})
 
 
-def test_dwell_cross_check_rejects_configurations_the_gate_can_run_so_its_message_is_not_true():
+# converted after fix: L2
+def test_dwell_cross_check_rejects_configurations_the_gate_can_run_so_its_message_is_not_true_fixed():
     """'periods x margin x 1.5 s > timeout: a loaded release could never be approved' is false in the code: wait_until_still
     extends the timeout of a loaded release to the full dwell (max(timeout, dwell + 2 dt)), and the dwell of the no-signal branch
-    is not bounded by the timeout at all. The check is conservative, not wrong in effect (it only refuses a config that would work)."""
-    with pytest.raises(ConfigError, match="could never be approved"):
-        fast_cfg(**{"tasks.grip_settle_periods": 10.0})
-    cfg = fast_cfg()
-    cfg.tasks.grip_settle_periods = 10.0                                   # bypass load_config: what the gate itself does
+    is not bounded by the timeout at all. The check was conservative, not wrong in effect (it only refused a config that would
+    work). FIXED: the check is removed; load_config accepts the configuration and the gate approves a loaded release with it."""
+    cfg = fast_cfg(**{"tasks.grip_settle_periods": 10.0})                  # used to raise "could never be approved"
+    assert cfg.tasks.grip_settle_periods == 10.0
     dwell = settle_dwell_s(cfg.claw, cfg.tasks, cfg.tasks.max_payload_kg)
     assert dwell > cfg.tasks.grip_settle_timeout_s                         # 15.6 s against the 15 s timeout
     ctx = FakeCtx(cfg, lambda t: _obs(t))                                  # a camera that sees a perfectly still claw
@@ -168,10 +189,16 @@ def test_compound_pendulum_margin_lower_bound_is_the_exact_ratio_for_an_assumed_
     assert ratio_loaded == pytest.approx(1.10, abs=0.01)
 
 
-def test_rocking_k_lower_bound_of_three_gives_false_trips_in_most_take_ups():
-    """startup.rocking_tilt_k = 3 is inside the range; the range's own reason says 'several false alarms per take-up'. A take-up is
+# converted after fix: L1
+def test_rocking_k_lower_bound_of_three_gives_false_trips_in_most_take_ups_fixed():
+    """startup.rocking_tilt_k = 3 was inside the range; the range's own reason says 'several false alarms per take-up'. A take-up is
     about 430 watch evaluations (the implementer's 1721 in 4 take-ups) of overlapping 3-frame means: simulated here with iid
-    2-D noise, k = 3 trips in most take-ups, k = 4 in a few percent, k = 5 (the default) essentially never."""
+    2-D noise, k = 3 trips in most take-ups, k = 4 in a few percent, k = 5 (the default) essentially never. FIXED: the lower bound
+    is 4, so the value that trips in 98 % of the take-ups is refused by load_config."""
+    assert ATTITUDE_BOUNDS["startup.rocking_tilt_k"][0] == 4.0
+    with pytest.raises(ConfigError, match=r"startup\.rocking_tilt_k = 3\.0 is outside the physically sensible range \[4, 10\]"):
+        fast_cfg(**{"startup.rocking_tilt_k": 3.0})
+    assert fast_cfg(**{"startup.rocking_tilt_k": 4.0}).startup.rocking_tilt_k == 4.0
     rng = np.random.default_rng(7)
     n_takeups, n_eval = 400, 430
     frac = {}
@@ -373,22 +400,43 @@ def _armed_survey_robot(tmp_path):
     return r, co
 
 
-def test_a_top_up_that_blocks_longer_than_the_lease_lease_faults_every_armed_station_and_pumping_while_it_runs_does_not(tmp_path):
-    """_survey_topup calls sv.flush() on the command thread; while a command owns the robot the idle host loop does not pump
-    (service.idle_tick), so nothing keeps the stations alive. A stall of 0.9 s (the measured CPU time of an accepting flush of
+# converted after fix: H1
+def test_a_top_up_that_blocks_longer_than_the_lease_lease_faults_every_armed_station_and_pumping_while_it_runs_does_not_fixed(tmp_path):
+    """_survey_topup called sv.flush() on the command thread; while a command owns the robot the idle host loop does not pump
+    (service.idle_tick), so nothing kept the stations alive. A stall of 0.9 s (the measured CPU time of an accepting flush of
     3-4 windows on this machine; 2-2.5 s with 60 frames) against faults.lease_s = 0.3 (robot.sim.json): all four stations hold
     themselves (Fault.LEASE = 4, state FAULT) and the startup is lost. The same compute done in slices of 0.1 s that pump between
-    them (what a worker thread + `ctx.wait` loop does) leaves the stations fault-free."""
+    them (what a worker thread + `ctx.wait` loop does) leaves the stations fault-free. FIXED: _survey_topup runs the flush through
+    StartupSequencer._pumped; the unpumped stall is kept here as the evidence (`_pumped` replaced by a direct call = the old
+    code), the stall through the real path no longer faults."""
     (tmp_path / "a").mkdir()
     (tmp_path / "b").mkdir()
+    (tmp_path / "c").mkdir()
     r, co = _armed_survey_robot(tmp_path / "a")
     assert r.cfg.faults.lease_s == 0.3 and co.lease_us == pytest.approx(0.3e6)
     S = StartupSequencer(r.ctx)
+    S._pumped = lambda fn, *a, **k: fn(*a, **k)                             # the code before the fix: the flush on the command thread
     sv = r.ctx.board_survey
     sv.flush = lambda: (r.rt.wait(0.9e6), None)[1]                          # compute that advances time but does not pump
     S._survey_topup("CALIBRATION")
     co.pump()
     assert all(co.links[s].tel["flt"] == 4 for s in "ABCD")                 # LEASE on all four, as test_service's 1 s stall
+    # the real path: the same 0.9 s of host time (the simulated clock only moves while somebody waits: the worker waits for the
+    # command thread's pump to take it 0.9 s on) no longer faults a station
+    r3, co3 = _armed_survey_robot(tmp_path / "c")
+    S3 = StartupSequencer(r3.ctx)
+    t0 = r3.rt.now_us()
+
+    def stall():
+        deadline = time.monotonic() + 20.0
+        while r3.rt.now_us() < t0 + 0.9e6:
+            assert time.monotonic() < deadline, "nothing pumps the stations while the top-up computes"
+            time.sleep(0.001)
+    r3.ctx.board_survey.flush = stall
+    S3._survey_topup("CALIBRATION")
+    assert r3.rt.now_us() >= t0 + 0.9e6
+    co3.pump()
+    assert all(co3.links[s].tel["flt"] == 0 for s in "ABCD")
     r2, co2 = _armed_survey_robot(tmp_path / "b")
     S2 = StartupSequencer(r2.ctx)
 

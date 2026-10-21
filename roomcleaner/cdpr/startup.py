@@ -65,7 +65,7 @@ from __future__ import annotations
 
 import json
 import math
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait as futures_wait
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -423,7 +423,9 @@ class StartupSequencer:
     MOUNT_RECHECK_K = 4.0
     MOUNT_RECHECK_FLOOR_RAD = 0.003
     # Keep-alive grid while a long computation runs on a worker thread (_pumped): Coordinator.pump pings every
-    # min(faults.lease_s / 4, 20 ms), so ctx.wait is called in steps of one ping period.
+    # min(faults.lease_s / 4, 20 ms), so ctx.wait is called in steps of one ping period; between two steps the command thread sleeps
+    # on the worker for at most as long, so the worst gap between two pumps is ~21 ms (against the 300 ms lease of robot.sim.json)
+    # and, in the simulator (where ctx.wait is CPU work, not a sleep), the worker is not starved of the GIL.
     PUMP_STEP_S = 0.02
 
     def __init__(self, ctx: RobotContext):
@@ -456,6 +458,7 @@ class StartupSequencer:
             fut = pool.submit(fn, *args, **kwargs)
             while not fut.done():
                 self.ctx.wait(self.PUMP_STEP_S)
+                futures_wait((fut,), timeout=self.PUMP_STEP_S)      # sleeps on the worker (wakes the moment it is done), not on the clock
             return fut.result()
         finally:
             pool.shutdown(wait=fut is not None and fut.done(), cancel_futures=True)

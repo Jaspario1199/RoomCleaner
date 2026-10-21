@@ -20,7 +20,7 @@ from roomcleaner.cdpr.startup import RobotContext
 from roomcleaner.cdpr.transport import SimHostTransport
 from roomcleaner.cdpr.trust import TrustLedger
 
-from .simkit import assert_no_eq_failures, bring_up, build, fast_cfg
+from .simkit import ModelFrameItemPerception, assert_no_eq_failures, bring_up, build, fast_cfg
 
 
 def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
@@ -54,7 +54,7 @@ def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
     r.world.hamper = (np.asarray(cfg.tasks.hamper_room_m), cfg.tasks.hamper_radius_m)
     r.world.add_item("sock", c + [-0.3, 0.2])
     r.world.add_item("jeans", c + [0.2, 0.35], mass=0.9, height=0.08)
-    runner = TaskRunner(r.ctx, SimItemPerception(r.world))
+    runner = TaskRunner(r.ctx, ModelFrameItemPerception(r.world))
     out = sup.run_task(runner)
     assert out["done"] == ["sock", "jeans"] and sup.state == "READY"
     assert all(it["state"] == "hamper" for it in r.world.items)

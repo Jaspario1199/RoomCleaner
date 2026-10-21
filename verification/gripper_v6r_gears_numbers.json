@@ -1,0 +1,2164 @@
+{
+ "frame": "part frame: gear axis on z, stack bottom z = 0 (his world z 1080.489871), closed-pose lug orientation; placement = v7 local frame (his world - (951.8475, 707.9864))",
+ "source": {
+  "step": "solidworks/gripper_v6_2026-10-20/LaundryGripperAssem1.STEP",
+  "sha256_before": "c57a2c9f9ee652319e2d71d535c4ec9a8f018cb85ee168db7f63be4647381e71",
+  "sha256_after": "c57a2c9f9ee652319e2d71d535c4ec9a8f018cb85ee168db7f63be4647381e71",
+  "unchanged": true
+ },
+ "parts": {
+  "pinion": {
+   "valid": true,
+   "solids": 1,
+   "volume_mm3": 8024.154474334767,
+   "area_mm2": 4147.466287360261,
+   "mass_g_petg": 10.190676182405154,
+   "bbox": [
+    -14.892268612766811,
+    14.892268612766543,
+    -15.000000100000017,
+    15.000000100000223,
+    -9.96616879110657e-08,
+    16.000000100338355
+   ],
+   "bbox_size": [
+    29.784537225533356,
+    30.00000020000024,
+    16.00000020000004
+   ],
+   "step": "exports/step/gripper_v6r_pinion.step",
+   "stl": "exports/stl/gripper_v6r_pinion.stl",
+   "stl_bbox_print_pose": [
+    -14.893265709348816,
+    14.893265709348956,
+    -15.002046960042057,
+    15.00204696004722,
+    -0.002330401262835974,
+    16.00233060126294
+   ],
+   "roundtrip": {
+    "valid": true,
+    "solids": 1,
+    "volume_rel_diff": 1.261185534126492e-12,
+    "bbox_max_diff": 3.304023721284466e-13
+   }
+  },
+  "compound": {
+   "valid": true,
+   "solids": 1,
+   "volume_mm3": 44700.78581725754,
+   "area_mm2": 21891.113721446505,
+   "mass_g_petg": 56.76999798791708,
+   "bbox": [
+    -28.483508584282,
+    28.483508584281996,
+    -61.102358983649815,
+    28.483508584282003,
+    -1e-07,
+    36.00000010033859
+   ],
+   "bbox_size": [
+    56.967017168564,
+    89.58586756793181,
+    36.00000020033859
+   ],
+   "step": "exports/step/gripper_v6r_compound_36T_24T.step",
+   "stl": "exports/stl/gripper_v6r_compound_36T_24T.stl",
+   "stl_bbox_print_pose": [
+    -28.49409615252441,
+    28.494096152524413,
+    -61.10242848617006,
+    28.494096152524413,
+    -0.010587568242424317,
+    36.03196991867169
+   ],
+   "roundtrip": {
+    "valid": true,
+    "solids": 1,
+    "volume_rel_diff": 5.719746216714087e-13,
+    "bbox_max_diff": 4.405364961712621e-13
+   }
+  },
+  "compound_norelief": {
+   "valid": true,
+   "solids": 1,
+   "volume_mm3": 44988.40738197078,
+   "area_mm2": 21848.008337120722,
+   "mass_g_petg": 57.13527737510289,
+   "bbox": [
+    -28.483508584282,
+    28.483508584281996,
+    -61.102358983649815,
+    28.483508584282003,
+    -1e-07,
+    36.00000010033859
+   ],
+   "bbox_size": [
+    56.967017168564,
+    89.58586756793181,
+    36.00000020033859
+   ],
+   "step": "exports/step/gripper_v6r_compound_36T_24T_norelief.step",
+   "stl": "exports/stl/gripper_v6r_compound_36T_24T_norelief.stl",
+   "stl_bbox_print_pose": [
+    -28.49409615252441,
+    28.494096152524413,
+    -61.10242848617006,
+    28.494096152524413,
+    -0.020791679891482538,
+    36.03196991867169
+   ],
+   "roundtrip": {
+    "valid": true,
+    "solids": 1,
+    "volume_rel_diff": 6.160280873497019e-13,
+    "bbox_max_diff": 4.405364961712621e-13
+   }
+  },
+  "follower": {
+   "valid": true,
+   "solids": 1,
+   "volume_mm3": 22741.541013776994,
+   "area_mm2": 10044.793540278028,
+   "mass_g_petg": 28.881757087496783,
+   "bbox": [
+    -19.650826241898777,
+    19.48153942439009,
+    -61.11735760302495,
+    19.481539424387233,
+    15.999999900325813,
+    36.00000010032584
+   ],
+   "bbox_size": [
+    39.13236566628886,
+    80.59889702741218,
+    20.00000020000003
+   ],
+   "step": "exports/step/gripper_v6r_follower.step",
+   "stl": "exports/stl/gripper_v6r_follower.stl",
+   "stl_bbox_print_pose": [
+    -19.65367445855787,
+    19.484435712417056,
+    -61.117427189769145,
+    19.484435712414204,
+    -0.002896288031443592,
+    20.002896488031517
+   ],
+   "roundtrip": {
+    "valid": true,
+    "solids": 1,
+    "volume_rel_diff": 1.1999397497057643e-12,
+    "bbox_max_diff": 8.775202786637237e-12
+   }
+  }
+ },
+ "tooth_form": {
+  "tip_radius": {
+   "pinion": 15.000000000000586,
+   "ring36": 28.50000000000001,
+   "sync_c": 19.500000000009468,
+   "sync_f": 19.500000000002533
+  },
+  "root_radius": {
+   "pinion": 11.624999999991527,
+   "ring36": 25.12499999999999,
+   "sync_c": 16.124999999986663,
+   "sync_f": 16.12499999998955
+  },
+  "pinion_tip_to_36T_root": 0.6749999999994216,
+  "ring36_tip_to_pinion_root": 0.6750000000084597,
+  "sync_c_tip_to_f_root": 0.6750000000009777,
+  "sync_f_tip_to_c_root": 0.675000000010801,
+  "tooth_thickness_pitch_mm": {
+   "his_54T": 2.2561918458557826,
+   "new_36T": 2.256188934328684,
+   "his_pinion_18T": 2.256184669138334,
+   "his_24T_follower": 2.256191043083752,
+   "ideal_pitch_circle": 2.356194490192345
+  },
+  "nominal_cd": {
+   "main": 40.5,
+   "sync": 36.0
+  }
+ },
+ "lightening": {
+  "count": 7,
+  "diameter_mm": 12.0,
+  "circle_radius_mm": 16.7,
+  "his_original": "8 x D12 on R27 (does not fit inside the 36T root R25.125)",
+  "ligaments_mm": {
+   "to_pocket_wall": 3.6624999999999996,
+   "to_root_circle": 2.4250000000000007,
+   "hole_to_hole": 2.49171688652644
+  },
+  "min_ligament_required_mm": 2.0,
+  "why": "largest count of his own D12 holes with every ligament >= 2.0 mm (8 x D12 needs R >= 18.3 but the root circle limits R <= 17.1)",
+  "alternatives_at_other_sizes": [
+   {
+    "count": 4,
+    "max_diameter_mm": 14.09,
+    "circle_radius_mm": 16.08,
+    "removed_area_mm2": 623.5
+   },
+   {
+    "count": 5,
+    "max_diameter_mm": 14.09,
+    "circle_radius_mm": 16.08,
+    "removed_area_mm2": 779.3
+   },
+   {
+    "count": 6,
+    "max_diameter_mm": 14.08,
+    "circle_radius_mm": 16.08,
+    "removed_area_mm2": 934.4
+   },
+   {
+    "count": 7,
+    "max_diameter_mm": 12.6,
+    "circle_radius_mm": 16.82,
+    "removed_area_mm2": 872.4
+   },
+   {
+    "count": 8,
+    "max_diameter_mm": 11.35,
+    "circle_radius_mm": 17.45,
+    "removed_area_mm2": 810.0
+   },
+   {
+    "count": 9,
+    "max_diameter_mm": 10.3,
+    "circle_radius_mm": 17.98,
+    "removed_area_mm2": 749.4
+   }
+  ]
+ },
+ "crank": {
+  "convention": "angles CCW from +x about the gear axis; his world frame = v7 local frame + (951.8475, 707.9864), so his angle convention IS the v7 theta convention (no sign flip, no offset)",
+  "his_compound_deg": -31.2259097,
+  "his_follower_deg": 209.8828815,
+  "v7_closed_compound_deg": -78.589,
+  "v7_closed_follower_deg": 258.589,
+  "rotation_applied_compound_deg": -47.363090299999996,
+  "rotation_applied_follower_deg": 48.7061185,
+  "his_pair_mirror_error_deg": 1.343028199999992,
+  "note": "his two lugs are 1.34 deg off an exact mirror (the 24T clocking offset he used inside the clearance window); rotating each part to the exact mirror pair puts the 24T mesh at that offset, i.e. the window centre (see mesh.sync24 centre_deg at delta 0)",
+  "v7_pivot_radius": 53.0,
+  "his_pivot_radius": 75.0,
+  "stroke_deg": 76.5,
+  "pinion_stroke_deg": 153.0,
+  "big_gear_tooth_phase_deg": 102.9781030674747,
+  "pinion_tooth_phase_deg": 8.611674075413974
+ },
+ "feature_diff": {
+  "pinion": [
+   {
+    "feature": "axis cylinder R4.0000 z 0.000..16.000, area mm2",
+    "original": 402.12,
+    "modified": 402.12,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R11.6250 z 0.000..16.000, area mm2",
+    "original": 286.56,
+    "modified": 286.56,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R15.0000 z 0.000..16.000, area mm2",
+    "original": 262.48,
+    "modified": 262.48,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R0.4000 z 0.000..16.000, area mm2",
+    "original": 354.25,
+    "modified": 354.25,
+    "status": "identical"
+   },
+   {
+    "feature": "planar levels (z) with area > 20 mm2 (face widths, pocket floors, lug band)",
+    "original": [
+     0.0,
+     16.0
+    ],
+    "modified": [
+     0.0,
+     16.0
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "volume (mm3)",
+    "original": 8024.2,
+    "modified": 8024.2,
+    "status": "info"
+   }
+  ],
+  "compound": [
+   {
+    "feature": "axis cylinder R4.1500 z 7.000..24.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 443.28,
+    "modified": 443.28,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R7.0000 z 0.000..1.950, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 79.52,
+    "modified": 79.52,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R7.0000 z 34.050..36.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 79.52,
+    "modified": 79.52,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R7.0375 z 1.950..7.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 223.3,
+    "modified": 223.3,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R7.0375 z 24.000..34.050, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 444.39,
+    "modified": 444.39,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R16.1250 z 16.000..36.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 413.14,
+    "modified": 413.14,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R16.1250 z 26.000..36.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 18.78,
+    "modified": 18.78,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R16.5000 z 15.700..16.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 0.0,
+    "modified": 5.93,
+    "status": "intended: 0.30 mm relief wall (flagged functional change)"
+   },
+   {
+    "feature": "axis cylinder R19.5000 z 16.000..36.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 424.6,
+    "modified": 424.6,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R19.5000 z 26.000..36.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 19.3,
+    "modified": 19.3,
+    "status": "identical"
+   },
+   {
+    "feature": "big gear tip radius (mm)",
+    "original": 42.0,
+    "modified": 28.5,
+    "status": "intended: 54T -> 36T tooth count"
+   },
+   {
+    "feature": "big gear root radius (mm)",
+    "original": 38.625,
+    "modified": 25.125,
+    "status": "intended: 54T -> 36T tooth count"
+   },
+   {
+    "feature": "big gear teeth (tip faces)",
+    "original": 54,
+    "modified": 36,
+    "status": "intended: 54T -> 36T tooth count"
+   },
+   {
+    "feature": "big gear root fillets R0.4 (faces, 2 per tooth)",
+    "original": 108,
+    "modified": 72,
+    "status": "intended: 54T -> 36T tooth count"
+   },
+   {
+    "feature": "lightening hole radius (mm)",
+    "original": 6.0,
+    "modified": 6.0,
+    "status": "identical"
+   },
+   {
+    "feature": "lightening holes (count)",
+    "original": 8,
+    "modified": 7,
+    "status": "intended: holes re-laid for the 36T ring"
+   },
+   {
+    "feature": "off-axis cylinder R0.2500 z 0.000..1.950, area mm2",
+    "original": 24.5,
+    "modified": 24.5,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R0.2500 z 34.050..36.000, area mm2",
+    "original": 24.5,
+    "modified": 24.5,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R0.4000 z 16.000..36.000, area mm2",
+    "original": 544.4,
+    "modified": 544.4,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R0.4000 z 26.000..36.000, area mm2",
+    "original": 24.75,
+    "modified": 24.75,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R1.7500 z 16.000..26.000, area mm2",
+    "original": 109.96,
+    "modified": 109.96,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R9.1500 z 16.000..26.000, area mm2",
+    "original": 373.6,
+    "modified": 373.6,
+    "status": "identical"
+   },
+   {
+    "feature": "planar levels (z) with area > 20 mm2 (face widths 16 / 20, pocket floors, lug band 16..26)",
+    "original": [
+     0.0,
+     7.0,
+     16.0,
+     24.0,
+     26.0,
+     36.0
+    ],
+    "modified": [
+     0.0,
+     7.0,
+     16.0,
+     24.0,
+     26.0,
+     36.0
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "planar level added by the relief",
+    "original": null,
+    "modified": [
+     15.7
+    ],
+    "status": "intended: 0.30 mm relief (flagged functional change)"
+   },
+   {
+    "feature": "pivot hole diameter (mm)",
+    "original": 3.5,
+    "modified": 3.5,
+    "status": "identical"
+   },
+   {
+    "feature": "pivot radius from the axis (mm)",
+    "original": 75.0,
+    "modified": 53.0,
+    "status": "intended: crank R75 -> R53"
+   },
+   {
+    "feature": "lug angle (deg, CCW from +x)",
+    "original": -31.226,
+    "modified": -78.589,
+    "status": "intended: re-phased to the v7 closed pose"
+   },
+   {
+    "feature": "lug / fork section y crossings at arm x = 25 (orig) / 25 (new)",
+    "original": [
+     -9.15,
+     -4.15,
+     4.15,
+     9.15
+    ],
+    "modified": [
+     -9.15,
+     -4.15,
+     4.15,
+     9.15
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "lug / fork section y crossings at arm x = 60 (orig) / 38 (new)",
+    "original": [
+     -9.15,
+     -4.15,
+     4.15,
+     9.15
+    ],
+    "modified": [
+     -9.15,
+     -4.15,
+     4.15,
+     9.15
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "lug / fork section y crossings at arm x = 70 (orig) / 48 (new)",
+    "original": [
+     -9.15,
+     9.15
+    ],
+    "modified": [
+     -9.15,
+     9.15
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "lug / fork thickness band z (mm)",
+    "original": [
+     16.0,
+     26.0
+    ],
+    "modified": [
+     16.0,
+     26.0
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "volume (mm3)",
+    "original": 90981.8,
+    "modified": 44700.8,
+    "status": "info"
+   }
+  ],
+  "compound_norelief": [
+   {
+    "feature": "axis cylinder R4.1500 z 7.000..24.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 443.28,
+    "modified": 443.28,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R7.0000 z 0.000..1.950, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 79.52,
+    "modified": 79.52,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R7.0000 z 34.050..36.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 79.52,
+    "modified": 79.52,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R7.0375 z 1.950..7.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 223.3,
+    "modified": 223.3,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R7.0375 z 24.000..34.050, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 444.39,
+    "modified": 444.39,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R16.1250 z 16.000..36.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 413.14,
+    "modified": 413.14,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R16.1250 z 26.000..36.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 18.78,
+    "modified": 18.78,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R19.5000 z 16.000..36.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 424.6,
+    "modified": 424.6,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R19.5000 z 26.000..36.000, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)",
+    "original": 19.3,
+    "modified": 19.3,
+    "status": "identical"
+   },
+   {
+    "feature": "big gear tip radius (mm)",
+    "original": 42.0,
+    "modified": 28.5,
+    "status": "intended: 54T -> 36T tooth count"
+   },
+   {
+    "feature": "big gear root radius (mm)",
+    "original": 38.625,
+    "modified": 25.125,
+    "status": "intended: 54T -> 36T tooth count"
+   },
+   {
+    "feature": "big gear teeth (tip faces)",
+    "original": 54,
+    "modified": 36,
+    "status": "intended: 54T -> 36T tooth count"
+   },
+   {
+    "feature": "big gear root fillets R0.4 (faces, 2 per tooth)",
+    "original": 108,
+    "modified": 72,
+    "status": "intended: 54T -> 36T tooth count"
+   },
+   {
+    "feature": "lightening hole radius (mm)",
+    "original": 6.0,
+    "modified": 6.0,
+    "status": "identical"
+   },
+   {
+    "feature": "lightening holes (count)",
+    "original": 8,
+    "modified": 7,
+    "status": "intended: holes re-laid for the 36T ring"
+   },
+   {
+    "feature": "off-axis cylinder R0.2500 z 0.000..1.950, area mm2",
+    "original": 24.5,
+    "modified": 24.5,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R0.2500 z 34.050..36.000, area mm2",
+    "original": 24.5,
+    "modified": 24.5,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R0.4000 z 16.000..36.000, area mm2",
+    "original": 544.4,
+    "modified": 544.4,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R0.4000 z 26.000..36.000, area mm2",
+    "original": 24.75,
+    "modified": 24.75,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R1.7500 z 16.000..26.000, area mm2",
+    "original": 109.96,
+    "modified": 109.96,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R9.1500 z 16.000..26.000, area mm2",
+    "original": 373.6,
+    "modified": 373.6,
+    "status": "identical"
+   },
+   {
+    "feature": "planar levels (z) with area > 20 mm2 (face widths, pocket floors, lug band)",
+    "original": [
+     0.0,
+     7.0,
+     16.0,
+     24.0,
+     26.0,
+     36.0
+    ],
+    "modified": [
+     0.0,
+     7.0,
+     16.0,
+     24.0,
+     26.0,
+     36.0
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "pivot hole diameter (mm)",
+    "original": 3.5,
+    "modified": 3.5,
+    "status": "identical"
+   },
+   {
+    "feature": "pivot radius from the axis (mm)",
+    "original": 75.0,
+    "modified": 53.0,
+    "status": "intended: crank R75 -> R53"
+   },
+   {
+    "feature": "lug angle (deg, CCW from +x)",
+    "original": -31.226,
+    "modified": -78.589,
+    "status": "intended: re-phased to the v7 closed pose"
+   },
+   {
+    "feature": "lug / fork section y crossings at arm x = 25 (orig) / 25 (new)",
+    "original": [
+     -9.15,
+     -4.15,
+     4.15,
+     9.15
+    ],
+    "modified": [
+     -9.15,
+     -4.15,
+     4.15,
+     9.15
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "lug / fork section y crossings at arm x = 60 (orig) / 38 (new)",
+    "original": [
+     -9.15,
+     -4.15,
+     4.15,
+     9.15
+    ],
+    "modified": [
+     -9.15,
+     -4.15,
+     4.15,
+     9.15
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "lug / fork section y crossings at arm x = 70 (orig) / 48 (new)",
+    "original": [
+     -9.15,
+     9.15
+    ],
+    "modified": [
+     -9.15,
+     9.15
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "lug / fork thickness band z (mm)",
+    "original": [
+     16.0,
+     26.0
+    ],
+    "modified": [
+     16.0,
+     26.0
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "volume (mm3)",
+    "original": 90981.8,
+    "modified": 44988.4,
+    "status": "info"
+   }
+  ],
+  "follower": [
+   {
+    "feature": "axis cylinder R4.1650 z 16.000..24.000, area mm2",
+    "original": 209.36,
+    "modified": 209.36,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R7.0000 z 34.075..36.000, area mm2",
+    "original": 83.15,
+    "modified": 83.15,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R7.0375 z 24.000..34.075, area mm2",
+    "original": 445.5,
+    "modified": 445.5,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R16.1250 z 16.000..36.000, area mm2",
+    "original": 403.58,
+    "modified": 403.58,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R16.1250 z 26.000..36.000, area mm2",
+    "original": 18.78,
+    "modified": 18.78,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R19.5000 z 16.000..36.000, area mm2",
+    "original": 424.6,
+    "modified": 424.6,
+    "status": "identical"
+   },
+   {
+    "feature": "axis cylinder R19.5000 z 26.000..36.000, area mm2",
+    "original": 19.3,
+    "modified": 19.3,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R0.1000 z 34.100..36.000, area mm2",
+    "original": 9.55,
+    "modified": 9.55,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R0.4000 z 16.000..36.000, area mm2",
+    "original": 519.65,
+    "modified": 519.65,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R0.4000 z 26.000..36.000, area mm2",
+    "original": 37.12,
+    "modified": 37.12,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R4.1650 z 16.000..26.000, area mm2",
+    "original": 261.69,
+    "modified": 261.69,
+    "status": "identical"
+   },
+   {
+    "feature": "off-axis cylinder R9.1650 z 16.000..26.000, area mm2",
+    "original": 374.4,
+    "modified": 374.4,
+    "status": "identical"
+   },
+   {
+    "feature": "planar levels (z) with area > 20 mm2 (face widths, pocket floors, lug band)",
+    "original": [
+     16.0,
+     24.0,
+     26.0,
+     36.0
+    ],
+    "modified": [
+     16.0,
+     24.0,
+     26.0,
+     36.0
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "pivot hole diameter (mm)",
+    "original": 8.33,
+    "modified": 8.33,
+    "status": "identical"
+   },
+   {
+    "feature": "pivot radius from the axis (mm)",
+    "original": 75.0,
+    "modified": 53.0,
+    "status": "intended: crank R75 -> R53"
+   },
+   {
+    "feature": "lug angle (deg, CCW from +x)",
+    "original": -150.117,
+    "modified": -101.411,
+    "status": "intended: re-phased to the v7 closed pose"
+   },
+   {
+    "feature": "lug / fork section y crossings at arm x = 25 (orig) / 25 (new)",
+    "original": [
+     -9.165,
+     -4.165,
+     4.165,
+     9.165
+    ],
+    "modified": [
+     -9.165,
+     -4.165,
+     4.165,
+     9.165
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "lug / fork section y crossings at arm x = 60 (orig) / 38 (new)",
+    "original": [
+     -9.165,
+     -4.165,
+     4.165,
+     9.165
+    ],
+    "modified": [
+     -9.165,
+     -4.165,
+     4.165,
+     9.165
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "lug / fork section y crossings at arm x = 70 (orig) / 48 (new)",
+    "original": [
+     -9.165,
+     9.165
+    ],
+    "modified": [
+     -9.165,
+     9.165
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "lug / fork thickness band z (mm)",
+    "original": [
+     16.0,
+     26.0
+    ],
+    "modified": [
+     16.0,
+     26.0
+    ],
+    "status": "identical"
+   },
+   {
+    "feature": "volume (mm3)",
+    "original": 24941.5,
+    "modified": 22741.5,
+    "status": "info"
+   }
+  ]
+ },
+ "feature_diff_unintended": [],
+ "mesh": {
+  "summary": {
+   "pinion36": {
+    "min_backlash_mm": 0.42428624517108,
+    "max_backlash_mm": 0.42435448622523125,
+    "at_min_delta_deg": -17.5,
+    "min_neutral_gap_mm": 0.19937935725430714,
+    "min_gap_is_overlap": false,
+    "window_centre_deg_range": [
+     -0.00011109019046134927,
+     2.3803187289450634e-05
+    ],
+    "poses": 44
+   },
+   "sync24": {
+    "min_backlash_mm": 0.4250678183462703,
+    "max_backlash_mm": 0.425081349519298,
+    "at_min_delta_deg": 70.0,
+    "min_neutral_gap_mm": 0.1997102200551681,
+    "min_gap_is_overlap": false,
+    "window_centre_deg_range": [
+     -1.574848778906901e-05,
+     1.278501932688858e-05
+    ],
+    "poses": 44
+   }
+  },
+  "rows": [
+   {
+    "delta_deg": -30.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004995342665658,
+      0.9004848559002382
+     ],
+     "centre_deg": -7.339183163812546e-06,
+     "backlash_mm": 0.42434694970334436,
+     "gap_mm": 0.19938265583188025
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765251751627342,
+      0.6765320197541979
+     ],
+     "centre_deg": 3.4222957318030822e-06,
+     "backlash_mm": 0.42507545434378463,
+     "gap_mm": 0.19974361384633332
+    }
+   },
+   {
+    "delta_deg": -27.5,
+    "pinion36": {
+     "window_deg": [
+      -0.900474466256404,
+      0.900252285876778
+     ],
+     "centre_deg": -0.00011109018981303453,
+     "backlash_mm": 0.424286245171816,
+     "gap_mm": 0.19941607551556448
+    },
+    "sync24": {
+     "window_deg": [
+      -0.676553728381524,
+      0.6765222314618751
+     ],
+     "centre_deg": -1.574845982449391e-05,
+     "backlash_mm": 0.425081349519298,
+     "gap_mm": 0.19971467379974214
+    }
+   },
+   {
+    "delta_deg": -25.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004235774517012,
+      0.9004711838195167
+     ],
+     "centre_deg": 2.3803183907766812e-05,
+     "backlash_mm": 0.4243258313923502,
+     "gap_mm": 0.19937935725430714
+    },
+    "sync24": {
+     "window_deg": [
+      -0.676516750990592,
+      0.6765414358741015
+     ],
+     "centre_deg": 1.2342441754742417e-05,
+     "backlash_mm": 0.42507576597336466,
+     "gap_mm": 0.19973571242755053
+    }
+   },
+   {
+    "delta_deg": -22.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9005143926829747,
+      0.9005019834732173
+     ],
+     "centre_deg": -6.2046048787123276e-06,
+     "backlash_mm": 0.4243544862245404,
+     "gap_mm": 0.19945600704810215
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765255708709752,
+      0.676539319461028
+     ],
+     "centre_deg": 6.87429502638226e-06,
+     "backlash_mm": 0.42507787192972996,
+     "gap_mm": 0.19974803810932154
+    }
+   },
+   {
+    "delta_deg": -20.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004995342694078,
+      0.9004848559010661
+     ],
+     "centre_deg": -7.3391841708403405e-06,
+     "backlash_mm": 0.4243469497042091,
+     "gap_mm": 0.19938265583103745
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765036593808466,
+      0.6765292294179119
+     ],
+     "centre_deg": 1.278501853269054e-05,
+     "backlash_mm": 0.42506781835155544,
+     "gap_mm": 0.1997102200551681
+    }
+   },
+   {
+    "delta_deg": -17.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9004744662539361,
+      0.9002522858761223
+     ],
+     "centre_deg": -0.00011109018890692601,
+     "backlash_mm": 0.42428624517108,
+     "gap_mm": 0.19941607551260238
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765240726229624,
+      0.6765248017612465
+     ],
+     "centre_deg": 3.645691420417485e-07,
+     "backlash_mm": 0.4250728403713369,
+     "gap_mm": 0.19973126538702546
+    }
+   },
+   {
+    "delta_deg": -15.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004235774521057,
+      0.9004711838266846
+     ],
+     "centre_deg": 2.3803187289450634e-05,
+     "backlash_mm": 0.42432583139413443,
+     "gap_mm": 0.1993793572561847
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765251751631514,
+      0.676532019752353
+     ],
+     "centre_deg": 3.422294600818887e-06,
+     "backlash_mm": 0.4250754543433361,
+     "gap_mm": 0.19974361384848624
+    }
+   },
+   {
+    "delta_deg": -12.5,
+    "pinion36": {
+     "window_deg": [
+      -0.900514392682668,
+      0.9005019834736891
+     ],
+     "centre_deg": -6.204604489412624e-06,
+     "backlash_mm": 0.4243544862245793,
+     "gap_mm": 0.19945600704933386
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765537283807406,
+      0.676522231458759
+     ],
+     "centre_deg": -1.5748460990783197e-05,
+     "backlash_mm": 0.4250813495180729,
+     "gap_mm": 0.19971467379909438
+    }
+   },
+   {
+    "delta_deg": -10.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004995342679575,
+      0.9004848559018476
+     ],
+     "centre_deg": -7.339183054955178e-06,
+     "backlash_mm": 0.42434694970405146,
+     "gap_mm": 0.1993826558324733
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765167509886634,
+      0.6765414358824071
+     ],
+     "centre_deg": 1.234244687187136e-05,
+     "backlash_mm": 0.42507576597536806,
+     "gap_mm": 0.19973571242617766
+    }
+   },
+   {
+    "delta_deg": -7.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9004744662537301,
+      0.900252285876369
+     ],
+     "centre_deg": -0.00011109018868055154,
+     "backlash_mm": 0.4242862451710896,
+     "gap_mm": 0.19941607551368223
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765255708707161,
+      0.6765393194652539
+     ],
+     "centre_deg": 6.874297268921747e-06,
+     "backlash_mm": 0.42507787193097624,
+     "gap_mm": 0.1997480381095849
+    }
+   },
+   {
+    "delta_deg": -5.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004235774521507,
+      0.9004711838244279
+     ],
+     "centre_deg": 2.3803186138593446e-05,
+     "backlash_mm": 0.4243258313936133,
+     "gap_mm": 0.19937935725719602
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765036593796085,
+      0.6765292294182623
+     ],
+     "centre_deg": 1.278501932688858e-05,
+     "backlash_mm": 0.42506781835127666,
+     "gap_mm": 0.1997102200563952
+    }
+   },
+   {
+    "delta_deg": -2.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9005143926833106,
+      0.9005019834742591
+     ],
+     "centre_deg": -6.204604525716917e-06,
+     "backlash_mm": 0.424354486224865,
+     "gap_mm": 0.19945600705203828
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765240726234849,
+      0.6765248017581414
+     ],
+     "centre_deg": 3.645673282703932e-07,
+     "backlash_mm": 0.4250728403705257,
+     "gap_mm": 0.19973126538661
+    }
+   },
+   {
+    "delta_deg": 0.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004995342687057,
+      0.9004848559013996
+     ],
+     "centre_deg": -7.339183653032322e-06,
+     "backlash_mm": 0.42434694970412223,
+     "gap_mm": 0.19938265583526846
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765251751636481,
+      0.676532019746427
+     ],
+     "centre_deg": 3.422291389443277e-06,
+     "backlash_mm": 0.4250754543416304,
+     "gap_mm": 0.19974361384877617
+    }
+   },
+   {
+    "delta_deg": 2.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9004744662561279,
+      0.9002522858756288
+     ],
+     "centre_deg": -0.00011109019024957423,
+     "backlash_mm": 0.4242862451714801,
+     "gap_mm": 0.1994160755111278
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765537283797627,
+      0.6765222314558135
+     ],
+     "centre_deg": -1.574846197460733e-05,
+     "backlash_mm": 0.4250813495168404,
+     "gap_mm": 0.1997146737980334
+    }
+   },
+   {
+    "delta_deg": 5.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004235774516539,
+      0.9004711838138545
+     ],
+     "centre_deg": 2.3803181100290338e-05,
+     "backlash_mm": 0.42432583139100494,
+     "gap_mm": 0.19937935725875547
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765167509927839,
+      0.6765414358896557
+     ],
+     "centre_deg": 1.2342448435898046e-05,
+     "backlash_mm": 0.42507576597893976,
+     "gap_mm": 0.19973571242374685
+    }
+   },
+   {
+    "delta_deg": 7.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9005143926832861,
+      0.9005019834758383
+     ],
+     "centre_deg": -6.2046037239138485e-06,
+     "backlash_mm": 0.42435448622523125,
+     "gap_mm": 0.19945600705349248
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765255708728383,
+      0.6765393194498821
+     ],
+     "centre_deg": 6.874288521918626e-06,
+     "backlash_mm": 0.42507787192681373,
+     "gap_mm": 0.19974803810780897
+    }
+   },
+   {
+    "delta_deg": 10.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004995342679041,
+      0.9004848559008102
+     ],
+     "centre_deg": -7.339183546950512e-06,
+     "backlash_mm": 0.4243469497037945,
+     "gap_mm": 0.19938265583503006
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765036593874251,
+      0.6765292294146322
+     ],
+     "centre_deg": 1.2785013603577866e-05,
+     "backlash_mm": 0.42506781835259183,
+     "gap_mm": 0.1997102200576935
+    }
+   },
+   {
+    "delta_deg": 12.5,
+    "pinion36": {
+     "window_deg": [
+      -0.900474466256291,
+      0.9002522858753683
+     ],
+     "centre_deg": -0.00011109019046134927,
+     "backlash_mm": 0.42428624517145713,
+     "gap_mm": 0.19941607551039608
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765240726250532,
+      0.6765248017571553
+     ],
+     "centre_deg": 3.6456605106982565e-07,
+     "backlash_mm": 0.4250728403707085,
+     "gap_mm": 0.19973126538769848
+    }
+   },
+   {
+    "delta_deg": 15.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004235774501653,
+      0.9004711838121305
+     ],
+     "centre_deg": 2.3803180982606698e-05,
+     "backlash_mm": 0.42432583139024804,
+     "gap_mm": 0.199379357255766
+    },
+    "sync24": {
+     "window_deg": [
+      -0.676525175172996,
+      0.6765320197431549
+     ],
+     "centre_deg": 3.4222850794352055e-06,
+     "backlash_mm": 0.4250754543435392,
+     "gap_mm": 0.1997436138502798
+    }
+   },
+   {
+    "delta_deg": 17.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9005143926834878,
+      0.9005019834700008
+     ],
+     "centre_deg": -6.204606743498431e-06,
+     "backlash_mm": 0.4243544862239033,
+     "gap_mm": 0.19945600705218408
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765537283854138,
+      0.6765222314512235
+     ],
+     "centre_deg": -1.5748467095177965e-05,
+     "backlash_mm": 0.4250813495171737,
+     "gap_mm": 0.19971467379652547
+    }
+   },
+   {
+    "delta_deg": 20.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004995342668419,
+      0.9004848558998335
+     ],
+     "centre_deg": -7.339183504206925e-06,
+     "backlash_mm": 0.4243469497033141,
+     "gap_mm": 0.19938265583217646
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765167509985114,
+      0.6765414358724282
+     ],
+     "centre_deg": 1.2342436958412417e-05,
+     "backlash_mm": 0.4250757659753269,
+     "gap_mm": 0.19973571242186297
+    }
+   },
+   {
+    "delta_deg": 22.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9004744662561213,
+      0.9002522858756051
+     ],
+     "centre_deg": -0.00011109019025806743,
+     "backlash_mm": 0.42428624517147295,
+     "gap_mm": 0.19941607551110108
+    },
+    "sync24": {
+     "window_deg": [
+      -0.676525570875868,
+      0.6765393194540561
+     ],
+     "centre_deg": 6.874289094072061e-06,
+     "backlash_mm": 0.42507787192907687,
+     "gap_mm": 0.19974803810889216
+    }
+   },
+   {
+    "delta_deg": 25.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004235774502829,
+      0.9004711838122484
+     ],
+     "centre_deg": 2.380318098277323e-05,
+     "backlash_mm": 0.4243258313903035,
+     "gap_mm": 0.19937935725618236
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765036593833481,
+      0.6765292294086924
+     ],
+     "centre_deg": 1.278501267215626e-05,
+     "backlash_mm": 0.42506781834944507,
+     "gap_mm": 0.19971022005986266
+    }
+   },
+   {
+    "delta_deg": 27.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9005143926829682,
+      0.900501983469618
+     ],
+     "centre_deg": -6.2046066751086926e-06,
+     "backlash_mm": 0.42435448622369065,
+     "gap_mm": 0.19945600704939973
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765240726369378,
+      0.6765248017512128
+     ],
+     "centre_deg": 3.64557137477739e-07,
+     "backlash_mm": 0.42507284037257526,
+     "gap_mm": 0.19973126538893143
+    }
+   },
+   {
+    "delta_deg": 30.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004995342667712,
+      0.900484855899911
+     ],
+     "centre_deg": -7.3391834300995384e-06,
+     "backlash_mm": 0.4243469497033156,
+     "gap_mm": 0.19938265583241813
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765251751697734,
+      0.6765320197572766
+     ],
+     "centre_deg": 3.4222937516092955e-06,
+     "backlash_mm": 0.42507545434696337,
+     "gap_mm": 0.1997436138524826
+    }
+   },
+   {
+    "delta_deg": 32.5,
+    "pinion36": {
+     "window_deg": [
+      -0.900474466255976,
+      0.9002522858755763
+     ],
+     "centre_deg": -0.00011109019019989175,
+     "backlash_mm": 0.42428624517143193,
+     "gap_mm": 0.19941607551104473
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765537283903725,
+      0.6765222314481641
+     ],
+     "centre_deg": -1.5748471104193307e-05,
+     "backlash_mm": 0.4250813495177705,
+     "gap_mm": 0.199714673796117
+    }
+   },
+   {
+    "delta_deg": 35.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004235774501907,
+      0.9004711838121635
+     ],
+     "centre_deg": 2.3803180986381456e-05,
+     "backlash_mm": 0.4243258313902618,
+     "gap_mm": 0.19937935725638464
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765167510037207,
+      0.6765414358563848
+     ],
+     "centre_deg": 1.234242633207927e-05,
+     "backlash_mm": 0.4250757659719233,
+     "gap_mm": 0.19973571242359991
+    }
+   },
+   {
+    "delta_deg": 37.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9005143926831307,
+      0.9005019834700627
+     ],
+     "centre_deg": -6.204606533999346e-06,
+     "backlash_mm": 0.4243544862238338,
+     "gap_mm": 0.19945600704953592
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765255708812976,
+      0.6765393194296058
+     ],
+     "centre_deg": 6.874274154078375e-06,
+     "backlash_mm": 0.42507787192310137,
+     "gap_mm": 0.1997480381081362
+    }
+   },
+   {
+    "delta_deg": 40.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004995342668545,
+      0.9004848558998448
+     ],
+     "centre_deg": -7.339183504817548e-06,
+     "backlash_mm": 0.42434694970331976,
+     "gap_mm": 0.19938265583251985
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765036593899224,
+      0.6765292294024583
+     ],
+     "centre_deg": 1.2785006267945764e-05,
+     "backlash_mm": 0.4250678183495519,
+     "gap_mm": 0.19971022006122138
+    }
+   },
+   {
+    "delta_deg": 42.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9004744662559736,
+      0.9002522858755388
+     ],
+     "centre_deg": -0.00011109019021737776,
+     "backlash_mm": 0.4242862451714226,
+     "gap_mm": 0.19941607551085644
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765240726499444,
+      0.6765248017439695
+     ],
+     "centre_deg": 3.6454701252131017e-07,
+     "backlash_mm": 0.425072840374386,
+     "gap_mm": 0.19973126539010522
+    }
+   },
+   {
+    "delta_deg": 45.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004235774501508,
+      0.9004711838115045
+     ],
+     "centre_deg": 2.3803180676851277e-05,
+     "backlash_mm": 0.424325831390097,
+     "gap_mm": 0.19937935725609757
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765251751928327,
+      0.6765320197407889
+     ],
+     "centre_deg": 3.4222739780931377e-06,
+     "backlash_mm": 0.4250754543490278,
+     "gap_mm": 0.1997436138530705
+    }
+   },
+   {
+    "delta_deg": 47.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9005143926826717,
+      0.9005019834699177
+     ],
+     "centre_deg": -6.2046063770138105e-06,
+     "backlash_mm": 0.42435448622369154,
+     "gap_mm": 0.19945600704981306
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765537283982355,
+      0.6765222314421909
+     ],
+     "centre_deg": -1.574847802227053e-05,
+     "backlash_mm": 0.42508134951836407,
+     "gap_mm": 0.19971467379426677
+    }
+   },
+   {
+    "delta_deg": 50.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004995342666791,
+      0.9004848558998224
+     ],
+     "centre_deg": -7.339183428323182e-06,
+     "backlash_mm": 0.4243469497032731,
+     "gap_mm": 0.1993826558323597
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765167510179406,
+      0.6765414358581469
+     ],
+     "centre_deg": 1.234242010311748e-05,
+     "backlash_mm": 0.4250757659769442,
+     "gap_mm": 0.19973571241942104
+    }
+   },
+   {
+    "delta_deg": 52.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9004744662562162,
+      0.9002522858754761
+     ],
+     "centre_deg": -0.00011109019037003343,
+     "backlash_mm": 0.4242862451714649,
+     "gap_mm": 0.19941607551064028
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765255708915293,
+      0.6765393194316154
+     ],
+     "centre_deg": 6.874270043033537e-06,
+     "backlash_mm": 0.4250778719269471,
+     "gap_mm": 0.19974803810694372
+    }
+   },
+   {
+    "delta_deg": 55.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004235774501459,
+      0.9004711838120982
+     ],
+     "centre_deg": 2.3803180976167404e-05,
+     "backlash_mm": 0.4243258313902358,
+     "gap_mm": 0.1993793572557598
+    },
+    "sync24": {
+     "window_deg": [
+      -0.676503659391964,
+      0.6765292293957109
+     ],
+     "centre_deg": 1.2785001873460988e-05,
+     "backlash_mm": 0.42506781834807345,
+     "gap_mm": 0.19971022006669942
+    }
+   },
+   {
+    "delta_deg": 57.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9005143926832901,
+      0.9005019834695807
+     ],
+     "centre_deg": -6.204606854742778e-06,
+     "backlash_mm": 0.42435448622375777,
+     "gap_mm": 0.19945600704930422
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765240726556322,
+      0.6765248017369703
+     ],
+     "centre_deg": 3.6454066904001436e-07,
+     "backlash_mm": 0.4250728403739739,
+     "gap_mm": 0.19973126539628777
+    }
+   },
+   {
+    "delta_deg": 60.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004995342666854,
+      0.9004848558997818
+     ],
+     "centre_deg": -7.3391834518043986e-06,
+     "backlash_mm": 0.42434694970326503,
+     "gap_mm": 0.1993826558325492
+    },
+    "sync24": {
+     "window_deg": [
+      -0.67652517519236,
+      0.6765320197333823
+     ],
+     "centre_deg": 3.4222705111441876e-06,
+     "backlash_mm": 0.4250754543465525,
+     "gap_mm": 0.19974361385921785
+    }
+   },
+   {
+    "delta_deg": 62.5,
+    "pinion36": {
+     "window_deg": [
+      -0.900474466256118,
+      0.9002522858755412
+     ],
+     "centre_deg": -0.00011109019028843203,
+     "backlash_mm": 0.42428624517145713,
+     "gap_mm": 0.1994160755108706
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765537284033989,
+      0.6765222314278208
+     ],
+     "centre_deg": -1.574848778906901e-05,
+     "backlash_mm": 0.42508134951547183,
+     "gap_mm": 0.19971467378929494
+    }
+   },
+   {
+    "delta_deg": 65.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004235774501053,
+      0.9004711838114307
+     ],
+     "centre_deg": 2.3803180662695933e-05,
+     "backlash_mm": 0.4243258313900689,
+     "gap_mm": 0.19937935725636052
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765167510301414,
+      0.6765414358596139
+     ],
+     "centre_deg": 1.2342414736243867e-05,
+     "backlash_mm": 0.4250757659812381,
+     "gap_mm": 0.199735712416301
+    }
+   },
+   {
+    "delta_deg": 67.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9005143926827702,
+      0.9005019834695032
+     ],
+     "centre_deg": -6.20460663353084e-06,
+     "backlash_mm": 0.42435448622361704,
+     "gap_mm": 0.19945600704936414
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765255709014073,
+      0.6765393194346588
+     ],
+     "centre_deg": 6.874266625767067e-06,
+     "backlash_mm": 0.42507787193100643,
+     "gap_mm": 0.19974803809853672
+    }
+   },
+   {
+    "delta_deg": 70.0,
+    "pinion36": {
+     "window_deg": [
+      -0.9004995342667461,
+      0.900484855899794
+     ],
+     "centre_deg": -7.339183476062772e-06,
+     "backlash_mm": 0.4243469497032822,
+     "gap_mm": 0.1993826558325678
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765036593995473,
+      0.6765292293823878
+     ],
+     "centre_deg": 1.2784991420267122e-05,
+     "backlash_mm": 0.4250678183462703,
+     "gap_mm": 0.19971022006930508
+    }
+   },
+   {
+    "delta_deg": 72.5,
+    "pinion36": {
+     "window_deg": [
+      -0.900474466256241,
+      0.9002522858754956
+     ],
+     "centre_deg": -0.00011109019037269796,
+     "backlash_mm": 0.4242862451714754,
+     "gap_mm": 0.19941607551072021
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765240726592264,
+      0.6765248017281811
+     ],
+     "centre_deg": 3.6453447732620603e-07,
+     "backlash_mm": 0.4250728403723419,
+     "gap_mm": 0.19973126539886293
+    }
+   },
+   {
+    "delta_deg": 75.0,
+    "pinion36": {
+     "window_deg": [
+      -0.900423577450087,
+      0.9004711838112913
+     ],
+     "centre_deg": 2.3803180602133267e-05,
+     "backlash_mm": 0.4243258313900318,
+     "gap_mm": 0.19937935725655623
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765251751941019,
+      0.6765320197381957
+     ],
+     "centre_deg": 3.4222720468601864e-06,
+     "backlash_mm": 0.4250754543486119,
+     "gap_mm": 0.1997436138615453
+    }
+   },
+   {
+    "delta_deg": 76.5,
+    "pinion36": {
+     "window_deg": [
+      -0.9005135127433205,
+      0.9004849739214726
+     ],
+     "centre_deg": -1.4269410923917203e-05,
+     "backlash_mm": 0.42435027111243373,
+     "gap_mm": 0.19942993211821541
+    },
+    "sync24": {
+     "window_deg": [
+      -0.6765211121878258,
+      0.6765263535608049
+     ],
+     "centre_deg": 2.6206864895406135e-06,
+     "backlash_mm": 0.4250723978354186,
+     "gap_mm": 0.19973451199863693
+    }
+   }
+  ],
+  "definition": "backlash = free rotation window of the second gear (pinion or follower) with the first fixed, x pitch radius of the moving gear (circumferential, nominal pitch circle); gap = minimum distance between the two outlines at the neutral (window-centre) pose of the closed-pose phasing; poses = crank offsets from the closed pose (+ opens)"
+ },
+ "tip_root": {
+  "tip_radius": {
+   "pinion": 15.000000000000586,
+   "ring36": 28.50000000000001,
+   "sync_c": 19.500000000009468,
+   "sync_f": 19.500000000002533
+  },
+  "root_radius": {
+   "pinion": 11.624999999991527,
+   "ring36": 25.12499999999999,
+   "sync_c": 16.124999999986663,
+   "sync_f": 16.12499999998955
+  },
+  "pinion_tip_to_36T_root": 0.6749999999994216,
+  "ring36_tip_to_pinion_root": 0.6750000000084597,
+  "sync_c_tip_to_f_root": 0.6750000000009777,
+  "sync_f_tip_to_c_root": 0.675000000010801,
+  "tooth_thickness_pitch_mm": {
+   "his_54T": 2.2561918458557826,
+   "new_36T": 2.256188934328684,
+   "his_pinion_18T": 2.256184669138334,
+   "his_24T_follower": 2.256191043083752,
+   "ideal_pitch_circle": 2.356194490192345
+  },
+  "nominal_cd": {
+   "main": 40.5,
+   "sync": 36.0
+  },
+  "required_min_mm": 0.375
+ },
+ "axial": {
+  "follower_bottom_z": 16.0,
+  "big_gear_top_z_relief": 15.7,
+  "big_gear_top_z_norelief": 16.0,
+  "follower_to_36T_relief": 0.3000000000000007,
+  "follower_to_36T_norelief": 0.0,
+  "pinion_top_z": 16.000000100338355,
+  "servo_boss_plane_z": 16.300000100338355,
+  "pinion_to_boss": 0.3000000000000007
+ },
+ "radial_36T_to_follower": {
+  "follower_material_below_z16_mm3": 0.0,
+  "tip36_radius": 28.5,
+  "radial_to_follower_pin_r3p5": 4.299999999999997,
+  "radial_to_follower_bearing_envelope_r7": 0.7999999999999972,
+  "radial_to_follower_pocket_wall_r7p0375": 0.7624999999999975,
+  "max_bearing_od_for_1mm": 13.599999999999994
+ },
+ "swept_clearance": {
+  "min": {
+   "delta_deg": 0.0,
+   "lug": "follower lug",
+   "target": "compound gear",
+   "distance_mm": 10.166020872511119
+  },
+  "required_min_mm": 1.0,
+  "deltas_deg": [
+   0.0,
+   6.954545454545454,
+   13.909090909090908,
+   20.863636363636363,
+   27.818181818181817,
+   34.77272727272727,
+   41.72727272727273,
+   48.68181818181818,
+   55.63636363636363,
+   62.590909090909086,
+   69.54545454545455,
+   76.5
+  ],
+  "per_pair_min": {
+   "compound lug -> follower gear": {
+    "distance_mm": 19.1379733279083,
+    "at_delta_deg": 0.0
+   },
+   "compound lug -> follower lug": {
+    "distance_mm": 26.656548833670588,
+    "at_delta_deg": 0.0
+   },
+   "compound lug -> pinion": {
+    "distance_mm": 28.211093082246617,
+    "at_delta_deg": 76.5
+   },
+   "compound lug -> F pin": {
+    "distance_mm": 35.13791934604291,
+    "at_delta_deg": 0.0
+   },
+   "compound lug -> F bearing 24.00..34.08": {
+    "distance_mm": 31.637919346042903,
+    "at_delta_deg": 0.0
+   },
+   "follower lug -> compound gear": {
+    "distance_mm": 10.166020872511119,
+    "at_delta_deg": 0.0
+   },
+   "follower lug -> compound lug": {
+    "distance_mm": 26.656548833670588,
+    "at_delta_deg": 0.0
+   },
+   "follower lug -> pinion": {
+    "distance_mm": 43.698238388120544,
+    "at_delta_deg": 76.5
+   },
+   "follower lug -> C pin": {
+    "distance_mm": 35.12766118267021,
+    "at_delta_deg": 0.0
+   },
+   "follower lug -> C bearing 1.95..7.00": {
+    "distance_mm": 32.883262488561705,
+    "at_delta_deg": 0.0
+   },
+   "follower lug -> C bearing 24.00..34.05": {
+    "distance_mm": 31.627661182670195,
+    "at_delta_deg": 0.0
+   }
+  }
+ },
+ "interference_3d": {
+  "relief": [
+   {
+    "delta_deg": -30.0,
+    "pinion_compound": 0.0,
+    "compound_follower": 2173.827888426965,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 2173.827888426968,
+    "lug_follower_vs_compound": 2173.8278884024317,
+    "lug_vs_lug": 2173.827888426967
+   },
+   {
+    "delta_deg": -20.0,
+    "pinion_compound": 0.0,
+    "compound_follower": 0.0,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 0.0,
+    "lug_follower_vs_compound": 0.0,
+    "lug_vs_lug": 0.0
+   },
+   {
+    "delta_deg": -10.0,
+    "pinion_compound": 0.0,
+    "compound_follower": 0.0,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 0.0,
+    "lug_follower_vs_compound": 0.0,
+    "lug_vs_lug": 0.0
+   },
+   {
+    "delta_deg": 0.0,
+    "pinion_compound": 0.0,
+    "compound_follower": 0.0,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 0.0,
+    "lug_follower_vs_compound": 0.0,
+    "lug_vs_lug": 0.0
+   },
+   {
+    "delta_deg": 10.0,
+    "pinion_compound": 0.0,
+    "compound_follower": 0.0,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 0.0,
+    "lug_follower_vs_compound": 0.0,
+    "lug_vs_lug": 0.0
+   },
+   {
+    "delta_deg": 20.0,
+    "pinion_compound": 0.0,
+    "compound_follower": 0.0,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 0.0,
+    "lug_follower_vs_compound": 0.0,
+    "lug_vs_lug": 0.0
+   },
+   {
+    "delta_deg": 30.0,
+    "pinion_compound": 0.0,
+    "compound_follower": 0.0,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 0.0,
+    "lug_follower_vs_compound": 0.0,
+    "lug_vs_lug": 0.0
+   },
+   {
+    "delta_deg": 45.0,
+    "pinion_compound": 0.0,
+    "compound_follower": 0.0,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 0.0,
+    "lug_follower_vs_compound": 0.0,
+    "lug_vs_lug": 0.0
+   },
+   {
+    "delta_deg": 60.0,
+    "pinion_compound": 0.0,
+    "compound_follower": 0.0,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 0.0,
+    "lug_follower_vs_compound": 0.0,
+    "lug_vs_lug": 0.0
+   },
+   {
+    "delta_deg": 76.5,
+    "pinion_compound": 0.0,
+    "compound_follower": 0.0,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 0.0,
+    "lug_follower_vs_compound": 0.0,
+    "lug_vs_lug": 0.0
+   }
+  ],
+  "norelief": [
+   {
+    "delta_deg": 0.0,
+    "pinion_compound": 0.0,
+    "compound_follower": 0.0,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 0.0,
+    "lug_follower_vs_compound": 0.0,
+    "lug_vs_lug": 0.0
+   },
+   {
+    "delta_deg": 30.0,
+    "pinion_compound": 0.0,
+    "compound_follower": 0.0,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 0.0,
+    "lug_follower_vs_compound": 0.0,
+    "lug_vs_lug": 0.0
+   },
+   {
+    "delta_deg": 76.5,
+    "pinion_compound": 0.0,
+    "compound_follower": 0.0,
+    "pinion_follower": 0.0,
+    "gear_bodies_compound_follower": 0.0,
+    "lug_compound_vs_follower": 0.0,
+    "lug_follower_vs_compound": 0.0,
+    "lug_vs_lug": 0.0
+   }
+  ],
+  "positive_control": {
+   "extra_deg": 3.0,
+   "compound_follower": 48.76789451639094,
+   "pinion_compound": 23.246071748659247
+  },
+  "lug_vs_lug_overtravel_limit_deg": -21.5,
+  "reading": "gear-body (teeth, 36T layer, 24T layer) interference is 0 at every pose.  At -30 deg (30 deg PAST the closed stop, not an operating pose: the jaw tips meet at 0) the compound and follower lugs overlap each other; the first lug-to-lug contact is at lug_vs_lug_overtravel_limit_deg.",
+  "threshold_mm3": 0.5,
+  "note": "OCC boolean common volume of the full solids, three gear pairs; the positive control turns the second gear 3 deg out of the clearance window and must show overlap"
+ },
+ "notes": {
+  "pinion_interface": "His pinion has NO horn or torque interface: through bore D8.00 against the D6 servo shaft (4 mm engagement, 1 mm radial gap), no spline, no screws, no horn pocket.  Reported, not changed.",
+  "follower_pivot_hole": "His follower pivot hole is D8.33 (not D3.5) -- kept as his.  His compound pivot hole is D3.5.",
+  "pivot_hole_d4": "Pivot holes stay D3.5 (M3 clearance).  D4 shoulder screws would need D4.2 holes (not applied).",
+  "bearing_pockets": "D14.075 pockets with D14.000 x 1.95 entry lips (8 lip segments with R0.25 relief notches, as his) are his faces, untouched.",
+  "pinion_boss_gap": "Pinion top is flush with the servo-boss plane in v6.  The 0.30 mm gap is realised by placing the boss plane at pinion top + 0.30 (a housing / servo-side dimension; the pinion is not changed).",
+  "relief_flag": "The 0.30 mm annular relief (R16.5 .. tip, z 15.7..16) on the 36T layer top face is the ONLY change beyond tooth count and crank length; _norelief export has none."
+ }
+}

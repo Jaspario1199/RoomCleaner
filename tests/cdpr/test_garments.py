@@ -101,9 +101,13 @@ def test_rendered_view_shows_items_and_jaw(rig):
 def test_task_delivers_items_with_visual_verification(rig):
     r, sup = rig
     _reset_items(r.world)
-    c = r.cfg.room_m[:2] / 2
-    r.world.add_item("sock", c + [-0.3, 0.2])
-    r.world.add_item("jeans", c + [0.2, 0.35], mass=0.9, height=0.08)
+    c = r.world.p[:2].copy()                       # around where the startup left the claw (inside its camera footprint)
+    items = [c + [-0.35, 0.2], c + [-0.15, 0.35]]   # inside the validated volume and away from the hamper (the scan
+    #                                                 ignores anything within its radius)
+    assert all(np.linalg.norm(xy - np.asarray(r.cfg.tasks.hamper_room_m)) > r.cfg.tasks.hamper_radius_m + 0.1
+               for xy in items)
+    r.world.add_item("sock", items[0])
+    r.world.add_item("jeans", items[1], mass=0.9, height=0.08)
     per = _perception(r)
     out = sup.run_task(TaskRunner(r.ctx, per))
     assert len(out["done"]) == 2, (out, per.log)

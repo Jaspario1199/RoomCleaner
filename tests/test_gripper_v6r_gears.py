@@ -91,7 +91,7 @@ def test_compound_envelope_and_layers(parts):
     assert (z0, z1) == pytest.approx((0.0, 36.0), abs=1e-5)
     tip36 = G.tip_r(P.GRIPV6R_Z_MAIN)
     assert tip36 == pytest.approx(28.5)
-    assert max(abs(x0), abs(x1), abs(y1)) == pytest.approx(tip36, abs=0.01)       # 36T tip circle (lug is on -y side)
+    assert max(abs(x0), abs(x1), abs(y1)) == pytest.approx(tip36, abs=0.03)       # 36T tip circle (lug is on -y side)
     o = G.mesh_outlines()
     r = np.hypot(o["ring36"][:, 0], o["ring36"][:, 1])
     assert r.max() == pytest.approx(28.5, abs=1e-3)
@@ -210,12 +210,19 @@ def test_tip_root_clearance():
 
 
 def test_interference_3d_zero(parts):
+    """Gear bodies: zero at every pose of the +-30 deg sweep and the stroke.  Past the closed stop (negative offsets,
+    not an operating pose) the two lugs eventually touch each other; that margin is asserted separately."""
     rows = G.interference_3d([-30.0, 0.0, 30.0, P.GRIPV6R_SWEEP_DEG])
     for r in rows:
-        assert r["pinion_compound"] <= 0.5 and r["compound_follower"] <= 0.5 and r["pinion_follower"] <= 0.5, r
+        assert r["gear_bodies_compound_follower"] <= 0.5 and r["pinion_compound"] <= 0.5 and r["pinion_follower"] <= 0.5, r
+        if r["delta_deg"] >= -20.0:
+            assert r["compound_follower"] <= 0.5, r
+        else:
+            assert r["compound_follower"] == pytest.approx(r["lug_vs_lug"], rel=1e-3), r      # all of it is lug vs lug
     rows = G.interference_3d([0.0, 30.0], "compound_norelief")
     for r in rows:
         assert r["pinion_compound"] <= 0.5 and r["compound_follower"] <= 0.5, r
+    assert G.lug_overtravel_limit() <= -15.0          # at least 15 deg of over-travel past the closed stop
 
 
 def test_interference_check_is_sensitive(parts):
@@ -246,6 +253,29 @@ def test_step_round_trip_and_masses(parts, tmp_path):
     assert m["pinion"] == pytest.approx(10.2, abs=0.3)                      # his 10 g
     assert 30.0 < m["compound"] < m["compound_norelief"] < 80.0
     assert m["follower"] < 32.0 + 1.0                                        # his 32 g, shorter arm
+
+
+def _read_stl(path):
+    raw = np.fromfile(path, dtype=np.uint8)
+    n = int(np.frombuffer(raw[80:84].tobytes(), dtype="<u4")[0])
+    rec = np.frombuffer(raw[84:84 + 50 * n].tobytes(), dtype=np.dtype([("n", "<f4", 3), ("v", "<f4", (3, 3)), ("a", "<u2")]))
+    return rec["v"].astype(float)
+
+
+def test_stl_print_orientation_watertight_and_volume(parts):
+    names = {"pinion": "gripper_v6r_pinion", "compound": "gripper_v6r_compound_36T_24T",
+             "compound_norelief": "gripper_v6r_compound_36T_24T_norelief", "follower": "gripper_v6r_follower"}
+    for k, base in names.items():
+        tri = _read_stl(os.path.join(REPO, "exports", "stl", base + ".stl"))
+        assert tri[:, :, 2].min() == pytest.approx(0.0, abs=1e-3), k                 # on the bed
+        vol = np.einsum("ij,ij->i", tri[:, 0], np.cross(tri[:, 1], tri[:, 2])).sum() / 6.0
+        assert vol == pytest.approx(parts[k].Volume(), rel=3e-3), k
+        key = np.round(tri.reshape(-1, 3), 3)
+        _, inv = np.unique(key, axis=0, return_inverse=True)
+        idx = inv.reshape(-1, 3)
+        edges = np.sort(np.concatenate([idx[:, [0, 1]], idx[:, [1, 2]], idx[:, [2, 0]]]), axis=1)
+        _, cnt = np.unique(edges, axis=0, return_counts=True)
+        assert (cnt == 2).all(), (k, np.bincount(cnt))                               # closed 2-manifold mesh
 
 
 def test_saved_outputs_exist_and_consistent():

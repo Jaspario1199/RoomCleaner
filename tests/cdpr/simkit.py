@@ -60,3 +60,23 @@ def assert_no_eq_failures(sim, where=""):
     assert w.eq_failures == 0 and not events, (
         f"{where or 'simulation'}: the plant's equilibrium solver failed {w.eq_failures} time(s) "
         f"(worst accepted residual {getattr(w, 'eq_worst_residual', float('nan')):.3g}); the run is not valid evidence")
+
+
+def ModelFrameItemPerception(world, **kw):
+    """``SimItemPerception`` reporting items the way the real perception chain does.
+
+    ``SimItemPerception`` reports items in the TRUTH room frame, while the planner works in the calibrated model's
+    frame; any registration error of the calibration (tens of mm in these simulations, the same order as the
+    simulated gripper reach of 60 mm) then turns into a pick error that has nothing to do with the workflow under
+    test. A real item position comes from the camera pose chain (vision/model) and therefore shares the model's
+    frame: item_model = item_truth - (claw_truth - claw_model)."""
+    from dataclasses import replace
+
+    from roomcleaner.cdpr.tasks import SimItemPerception
+
+    class _ModelFrame(SimItemPerception):
+        def scan(self, ctx):
+            here = ctx.model.pose_from_positions(ctx.co.positions())[0]
+            bias = self.w.p[:2] - here[:2]
+            return [replace(s, xy=s.xy - bias) for s in super().scan(ctx)]
+    return _ModelFrame(world, **kw)

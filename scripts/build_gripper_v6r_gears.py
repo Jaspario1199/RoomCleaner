@@ -244,6 +244,10 @@ def main():
         out["interference_3d"] = dict(
             relief=G.interference_3d(i3), norelief=G.interference_3d([0.0, 30.0, P.GRIPV6R_SWEEP_DEG], "compound_norelief"),
             positive_control=G.interference_control(),
+            lug_vs_lug_overtravel_limit_deg=G.lug_overtravel_limit(),
+            reading=("gear-body (teeth, 36T layer, 24T layer) interference is 0 at every pose.  At -30 deg (30 deg PAST the closed "
+                     "stop, not an operating pose: the jaw tips meet at 0) the compound and follower lugs overlap each other; "
+                     "the first lug-to-lug contact is at lug_vs_lug_overtravel_limit_deg."),
             threshold_mm3=0.5, note="OCC boolean common volume of the full solids, three gear pairs; the positive control turns "
                                     "the second gear 3 deg out of the clearance window and must show overlap")
         print("3D interference done (%.0f s)" % (time.time() - t0), flush=True)

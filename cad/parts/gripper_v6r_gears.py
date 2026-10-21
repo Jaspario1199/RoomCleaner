@@ -47,6 +47,7 @@ from OCP.BRepAlgoAPI import BRepAlgoAPI_Section
 from OCP.BRepBuilderAPI import BRepBuilderAPI_Copy
 from OCP.BRepTools import BRepTools
 from OCP.GeomAbs import GeomAbs_Cylinder, GeomAbs_Plane
+from OCP.ShapeUpgrade import ShapeUpgrade_UnifySameDomain
 
 from cad import params as P
 from cad.gripper_v3_fit_review_20261018.gears import gear as _involute_gear
@@ -132,6 +133,16 @@ def _cyl(r: float, z0: float, z1: float, x: float = 0.0, y: float = 0.0) -> cq.S
 
 def _box(x0, x1, y0, y1, z0, z1) -> cq.Solid:
     return cq.Solid.makeBox(x1 - x0, y1 - y0, z1 - z0, cq.Vector(x0, y0, z0))
+
+
+def unify(shape: cq.Shape, lin_tol: float = 1e-4) -> cq.Shape:
+    """Merge coplanar / co-cylindrical faces split by a boolean seam (a plain clean() leaves the tine faces split at the
+    cut plane because the two pieces come from different transforms of the same plane)."""
+    u = ShapeUpgrade_UnifySameDomain(shape.wrapped, True, True, True)
+    u.SetLinearTolerance(lin_tol)
+    u.SetAngularTolerance(1e-6)
+    u.Build()
+    return cq.Shape.cast(u.Shape())
 
 
 def rotate_z(shape: cq.Shape, deg: float, about=(0.0, 0.0)) -> cq.Shape:
@@ -316,17 +327,40 @@ def make_pinion() -> cq.Workplane:
     return _wp(_single_solid(home_pinion(), "pinion"))
 
 
+def _arm_side_tilt_deg(s_armframe: cq.Shape) -> float:
+    """His arm side planes are tilted by about 1e-7 rad against the axis -> pivot line (his model's own slop).  Measure it
+    so the slab cut and the slide are made exactly along his planes (otherwise the two pieces meet with a 2e-6 mm kink and
+    the tine faces stay split at the seam)."""
+    tilts = []
+    for f in s_armframe.Faces():
+        a = BRepAdaptor_Surface(f.wrapped)
+        if a.GetType() != GeomAbs_Plane:
+            continue
+        pl = a.Plane()
+        n = pl.Axis().Direction()
+        bb = f.BoundingBox()
+        if abs(n.Z()) < 1e-6 and abs(abs(n.Y()) - 1.0) < 1e-4 and bb.zmin > P.GRIPV6R_L1_Z1 - 0.01 \
+                and bb.zmax < P.GRIPV6R_LUG_Z1 + 0.01 and bb.xmax > P.GRIPV6R_ARM_CUT_X + P.GRIPV6R_ARM_SHORTEN:
+            dx, dy = (n.Y(), -n.X()) if n.Y() > 0 else (-n.Y(), n.X())
+            tilts.append(math.degrees(math.atan2(dy, dx)))
+    if not tilts:
+        raise RuntimeError("no arm side planes found")
+    return float(np.mean(tilts))
+
+
 def _arm_frame_shorten(solid: cq.Shape, arm_deg: float, delta: float, x_cut: float) -> cq.Shape:
     """Shorten the lug / fork by `delta` along its axis: remove the constant-section slab x in [x_cut, x_cut+delta]
     (arm frame: axis along +x) and slide the outer piece (pivot boss) inward by delta.  Cross-section, thickness,
     boss and fork shape are his."""
-    s = rotate_z(solid, -arm_deg)
+    tilt = _arm_side_tilt_deg(rotate_z(solid, -arm_deg))
+    a_eff = arm_deg + tilt
+    s = rotate_z(solid, -a_eff)
     big = 400.0
     zlo, zhi = -5.0, 60.0
     inner = s.cut(_box(x_cut, big, -big, big, zlo, zhi))
     outer = s.intersect(_box(x_cut + delta, big, -big, big, zlo, zhi)).moved(cq.Location(cq.Vector(-delta, 0, 0)))
-    both = inner.fuse(outer).clean()
-    return rotate_z(both, arm_deg)
+    both = unify(inner.fuse(outer))
+    return rotate_z(both, a_eff)
 
 
 def _compound_big_gear_replaced(phase_his_deg: float, relief: bool) -> cq.Shape:
@@ -345,7 +379,7 @@ def _compound_big_gear_replaced(phase_his_deg: float, relief: bool) -> cq.Shape:
         rel = _cyl(80.0, zt - P.GRIPV6R_RELIEF_DEPTH, zt + 1.0).cut(
             _cyl(P.GRIPV6R_RELIEF_R_IN, zt - P.GRIPV6R_RELIEF_DEPTH - 1.0, zt + 2.0))
         ring = ring.cut(rel)
-    return core_and_upper.fuse(ring).clean()
+    return unify(core_and_upper.fuse(ring))
 
 
 
@@ -557,16 +591,44 @@ def common_volume(a: cq.Shape, b: cq.Shape) -> float:
     return float(r.Volume()) if r.Solids() else 0.0
 
 
+def _lug_and_body(name: str, arm_deg: float):
+    shp = part(name)
+    lug = lug_piece(shp, arm_deg)
+    return lug, shp.cut(lug)
+
+
 def interference_3d(deltas, compound: str = "compound") -> list:
-    """Boolean common volume (mm3) of each gear pair at each crank offset (all three gears, full solids)."""
+    """Boolean common volume (mm3) of each gear pair at each crank offset (full solids), split into the gear bodies
+    (everything inside the 24T tip circle + the 36T layer) and the lugs / forks."""
+    lug_c, body_c = _lug_and_body(compound, P.GRIPV6R_ARM_DEG_C)
+    lug_f, body_f = _lug_and_body("follower", P.GRIPV6R_ARM_DEG_F)
     rows = []
     for d in deltas:
         s = pose_shapes(d, compound)
+        lc, bc = place(lug_c, P.GRIPV6R_C_XY, d), place(body_c, P.GRIPV6R_C_XY, d)
+        lf, bf = place(lug_f, P.GRIPV6R_F_XY, -d), place(body_f, P.GRIPV6R_F_XY, -d)
         rows.append(dict(delta_deg=float(d),
                          pinion_compound=common_volume(s["pinion"], s["compound"]),
                          compound_follower=common_volume(s["compound"], s["follower"]),
-                         pinion_follower=common_volume(s["pinion"], s["follower"])))
+                         pinion_follower=common_volume(s["pinion"], s["follower"]),
+                         gear_bodies_compound_follower=common_volume(bc, bf),
+                         lug_compound_vs_follower=common_volume(lc, s["follower"]),
+                         lug_follower_vs_compound=common_volume(lf, s["compound"]),
+                         lug_vs_lug=common_volume(lc, lf)))
     return rows
+
+
+def lug_overtravel_limit(step: float = 0.5, limit: float = 45.0) -> float:
+    """How far (deg, negative = past the closed stop) the compound can turn before its lug touches the follower lug
+    (distance <= 0).  Informational: the closed stop is the jaw tips meeting, so this is margin, not operating range."""
+    lug_c0, lug_f0 = lug_piece(part("compound"), P.GRIPV6R_ARM_DEG_C), lug_piece(part("follower"), P.GRIPV6R_ARM_DEG_F)
+    d = 0.0
+    while d < limit:
+        lc, lf = place(lug_c0, P.GRIPV6R_C_XY, -d), place(lug_f0, P.GRIPV6R_F_XY, d)
+        if lc.distance(lf) <= 1e-6:
+            return -d
+        d += step
+    return -limit
 
 
 def interference_control(extra_deg: float = 3.0) -> dict:

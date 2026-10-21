@@ -193,17 +193,37 @@ JOBS = {
     "gen1_corner_mount": lambda: [(*load(S("cad/step/corner_mount.step")), PETG, False)],
     "gen1_winch_spool": lambda: [(*load(S("cad/step/winch_spool.step")), PETG, False)],
     "gen1_tentacle_claw": lambda: [(*load(S("cad/step/claw_assembly.step"), 0.3, 0.3), PETG, False)],
+    "v6r_compound": lambda: [(*load(S("exports/step/gripper_v6r_compound_36T_24T.step")), ORANGE, False)],
+    "v6r_follower": lambda: [(*load(S("exports/step/gripper_v6r_follower.step")), ORANGE, False)],
+    "v6r_pinion_1brg": lambda: [(*load(S("exports/step/gripper_v6r_pinion_1brg.step")), ORANGE, False)],
+    "v6_compound_original": lambda: [(*_v6_part("06_compound_54T_24T"), PETG_DARK, False)],
     "gripper_v7": lambda: [
         (*load(S("exports/step/gripper_v7_preview.step"), 0.3, 0.3), PETG, False),
     ],
 }
 
+def _v6_part(name):
+    """One of Jasper's v6 solids, by name, from the v6 assembly STEP (read-only)."""
+    sys.path.insert(0, str(ROOT))
+    from cad.v6_loader import load_v6, find
+    shape = find(load_v6(), name)
+    verts, tris = shape.tessellate(0.15, 0.25)
+    V = np.array([[v.x, v.y, v.z] for v in verts], dtype=float)
+    F = np.array(tris, dtype=np.int64).reshape(-1, 3)
+    return V, F
+
+
 # SolidWorks exports are Y-up; CadQuery parts are Z-up.
 YUP = dict(up=(0, 1, 0), view=(1, 0.8, 1))
+GEAR = dict(up=(0, 1, 0), view=(0.6, -0.8, 1.2))
 TALL = dict(size=(1400, 3000))
 OPTS = {n: YUP for n in ("claw_v6", "claw_v6_camera_bay", "station_v3_assembly", "spool_v3",
                           "spool_v1", "spool_v2", "wall_mount_v3", "shell_v3", "slipin_v3")}
 
+for n in ("v6r_compound", "v6r_follower", "v6r_pinion_1brg"):
+    OPTS[n] = dict(view=(0.7, -0.9, 1.1))
+OPTS["v6_compound_original"] = dict(view=(0.7, -0.9, 1.1))
+OPTS["gripper_v7"] = {**YUP, "view": (1, 0.9, 1)}
 for n in ("claw_v6", "claw_v6_camera_bay", "wall_mount_v3"):
     OPTS[n] = {**OPTS[n], **TALL}
 

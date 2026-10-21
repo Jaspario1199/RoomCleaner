@@ -33,13 +33,13 @@ Simulation evidence only: nothing here is hardware evidence, and the hardware cl
 |---|---|---|
 | config | `STATION_IDS` (all four records are still required, in order) / active-set parse and validation (type, duplicates, unknown ids, 3-4, misspelt-key guard, both spellings) | `config.py:39`, `_parse_active` 656 |
 | config | triangle check: collinear / coincident / sliver (shortest altitude < 0.25 m) / tension floor >= 1/3 of the weight | `triangle_geometry` 685, `_check_triangle` 695, called at 908 |
-| config | `SystemConfig.stations` = active, `.inactive_stations`, `.record()`, `.all_stations`, `.station_index()`, `.max_slack_for()`, `.start_point_xy()`, `.tension_floor_fraction()`, `attachment_points()` per active station; `config_to_jsonable` adds `stations_active` | `config.py:479-560`, 750, 799 |
+| config | `SystemConfig.stations` = active, `.inactive_stations`, `.record()`, `.all_stations`, `.station_index()`, `.max_slack_for()`, `.start_point_xy()`, `.tension_floor_fraction()`, `attachment_points()` per active station; `config_to_jsonable` adds `stations_active` | `config.py:479-560`, 750, 799, 922 |
 | statics | `Geometry` over n = 3 or 4 cables; `tension_distribution`: unique 3 x 3 solve for n = 3, LP unchanged for n = 4 | `kinematics.py:173-190`, `259-300` |
 | workspace | `Workspace` carries `ids`, `tri_xy`, `lam_min`; `triangle_violation`; `workspace_from_config` builds it for 3 stations; `barycentric_xy` | `kinematics.py:297-330`, `388-411` |
 | planner | `RobotModel.ids` from the config; `Plan` columns = active stations; no-op / `plan_line_from` / `plan_cable_move` reshape by column count (the NOOP_CABLE_M and segment-floor code is untouched) | `trajectory.py:166, 228, 261, 304, 342` |
-| calibration | `Layout(n_st)`, `CableLengthModel(ids)`, `Calibrator.ids/.n`, no slack hypothesis and no slack-drop witness / boundary solutions for n = 3, identifiability condition number, `CalibrationResult.ids` (+ persistence, JSON), start-point marker prior | `calibration.py:136, 178, 222, 241, 268, 327, 543, 829, 932` |
-| startup | `RobotContext.ids`, `StartupSequencer.ids/.n`; `max_slack_for`; three-station log line and measurements; start-point check in INITIAL_LIFT; work/margin volumes skip points outside the triangle; saved model of another mode ignored; ledger restricted to the active set | `startup.py:265-268, 362, 722, 771, 843, 1303, 1315` |
-| supervisor / trust | polls, restores, disarms, recovers, lowers over `ctx.ids`; `_fk_slack_aware` drops no cable with 3; `TrustLedger.for_ids`, `.restrict_to` (a ledger saved by the other mode is reconciled) | `supervisor.py:117, 150, 200, 336, 492`, `trust.py:104-130` |
+| calibration | `Layout(n_st)`, `CableLengthModel(ids)`, `Calibrator.ids/.n`, no slack hypothesis and no slack-drop witness / boundary solutions for n = 3, identifiability condition number, `CalibrationResult.ids` (+ persistence, JSON), start-point marker prior | `calibration.py:136, 174, 222, 241, 268, 327, 543, 829, 932` |
+| startup | `RobotContext.ids`, `StartupSequencer.ids/.n`; `max_slack_for`; three-station log line and measurements; start-point check in INITIAL_LIFT; work/margin volumes skip points outside the triangle; saved model of another mode ignored; ledger restricted to the active set | `startup.py:265-268, 362, 465, 729, 778, 850, 1310, 1322` |
+| supervisor / trust | polls, restores, disarms, recovers, lowers over `ctx.ids`; `_fk_slack_aware` drops no cable with 3; `TrustLedger.for_ids`, `.restrict_to` (a ledger saved by the other mode is reconciled) | `supervisor.py:117, 150, 200, 323, 336, 492`, `trust.py:104-130` |
 | homing / coordinator | station labels and `ref` vectors from the model ids; `bead_workspace` keeps the triangle (`replace`); `Coordinator.ids` default = `cfg.ids` | `homing.py:97, 241`, `coordinator.py:66` |
 | simulator | `World` built with the active cables (all `4`s are `n`), `default_world` starts the claw at the centroid, `SimRobot` ledger over the active ids | `sim/world.py:59, 742, 748`, `sim/harness.py:72` |
 | service / app | `checklist_for`, `start_point_text`, `workspace_summary`, new status keys, `station_addresses` (active only), `set_room` accepts any record and refuses a degenerate triangle, `TrustLedger.for_ids` | `service.py:70-120, 266-278, 298, 839-860, 872` |
@@ -84,7 +84,7 @@ Anchors at unequal heights change the formula slightly (the exact tension solve 
 
 ## 5. Tests
 
-`tests/cdpr/test_three_station.py`, 37 tests, TBD_TESTS_NEW. They cover the spec's acceptance list:
+`tests/cdpr/test_three_station.py`, 37 tests, all 37 pass, about 5-6 minutes (the three startups of 94-97 s dominate). They cover the spec's acceptance list:
 
 1. Config: default four unchanged (also the checklist and start point), three accepted for both profiles with D kept as a
    record and no address requirement, sorted order, the spec spelling, null, two / one / zero ids, duplicates, unknown ids,
@@ -104,7 +104,12 @@ Anchors at unequal heights change the formula slightly (the exact tension solve 
 6. Hardware wiring: `station_addresses` and the UDP transport cover the active stations only; modes switching over a saved
    ledger / model / state do not crash and reconcile.
 
-Full `tests/cdpr` suite (background, 7200 s timeout): TBD_SUITE
+Full `tests/cdpr` suite (background, 7200 s timeout): **563 passed in 2167.56 s (0:36:07), exit 0** (21:11-21:47; includes the 37 new tests). A first full run, before one fix, was
+`2 failed, 559 passed (36:25)`: `test_keepalive_pumping.py::test_an_abort_while_waiting_propagates_at_once_and_the_worker_does_not_leak` and
+`...::test_pumped_lowers_the_gil_switch_interval_for_the_call_and_restores_it_whatever_happens`. Both build `StartupSequencer(SimpleNamespace(cfg=None, ...))` and my first
+version read `cfg.ids` in `__init__`; they pass on the tree before this work (checked in a pristine export of the commit before) and, after
+`StartupSequencer.ids` / `.n` became properties, on this tree. So those two were real regressions of this work, now fixed, not flakes. The
+four-station behaviour is otherwise unchanged: all 526 other tests of the suite pass, unmodified by this work.
 
 ## 6. Simulated startups (config/robot.sim3.json, fast variant, FloorBoard 3x3 floor reference, claw 0.6 kg)
 
@@ -205,7 +210,7 @@ the three holes is 14 mm off the centre of mass in x and in y: 19.8 mm / 0.196 m
 | 4 stations, room centre | 1.34 / 1.42 | 1.38 / 1.48 | **0.98 / 1.48** | 531 / 1196 | 342 / 762 | 12 886 / 9 097 |
 | 3 stations, centroid | 1.34 / 1.42 | 1.31 / 1.37 | **0.31 / 0.46** | 329 / 606 | 147 / 264 | 3 125 / 3 174 |
 
-Roll and pitch stiffness are gravity-dominated and about the same; the **yaw stiffness is about a third** and the lateral and vertical stiffness 0.3-0.5 x.
+Roll and pitch stiffness are gravity-dominated and about the same; the **yaw stiffness is about a third** (0.32 x), the lateral stiffness 0.35-0.6 x and the vertical 0.25-0.35 x.
 The spec's "less tilt stiffness" is therefore not what was measured; the operator guide says "yaw stiffness a third" and "tilt from the corner pattern".
 
 ## 9. Limits, assumptions and open items

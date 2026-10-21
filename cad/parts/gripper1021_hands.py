@@ -16,11 +16,16 @@ Layers (z):   1090.0 .. 1098.0   link plate (hull of R8 @ A, R8.5 @ B, + web dow
               1098.0 .. 1101.49  B boss  (both)
               1090.0 .. 1118.0   finger + palm, y <= 628.4 only (full width), grip face x = tube axis
 
-Lightening (through-z, constant section -> prints without supports, no bridges):
+Lightening (all windows go through z, constant section -> prints on the bed face with no supports, no bridges;
+every wall >= GRIP1021_WALL_MIN = 3.0 mm, measured from the nominal grip face, i.e. excluding the 0.8 mm ridge grooves):
   * link plate: one waist window between the two nut pockets,
-  * finger: grip wall + cross ribs (comb), palm: top bar + diagonal strut, every member >= WALL_MIN thick.
+  * finger: closed ladder (grip wall + outer skin + tip wedge) with one slot,
+  * palm: triangle frame (grip wall, 3 mm top bar, 45 deg strut to the web foot) with one window.
+Mass at 3.0 mm walls is ~21.5 g solid PETG per hand; 2.5 mm walls would give ~19 g (GRIP1021_WALL_MIN).
 
-The right hand is built here; the left hand is its mirror about x = tube axis with the A boss 1 mm taller.
+The right hand is built by _build("R"); the left hand is its mirror about x = tube axis with the A boss 1 mm taller.
+Run `python -m cad.parts.gripper1021_hands` to build both, export STEP (file pose) + STL (print pose) into
+exports/ and write a preview PNG; scripts/build_gripper1021.py adds the sweep, measurements and all renders.
 """
 
 from __future__ import annotations
@@ -41,11 +46,12 @@ COUPLER = P.GRIP1021_COUPLER
 THETA_CLOSED = P.GRIP1021_THETA_CLOSED_DEG
 THETA_FILE = P.GRIP1021_THETA_FILE_DEG
 
-Z0 = P.GRIP1021_Z_BED
-Z_PLATE = P.GRIP1021_Z_PLATE_TOP
-Z_TOP = P.GRIP1021_Z_PALM_TOP
-Z_BOSS_B = P.GRIP1021_Z_BOSS_B
-Z_BOSS_A = {"R": P.GRIP1021_Z_BOSS_A_RIGHT, "L": P.GRIP1021_Z_BOSS_A_LEFT}
+ZO = P.GRIP1021_Z_FILE_OFFSET                     # Jasper's files are 0.000129 mm below the nominal z values
+Z0 = P.GRIP1021_Z_BED + ZO
+Z_PLATE = P.GRIP1021_Z_PLATE_TOP + ZO
+Z_TOP = P.GRIP1021_Z_PALM_TOP + ZO
+Z_BOSS_B = P.GRIP1021_Z_BOSS_B + ZO
+Z_BOSS_A = {"R": P.GRIP1021_Z_BOSS_A_RIGHT + ZO, "L": P.GRIP1021_Z_BOSS_A_LEFT + ZO}
 OVERTRAVEL = 0.5                      # mm, cutter overshoot for clean through cuts
 
 
@@ -94,7 +100,7 @@ Y_TIP = P.GRIP1021_TIP_Y
 TIP_R = P.GRIP1021_TIP_ROUND_R
 TAN_CH = math.tan(math.radians(P.GRIP1021_TIP_CHAMFER_DEG))
 Y_CH_END = Y_TIP + (XF - XG - TIP_R) * TAN_CH     # chamfer reaches the outer face at this y
-X_PALM_R = B_C[0] + P.GRIP1021_PLATE_R_B          # palm top-right = under the web (tangent to the B circle)
+X_PALM_R = B_C[0] + P.GRIP1021_PALM_RIGHT_DX      # palm top-right (strut apex), under the web foot
 HOLE_R = P.GRIP1021_PIN_HOLE_D / 2
 BOSS_R = P.GRIP1021_BOSS_D / 2
 NUT_RC = P.GRIP1021_NUT_AF / math.sqrt(3.0)       # hex circumradius
@@ -148,9 +154,10 @@ def make_plate() -> cq.Workplane:
     rA, rB = P.GRIP1021_PLATE_R_A, P.GRIP1021_PLATE_R_B
     plate = prism(hull_two_circles(A_C, rA, B_C, rB), Z0, Z_PLATE)
     plate = plate.union(cyl(*A_C, rA, Z0, Z_PLATE)).union(cyl(*B_C, rB, Z0, Z_PLATE))
-    # web: tangent to the B circle, down to the palm (overlaps the palm top bar by T so it fuses)
+    # web: from the B circle down to the palm top bar (overlaps the bar by T so the two fuse); it tapers toward the
+    # palm apex so it follows the load path to the finger
     web = prism([(B_C[0] - rB, B_C[1]), (B_C[0] + rB, B_C[1]),
-                 (B_C[0] + rB, Y_CUT - T), (B_C[0] - rB, Y_CUT - T)], Z0, Z_PLATE)
+                 (X_PALM_R, Y_CUT - T), (X_PALM_R - P.GRIP1021_WEB_FOOT_W, Y_CUT - T)], Z0, Z_PLATE)
     return plate.union(web)
 
 
@@ -211,22 +218,22 @@ def finger_block() -> cq.Workplane:
 
 
 def finger_windows() -> list:
-    """Through-z lightening windows (closed, walls >= T from every outer surface and from each other)."""
-    # finger slot between the grip wall and the outer skin, above the tip wedge
+    """Through-z lightening windows (closed; every wall >= T from the outer surface, grooves included, and from
+    the other windows).  Two windows: F in the finger, below the strut; G above the strut (between the grip
+    wall, the top bar and the strut)."""
     wedge0, wedge1 = (XG + TIP_R, Y_TIP), (XF, Y_CH_END)
-    inside = (0.5 * (XG + XF), Y_TIP + 20.0)
+    hyp0, hyp1 = (XF, Y_GUSSET), (X_PALM_R, Y_CUT)          # strut lower (outer) face
+    inside_f = (0.5 * (XG + XF), Y_TIP + 20.0)
     slot = halfplane_polygon([
         (-1.0, 0.0, -(XG + SPINE_T)),                 # grip wall
         (1.0, 0.0, XF - T),                           # outer skin
-        (0.0, 1.0, Y_CUT - T),                        # top bar
-        line_plane(wedge0, wedge1, inside, T),        # tip wedge (3 mm off the chamfer face)
+        line_plane(wedge0, wedge1, inside_f, T),      # tip wedge: T off the chamfer face
+        line_plane(hyp0, hyp1, inside_f, 0.0),        # strut lower face (the slot ends on it)
     ])
-    # gusset (triangle between outer skin, top bar and strut)
-    hyp0, hyp1 = (XF, Y_GUSSET), (X_PALM_R, Y_CUT)
     gus = halfplane_polygon([
-        (-1.0, 0.0, -XF),                             # shares the outer skin with the finger slot
+        (-1.0, 0.0, -(XG + SPINE_T)),                 # grip wall
         (0.0, 1.0, Y_CUT - T),                        # top bar
-        line_plane(hyp0, hyp1, (XF + 3.0, Y_CUT - 3.0), T),     # strut
+        line_plane(hyp0, hyp1, (XG + SPINE_T + 1.0, Y_CUT - 2.0), T),      # strut upper face (strut is T thick)
     ])
     slot_w = (XF - T) - (XG + SPINE_T)
     return [window_cutter(slot, min(FIN_R, 0.4 * slot_w)), window_cutter(gus, FIN_R)]
@@ -329,6 +336,36 @@ def hole_centres(hand_shape, tol_r=0.05):
     return out
 
 
+# --- export (STEP at Jasper's file pose, STL in print orientation) -------------------------------------------------------------------
+import os                                                          # noqa: E402
+
+_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+STEP_DIR = os.path.join(_REPO, "exports", "step")
+STL_DIR = os.path.join(_REPO, "exports", "stl")
+
+
+def to_print_pose(shape):
+    """Closed-pose hand moved so its bed face is z = 0 and its bounding box starts at x = y = 0."""
+    bb = shape.BoundingBox()
+    return shape.translate(cq.Vector(-bb.xmin, -bb.ymin, -bb.zmin))
+
+
+def export_all(step_dir: str = STEP_DIR, stl_dir: str = STL_DIR) -> dict:
+    """Write gripper1021_hand_{right,left}.step (assembly world frame, Jasper's file pose, theta = -52.1 deg) and
+    gripper1021_hand_{right,left}.stl (closed-pose geometry in print orientation).  Returns the paths."""
+    os.makedirs(step_dir, exist_ok=True)
+    os.makedirs(stl_dir, exist_ok=True)
+    hands = {"right": (make_hand_right(), "R"), "left": (make_hand_left(), "L")}
+    out = {}
+    for nm, (wp, side) in hands.items():
+        step = os.path.join(step_dir, f"gripper1021_hand_{nm}.step")
+        cq.exporters.export(place_hand(wp, side, THETA_FILE), step)
+        stl = os.path.join(stl_dir, f"gripper1021_hand_{nm}.stl")
+        cq.exporters.export(cq.Workplane("XY").add(to_print_pose(wp.val())), stl, tolerance=0.02, angularTolerance=0.1)
+        out[nm] = {"step": step, "stl": stl}
+    return out
+
+
 if __name__ == "__main__":
     for nm, mk in (("right", make_hand_right), ("left", make_hand_left)):
         h = mk()
@@ -337,3 +374,13 @@ if __name__ == "__main__":
         print(f"{nm}: valid={v.isValid()} solids={len(h.solids().vals())} vol={v.Volume():.0f} mm3 "
               f"mass={v.Volume() * P.GRIP1021_PETG_G_CM3 / 1000:.2f} g bbox x[{bb.xmin:.3f},{bb.xmax:.3f}] "
               f"y[{bb.ymin:.3f},{bb.ymax:.3f}] z[{bb.zmin:.3f},{bb.zmax:.3f}]")
+    paths = export_all()
+    from ..mesh_tools import tessellate, render
+    prev_dir = os.path.join(_REPO, "renders", "gripper1021")
+    os.makedirs(prev_dir, exist_ok=True)
+    for nm, mk, col in (("right", make_hand_right, (0.25, 0.55, 0.88)), ("left", make_hand_left, (0.30, 0.72, 0.45))):
+        V, F = tessellate(mk(), 0.03, 0.15)
+        render([(V, F, col, 1.0)], os.path.join(prev_dir, f"preview_hand_{nm}.png"), 28, -58,
+               f"gripper1021 hand {nm} (closed pose, bed face z = 1090)", up="z")
+    for nm, d in paths.items():
+        print(nm, d["step"], d["stl"])

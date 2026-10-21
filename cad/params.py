@@ -427,6 +427,7 @@ GRIP1021_FOLLOWER_MESH_DEG = -6.0     # follower is rotated this much (about its
 GRIP1021_SWEEP_DEG = (-5.0, -10.0, -20.0, -30.0, -40.0, -50.0, -60.0, -62.0)   # required sweep angles
 
 # --- stacking in z (print bed = z 1090, the whole hand stands on it) -------------------------------------------------
+GRIP1021_Z_FILE_OFFSET = -0.000129     # Jasper's STEP files carry this z offset (his crank boss underside is 1098.989871, not 1098.99); applied to every hand z so contact faces coincide exactly
 GRIP1021_Z_BED = 1090.0
 GRIP1021_Z_PLATE_TOP = 1098.0         # link plate z 1090..1098
 GRIP1021_Z_PALM_TOP = 1118.0          # palm and finger, full width z 1090..1118
@@ -458,6 +459,8 @@ GRIP1021_RIDGE_N = 16
 GRIP1021_WALL_MIN = 3.0               # lightening windows keep walls >= this (spec)
 GRIP1021_MASS_MAX_G = 22.0            # spec target, solid PETG
 GRIP1021_PETG_G_CM3 = 1.27            # cad/materials.py
-GRIP1021_GUSSET_DROP = 30.0           # strut leaves the finger outer face this far below the cut line
+GRIP1021_GUSSET_DROP = 22.0           # strut leaves the finger outer face this far below the cut line (about 45 deg to the apex)
 GRIP1021_WINDOW_FILLET_R = 1.5        # corner round of every lightening window
-GRIP1021_WALL_FROM_RIDGE_ROOT = True  # True: walls are measured from the groove ROOT (crest wall = WALL_MIN + RIDGE_DEPTH)
+GRIP1021_WALL_FROM_RIDGE_ROOT = False # False: walls are measured from the nominal grip face (grooves excluded, root wall = WALL_MIN - RIDGE_DEPTH); True: from the groove root
+GRIP1021_PALM_RIGHT_DX = -3.0         # palm top-right corner (strut apex) relative to B_x
+GRIP1021_WEB_FOOT_W = 10.0            # web foot (where the link plate lands on the palm top bar), width along x

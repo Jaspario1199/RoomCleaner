@@ -20,6 +20,7 @@ lease and must not latch Fault.LEASE, whichever call is slow.
 import collections
 import inspect
 import json
+import os
 import sys
 import threading
 import time
@@ -313,7 +314,7 @@ def test_the_noise_floor_cross_check_uses_the_configured_frame_interval_and_the_
     with pytest.raises(ConfigError) as e:
         load_config(_raw(**base, **{"startup.frame_interval_s": 0.05}))
     msg = str(e.value)
-    assert "startup.frame_interval_s = 0.05 s" in msg and "0.73 x" in msg and "520 px x 0.05 s" in msg and "at least 0.048" in msg
+    assert "startup.frame_interval_s = 0.05 s" in msg and "At 0.73 x that rate" in msg and "520 px x 0.05 s" in msg and "at least 0.048" in msg
     # the remedies named in the message work: the limit it asks for, or the interval of the check that passed
     assert load_config(_raw(**dict(base, **{"startup.frame_interval_s": 0.05, "tasks.grip_still_rate_rad_s": 0.048})))
     assert load_config(_raw(**{"camera.corner_sigma_px": 0.25, "tasks.grip_still_rate_rad_s": 0.025, "startup.frame_interval_s": 0.05}))
@@ -336,7 +337,7 @@ def test_the_cross_check_message_is_true_for_the_ratio_it_reports():
         with pytest.raises(ConfigError) as e:
             load_config(_raw(**{"camera.corner_sigma_px": 1.0, "tasks.grip_still_rate_rad_s": round(ratio * floor, 5)}))
         texts[ratio] = str(e.value)
-        assert f"is {ratio:.2f} x the image rate" in texts[ratio] and "requires at least 1.4 x" in texts[ratio]
+        assert f"At {ratio:.2f} x that rate" in texts[ratio] and "is below 1.4 x the image rate" in texts[ratio]
     for ratio in (0.59, 0.85):
         assert "only rarely and could not approve a grip or release" in texts[ratio]
     for ratio in (0.95,):
@@ -390,9 +391,13 @@ class PumpGapMeter:
     ``Coordinator.pump`` calls after ``arm()``, on the instance it is attached to (nothing in the product changes).
 
     * ``max_wall_s``: the wall time between two consecutive pump calls, whatever ran in between.
-    * ``max_stall_s``: the same minus the CPU time the simulated plant used inside ``rt.wait`` in that interval. The plant is CPU work in
+    * ``max_host_s``: the same minus the CPU time the simulated plant used inside ``rt.wait`` in that interval. The plant is CPU work in
       the simulator (an equilibrium solve of up to 0.2 s) and a physical machine on hardware, so its CPU time is no host stall; time the
-      command thread spends waiting for the GIL, sleeping or computing is. This is the number the lease has to be sized against.
+      command thread spends computing, sleeping, blocked on a lock or waiting for the GIL is.
+    * ``max_stall_s`` (what the guard asserts on): ``max_host_s`` minus the time the OS kept the command thread RUNNABLE BUT OFF THE CPU
+      (``/proc/thread-self/schedstat``, run-queue wait; 0 where it does not exist). That is host over-subscription (other jobs on the
+      shared sandbox: 172 ms once with another job holding a core), not a property of the code; time blocked on the GIL or a lock is a
+      sleep for the OS and stays in the stall, as does any computation (the unpumped stalls it exists to find are the thread running).
     * ``couple=True`` couples the simulated clock to wall time: a host stall between two pumps advances the stations by the stall with no
       ping, as on a real runtime, so a stall over ``faults.lease_s`` latches Fault.LEASE for real.
     * ``close()`` makes the first pump after the command returns (``Service.idle_tick``) and so closes the TRAILING gap (the work after the
@@ -406,11 +411,18 @@ class PumpGapMeter:
         self.co, self.rt, self.couple, self.armed = co, co.rt, couple, armed
         self.worker_prefix, self.sample_above_s, self.poll_s = worker_prefix, sample_above_s, poll_s
         self.n_pumps = 0
-        self.max_wall_s = self.max_stall_s = 0.0
+        self.max_wall_s = self.max_host_s = self.max_stall_s = 0.0
+        self.worst_runq_s = 0.0                     # run-queue wait inside the gap with the largest stall
         self.long_stalls = []                       # stall_s of every gap above sample_above_s
         self.violations = []
         self._worst = None
         self._samples = {}
+        self._schedstat = None
+        try:
+            self._schedstat = os.open("/proc/thread-self/schedstat", os.O_RDONLY)       # bound to this (the command) thread
+        except OSError:
+            pass
+        self._runq_end = self._runq_ns()
         self._last_end = time.perf_counter()        # the moment of attaching counts as the last pump (a command that never pumps is a gap)
         self._plant_cpu = 0.0
         self._coupling = False
@@ -438,6 +450,14 @@ class PumpGapMeter:
             return fn(*a, **k)
         return guarded
 
+    def _runq_ns(self):
+        if self._schedstat is None:
+            return 0
+        try:
+            return int(os.pread(self._schedstat, 64, 0).split()[1])
+        except (OSError, ValueError, IndexError):
+            return 0
+
     def _rt_wait(self, dt_us):
         c0 = time.thread_time()
         try:
@@ -457,13 +477,17 @@ class PumpGapMeter:
         t = time.perf_counter()
         if self.armed and self._last_end is not None:
             wall = t - self._last_end
-            stall = max(wall - self._plant_cpu, 0.0)
+            host = max(wall - self._plant_cpu, 0.0)
+            runq = (self._runq_ns() - self._runq_end) / 1e9
+            stall = max(host - runq, 0.0)
             self.n_pumps += 1
             self.max_wall_s = max(self.max_wall_s, wall)
+            self.max_host_s = max(self.max_host_s, host)
             if stall > self.sample_above_s:
                 self.long_stalls.append(stall)
             if stall > self.max_stall_s:
                 self.max_stall_s = stall
+                self.worst_runq_s = runq
                 self._worst = (stall, wall, self._last_end)
             if self.couple and stall > 0.002:
                 self._coupling = True               # (the watchdog does not sample the plant steps that stand for the stall)
@@ -473,6 +497,7 @@ class PumpGapMeter:
                     self._coupling = False
         self._plant_cpu = 0.0
         out = self._orig["pump"]()
+        self._runq_end = self._runq_ns()
         self._last_end = time.perf_counter()
         return out
 
@@ -493,6 +518,9 @@ class PumpGapMeter:
         self.co.pump()
         self._stop.set()
         self._thread.join(2.0)
+        if self._schedstat is not None:
+            os.close(self._schedstat)
+            self._schedstat = None
         for obj, name, was_instance_attr, orig in self._patched:
             if was_instance_attr:
                 setattr(obj, name, orig)
@@ -506,7 +534,8 @@ class PumpGapMeter:
         stall, wall, t0 = self._worst
         common = collections.Counter(self._samples.get(t0, [])).most_common(1)
         where = " > ".join(common[0][0]) if common else "(no stack sample: shorter than the polling interval)"
-        return f"worst gap {stall * 1e3:.0f} ms of host stall ({wall * 1e3:.0f} ms wall) in: {where}"
+        return (f"worst gap {stall * 1e3:.0f} ms of stall ({wall * 1e3:.0f} ms wall; the OS had the thread runnable off the CPU "
+                f"{self.worst_runq_s * 1e3:.0f} ms of it) in: {where}")
 
 
 def _armed_model_robot():
@@ -537,14 +566,14 @@ def test_the_gap_meter_measures_a_host_stall_excludes_the_plant_and_a_stall_over
         while time.perf_counter() - t0 < 0.15:                      # 0.15 s of host compute between two pumps (half the lease)
             pass
         co.pump()
-        assert 0.14 < m.max_stall_s < 0.25 and "worst gap" in m.worst_text()
+        assert 0.14 < m.max_host_s < 0.25 and m.max_stall_s <= m.max_host_s and "worst gap" in m.worst_text()
         assert all(co.links[s].tel["flt"] == 0 for s in "ABCD")     # under the lease: the clock-coupled stations are still fine
         t0 = time.perf_counter()
         while time.perf_counter() - t0 < 0.45:                      # 0.45 s: longer than the 0.3 s lease, no ping went out
             pass
         co.pump()
         co.wait(100000)
-        assert m.max_stall_s > 0.4
+        assert m.max_host_s > 0.4
         assert [co.links[s].tel["flt"] for s in "ABCD"] == [Fault.LEASE] * 4 and [co.links[s].tel["st"] for s in "ABCD"] == [State.FAULT] * 4
     finally:
         m.close()
@@ -559,7 +588,7 @@ def test_the_gap_meter_closes_the_trailing_gap_and_flags_a_coordinator_call_from
     co.wait(100000)
     time.sleep(0.12)                                                # work after the last pump of a "command": nothing pumps it
     m.close()                                                       # the first pump after the command returns
-    assert m.max_stall_s >= 0.12
+    assert m.max_host_s >= 0.12
     m2 = PumpGapMeter(co, armed=True)
     try:
         with pytest.raises(AssertionError, match="Coordinator.positions called from a pumped worker"):
@@ -599,7 +628,7 @@ def test_the_calibration_stage_filter_is_a_stall_unpumped_and_stays_under_a_thir
     good, r = _stage_gap(False, monkeypatch)
     print(f"\n[meter] _stage candidate filter, 75 poses: unpumped {bad.max_stall_s * 1e3:.0f} ms, pumped {good.max_stall_s * 1e3:.0f} ms "
           f"({good.n_pumps} pumps); lease 300 ms")
-    assert bad.max_stall_s > 0.1                                    # the guard fails on the old behaviour
+    assert bad.max_host_s > 0.1                                     # the guard fails on the old behaviour (the thread is running, not off the CPU)
     assert good.max_stall_s < 0.1 and good.n_pumps > 5, good.worst_text()
     assert good.violations == []
 
@@ -683,7 +712,8 @@ def test_a_full_simulated_startup_never_leaves_the_armed_stations_unpumped_for_a
 
     Whatever call is slow, the largest gap between two consecutive Coordinator.pump calls after arm() (the first pump after the command
     returns included) has to stay below a third of faults.lease_s (0.1 s with the sim lease), and the startup must be READY with no station
-    in State.FAULT / Fault.LEASE. The simulated plant's own CPU time inside rt.wait is not counted as a stall (see PumpGapMeter)."""
+    in State.FAULT / Fault.LEASE. The simulated plant's own CPU time inside rt.wait and the time the OS kept the command thread off
+    the CPU although it was runnable are not counted as a stall (see PumpGapMeter); a thread blocked on the GIL is."""
     cfg = fast_cfg(**{"startup.slack_probe": False, "marker.edge_m": 0.150})
     seed = 0
     r = SimRobot(cfg, seed=seed, data_dir=tmp_path, board_truth=_truth(0.150, seed), board_path=tmp_path / "layout.json")
@@ -701,7 +731,8 @@ def test_a_full_simulated_startup_never_leaves_the_armed_stations_unpumped_for_a
     stations = {s: (r.co.links[s].tel.get("st"), r.co.links[s].tel.get("flt")) for s in "ABCD"}
     stalls = np.array(m.long_stalls) if m.long_stalls else np.zeros(1)
     print(f"\n[meter] full startup (survey, probe off, seed {seed}, coupled clock): {rep.outcome}, {wall:.0f} s wall, {m.n_pumps} pumps after arm; "
-          f"largest gap between pumps {m.max_stall_s * 1e3:.0f} ms host stall / {m.max_wall_s * 1e3:.0f} ms wall (plant CPU included); "
+          f"largest gap between pumps {m.max_stall_s * 1e3:.0f} ms stall / {m.max_host_s * 1e3:.0f} ms with OS run-queue wait / "
+          f"{m.max_wall_s * 1e3:.0f} ms wall (plant CPU too); "
           f"{len(m.long_stalls)} gaps above 40 ms (largest 3: {np.round(np.sort(stalls)[-3:] * 1e3).tolist()} ms); lease {lease * 1e3:.0f} ms; "
           f"{m.worst_text()}; stations {stations}")
     assert m.armed and m.n_pumps > 1000                              # the measure ran over the armed part of the startup

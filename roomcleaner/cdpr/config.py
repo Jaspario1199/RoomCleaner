@@ -756,21 +756,21 @@ def load_config(path_or_dict) -> SystemConfig:
         # 1.4 x the noise rate opens within ~0.5 s (median); at 1.0-1.2 x it always opens but after 1-2.5 s (up to 6 s); at 0.9 x
         # only 75 / 48 / 20 % of the runs open within the 15 s timeout; at 0.6 x none. The message says which of these the ratio is.
         if ratio < 0.9:
-            effect = ("at that ratio it would see five quiet frame pairs in a row only rarely and could not approve a grip or release "
+            effect = ("the gate would see five quiet frame pairs in a row only rarely and could not approve a grip or release "
                       "(measured on a still claw: 0.9 x opens in 75 / 48 / 20 % of the runs with 1 / 2 / 4 floor tags, 0.6 x in none)")
         elif ratio < 1.0:
-            effect = ("at that ratio it would open on a still claw only some of the time within the settle timeout (measured at "
+            effect = ("the gate would open on a still claw only some of the time within the settle timeout (measured at "
                       "0.9 x: 75 / 48 / 20 % of the runs with 1 / 2 / 4 floor tags), so grips and releases would often time out")
         else:
-            effect = ("at that ratio it would open on a still claw, but only after seconds of waiting (measured median 1-2.5 s, up "
+            effect = ("the gate would open on a still claw, but only after seconds of waiting (measured median 1-2.5 s, up "
                       "to 6 s with one floor tag; at 1.4 x about 0.5 s), so grips and releases would be slow")
         raise ConfigError(
-            f"tasks.grip_still_rate_rad_s = {tk.grip_still_rate_rad_s:g} rad/s is {ratio:.2f} x the image rate that sensor noise "
-            f"alone gives a claw that does not move at camera.corner_sigma_px = {cfg.camera.corner_sigma_px:g} px and "
+            f"tasks.grip_still_rate_rad_s = {tk.grip_still_rate_rad_s:g} rad/s is below {STILL_RATE_NOISE_K:g} x the image rate "
+            f"that sensor noise alone gives a claw that does not move at camera.corner_sigma_px = {cfg.camera.corner_sigma_px:g} px and "
             f"startup.frame_interval_s = {dt_frame:g} s ({floor_rate:.2g} rad/s = sqrt(pi) x sigma / (520 px x {dt_frame:g} s): "
-            f"the gate averages corner-shift norms, which do not average to zero); {effect}. This check requires at least "
-            f"{STILL_RATE_NOISE_K:g} x. Raise tasks.grip_still_rate_rad_s to at least {need:.2g} rad/s, lower "
-            f"camera.corner_sigma_px (measure it on the real camera) or lengthen startup.frame_interval_s")
+            f"the gate averages corner-shift norms, which do not average to zero). At {ratio:.2f} x that rate {effect}. "
+            f"Raise tasks.grip_still_rate_rad_s to at least {need:.2g} rad/s, lower camera.corner_sigma_px (measure it on the real "
+            f"camera) or lengthen startup.frame_interval_s")
     if cfg.claw.vision_attitude_floor_rad > cl.vision_attitude_sigma_rad:
         raise ConfigError("claw.vision_attitude_floor_rad is above claw.vision_attitude_sigma_rad: the floor added to a "
                           "frame's own covariance would exceed the constant sigma it replaces")

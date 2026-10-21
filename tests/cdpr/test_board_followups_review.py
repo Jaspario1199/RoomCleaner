@@ -442,8 +442,11 @@ def test_a_top_up_that_blocks_longer_than_the_lease_lease_faults_every_armed_sta
 
     def sliced():
         for _ in range(9):
-            co2.wait(0.1e6)                                                 # 0.1 s of "compute", keep-alive pumped every 1 ms tick
-        return None
+            time.sleep(0.1)                                                 # 0.1 s of "compute" (sliced); the command thread pumps meanwhile
+        return None                                                         # (the worker must not drive the coordinator or the simulated
+                                                                            # runtime itself: concurrent rt.wait() ticks raced with the command
+                                                                            # thread's pump and faulted stations TIMING once the GIL switch
+                                                                            # interval of _pumped went down to 0.5 ms; repair round 2)
     r2.ctx.board_survey.flush = sliced
     S2._survey_topup("CALIBRATION")
     co2.pump()

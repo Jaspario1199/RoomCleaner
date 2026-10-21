@@ -253,3 +253,14 @@ def test_service_refuses_claw_imu_true_on_hardware(tmp_path, monkeypatch):
     assert "IMU" in msg and "D27" in msg
     # (the refusal comes AFTER the UDP transport has been bound and the claw client created: a second build in this
     # process would hit 'Address already in use'; harmless because the process exits on SystemExit)
+
+
+# ====================================================================== 2. the slack probe is a DIFFERENTIAL measurement
+def test_probe_onset_noise_is_dominated_by_per_pose_tilt_lever_that_a_fixed_reference_rotation_removes():
+    """The probe compares the claw position of two still poses of a (nearly) unmoved claw.  With each pose's own noisy
+    rotation the tilt lever does not cancel (repo: ~3 mm per axis at n = 10, 0.52 m, single tag, 0.3 px); using ONE
+    reference rotation and the camera-frame displacement of the marker origin it does: ~0.1 mm (xy), 0.3 mm (z)."""
+    d = N.differential_probe_noise(n=10, trials=40, seed=5)
+    assert d["repo_xy_mm"] > 2.0
+    assert d["fixedR_xy_mm"] < d["repo_xy_mm"] / 10
+    assert d["repo_z_mm"] < 1.0 < d["repo_xy_mm"] / 2          # and the repo's isotropic covariance puts the same sigma on z

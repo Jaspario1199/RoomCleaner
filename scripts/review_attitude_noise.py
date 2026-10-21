@@ -193,3 +193,44 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def differential_probe_noise(cam=(0.0, 0.0, 0.52), edge=EDGE_S if False else 0.1524, px=0.3, n=10, trials=300, seed=2):
+    """Noise (mm, 1 sigma per axis) of a DIFFERENTIAL claw-displacement measurement between two n-frame still poses of an
+    unmoved claw: (a) as the repo does it (camera position in M = -R_k^T t_k, each pose with its own noisy R_k, so the
+    tilt lever does not cancel) and (b) with ONE fixed reference rotation, i.e. -R_ref^T (t_k - t_ref) (the lever is
+    common-mode and cancels; only the precise lateral / depth noise of the marker origin remains)."""
+    rng = np.random.default_rng(seed)
+    R, t = camera_pose(cam, (0.03, -0.02))
+    P = tag_corners(0, 0, edge)
+    uv0 = project(P, R, t)
+    a_err, b_err = [], []
+
+    def still():
+        Rs, ts = [], []
+        for _ in range(n):
+            uv = uv0 + rng.normal(0, px, uv0.shape)
+            k, rvs, tvs, errs = cv2.solvePnPGeneric(P, uv, K, None, flags=cv2.SOLVEPNP_IPPE_SQUARE)
+            c = []
+            for rv, tv in zip(rvs, tvs):
+                rv, tv = cv2.solvePnPRefineLM(P, uv, K, None, rv.copy(), tv.copy())
+                pr = cv2.projectPoints(P, rv, tv, K, None)[0].reshape(-1, 2)
+                c.append((float(np.sum((pr - uv) ** 2)), rv, tv))
+            c.sort(key=lambda x: x[0])
+            Rs.append(cv2.Rodrigues(c[0][1])[0])
+            ts.append(c[0][2].ravel())
+        Rm = cv2.Rodrigues(np.mean([cv2.Rodrigues(r_)[0].ravel() for r_ in Rs], axis=0))[0]
+        return Rm, np.mean(ts, axis=0), np.mean([-r_.T @ t_ for r_, t_ in zip(Rs, ts)], axis=0)
+    for _ in range(trials):
+        R1, t1, c1 = still()
+        R2, t2, c2 = still()
+        a_err.append(c2 - c1)
+        b_err.append(-R1.T @ (t2 - t1))
+    a, b = np.array(a_err), np.array(b_err)
+    return dict(repo_xy_mm=1e3 * float(np.sqrt(np.mean(a[:, :2] ** 2))), repo_z_mm=1e3 * float(np.sqrt(np.mean(a[:, 2] ** 2))),
+                fixedR_xy_mm=1e3 * float(np.sqrt(np.mean(b[:, :2] ** 2))), fixedR_z_mm=1e3 * float(np.sqrt(np.mean(b[:, 2] ** 2))))
+
+
+if __name__ == "__main__" and "--probe" in sys.argv:
+    for n_ in (10, 40):
+        print("differential probe noise, single tag 0.52 m, n =", n_, differential_probe_noise(n=n_, trials=250))

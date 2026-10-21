@@ -38,7 +38,10 @@ from roomcleaner.cdpr.sim import harness                       # noqa: E402
 from roomcleaner.cdpr.sim.world import SimCamera               # noqa: E402
 from roomcleaner.cdpr.vision.marker import MarkerObservation   # noqa: E402
 
-CFG = dict(mode="fixed", sigma=0.002, pix=0.3, floor_mrad=1.0)
+_DW0 = harness.default_world         # the unpatched function (patching must not nest across jobs in a worker)
+from roomcleaner.cdpr.sim import world as _world               # noqa: E402
+_FB0 = _world.FloorBoard
+CFG = dict(mode="fixed", sigma=0.002, pix=0.3, floor_mrad=1.0, shift=None)
 LOG = []                    # (tilt_sigma, n_tags) per board frame (per process)
 
 
@@ -110,7 +113,18 @@ class ReviewVision(VisionSource):
         return super().observe()
 
 
+class ShiftedBoard(_FB0):
+    """Same grid, translated in the marker frame so that the origin (where the claw rests) is NOT over a tag centre."""
+
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        d = np.array([CFG["shift"][0], CFG["shift"][1], 0.0])
+        self.centres = self.centres + d
+        self.corners = self.corners + d
+
+
 def patch():
+    _world.FloorBoard = ShiftedBoard if CFG.get("shift") else _FB0
     harness.SimCamera = ReviewCam
     harness.VisionSource = ReviewVision
 
@@ -118,9 +132,21 @@ def patch():
 def run_job(job):
     name, spec, seed, extra_world = job
     patch()
+    harness.default_world = _DW0
     if extra_world:
-        dw0 = harness.default_world
-        harness.default_world = lambda *a, **k: dw0(*a, **k, **extra_world)
+        # claw_offset given in the MARKER frame (so that the camera sits over a chosen spot of the board): rotate it into the
+        # room frame with the marker yaw that default_world will draw (same rng stream: anchors, marker xy, yaw)
+        dw0 = _DW0
+
+        def dw(cfg, stations, *a, **k):
+            rng = np.random.default_rng(k.get("seed", 0) + 1000)
+            rng.normal(0, 0.04, (4, 3))
+            rng.normal(0, 0.15, 2)
+            yaw = cfg.marker.heading_prior_rad + rng.normal(0, 0.15)
+            c, s_ = math.cos(yaw), math.sin(yaw)
+            off = np.asarray(extra_world["claw_offset"], float)
+            return dw0(cfg, stations, *a, **k, claw_offset=(c * off[0] - s_ * off[1], s_ * off[0] + c * off[1]))
+        harness.default_world = dw
     t0 = time.time()
     out = S.run_one((name, spec, seed))
     out["time_s"] = time.time() - t0
@@ -181,9 +207,10 @@ def main():
     ap.add_argument("--cfg", action="append", default=[], metavar="KEY=JSON")
     ap.add_argument("--claw-offset", type=float, nargs=2, default=None, help="shift the start xy (m) from the marker")
     ap.add_argument("--pitch", type=float, default=None, help="override the board pitch (m); tag edge 0.15 (D26)")
+    ap.add_argument("--board-shift", type=float, nargs=2, default=None, help="translate the tag grid in the marker frame (m)")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
-    CFG.update(mode=a.mode, pix=a.pix)
+    CFG.update(mode=a.mode, pix=a.pix, shift=a.board_shift)
     table = S.case_table()
     base = dict(table[a.case])
     if a.pitch:
@@ -198,7 +225,7 @@ def main():
         for s in range(a.seed0, a.seed0 + a.seeds):
             spec = dict(base, cfg=extra, no_whatif=True, pix=a.pix if a.pix != 0.3 else None)
             nm = f"{a.mode} sigma={sg * 1e3:.0f}mrad pix={a.pix}" + (f" {' '.join(a.cfg)}" if a.cfg else "") + \
-                 (f" off={a.claw_offset}" if a.claw_offset else "") + (f" pitch={a.pitch}" if a.pitch else "")
+                 (f" off={a.claw_offset}" if a.claw_offset else "") + (f" pitch={a.pitch}" if a.pitch else "") + (f" shift={a.board_shift}" if a.board_shift else "")
             jobs.append((nm, spec, s, {"claw_offset": tuple(a.claw_offset)} if a.claw_offset else None, sg))
     print(len(jobs), "runs", flush=True)
     results = []

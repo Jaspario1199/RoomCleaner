@@ -97,12 +97,14 @@ bottom of the slide (rename the rail labels in the style kit):
 ## Act 1 — Physics sets the limits
 
 ### 4 · Cable statics (F, chart)
-**Claim: "Cable tension, not payload, sets how high the claw can go."**
-- **WANTED:** use the whole room height.
-- **REALIZED:** as the claw rises toward the anchors the cables flatten and tension explodes: T ≈ W / (4 sin φ).
-- **DECIDED:** keep the claw 0.4 m below the anchors; plan with a tension-aware ceiling.
-- **RESULT:** for 1 lb plus a 0.45 kg claw, about 32 N per cable at 0.15 m below the anchors versus about 8 N at 0.6 m. [FUND §1]
-- **BUT:** the claw's own mass matters as much as the payload; every 0.1 kg of claw costs about 0.22 lb of lift.
+**Claim: "Cable angle, not payload, sets the limits — and the walls bind before the ceiling."**
+- **WANTED:** use the whole room.
+- **REALIZED:** tension explodes as cables flatten.
+  - Centred, T ≈ W / (4 sin φ): 32.1 N per cable at 0.15 m below the anchors versus 8.3 N at 0.6 m (1 lb plus a 0.45 kg claw).
+  - Near a wall, two cables run almost flat. Worst-case max tension ≈ 1.06–1.10 × total weight (LP over the room, +2 m/s²). [FUND §1; capacity memo]
+- **DECIDED:** keep a 0.4 m ceiling margin plus a wall margin; plan with a tension-aware workspace.
+- **RESULT:** the binding case is the corner, not the ceiling.
+- **BUT:** the claw's own mass counts exactly like payload.
 - Fundamentals box: ΣF = 0 on the claw; four-cable equal share.
 - Chart: tension vs depth below anchors (native line chart, focus series orange).
 - Likely question: *"What about off-centre?"* Least-norm tension distribution; worst spot is high against a long wall (R10).
@@ -112,8 +114,11 @@ bottom of the slide (rename the rail labels in the style kit):
 - **WANTED:** raise drive current from 1.0 to 1.35 A for about 43 N per cable, once the heat fin made the extra heat OK.
 - **REALIZED:** on my red A4988 boards (R100 sense resistors, 3.3 V logic), the Vref trim pot tops out at **0.85 V**. Since I = Vref / (8·Rs), that caps current at **1.06 A** (MEASURED).
 - **DECIDED:** don't hack the driver and don't run 5 V logic (a 3.3 V GPIO can't guarantee a HIGH). Run at the board maximum and recover pull mechanically: T = τ / r, so a smaller spool core gives more tension.
-- **RESULT:** about 34 N per cable at 1.06 A; spool-core options are in [FUND §2].
-- **BUT:** a smaller core means slower lift and more layers. Lift capacity now depends on claw mass and the ceiling margin.
+- **RESULT:**
+  - Running pull is 23.8 N at the core and 17.9 N at a full spool, or 11.9 N with a 1.5 margin.
+  - Worst-case lift anywhere is about 1.1 kg total. Claw (about 1.1 kg estimated) plus jeans (0.9 kg) is about 2 kg, so it doesn't fit.
+  - A Ø10 core buys +25 %; a 3:1 winch reduction buys about 2.7×. [FUND §2; `docs/decisions/WINCH_CAPACITY_20261021.md`]
+- **BUT:** the 0.7 running-torque factor is assumed; the 15-minute luggage-scale pull test decides (PLANNED). Honest headline: "my own numbers told me my claw outgrew my winches."
 - Big number: **0.85 V → 1.06 A**. Equation strip: I = Vref / (8 Rs); T = τ / r; τ ∝ I.
 
 ### 6 · Heat (C)
@@ -121,7 +126,7 @@ bottom of the slide (rename the rail labels in the style kit):
 - **WANTED:** a clean, closed printed shell around each winch.
 - **REALIZED** (Jasper raised this): a stepper holding the claw dissipates P = I²R continuously. Its only way out was conduction into PETG, which conducts about 1/800 as well as aluminium (k ≈ 0.2 vs ≈ 160 W/m·K). The joint carrying the cable load heads toward 70–100 °C and creeps.
 - **DECIDED:** among seven options (vent, aluminium fin, clip-on sink, TMC2209 drivers, ASA shell, thermistor park, lower current), take vents plus an aluminium fin through the shell. It is the biggest gain for no new electronics.
-- **RESULT:** two-node model: sealed shell at 1.0 A is 67 °C without the fin and about 50 °C with it (CALCULATED, 30 °C ambient; ambient-corrected numbers in [FUND §3]).
+- **RESULT:** two-node model at 1.06 A (2.0 W) with 23 °C ceiling air: sealed shell 64 °C without the fin, 46 °C with it. The fin carries about 50 % of the motor's heat; the PETG path's resistance is about 1260× an aluminium slab (CALCULATED). [FUND §3]
 - **BUT:** no thermometer number yet; the 60-minute hold test is planned.
 - Fundamentals box: thermal resistance network, R = L/(kA) and R_conv = 1/(hA); Joule heating.
 
@@ -129,7 +134,7 @@ bottom of the slide (rename the rail labels in the style kit):
 **Claim: "I drew a 1/8-inch plate and built a 0.019-inch fin — then re-checked the physics."**
 - **WANTED:** the drawn 1/8 in plate (fin efficiency about 75 %).
 - **REALIZED:** the sheet I could shear and drill on the bench was 0.019 in. Thinner fins conduct less: η = tanh(mL)/(mL), with m = √(2h/kt).
-- **DECIDED:** re-run the fin equation before accepting it. η falls to about 38 %, but the fin still carries about half the motor's heat and keeps the motor near 50–55 °C at 1.06 A in a vented shell.
+- **DECIDED:** re-run the fin equation before accepting it. η falls from 74 % to 37 % (R_fin 10.9 → 22 K/W), but the fin still carries about half the motor's heat (46 °C sealed at 1.06 A).
 - **RESULT:**
   - Sheared and drilled myself on the mill from my own Letter-size drawing.
   - The 7/8 in centre hole still clears the 22.0 mm motor pilot boss, by about 0.1 mm per side.
@@ -185,7 +190,7 @@ bottom of the slide (rename the rail labels in the style kit):
   - So 2:1 instead of 3:1: my own gears with 36T instead of 54T and an R53 crank instead of R75.
   - Kept my press-fit bearing pockets (Ø14.075 with a Ø14.000 lead-in lip), and added clearances: 0.42 mm backlash, a 0.3 mm axial relief.
 - **RESULT:** gear set 157 g → 96 g (CAD); all features identical to my originals except the intended changes, verified at 257 checks.
-- **BUT:** grip on jeans is marginal on friction alone. At μ = 0.3 it needs about 18 N per jaw versus 13–25 N available, so pad grip matters. The 7-hole web is SF about 1.7, so 6 holes would give 3.75.
+- **BUT:** grip on jeans is marginal on friction alone: it needs 17.7 N per jaw at μ = 0.3 (8.9 N at μ = 0.6) versus 13.3–25 N available, so grippy pads matter. The 7-hole web is SF about 1.7; 6 holes would give 3.75. [FUND §4, §5]
 - Fundamentals box: σ = F_t / (b·m·Y); τ_out = N·τ_in; N ≥ m(g+a)/(2μ).
 
 ### 12 · Claw camera and tube (C, render + view diagram)
@@ -196,7 +201,7 @@ bottom of the slide (rename the rail labels in the style kit):
   - By similar triangles the spot reappears above a hover height D* that *drops* when the tube is shorter.
   - A shorter tube also shrinks the view and lowers the cable tie-offs toward furniture.
 - **DECIDED:** cut 50 mm, not the 100 mm I was offered: "we can always cut more".
-- **RESULT:** the spot is visible from 140 mm of hover (was 172 mm); saves 33 g. SIMULATED (ray-cast).
+- **RESULT:** the spot is visible from 140 mm of hover (was 172 mm); the similar-triangles closed form gives 171/140 and matches the ray-cast. Saves 33 g (SIMULATED + CALCULATED).
 - **BUT:** the last ~14 cm of descent is blind, so add a short visual correction step at the hover.
 - Fundamentals box: similar triangles D* = (0.387(512−c) − 93)/0.613; δ = FL³/(3EI) for the tube; creep vs stress relaxation.
 
@@ -231,7 +236,7 @@ bottom of the slide (rename the rail labels in the style kit):
 **Claim: "I stopped trying to buy precision and moved the safety into margins."**
 - **WANTED:** absolute cable lengths from vision alone.
 - **REALIZED:**
-  - Lever-arm error is δx = σ_θ·L, so a single tag gives about 6 mm per frame at 0.6 m.
+  - Lever-arm error is δx = σ_θ·L: one tag gives about 12.9 mrad, or 6.6 mm per frame; a four-tag board gives about 1.3 mrad, or 0.7 mm. [FUND §8]
   - Calibration σ stayed above the 12 mm bead overtravel.
   - Without the IMU, a single tag wasn't enough.
 - **DECIDED (Jasper's ideas):**

@@ -249,7 +249,8 @@ outlets (`z <= 2.19 m`), the claw's own height above the floor (`z >= 0.59 m`, o
   "predicted length sigma 5.3 to 5.6 mm > 5.0 mm in the requested volume" (12 to 14 of the 15 work-volume points
   validated). That is fine for moving inside the box tonight. For the first run:
   1. Set `calibration.expanded_box_m` to [0.4, 0.4, 0.3].
-  2. One person watches each outlet where the line leaves the collar (three people, nobody under the claw).
+  2. One person watches each outlet where the line leaves the collar, from the side of the room, never under the claw or
+     a line. With fewer people, one person can watch two outlets from a spot where both are in view.
   3. **Pause** at the first sign of the line rubbing the collar edge, scraping noise or fuzz on the line, then Lower.
   4. After the run, look at the lines and the outlet edges for wear before running the full box.
   The decision on the outlets themselves (keep the bench outlet, open its cone, or add an outlet-angle limit to the

@@ -445,3 +445,10 @@ Adafruit 3886 MPU-6050 as selected, "not recorded ordered").
 - Next session (Jasper, 10/21): FEA of the heat fin and a stress test of the
   wall mounts, for the presentation. A4988 boards confirmed R100 → Vref 1.08 V
   for 1.35 A (D29).
+- **Measured (10/21): A4988 Vref tops out at ~0.79 V** on Jasper's red R100
+  carrier with 3.3 V logic, so the current limit is capped at ~0.99 A. D29's
+  1.35 A (1.08 V) is NOT reachable on this hardware without modifying the
+  board. Pending: confirm VDD = 3.3 V at the driver (a low VDD would also cap
+  Vref); then decide (run at max ~1.0 A and rebalance claw mass / ceiling
+  margin / spool radius, or rework the carrier's Vref divider). Do not raise
+  VDD to 5 V: 3.3 V GPIO does not meet the A4988 HIGH threshold at 5 V.

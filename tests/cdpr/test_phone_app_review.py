@@ -77,7 +77,7 @@ def test_f2_pause_reply_claims_torque_on_whatever_the_stations_report(tmp_path, 
 
 
 # ---------------------------------------------------------------------------------------------- F3 hardware spin
-def test_f3_host_loop_spins_without_sleeping_while_a_command_owns_the_robot_in_hardware_mode(tmp_path):
+def test_f3_host_loop_backs_off_while_a_command_owns_the_robot_in_hardware_mode(tmp_path):
     """main() passes real_sleep_s=0.0 for hardware. idle_tick() returns at once when a command holds the lock, so the loop
     thread busy-spins (millions of calls per second) and, through the GIL hand-off, makes every short sleep of the command thread
     (the real runtime pumps in 1 ms sleeps) several times longer. Fixed when the loop sleeps/blocks while the lock is busy."""
@@ -100,8 +100,10 @@ def test_f3_host_loop_spins_without_sleeping_while_a_command_owns_the_robot_in_h
     finally:
         svc.stop_background()
         svc.lock.release()
-    assert calls[0] > 20000, f"DEFECT F3 fixed? only {calls[0]} idle_tick calls in ~0.5 s with the lock held: flip this test"
-    assert per_sleep_ms > 2.0, f"1 ms sleep took {per_sleep_ms:.2f} ms with the spinner (expected ~6 ms; ~1.1 without it)"
+    # F3 FIXED (lead, 2026-10-21): the loop backs off BUSY_BACKOFF_S while the lock is held, so it no longer spins
+    # (was > 2.6 million calls/s and ~6 ms per 1 ms sleep).  ~0.4 s at 5 ms per call is ~80 calls.
+    assert calls[0] < 1000, f"F3 regressed: {calls[0]} idle_tick calls in ~0.4 s with the lock held (busy-spin)"
+    assert per_sleep_ms < 4.0, f"1 ms sleep took {per_sleep_ms:.2f} ms with the lock held (spinner back?)"
 
 
 # ---------------------------------------------------------------------------------------------- F4 / F5 stream slots

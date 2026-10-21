@@ -57,6 +57,7 @@ STREAM_PERIOD_S = 0.2            # MJPEG pace (~5 fps)
 MAX_STREAMS = 4                  # open camera streams (each holds a server thread)
 CLAW_POLL_S = 2.0                # claw telemetry refresh (background thread, never from a request)
 CLAW_STALE_S = 10.0
+BUSY_BACKOFF_S = 0.005           # host loop sleep while a command holds the robot lock (it pumps the stations itself)
 DEFAULT_DATA = Path(__file__).resolve().parents[2] / "data" / "cdpr"
 CHECKLIST = [
     "Room cleared; nobody will stand under the workspace",
@@ -157,9 +158,11 @@ class Service:
         def loop():
             while not self._stop.is_set():
                 try:
-                    self.idle_tick()
+                    if not self.idle_tick():       # a command owns the robot and pumps it: do not spin against it (review F3)
+                        time.sleep(BUSY_BACKOFF_S)
                 except Exception as e:             # never let the keep-alive die silently
                     self.last_error = f"host loop: {type(e).__name__}: {e}"
+                    time.sleep(BUSY_BACKOFF_S)
                 if real_sleep_s:
                     time.sleep(real_sleep_s)
         threading.Thread(target=loop, daemon=True, name="host-loop").start()

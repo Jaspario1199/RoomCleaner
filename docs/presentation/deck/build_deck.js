@@ -803,7 +803,7 @@ async function build() {
     backup(7, "SAFETY", "Safety: one hard stop, anchors in studs, nobody underneath.", [], (sl) => {
       const cw = (W - 2 * M - 0.75) / 4;
       [["One hard stop", "The switched power strip is the only stop. Faults and pause hold torque."], ["Stud anchors", "Designed to screw into wall studs; screw pattern vs stud width and slide-in retention are still open. Line load is mostly pull-out and prying, plus some shear."],
-        ["Nobody under it", "Nobody stands under the robot while it moves."], ["Balance charging", "Charge the 2S LiPo with a matched balance charger, pack off the robot."]].forEach(([h, t], i) => {
+        ["Nobody under it", "Nobody stands under the robot while it moves."], ["Protected pack", "2S pack with a cell-protection board; charge at 8.4 V, ≤ 1 A, switch off, attended."]].forEach(([h, t], i) => {
         const x = M + i * (cw + 0.25), y = 2.1, ch = 3.7, hot = i === 0;
         sl.addShape(pres.shapes.RECTANGLE, { x, y, w: cw, h: ch, fill: { color: hot ? C.accent5 : C.background2 }, line: { color: hot ? C.accent1 : C.background2, width: hot ? 1.5 : 0.5 }, objectName: `safety_card_${i + 1}` });
         sl.addImage({ data: icons[i], x: x + 0.3, y: y + 0.3, w: 0.7, h: 0.7, altText: h, objectName: `safety_icon_${i + 1}` });
@@ -813,6 +813,26 @@ async function build() {
       sl.addText("No safety-rated function is claimed (ISO 13849 and IEC 61508 are not claimed).", { x: M, y: 6.05, w: W - 2 * M, h: 0.4, fontSize: 14, color: C.text2, margin: 0, valign: "middle", isTextBox: true });
     });
   }
+
+  // ---------------------------------------------------------------- B8 / B9 schematics (KiCad)
+  const schematic = (n, eyebrow, title, img, alt, lines, planned) => backup(n, eyebrow, title, ["CALCULATED"], (sl) => {
+    const ih = 4.95, iw = ih * 3638 / 2573;
+    sl.addImage({ path: P(img), x: M, y: 1.95, w: iw, h: ih, altText: alt, objectName: `schematic_B${n}` });
+    const rx = M + iw + 0.35, rw = W - M - rx;
+    eyebrowLabel(sl, "WHAT THE SCHEMATIC PROVES", rx, 1.95, rw);
+    body(sl, lines, rx, 2.3, rw, 3.3, 14);
+    plannedCard(sl, planned, rx, 5.9, rw, 1.0);
+  });
+  schematic(8, "STATION SCHEMATIC", "The station schematic is generated from the board, so they cannot disagree.",
+    "docs/presentation/deck_assets/renders/kicad_station_revD.png", "KiCad schematic of the Rev D winch station",
+    ["KiCad schematic built from the perfboard's hole-by-hole net list.", "Electrical rules check: 0 errors, 0 warnings.",
+     "Net compare: 16 nets, 55 pins match the board exactly.", "Notes carry Vref 0.85 V (≈ 1.06 A) and the power-up order."],
+    "Meter the soldered board against this net list before first power.");
+  schematic(9, "CLAW SCHEMATIC", "Claw power: one 2S pack, a 6 V servo rail and a separate 5 V logic rail.",
+    "docs/presentation/deck_assets/renders/kicad_claw_revB.png", "KiCad schematic of the Rev B claw electronics",
+    ["6 V UBEC for the servo only; 5 V buck and a Schottky diode for the controller.", "Battery read through 200k/100k: 8.4 V → 2.80 V at the ADC.",
+     "Peak draw ≈ 2.8–3.1 A against a ≈ 3 A pack rating: stalls must stay short.", "Rules check 0 errors; 9 nets match the spec."],
+    "Bench: servo stall current, regulator outputs, pack current at stall.");
 
   await finish();
 }

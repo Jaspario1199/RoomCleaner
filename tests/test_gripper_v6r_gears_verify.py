@@ -408,11 +408,22 @@ def _arm_regions(s_home, s_new, arm_h, arm_n, with_core):
     cA = common(ha, na)
     resA = (vol(ha) - cA, vol(na) - cA, vol(ha))
     out = {}
-    for sh in (1e-3, 0.05):
+
+    def one(sh):
         hb = ho.intersect(box(52.0 + 1e-6, big, -big, big, -1.0, 60.0)).moved(cq.Location(cq.Vector(-22.0 + sh, 0, 0)))
         nb = no.intersect(box(30.0 + 1e-6, big, -big, big, -1.0, 60.0))
         cB = common(hb, nb)
-        out[sh] = (vol(hb) - cB, vol(nb) - cB, vol(nb))
+        return (vol(hb) - cB, vol(nb) - cB, vol(nb))
+    # OCC booleans can fail on exactly coincident faces (result empty -> difference = whole volume): try a few tiny shifts and
+    # accept the first run whose common volume is > 99 % of the piece (a failed boolean can never pass this way).
+    for sh in (0.0, 1e-3, -1e-3, 3e-4, 2e-3):
+        r = one(sh)
+        if r[2] > 0 and r[0] < 0.01 * r[2] and r[1] < 0.01 * r[2]:
+            out["main"] = r
+            break
+    else:
+        out["main"] = r
+    out["control"] = one(0.05)
     return resA, out
 
 
@@ -423,10 +434,10 @@ def test_32_body_and_lug_identical_apart_from_shortening(new, his):
         resA, resB = _arm_regions(his[which], new[which], arm_h, arm_n, core)
         chk("3.8", "%s: gear body + 24T layer + hub (arm-frame x<30, z>=16, his rotated by %.4f deg): his-new, new-his (mm3)"
             % (which, arm_n - arm_h), "0, 0", "%.4f, %.4f of %.0f" % resA, "+-0.05", abs(resA[0]) < 0.05 and abs(resA[1]) < 0.05)
-        b = resB[1e-3]
-        chk("3.9", "%s: lug beyond the cut, his shifted -22 mm: his-new, new-his (mm3; 1 um shift adds ~0.3)" % which, "0, 0",
+        b = resB["main"]
+        chk("3.9", "%s: lug beyond the cut, his shifted -22 mm: his-new, new-his (mm3; a few-um shift to dodge coincident faces adds <= 0.3)" % which, "0, 0",
             "%.4f, %.4f of %.0f" % b, "+-1.0", abs(b[0]) < 1.0 and abs(b[1]) < 1.0)
-        b2 = resB[0.05]
+        b2 = resB["control"]
         chk("3.10", "%s: sensitivity control, same comparison with a 0.05 mm shift (mm3)" % which, "> 3 (detects)",
             "%.2f" % max(b2[0], b2[1]), "", max(b2[0], b2[1]) > 3.0)
         # 24T teeth: tooth form identical regardless of the re-phasing (outline Hausdorff after undoing the rotation)

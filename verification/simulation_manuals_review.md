@@ -1,5 +1,107 @@
 # Independent review: SolidWorks Simulation manuals (Study A static, Study B thermal)
 
+## ROUND 2 (re-review of repair round 1; HEAD 4ce2d1e, repairs in 7118e5c)
+
+Reviewer: calculation-checker, same rules as round 1 (independent recompute, nothing edited, nothing committed).
+`/usr/bin/python3 -m pytest tests/test_simulation_loads.py`: **30 passed**. I re-derived every new number with my own scripts
+(station frame, same STEP): P5 reactions, D2c/D4f vectors, tab-root stresses, load-point displacements and the S3 hole gauge, screw group
+(exact rigid-plate solution), the thermal tables (2-D solve), the FUNDAMENTALS reproduction; I also re-read both manuals and all
+changed figures (`line_directions.png`, `station_assembly_loads.png`, `heat_fin_zones.png`; the other four are unchanged).
+
+### Round 2 verdict: USE WITH FIXES
+
+All four High and all six Medium findings were addressed and the numbers are right. Two High items are closed only partly (the singularity
+rule contradicts itself and is too narrow; the new P4 exit recipe returns a false FAIL on the governing case D4f), and the re-derivation exposed
+one model-assumption problem in the B-2/TC2:TC1 validation targets that I should have caught in round 1. Each needs a paragraph of text, no recomputation
+of the main tables. Estimated effort 20 to 30 minutes. No re-review needed if the five replacement texts below are applied verbatim.
+
+### Status of each round 1 finding
+
+| # | Round 1 finding | Round 2 status | My check |
+|---|---|---|---|
+| H1 | P5 table missing 10.2 N self-weight | **CLOSED** | Reactions (X, Y, Z): D1 0, 0, +49.51; D2c -19.13, -16.62, +43.62; D3 -33.34, 0, +22.18; D4f -33.34, +16.62, +22.18; D2 -16.67, -16.67, +40.01; D4/D5 0, +/-33.34, +22.18. All match the manual's section 5 table and `expected_reaction()`. Self-weight 10.22 N = (602,284 + 217,693) mm3 x 1270 kg/m3 x 9.81 (re-measured from the STEP). Tests pin it. |
+| H2 | singularity rule missing | **PARTLY CLOSED** | Rule exists and is mostly operational (2 mm bands, "singular, not used" label, 0.5 MPa hole-bearing yardstick, FoS-plot red-patch rule). Two defects (N-1, N-2 below). |
+| H3 | P4 not measurable; hand deflection column wrong | **PARTLY CLOSED** | Hand column CONFIRMED for all rows. Gauge definition (max URES on the four S3 faces, pass if <= 0.50 mm) is sound. The exit-estimate recipe is wrong (N-3). |
+| H4 | Face -> Delete is part-level | **CLOSED** | Section 3.3 now says Edit Part first, optional, and section 3.5 says exclude both `Motor_Reference` bodies. (Cannot test in SolidWorks; wording is what I would expect.) |
+| M1 | D4/D5 unreachable, D2 beyond fleet limit | **CLOSED** | D2c u = (0.5054, 0.4392, -0.7427), T = 34/cos(26.05 deg) = 37.85 N, F = (19.13, 16.62, -28.11); D4f F = (33.34, -16.62, -6.66), T = 37.85 N; in-plane share 34.0 N and shaft torque 0.255 N.m for both (I checked M_y = r x F). D1, D3 unchanged. |
+| M2 | Roller/Slider is two-sided | **CLOSED with caveat** | Replaced by Virtual Wall with the reasoning. Caveat N-4. |
+| M3 | screw hand estimate misses Mz; P7 no capacity | **CLOSED (numbers); capacity left blank by design** | Exact rigid-plate screw loads (max tension / max shear, N): D1 11.2/8.3, D2c 18.8/8.2, D3 9.1/3.9, D4f 15.7/4.8, D4/D5 18.6/7.9 to 8.7. The script's arithmetic worst-case sums (11.2/8.4, 18.8/8.4, 9.1/4.1, 15.7/4.8, 18.6/7.9) are slightly conservative on shear only; manual rounds to 11/8, 19/8, 9/4, 16/5, 19/8 to 9: AGREE. Self-weight moment (0.8 N top-row) is omitted; negligible. The capacity is a blank "rated ____ N"; Jasper must fill it before the run or P7 cannot be called (orientation only, my estimate from the usual NDS withdrawal formula 2850 G^2 D lbf/in with G 0.42, D 0.164 in: about 80 lbf/in, about 360 N per inch of thread in SPF; use the screw maker's figure). Stud pitch (37.0 vs 38.1 mm) is now item 4 of the "Before you run" box. |
+| M4 | formula referenced to z = 50 mm, not 42 | **CLOSED** | Section 0 and section 4 now reference z = 50. Table values re-derived with my 2-D solve (painted / bare / 1/8 painted / 1/8 bare): z = 50 35.7 / 47.9 / 17.0 / 26.5 vs manual 35.6 / 47.8 / 17.0 / 26.5; z = 42.15 40.1 / 52.3 / 17.7 / 27.2 vs 39.9 / 52.1 / 17.7 / 27.1; tip 3.2 / 9.6 / 9.4 / 18.5 vs 3.2 / 9.5 / 9.4 / 18.5; patch average 51.6 / 63.8 / 19.5 / 28.9 vs 50.2 / 62.4 / 19.3 / 28.7. Nit: "4 to 5 % below the formula" holds for painted (4.6 %); bare is 6.3 %. |
+| M5 | B-2 optional; no thermal template; TC1 | **PARTLY CLOSED** | B-2 now "required for SIMULATED"; section 11 template added and consistent with section 4. The TC1/ratio text and the B-2 targets have a problem (N-5). |
+| M6 | slide vs manual SF rule | **CLOSED in the manual and the slide rail; residual in the storyline** | See N-6. |
+| M7 | FUNDAMENTALS reconciliation | **CLOSED** | I reproduced FUNDAMENTALS topic 3 independently: as-built 40.7 / 46.0 C, shares 39 % / 50 %, 1/8 in 36.3 / 39.4 C; the manual's "here / there" pairs (41.6/40.7, 47.3/46.0, 35.1/36.3, 37.7/39.4) and shares (35/46 vs 38/50 %) are correct. |
+| M8 | units | **CLOSED** | Both manuals now say set Length, Temperature (thermal) and Pressure/Stress (static) explicitly. |
+| M9 | Option A text, add Option B sensitivity | **CLOSED** | Verified wording and the 0.88 mm gap vs 0.25 mm ignore-clearance. |
+| M10 | "working tension" label | **CLOSED** | 17.85 N relabelled as running pull at full spool; 23.8 N at the core noted. |
+| M11/U1 | motor torque basis | **CLOSED (disclosed)** | "Before you run" item 1 and 2 state the 1/sqrt2 factor and the nameplate question. The capacity memo addendum (commit 4ce2d1e) agrees (36 x 0.75/1.5 = 18 N.cm, running pull at the core about 16.8 N, quoted "about 17 N"). It says "full-step"; the same factor holds in every A4988 step mode because the vector current is I_trip. |
+| L1 to L11 | low items | **All applied** | Deck 8.47 mm; flank 30 deg / 420 mm2 / 0.053 MPa (I recomputed (33.34/3)/(420.1 x 0.5) = 0.0529); hot-tab note; figures re-rendered (air 26 C, working 17.85 N, D2c/D4f drawn, D4/D5 dashed); SolidWorks 2026; licence tier; time 2 to 3 h; pull-test safety step; unresolved items in both "Before you run" boxes. |
+
+### Hand columns in the repaired manual, re-derived (section 0 table; all AGREE)
+
+| Case | nominal sigma / vM (MPa) | load point total / along (mm) | S3 gauge max / mean (mm) | screws tension / shear (N) |
+|---|---|---|---|---|
+| D1 | 0.65 / 3.25 | 0.22 / 0.22 | 0.22 / 0.13 | 11.2 / 8.3 |
+| D2c | 1.56 / 3.38 | 0.21 / 0.20 | 0.22 / 0.12 | 18.8 / 8.2 |
+| D3 | 3.36 / 3.41 | 0.28 / 0.23 | 0.41 / 0.19 | 9.1 / 3.9 |
+| D4f | 5.49 / 5.50 (x1.5 to 2.5 = 8.2 to 13.7) | 0.40 / 0.39 | **0.54** / 0.27 | 15.7 / 4.8 |
+| D2 (info) | 1.70 / 3.16 | 0.19 / 0.17 | 0.19 / 0.11 | 17.5 / 7.7 |
+| D4, D5 (info) | 5.55 / 5.63 | 0.43 / 0.33 | 0.51 / 0.24 | 18.6 / 7.9 (8.7 for D5) |
+
+Note D4f's hand gauge (0.54 mm) is above the 0.50 mm limit, so the governing case will take the "estimate the exit" branch of section 6.1. That makes N-3 matter.
+
+### New findings and residual defects (with exact replacement text)
+
+**N-1 (Medium, introduced by my round 1 wording, copied by the repair): the singularity rule contradicts itself.**
+Section 6 bullet 1 excludes everything within 2 mm of "(iii) the sharp back-side root corner"; bullet 2 then takes "the stress probed 1 mm inside the sharp corner".
+A point 1 mm from a re-entrant 90 degree corner is inside the 2 mm band, and with C1 elements of 1.2 mm at M3 it is inside the first element, so it is not mesh-converged.
+The manual also does not say how to probe an edge "1 mm above the deck" (Probe -> On selected entities needs an entity).
+Replace bullet 1's item (iii) and bullet 2 with:
+> "(iii) the sharp back-side root corner (y = 0, x = -21.15). Quote nothing closer than 2 mm to it. Report separately the stress 2 mm from the corner on the tab back face (x = -19.15): add a split line there while the slide-in is open for editing (section 3.3), or pick the node with Probe -> At location."
+
+**N-2 (Medium, same origin): the P1/P3 "value used" is too narrow.**
+Section 6 defines it as the larger of the fillet probe and the corner probe. That ignores real maxima elsewhere: the tab faces away from the fillet (in D1 the torsion shear peaks mid-edge, not at the fillet), the deck, the dovetail rib roots and the J-lip roots (P3 itself names the last two). A 6 MPa rib-root hit would never be seen.
+Replace the second bullet of the rule with:
+> "P1 passes if, in `A_vm_<case>` (legend maximum 8.33 MPa), no red region lies outside the exclusion bands; P3 the same with `A_p1_<case>` (legend maximum 7.5 MPa). Quote the largest value in any remaining red patch. The fillet probe (convergence table) and the 2 mm corner probe are the two places you must always report, separately."
+
+**N-3 (Medium, introduced by the repair): the exit-estimate recipe adds magnitudes and gives a false FAIL for D4f.**
+Section 6.1: "exit = mean URES over the S3 faces + tab rotation x lever, with the lever 15.5 mm (x or z) or 18 mm (y) from the tab axis". Adding a URES magnitude to a rotation-lever magnitude adds two orthogonal components. In the hand model for D4f: mean URES 0.27 mm + (16.5 mrad x 15.5 mm = 0.26 mm) = **0.53 mm (> 0.50, fail)**, against the true load-point displacement 0.40 mm (pass, 80 % of the limit); D3 0.37 vs 0.28. Also "18 mm (y)" is not a lever from the tab axis: the drum point is 15.5 mm from the tab mid-plane (18 mm is from the flange plane), and the y-component lever is only the small x, z offset of the load point.
+Replace the second bullet of section 6.1 with:
+> "If the gauge exceeds 0.50 mm, estimate the exit from displacement **components**, not URES magnitudes. Take the mean UX, UY, UZ over the four S3 faces; get the rotations from UY: theta_z = (UY at x = +15.5 minus UY at x = -15.5) / 31 and theta_x = -(UY at z = +15.5 minus UY at z = -15.5) / 31 (station axes, radians); then exit_x = UX_mean - theta_z x 15.5, exit_z = UZ_mean + theta_x x 15.5, exit_y = UY_mean; take the magnitude (or the component along the line). 15.5 mm is the drum point's offset from the tab mid-plane (18 mm minus 2.5 mm). Adding the magnitudes instead overstates the exit by up to 1.4 times (hand model, D4f: 0.53 mm that way against 0.40 mm). Hand-model check of this recipe: D4f 0.40 (true 0.40), D3 0.27 (0.28); it under-reads the torsion cases (D1 0.14 against 0.22), which are far below the limit."
+
+**N-4 (Low): Virtual Wall step is incomplete, and that run is nonlinear.**
+Section 4.1 says "Virtual Wall (rigid, No Penetration, friction 0.3) on the back face W1". In SolidWorks the connector needs a wall reference plane as well as the faces (as far as I know; I could not check): say "select W1 as the face and as the wall plane, wall side outside". With contact and friction that run is nonlinear, so the section 7.1 scaling (0.525, 2.0) does not apply to it: run it at 34.0 N only and compare with the 34.0 N screws-only result. The existing `SIMULATION_GUIDE.md` Study 1 still recommends Roller/Slider ("it can press the wall but not pass through it"); the manual overrides it for Study A but the guide row should be fixed or footnoted so the two do not disagree.
+
+**N-5 (Medium; found on re-derivation, not caused by the repair, but the repair made B-2 "required" and rests the finish test on it): B-2 targets and TC2:TC1 assume a uniform heat flux into the fin patch; a real (aluminium-nosed, steel-can) NEMA 17 flange is close to isothermal.**
+The quasi-1D and the table of section 5 apply the 0.72 W as uniform flux over the patch, which makes the fin patch about 5 K hotter at its bottom (z = 0, roughly 20 K) than at its top (14.9 K) in the coupled painted case. A motor flange (typically a die-cast aluminium front cap on a steel stator) and the k = 50 W/m.K block that section 5 tells Jasper to build (rough internal drop under 0.5 K) will hold the patch nearly isothermal. My 2-D solve with the patch held at one temperature (same h, k, geometry, same network, paste contact):
+
+| Case (vented, 6061) | Manual (uniform flux) | Isothermal flange (my 2-D estimate) |
+|---|---|---|
+| Painted: motor node, fin heat | 41.6 C (18.6 K), 0.72 W | 40.2 C (17.2 K), 0.83 W |
+| Painted: fin rise at patch top, y = 100 mm, tip | 14.9, 6.5, 1.5 K | 17.0, 7.4, 1.6 K |
+| Painted: TC2 / TC1 | 0.35 | **0.43** |
+| Bare: motor node, TC2 / TC1 | 43.2 C, 0.49 | 42.2 C, **0.56** |
+| 1/8 in painted: motor node, fin heat | 35.1 C, 1.21 W | 34.5 C, 1.26 W |
+
+Consequences: (1) the motor temperature is conservative by 0.6 to 1.4 K, inside the +/-20 % band, fine; (2) the B-2 FEA will read about 17 K at the patch top, not 14.9 K, and about 0.43 for TC2:TC1; (3) the hold-test pass "TC2/TC1 within +/-0.07 of 0.35" (0.28 to 0.42) would reject the expected painted result and the painted and bare ratios (0.35 to 0.43 against 0.49 to 0.56) are only about 0.06 apart, so the "ratio tells you the finish" claim is fragile; (4) the new TC1 text ("a thermocouple on the flange rim next to the fin reads between 14.9 K and 18.6 K") rests on the uniform-flux gradient; on an isothermal flange the rim reads close to the motor node, 17 to 18.6 K, and 14.9 K applies only to the fin surface.
+This was an assumption in round 1 that I marked AGREE after reproducing the manual's own model; the isothermal limit is the physically better bound for B-2 and it moves the validation numbers. Replace in section 5 (targets) and section 8:
+> Section 5 table: give ranges "uniform-flux model to isothermal flange": motor block mean 41.6 to 40.2 C (rise 18.6 to 17.2 K); heat through the fin 0.72 to 0.83 W; fin rise at the patch top 14.9 to 17.0 K; at y = 100 6.5 to 7.4 K; tip 1.5 to 1.6 K; TC2/TC1 0.35 to 0.43 painted, 0.49 to 0.56 bare. Add: "A block of k = 50 W/m.K behaves nearly isothermal, so expect the upper end of the fin figures."
+> Section 8 TC1 row: "predicted 17 to 18.6 K at the motor case, and on the flange rim next to the fin (the flange is nearly isothermal)". Section 8 Pass: "TC1 within 14.9 to 22.3 K and TC2 within the range 6.5 to 7.4 K painted (9.9 to 10.9 K bare); use the TC2 steady-state rise as the finish test (painted if 8 K or less, bare if 9.5 K or more; multiply by 0.94 for a 60-minute reading), and use the ratio only as a cross-check (painted 0.35 to 0.43, bare 0.49 to 0.56)."
+(The thresholds sit in the gap between the painted range 6.5 to 7.4 K and the bare range 9.9 to 10.9 K; they depend on the real h and on air movement, so treat a reading between 8 and 9.5 K as "undecided", not as a pass.)
+This is my own 2-D estimate, not a SolidWorks result; the true flange is between the two limits.
+
+**N-6 (Low): residual wording.** The slide rail, fundamentals line and evidence table now read "SF 3 at 34 N, 1.5 at 68 N", but `docs/presentation/DECK_STORYLINE.md` line 178 ("sized for the slip-limit tension x dynamic factor, with SF >= 3") and the slide 10 speaker note in `build_deck.js` (line 491 "Pass limits: SF at least 3 ... Load basis: slip-limit tension x a dynamic factor") still carry the ambiguous form. Replace with "SF >= 3 at the 34 N slip limit (equivalently SF >= 1.5 at twice that load)".
+
+**N-7 (Low): tests.** The 30 tests pin the paste-in numbers well (coupled temperatures, fin heat, quasi-1D, z-reference, P5 constants, fleet limit, displacement and screw hand columns; I confirmed the pinned values independently). Not pinned: the new D2c and D4f rows (screw loads, S3 gauge 0.54/0.27, reactions), and the S3 gauge for any case. Add `tab_displacement(...)["holes_max"]` pins for D3 (0.41) and D4f (0.54) and a `screw_group_estimate` pin for D4f (15.7 N, 4.8 N) because they are the governing-case numbers Jasper will compare against.
+
+**Nits (no action needed beyond the above):** `line_directions.png` side view shows D4f hidden under D3 (same in-plane direction; labelled); "F3 1.94 W" in the energy-balance expectation is for adiabatic side strips (with them convecting as section 3.3 says, F3 falls by roughly 0.02 to 0.03 W, my estimate; the total still closes); the script's screw-group numbers are arithmetic worst-case sums, not the exact plate solution (differences under 0.3 N).
+
+### What I could not verify
+SolidWorks itself (no licence here): the existence and exact label of "Ignore clearance for surface contact", Virtual Wall tier and setup, the Probe "At location" option, Edit Part behaviour on an imported STEP assembly, thermal contact-resistance field names. The isothermal-flange numbers in N-5 are mine and should be re-checked by the B-2 run.
+
+---
+
+## ROUND 1 (original review)
+
 Reviewer: calculation-checker (independent recompute). Date: 2026-10-21.
 Scope: `calculations/simulation_loads.py`, `tests/test_simulation_loads.py`,
 `docs/simulation/SW_STATIC_STATION_MOUNT.md`, `docs/simulation/SW_THERMAL_HEAT_FIN.md`,

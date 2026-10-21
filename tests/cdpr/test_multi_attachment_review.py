@@ -289,7 +289,7 @@ def test_finding_config_numbers_that_the_cad_has_since_moved_away_from():
     claw = load_config(SIM).claw
     assert abs(-claw.lowest_point_body_m[2] - 0.474) > 0.04
     assert claw.mass_kg == 0.6                                    # vs 450 g budget and ~1.05-1.25 kg printed estimate
-    assert claw.imu is True                                       # D27 removed the IMU
+    assert claw.imu is False                                      # D27 implemented (was True when this finding was written)
 
 
 # ------------------------------------------------------------------ 5. reported findings

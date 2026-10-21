@@ -12,7 +12,7 @@ four, chosen in the settings, with four as the default. The work tonight is abou
 - Keep all four station records in the config. Inactive stations get no address requirement and no transport; the
   host never configures or arms them.
 - New hardware profile `config/robot.three.example.json`: copy of the hardware example with `stations.active` set to
-  three ids. The default trio is A, B, D, documented as "change to the corners you mounted".
+  three ids. The default trio and layout are in the section below.
 - New sim profile `config/robot.sim3.json`: copy of the sim profile with three active.
 
 ## Physics that changes with three cables
@@ -32,9 +32,29 @@ four, chosen in the settings, with four as the default. The work tonight is abou
     tension floor and state it.
   - Expect roughly half the room.
 - **Start position:** "claw upright near the middle" becomes **near the centroid of the active anchors' floor
-  projection**. For A, B, D in the 11 × 9 ft room that is (1.13, 0.93) m, not the room centre, which sits on the
-  triangle's edge where one cable goes slack.
+  projection**. For three room corners the room centre sits on the triangle's edge, where one cable goes slack, so the recommended layout below is used instead.
   - The startup must use this point; the phone app's Setup step and the start checklist must say where it is.
+
+## Layout for the first test (Jasper, 10/21: "rearrange the position to a triangular shape")
+
+Three stations do not have to sit in three room corners. The robot calibrates its anchors itself, so any good
+triangle works.
+- **Recommended:** A and B in the two corners of one 11 ft wall, and the third station (id C) in the **middle of the
+  opposite 11 ft wall**, on the stud nearest the midpoint, at the same height.
+- **Anchor priors:** A (0.05, 0.05, 2.5932), B (3.3028, 0.05, 2.5932), C (1.6764, 2.6932, 2.5932) m.
+- **Shape:** sides about 3.25 / 3.10 / 3.10 m, nearly equilateral. The margins cut least from a balanced triangle,
+  and the room centre (1.676, 1.372) lies inside it.
+- **Start point:** the centroid (1.676, 0.931), or the room centre if the startup's tension check accepts it. The
+  implementer reports both minimum tensions.
+- **Priors only:** the anchor priors only seed the calibration. A stud a few inches off the midpoint is fine. The
+  priors must be within the calibration's prior range; report that range.
+- **Outlet angle:** a mid-wall station's line leaves square to the wall rather than along a corner diagonal. Check the
+  outlet angle range over the three-station workspace and report it (the outlet cone limit is a known open item).
+- **Power run to C:** 3 ft down, along the floor to the far wall's middle, 9 ft up: about 27 ft. The 35 ft pair covers
+  it with slack.
+- **Config:** `config/robot.three.example.json` and `config/robot.sim3.json` use active = [A, B, C] with C's anchor
+  prior at the opposite wall's middle. This replaces the "A, B, D" default above. Layout and id choice stay
+  configurable.
 
 ## Startup and calibration
 

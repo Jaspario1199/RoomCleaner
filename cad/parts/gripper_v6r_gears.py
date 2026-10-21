@@ -42,10 +42,10 @@ from matplotlib.path import Path as MplPath
 from scipy.optimize import brentq
 from scipy.spatial import cKDTree
 
-from OCP.BRepAdaptor import BRepAdaptor_Surface
+from OCP.BRepAdaptor import BRepAdaptor_Curve, BRepAdaptor_Surface
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Section
 from OCP.BRepTools import BRepTools
-from OCP.GeomAbs import GeomAbs_Cylinder
+from OCP.GeomAbs import GeomAbs_Cylinder, GeomAbs_Plane
 
 from cad import params as P
 from cad.gripper_v3_fit_review_20261018.gears import gear as _involute_gear
@@ -156,36 +156,31 @@ def involute_ring(n: int, width: float, phase_deg: float) -> cq.Solid:
 # 2D outlines (for the mesh analysis) and measurements on the real solids
 # =============================================================================================================
 def _chain(edges_pts):
-    """Chain unordered edge polylines into closed loops."""
-    pts = [e for e in edges_pts]
-    loops = []
+    """Chain unordered edge polylines into closed loops (end-point matching with a KD tree)."""
     tol = 2e-4
-    used = [False] * len(pts)
-    for i in range(len(pts)):
-        if used[i]:
+    ends = np.vstack([np.vstack([p[0], p[-1]]) for p in edges_pts])        # row 2 i = start, 2 i + 1 = end of edge i
+    tree = cKDTree(ends)
+    used = np.zeros(len(edges_pts), bool)
+    loops = []
+    for i0 in range(len(edges_pts)):
+        if used[i0]:
             continue
-        used[i] = True
-        loop = [pts[i]]
-        end = pts[i][-1]
-        start = pts[i][0]
-        for _ in range(len(pts)):
-            if np.hypot(*(end - start)) < tol and len(loop) > 1:
-                break
+        used[i0] = True
+        loop = [edges_pts[i0]]
+        start, end = edges_pts[i0][0], edges_pts[i0][-1]
+        while np.hypot(*(end - start)) > tol:
             nxt = None
-            for j in range(len(pts)):
-                if used[j]:
-                    continue
-                if np.hypot(*(pts[j][0] - end)) < tol:
-                    nxt = (j, pts[j])
-                    break
-                if np.hypot(*(pts[j][-1] - end)) < tol:
-                    nxt = (j, pts[j][::-1])
+            for j in tree.query_ball_point(end, tol):
+                if not used[j // 2]:
+                    nxt = j
                     break
             if nxt is None:
                 break
-            used[nxt[0]] = True
-            loop.append(nxt[1])
-            end = nxt[1][-1]
+            used[nxt // 2] = True
+            e = edges_pts[nxt // 2]
+            e = e if nxt % 2 == 0 else e[::-1]
+            loop.append(e)
+            end = e[-1]
         loops.append(np.vstack(loop))
     return loops
 
@@ -198,8 +193,10 @@ def outlines(shape: cq.Shape, z: float, step: float = 0.02):
     polys = []
     for e in cq.Shape.cast(sec.Shape()).Edges():
         n = max(2, int(math.ceil(e.Length() / step)) + 1)
-        pp = [e.positionAt(t) for t in np.linspace(0.0, 1.0, n)]
-        polys.append(np.array([[p.x, p.y] for p in pp]))
+        c = BRepAdaptor_Curve(e.wrapped)
+        a, b = c.FirstParameter(), c.LastParameter()
+        pts = [c.Value(a + (b - a) * u) for u in np.linspace(0.0, 1.0, n)]
+        polys.append(np.array([[p.X(), p.Y()] for p in pts]))
     return _chain(polys)
 
 
@@ -221,29 +218,48 @@ def _rot2(poly: np.ndarray, deg: float, about=(0.0, 0.0)) -> np.ndarray:
 
 
 class Outline:
-    """Closed polygon with fast signed-distance queries."""
+    """Closed polygon with fast signed-distance queries (KD tree and containment path are built on first use)."""
 
     def __init__(self, pts: np.ndarray):
         self.pts = pts
-        self.path = MplPath(pts)
-        self.tree = cKDTree(pts)
+        self._tree = None
+        self._path = None
+
+    @property
+    def tree(self):
+        if self._tree is None:
+            self._tree = cKDTree(self.pts)
+        return self._tree
+
+    @property
+    def path(self):
+        if self._path is None:
+            self._path = MplPath(self.pts)
+        return self._path
 
     def placed(self, deg: float, xy) -> "Outline":
         return Outline(_rot2(self.pts, deg) + np.array(xy))
 
 
+NEAR_MM = 1.0       # only vertices this close to the other outline can be (or become) the first to penetrate it
+
+
 def signed_gap(A: Outline, B: Outline) -> float:
-    """> 0: minimum distance between the two outlines (no overlap).  < 0: -(maximum penetration depth)."""
-    inA = B.path.contains_points(A.pts)
-    inB = A.path.contains_points(B.pts)
-    if inA.any() or inB.any():
-        d = 0.0
-        if inA.any():
-            d = max(d, float(B.tree.query(A.pts[inA])[0].max()))
-        if inB.any():
-            d = max(d, float(A.tree.query(B.pts[inB])[0].max()))
-        return -max(d, 1e-9)
-    return float(min(B.tree.query(A.pts)[0].min(), A.tree.query(B.pts)[0].min()))
+    """> 0: minimum distance between the two outlines (no overlap).  < 0: -(maximum penetration depth).
+    Vertices are sampled every 0.02 mm; a crossing always leaves vertices of one outline inside the other within
+    NEAR_MM of its boundary, so only those are containment-tested."""
+    dA = B.tree.query(A.pts)[0]
+    dB = A.tree.query(B.pts)[0]
+    depth = 0.0
+    for pts, d, other in ((A.pts, dA, B), (B.pts, dB, A)):
+        near = np.where(d < NEAR_MM)[0]
+        if near.size:
+            ins = other.path.contains_points(pts[near])
+            if ins.any():
+                depth = max(depth, float(d[near[ins]].max()))
+    if depth > 0.0:
+        return -max(depth, 1e-9)
+    return float(min(dA.min(), dB.min()))
 
 
 def tooth_phase_deg(pts: np.ndarray, n: int, r_tip_val: float) -> float:
@@ -653,9 +669,9 @@ def radial_36T_to_follower() -> dict:
 # feature-by-feature diff against his originals
 # =============================================================================================================
 def _surface_census(shape: cq.Shape):
-    """(on-axis cylinders, off-axis cylinders, planar levels) with counts."""
-    from collections import Counter
-    on, off = Counter(), Counter()
+    """(on-axis cylinders, off-axis cylinders): {(R, z0, z1): (face count, total area mm2)}.  Areas are compared, not
+    face counts: a boolean or a rotation may split / merge the seam of a periodic cylinder face."""
+    on, off = {}, {}
     for f in shape.Faces():
         a = BRepAdaptor_Surface(f.wrapped)
         if a.GetType() != GeomAbs_Cylinder:
@@ -664,7 +680,9 @@ def _surface_census(shape: cq.Shape):
         loc = c.Axis().Location()
         bb = f.BoundingBox()
         key = (round(c.Radius(), 4), round(bb.zmin, 3), round(bb.zmax, 3))
-        (on if math.hypot(loc.X(), loc.Y()) < 0.01 else off)[key] += 1
+        d = on if math.hypot(loc.X(), loc.Y()) < 0.01 else off
+        n0, a0 = d.get(key, (0, 0.0))
+        d[key] = (n0 + 1, a0 + f.Area())
     return on, off
 
 
@@ -697,14 +715,16 @@ def pivot_hole(shape: cq.Shape):
     raise RuntimeError("no pivot hole")
 
 
-_INTENDED = {
-    "compound": {
-        "big gear tip radius": "intended: 54T -> 36T tooth count",
-        "big gear root radius": "intended: 54T -> 36T tooth count",
-        "big gear root fillets R0.4": "intended: 54T -> 36T tooth count",
-        "lightening hole faces R6": "intended: holes re-laid for the 36T ring",
-        "layer-1 top level": "intended: 0.30 mm relief (flagged functional change)",
-    }}
+def hole_centres(shape: cq.Shape, radius: float):
+    """Distinct (x, y) axes of the off-axis cylinders of the given radius (counts holes, immune to face splitting)."""
+    out = set()
+    for f in shape.Faces():
+        a = BRepAdaptor_Surface(f.wrapped)
+        if a.GetType() == GeomAbs_Cylinder and abs(a.Cylinder().Radius() - radius) < 1e-3:
+            loc = a.Cylinder().Axis().Location()
+            if math.hypot(loc.X(), loc.Y()) > 0.01:
+                out.add((round(loc.X(), 3), round(loc.Y(), 3)))
+    return out
 
 
 def feature_diff(which: str) -> list:
@@ -726,36 +746,42 @@ def feature_diff(which: str) -> list:
 
     on_o, off_o = _surface_census(o)
     on_n, off_n = _surface_census(n)
-    tooth_on = {round(tip_r(Z_MAIN), 4): "big gear tip radius", round(root_r(Z_MAIN), 4): "big gear root radius",
-                round(tip_r(54), 4): "big gear tip radius", round(root_r(54), 4): "big gear root radius"}
+    area = lambda d, k: round(d[k][1], 2) if k in d else 0.0
+    tooth_r = {round(tip_r(Z_MAIN), 4), round(root_r(Z_MAIN), 4), round(tip_r(54), 4), round(root_r(54), 4)}
+
+    def add_area(label, k, do, dn, intended=None):
+        a, b = area(do, k), area(dn, k)
+        rows.append(dict(feature=label, original=a, modified=b,
+                         status="identical" if abs(a - b) < 0.05 else (intended or "CHANGED (UNINTENDED)")))
+
     if which.startswith("compound"):
         for k in sorted(set(on_o) | set(on_n)):
-            if k[0] in tooth_on and k[1] == 0.0:
+            if k[0] in tooth_r and k[1] == 0.0:
                 continue
-            add("axis cylinder R%.4f z %.3f..%.3f (pocket / lip / shoulder / bore / 24T tip + root)" % k,
-                on_o.get(k, 0), on_n.get(k, 0))
-        tip_o = [k for k in on_o if k[0] == round(tip_r(54), 4)]
-        tip_n = [k for k in on_n if k[0] == round(tip_r(Z_MAIN), 4)]
-        add("big gear tip radius (mm)", tip_o[0][0], tip_n[0][0], _INTENDED["compound"]["big gear tip radius"])
-        rt_o = [k for k in on_o if k[0] == round(root_r(54), 4)]
-        rt_n = [k for k in on_n if k[0] == round(root_r(Z_MAIN), 4)]
-        add("big gear root radius (mm)", rt_o[0][0], rt_n[0][0], _INTENDED["compound"]["big gear root radius"])
-        add("big gear teeth (tip faces)", on_o[tip_o[0]], on_n[tip_n[0]], "intended: 54T -> 36T tooth count")
-        k04 = lambda off: sum(v for k, v in off.items() if k[0] == 0.4 and k[1] == 0.0)
-        add("big gear root fillets R0.4 (faces, 2 per tooth)", k04(off_o), k04(off_n),
-            _INTENDED["compound"]["big gear root fillets R0.4"])
-        add("lightening hole radius R6.0 (faces, 2 per hole; his 8 holes -> %d)" % P.GRIPV6R_LIGHT_N,
-            sum(v for k, v in off_o.items() if k[0] == 6.0), sum(v for k, v in off_n.items() if k[0] == 6.0),
-            _INTENDED["compound"]["lightening hole faces R6"])
+            relief_wall = (k[0] == round(P.GRIPV6R_RELIEF_R_IN, 4) and k[1] == round(P.GRIPV6R_L1_Z1 - P.GRIPV6R_RELIEF_DEPTH, 3))
+            add_area("axis cylinder R%.4f z %.3f..%.3f, area mm2 (pocket / lip / shoulder / bore / 24T tip + root)" % k, k,
+                     on_o, on_n, "intended: 0.30 mm relief wall (flagged functional change)" if relief_wall else None)
+        tip_o = [k for k in on_o if k[0] == round(tip_r(54), 4)][0]
+        tip_n = [k for k in on_n if k[0] == round(tip_r(Z_MAIN), 4)][0]
+        add("big gear tip radius (mm)", tip_o[0], tip_n[0], "intended: 54T -> 36T tooth count")
+        rt_o = [k for k in on_o if k[0] == round(root_r(54), 4)][0]
+        rt_n = [k for k in on_n if k[0] == round(root_r(Z_MAIN), 4)][0]
+        add("big gear root radius (mm)", rt_o[0], rt_n[0], "intended: 54T -> 36T tooth count")
+        add("big gear teeth (tip faces)", on_o[tip_o][0], on_n[tip_n][0], "intended: 54T -> 36T tooth count")
+        k04 = lambda off: sum(v[0] for k, v in off.items() if k[0] == 0.4 and k[1] == 0.0)
+        add("big gear root fillets R0.4 (faces, 2 per tooth)", k04(off_o), k04(off_n), "intended: 54T -> 36T tooth count")
+        add("lightening hole radius (mm)", 6.0, 6.0)
+        add("lightening holes (count)", len(hole_centres(o, 6.0)), len(hole_centres(n, 6.0)),
+            "intended: holes re-laid for the 36T ring")
         for k in sorted(set(off_o) | set(off_n)):
             if (k[0] == 0.4 and k[1] == 0.0) or k[0] == 6.0:
                 continue
-            add("off-axis cylinder R%.4f z %.3f..%.3f" % k, off_o.get(k, 0), off_n.get(k, 0))
+            add_area("off-axis cylinder R%.4f z %.3f..%.3f, area mm2" % k, k, off_o, off_n)
     else:
         for k in sorted(set(on_o) | set(on_n)):
-            add("axis cylinder R%.4f z %.3f..%.3f" % k, on_o.get(k, 0), on_n.get(k, 0))
+            add_area("axis cylinder R%.4f z %.3f..%.3f, area mm2" % k, k, on_o, on_n)
         for k in sorted(set(off_o) | set(off_n)):
-            add("off-axis cylinder R%.4f z %.3f..%.3f" % k, off_o.get(k, 0), off_n.get(k, 0))
+            add_area("off-axis cylinder R%.4f z %.3f..%.3f, area mm2" % k, k, off_o, off_n)
     lv_o, lv_n = _plane_levels(o), _plane_levels(n)
     extra = [z for z in lv_n if z not in lv_o]
     if which == "compound" and extra:

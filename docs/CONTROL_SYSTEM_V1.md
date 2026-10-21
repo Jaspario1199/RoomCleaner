@@ -88,9 +88,13 @@ Jacobian, tension and workspace check takes `R`:
   rotation about the vertical is unobservable there and keeps its CAD value), stored, saved
   with the model and applied to every later vision pose; startup aborts if it exceeds
   `claw.mount_offset_max_rad` (5°: the claw is not resting upright or the mount is wrong).
-  Honest sigma of a vision roll/pitch: `claw.vision_attitude_sigma_rad` = 10 mrad
-  (not the 4 mrad of the IMU it replaced) combined with the standard error of the mount
-  measurement (frame scatter/√30, about 2–3 mrad). The estimator uses each
+  Honest sigma of a vision roll/pitch: **per frame, from the tag geometry** (§3.2: range, tag
+  size, focal length, corner noise, number of tags in view; 1–3 mrad for the printed board with
+  ≥ 3 tags in view, 13 mrad for the single 6-inch tag at the 0.5 m rest height, 50 mrad at 1 m)
+  plus the floor `claw.vision_attitude_floor_rad` (1 mrad), combined with the standard error
+  of the mount measurement (frame scatter/√30). `claw.vision_attitude_sigma_rad` (10 mrad) is
+  only the fallback for a frame that carries no covariance of its own (legacy frame source,
+  the simulator's fixed-noise mode); it no longer sets the sigma of detector frames. The estimator uses each
   sample's own `R` and `b_i` in the measurement model, the slack hypotheses
   (re-solved at the sample's `R`), the slack probe (response computed with the
   rigid-body 6×6 stiffness), bead verification, witnesses and identifiability;
@@ -147,6 +151,66 @@ reading (§6.2). Excitation grows in stages so model errors stay small. All
 position checks solve the pose slack-aware.
 
 ---
+
+### 3.2 Floor reference, per-frame vision covariance, camera-frame displacements (D27 follow-up)
+
+Source: `verification/imu_removal_review.md` (F1–F11), numbers in `verification/board_attitude_results.md`.
+Simulation only; the real corner noise, its frame-to-frame correlation and the lens are unmeasured.
+
+**Printed floor board.** Nine US Letter sheets, one AprilTag 36h11 (ids 0–8, 150 mm) per sheet, laid out as a 3×3 grid at
+**0.25 m pitch** (`vision.board.DEFAULT_PITCH_M`; validated up to `MAX_PITCH_M` = 0.28 m; `tools/print_floor_board.py`
+refuses more). At the old 0.42 m the resting claw (lens ≈ 0.5 m up) saw ONE tag in 8 of 8 seeds, so the board added nothing
+exactly where the floor stage needs it; at 0.25 m it sees 3–4. Letter sheets are 279 mm tall, so neighbours above and
+below overlap by ≈ 30 mm at this pitch: the instructions tell the user to overlap the blank paper margins (header, scale bar)
+and never any tag or its white border. The previous 450 mm printout is kept as `prints/floor_board_letter_450mm.pdf`.
+`marker.board_layout_file` (a surveyed `FloorBoardLayout` JSON) makes the service use the `BoardDetector` instead of the
+single-tag detector: a frame with ≥ 2 usable tags gets the joint multi-tag pose, a frame with one tag falls back to the
+single-tag pose with its own, honest covariance. Startup (floor stage, mount-offset measurement, every suspended pose) just
+consumes whichever the frame gave; the excitation design uses the same tags (`RobotContext.floor_board`).
+
+**Detector.** `MarkerDetector` polishes each IPPE candidate with Levenberg–Marquardt (`cv2.solvePnPRefineLM`; IPPE alone is
+~5× noisier in tilt face-on: 55 vs 10 mrad at 0.46 m); when LM maps both candidates to one pose there is one ML solution,
+not an ambiguity (a flip that is a real local minimum keeps its own pose and the prior rules decide, or the frame is
+refused).
+
+**Per-frame covariance.** Every accepted frame carries a 6×6 pose covariance (`MarkerObservation.pose_cov`): the
+Cramer–Rao bound of the pose from the corner reprojection Jacobian of the corners actually used (`pose_covariance`), iid
+corner noise `camera.corner_sigma_px` (0.3 px), standard deviation × `camera.pose_cov_inflate` (1.3). It reproduces the
+review's Monte Carlo (LM, 1 tag 0.52 m: 13.4 vs 13.5 mrad; board 9 tags 1.0 m: 0.61 vs 0.61). `claw_cov_from_pose`
+propagates it to the claw origin through the true lever, the marker-to-claw vector (`dp = Rᵀ([a]×dr − dt)`): for a camera
+looking down the lever error is **anisotropic, mostly horizontal** (z about 5–10× better than x, y), and it is correlated with the
+position error as the physics is. Nothing is added on top; the old `(rot_sigma·|camera→body|)²` term of
+`claw_position_cov` (the same rotation error counted twice, 1–2 % of the variance) is gone; a frame WITHOUT a covariance
+(legacy source) still gets the single marker-to-body isotropic lever `(claw.vision_attitude_sigma_rad·|p|)²`. The floor
+`claw.vision_attitude_floor_rad` (1 mrad: lens, JPEG, print flatness) is added to the attitude / absolute position only.
+`predicted_vision_cov` (excitation design) uses the same model.
+
+**Camera-frame displacements** (`perception.cam_displacement`). A tilt error of the absolute pose moves the claw position by
+tilt × lever (7 mm per axis per frame for one tag), and it does not cancel between two poses. Everything that decides "did
+the claw move?" therefore uses the displacement of the tags in the camera frame relative to a reference captured at the
+start of the probe / tension step, with ONE reference rotation: the camera-frame position `ξ = R·Q + t` of the corner centroid
+(noise 0.1–0.3 mm), the reference rotation turned about the claw's own z axis by the frame's measured yaw (a cable take-up
+yaws the claw degrees about that axis; without it the yaw reads as a lateral shift of tens of mm), and the frame's
+measured tilt change weighted by a Gauss–Markov factor (≈ 0 for one tag, ≈ 1 for a board; a tilt beyond 5σ (a noise spike must not read as motion) falls back to the
+frame's own rotation). For a claw RESTING ON THE FLOOR (take-up, pretension) `floor_displacement` uses the reference tilt only (no weight, no fallback): a tilt spike of one frame (16 mrad = 8 mm through the 0.5 m lever; seen once in the 0.5 px study) can then not read as a slide. Used by: the slack take-up onset and slide direction (`startup.slack_takeup`; the noise it scales
+with is the raw camera-frame scatter measured at SELF_CHECK, `vision_noise_m`), the pretension drag-watch (`DragWatch`: mean of
+the last 3 frames against max(3·onset, 10 mm, k × the mean's own σ) instead of one frame against a fixed 10 mm), the per-pose slack
+probe (reference = the still pose at the start of each cable's probe; the hinge fit gets the displacement series and its
+covariances), the recovery tauten, and the stillness test of `VisionSource.still_pose` (raw camera-frame scatter against
+`still_spread_max_m` + 3σ of that scatter: a 30 mm swing is no longer accepted because the absolute covariance is inflated).
+Absolute poses still feed the calibration samples with their honest covariance, and the sample's own attitude sigma enters the
+attachment-lever length noise as max(`calibration.attitude_sigma_rad`, its own): the configured 10 mrad is the floor, a poorly seen pose
+(one tag far away) is not credited with more than it delivers.
+
+**Simulator.** `SimCamera.noise_model = "tags"` (default): the pose error of a frame is drawn from the same Cramer–Rao
+covariance for the tags actually in view (corner noise `pixel_sigma`, 0.3 px; `est_pixel_sigma` is what the estimator is told),
+with a covariance on the frame; `"fixed"` is the previous iid 2 mrad per axis (regression). Not modelled: IPPE face-on flips
+(the real detector refuses or resolves them), correlated or biased corner errors, lens distortion.
+
+**Limits.** With ONE tag the absolute pose at suspended poses is poor (tilt 18 mrad per frame at 0.6 m, 7–15 mm per axis per frame):
+the take-up, probe and drag-watch still work (camera-frame displacements) but the calibration samples are an order of magnitude
+noisier than with the board (`tests/cdpr/test_slack_probe.py::test_single_tag_probe_limitation_is_documented`); a startup whose
+floor view has one tag falls back to it and is honest about it.
 
 ## 4. Synchronized motion (stations)
 
@@ -263,10 +327,10 @@ abort conditions. Aborts **hold**; they never disable.
 
 | State | Does | Aborts (→ FAULT / PAUSED / RECOVERY_REQUIRED) |
 |---|---|---|
-| SELF_CHECK | config complete for the stage, suspended motion authorised; stations configured (param hash), synced, fault-free, switches closed, armed; claw online, battery ≥ min; camera calibration id recorded; marker visible and still; **camera-to-body tilt offset measured** (30 frames, claw resting upright on its jaws over the printout, D27) and stored; claw on the floor at the expected height (±3 cm) | any check fails, or the measured mount offset > `claw.mount_offset_max_rad` |
-| SLACK_TAKEUP | one station at a time, a slow continuous retraction (claw on the floor = stations uncoupled), bounded by `max_slack_m`. Each vision frame is checked; claw motion ≥ max(onset_translation, k·noise) marks taut onset. Pulling continues to `bearing_translation_m` so the **slide direction** is measured, then a hold and a pay-out of `onset_backoff_m` | no onset within max slack (cable unattached, wrong winding direction, station order); marker lost > 1 s; tilt |
+| SELF_CHECK | config complete for the stage, suspended motion authorised; stations configured (param hash), synced, fault-free, switches closed, armed; claw online, battery ≥ min; camera calibration id recorded; marker visible and still; **camera-to-body tilt offset measured** (30 frames of the board pose when ≥ 2 tags are in view, else the single tag; claw resting upright on its jaws over the printout, D27) and stored, then **checked on a held-out set**: 30 fresh frames read through the corrected mount must agree with body z within 4× the combined standard error (≥ 3 mrad); claw on the floor at the expected height (±3 cm) | any check fails, the measured mount offset > `claw.mount_offset_max_rad`, or the held-out set disagrees ("camera-mount offset not reproducible": claw rocking or disturbed) |
+| SLACK_TAKEUP | one station at a time, a slow continuous retraction (claw on the floor = stations uncoupled), bounded by `max_slack_m`. Each vision frame is checked; claw motion (camera-frame displacement from the still pose taken at the start of this station's take-up, §3.2) ≥ max(onset_translation, k·noise) marks taut onset, noise = the raw camera-frame scatter measured at SELF_CHECK. Pulling continues to `bearing_translation_m` so the **slide direction** is measured, then a hold and a pay-out of `onset_backoff_m` | no onset within max slack (cable unattached, wrong winding direction, station order); marker lost > 1 s; tilt |
 | — after all four | slide bearings vs anchor entries (catches **swapped station wiring**); first fit → L0 per station + marker registration | bearing RMS > limit |
-| INITIAL_LIFT | all cables to just-taut, then vertical packets computed from the model's cable directions; vision after each | lateral drift > max, tilt > max, commanded − observed lift > budget, no clearance by `max_lift_m` |
+| INITIAL_LIFT | all cables to just-taut (pretension watched by the filtered camera-frame drag-watch, §3.2), then vertical packets computed from the model's cable directions; vision after each | claw dragged while tensioning, lateral drift > max, tilt > max, commanded − observed lift > budget, no clearance by `max_lift_m` |
 | VISUAL_INITIALIZATION | still pose while suspended → refit (with `startup.slack_probe`: probed first, §6.1a) | marker lost |
 | CALIBRATION | staged excitation: local box → intermediate → expanded, D-optimal poses + held-out witnesses, refit between stages (with `startup.slack_probe`: every pose probed first, §6.1a) | witness, residual, ambiguity or outlier failure; probe: no taut onset within `probe_max_m`, claw moved > 10 mm without onset |
 | REFERENCE_VERIFICATION | the trust decision (§6.5): margin check `assess_margin_trust`; the bead search per station (§6.4) only if `startup.bead_search` (default off), verified captures refit jointly | bead fault; refit rejected |
@@ -282,7 +346,10 @@ bias is amplified into `L0` by the weak absolute-length geometry (`verification/
 **What.** Before every suspended sample (the VISUAL_INITIALIZATION pose and every CALIBRATION fit/witness pose), after
 the claw has settled, each station in turn is probed (`StartupSequencer._probe_pose` / `_probe_cable`):
 
-1. A still reference pose (`probe_frames` frames; more, up to `probe_frames_max`, where vision is noisy).
+1. A still reference pose (`probe_frames` frames; more, up to `probe_frames_max`, where vision is noisy). Its rotation is the
+   one reference rotation of the probe: every later pose is measured as a camera-frame displacement from it (§3.2), not
+   through its own absolute pose, so the tilt-lever noise (7 mm per axis for one tag) does not enter and `sigma_proj` is the
+   camera-frame noise (0.1–0.3 mm).
 2. Cable `i` is retracted in steps of `probe_step_m` (0.5 mm; the step grows x1.5 up to `probe_max_step_m` while no
    response is seen), `probe_settle_s`, then a still pose after every step. All motion is `plan_cable_move` packets through
    `Coordinator.execute` (readiness, lease, tracking, station faults, pause, hold unchanged).
@@ -291,7 +358,8 @@ the claw has settled, each station in turn is probed (`StartupSequencer._probe_p
    cable geometry (`probe_response`: `x = (sum k_j u_j u_j^T)^-1 k_i u_i`, `k_j ~ 1/L_j`, the modulus cancels). `s` is
    profiled on a grid with the full per-measurement vision covariance. Onset is declared when the hinge beats "no response
    yet" by `onset_noise_k` sigma (the take-up's k) AND the fitted claw motion is at least `probe_onset_translation_m`
-   (1 mm, half of the take-up's absolute 2 mm: this is a differential measurement at one pose, no systematic offsets).
+   (1 mm, half of the take-up's absolute 2 mm: this is a differential measurement at one pose, no systematic offsets; the
+   reference is the first point of the series with its own covariance, the others carry theirs, `p0` is free).
    A cable that is already taut gives `s` = 0 within its sigma ("onset on the first step": the retraction is paid back).
 4. The measured slack `s` (profile minimum, 1-sigma from the profile) fixes the stopping point: the cable is paid out by
    `(peak retraction - s)` and left just taut (no safety margin, see the results report). The detection overshoot is not
@@ -316,7 +384,10 @@ significant onset also aborts. A pause (between steps or mid-step) holds and ret
 probed:** from the reference pose the over-retraction at which onset becomes detectable
 `rho = max(floor, k * sigma_proj) / |response|` is predicted; if it exceeds `probe_overshoot_max_m` (6 mm) with
 `probe_frames_max` frames, the cable is skipped at that pose (not probed blind), which bounds the tension excursion on a
-taut cable.
+taut cable. The same test is repeated after every undetected step with the noise of THAT measurement (the board can lose tags
+while the claw moves, so the reference's promise can become optimistic): if onset is no longer resolvable within the allowed
+over-retraction, the retraction is paid back and the cable is skipped at this pose instead of retracting on blind or
+aborting on noise.
 
 **Limits.** Simulation only. See `verification/slack_probe_results.md` for numbers, the coverage by pose height and the
 hardware caveats (tension rise when probing a taut cable on real Dyneema; recommended step; quantisation).
@@ -517,11 +588,16 @@ RELEASE → DELIVERY_VERIFICATION.
   camera-observed motion of the floor reference below `tasks.grip_still_rate_rad_s` (corner
   shift / (fx·dt)) for `tasks.grip_still_frames` consecutive frames; with no camera motion
   signal (reference not in view) a dwell of `tasks.grip_settle_periods` pendulum periods
-  `T = 2π√(L/g)`, L = depth of the CoM below the attachment plane (never less than
-  `tasks.grip_settle_min_s`). It then approves only if the tilt (vision when the reference is
-  in view, else the cable model) and the predicted `R_at` tilt at the hover and at the grip
-  pose are within `claw.grip_tilt_max_rad`. Each approval is recorded
-  (`TaskRunner.approvals`). The same settle gate precedes a release.
+  `T = 2π√(L/g)` × `tasks.grip_period_margin` (1.25: a rigid claw is a compound pendulum, ~20 % longer),
+  L = depth of the CoM below the attachment plane (never less than `tasks.grip_settle_min_s`).
+  The dwell is counted from the **last observed motion** (a claw seen swinging and then lost is not
+  approved early; with no motion ever seen it counts from the start of waiting). It then approves only
+  if the tilt (vision when the reference is in view, else the cable model) and the predicted `R_at` tilt
+  at the hover and at the grip pose are within `claw.grip_tilt_max_rad`. Each approval is recorded
+  (`TaskRunner.approvals`). The same settle gate precedes a **release**, with the loaded pendulum
+  (payload `tasks.max_payload_kg` at the jaw tips: L ≈ 0.39 m, period × 1.4) and its FULL dwell applied even when the
+  camera reports stillness (the swing after a transport is larger and slower than 5 quiet frames can show;
+  timeout extended to cover it).
 * The final descent is at 30 % speed. Transport is planned with claw mass
   plus the maximum payload (0.9 kg).
 * A servo command proves nothing: pickup and delivery are both checked by
@@ -690,6 +766,11 @@ measurements and failures (`data/cdpr/` holds calibration and trust JSON).
   link outage stop spread ≈ 18 ms.
 * Vision: marker detection and pose ambiguity handling (12 cases), marker
   sheet scale, ChArUco calibration recovery.
+* Vision-only attitude with the board (`tests/cdpr/test_board_attitude.py`, `test_slack_probe.py`, `test_margin_trust.py`):
+  LM vs IPPE, the covariance against Monte Carlo, anisotropy, no double-counted lever, board / single-tag fallback, layout and
+  printout (0.25 m, overlap text, 450 mm version kept), camera-frame displacement (noise, yaw of the claw), the filtered
+  drag-watch, the tag-derived simulator noise (and the fixed mode), the settle-gate fixes and the held-out mount check; the
+  8 formerly xfailed probe / margin tests run on the board fixture with unchanged thresholds; one documented single-tag test.
 * Margin trust (D26, `tests/cdpr/test_margin_trust.py`): boundary sigma
   against analytic cases and a Monte-Carlo of the nonlinear physics; one full
   board + probe startup VERIFIED by margin, re-decided with the probe off,

@@ -1,0 +1,854 @@
+%PDF-1.3
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/Contents 17 0 R /MediaBox [ 0 0 612 792 ] /Parent 16 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+5 0 obj
+<<
+/Contents 18 0 R /MediaBox [ 0 0 612 792 ] /Parent 16 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/Contents 19 0 R /MediaBox [ 0 0 612 792 ] /Parent 16 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+7 0 obj
+<<
+/Contents 20 0 R /MediaBox [ 0 0 612 792 ] /Parent 16 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+8 0 obj
+<<
+/Contents 21 0 R /MediaBox [ 0 0 612 792 ] /Parent 16 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+9 0 obj
+<<
+/Contents 22 0 R /MediaBox [ 0 0 612 792 ] /Parent 16 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+10 0 obj
+<<
+/Contents 23 0 R /MediaBox [ 0 0 612 792 ] /Parent 16 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+11 0 obj
+<<
+/Contents 24 0 R /MediaBox [ 0 0 612 792 ] /Parent 16 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+12 0 obj
+<<
+/Contents 25 0 R /MediaBox [ 0 0 612 792 ] /Parent 16 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+13 0 obj
+<<
+/Contents 26 0 R /MediaBox [ 0 0 612 792 ] /Parent 16 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+14 0 obj
+<<
+/PageMode /UseNone /Pages 16 0 R /Type /Catalog
+>>
+endobj
+15 0 obj
+<<
+/Author (RoomCleaner tools/print_floor_board.py) /CreationDate (D:20000101000000+00'00') /Creator (anonymous) /Keywords () /ModDate (D:20000101000000+00'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (unspecified) /Title (RoomCleaner floor reference \(US Letter\)) /Trapped /False
+>>
+endobj
+16 0 obj
+<<
+/Count 10 /Kids [ 4 0 R 5 0 R 6 0 R 7 0 R 8 0 R 9 0 R 10 0 R 11 0 R 12 0 R 13 0 R ] /Type /Pages
+>>
+endobj
+17 0 obj
+<<
+/Length 3606
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+0 g
+0 G
+BT /F2 17 Tf 20.4 TL ET
+BT 1 0 0 1 29.33858 735.3071 Tm (Floor reference: how to lay it out) Tj T* ET
+BT /F1 8.6 Tf 10.32 TL ET
+BT 1 0 0 1 29.33858 701.2913 Tm (1. Print this PDF on US Letter at 100 % \(Actual size, NOT 'fit to page'\); keep this page for yourself.) Tj T* ET
+BT /F1 8.6 Tf 10.32 TL ET
+BT 1 0 0 1 29.33858 686.5512 Tm (2. Measure the black square of sheet 0 \(should be 150 mm\) and enter it, in metres, as marker.edge_m.) Tj T* ET
+BT /F1 8.6 Tf 10.32 TL ET
+BT 1 0 0 1 29.33858 671.811 Tm (3. Put sheet 0 in the middle, directly under where the claw rests at startup.) Tj T* ET
+BT /F1 8.6 Tf 10.32 TL ET
+BT 1 0 0 1 29.33858 657.0709 Tm (4. Lay the other 8 sheets roughly as drawn below, about 450 mm centre to centre. Exact spacing) Tj T* ET
+BT /F1 8.6 Tf 10.32 TL ET
+BT 1 0 0 1 29.33858 642.3307 Tm (   and rotation do NOT matter - the robot surveys the layout itself - but they must not overlap or touch.) Tj T* ET
+BT /F1 8.6 Tf 10.32 TL ET
+BT 1 0 0 1 29.33858 627.5906 Tm (5. Every sheet must lie FLAT and fully visible: tape all corners down, no curl, no folds, no objects or cables) Tj T* ET
+BT /F1 8.6 Tf 10.32 TL ET
+BT 1 0 0 1 29.33858 612.8504 Tm (   across a tag, avoid glare \(close curtains / matte paper\). Carpet ridges and rugs that slide are not OK.) Tj T* ET
+BT /F1 8.6 Tf 10.32 TL ET
+BT 1 0 0 1 29.33858 598.1102 Tm (6. Sheet 0 defines the frame: its +X points right as printed. Enter the approximate room heading of) Tj T* ET
+BT /F1 8.6 Tf 10.32 TL ET
+BT 1 0 0 1 29.33858 583.3701 Tm (   that +X as marker.heading_prior_rad.) Tj T* ET
+BT /F1 8.6 Tf 10.32 TL ET
+BT 1 0 0 1 29.33858 568.6299 Tm (7. Do NOT move or bump any sheet once startup begins. If one moves, stop and run the survey again.) Tj T* ET
+BT /F2 8.5 Tf 10.2 TL ET
+BT 1 0 0 1 164.2677 552.4724 Tm (Schematic, looking down at the floor \(not to scale; the 0 sheet is the thick one\)) Tj T* ET
+1.6 w
+n 263.16 253.0885 85.68 110.88 re S
+.6 w
+n 276.2362 281.126 59.52756 59.52756 re S
+BT /F2 15 Tf 18 TL ET
+BT 1 0 0 1 298.063 304.6535 Tm (0) Tj T* ET
+.6 w
+n 84.57732 431.6712 85.68 110.88 re S
+.6 w
+n 97.65354 459.7087 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 121.1811 484.3701 Tm (1) Tj T* ET
+.6 w
+n 263.16 431.6712 85.68 110.88 re S
+.6 w
+n 276.2362 459.7087 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 299.7638 484.3701 Tm (2) Tj T* ET
+.6 w
+n 441.7427 431.6712 85.68 110.88 re S
+.6 w
+n 454.8189 459.7087 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 478.3465 484.3701 Tm (3) Tj T* ET
+.6 w
+n 441.7427 253.0885 85.68 110.88 re S
+.6 w
+n 454.8189 281.126 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 478.3465 305.7874 Tm (4) Tj T* ET
+.6 w
+n 441.7427 74.50583 85.68 110.88 re S
+.6 w
+n 454.8189 102.5433 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 478.3465 127.2047 Tm (5) Tj T* ET
+.6 w
+n 263.16 74.50583 85.68 110.88 re S
+.6 w
+n 276.2362 102.5433 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 299.7638 127.2047 Tm (6) Tj T* ET
+.6 w
+n 84.57732 74.50583 85.68 110.88 re S
+.6 w
+n 97.65354 102.5433 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 121.1811 127.2047 Tm (7) Tj T* ET
+.6 w
+n 84.57732 253.0885 85.68 110.88 re S
+.6 w
+n 97.65354 281.126 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 121.1811 305.7874 Tm (8) Tj T* ET
+.5 w
+n 127.4173 54.66331 m 306 54.66331 l S
+n 127.4173 58.06488 m 127.4173 51.26173 l S
+n 306 58.06488 m 306 51.26173 l S
+BT /F1 8.5 Tf 10.2 TL ET
+BT 1 0 0 1 133.0866 41.9074 Tm (about 450 mm centre to centre \(~1.1 m overall\)) Tj T* ET
+ 
+endstream
+endobj
+18 0 obj
+<<
+/Length 3108
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+0 g
+0 G
+BT /F2 96 Tf 115.2 TL ET
+BT 1 0 0 1 29.33858 689.9528 Tm (0) Tj T* ET
+BT /F2 15 Tf 18 TL ET
+BT 1 0 0 1 164.4094 743.811 Tm (ROOMCLEANER FLOOR REFERENCE) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 164.4094 723.9685 Tm (sheet 1 of 9   -   AprilTag 36h11 id 0) Tj T* ET
+BT /F2 9 Tf 10.8 TL ET
+BT 1 0 0 1 164.4094 706.9606 Tm (CENTRE SHEET: put it under the claw. It defines the floor frame:) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 164.4094 694.2047 Tm (+X = right as printed, +Y = up the page.) Tj T* ET
+.9 w
+n 496.063 698.4567 m 552.7559 698.4567 l S
+n 552.7559 698.4567 m 547.1405 701.1692 l S
+n 552.7559 698.4567 m 547.1405 695.7442 l S
+BT /F2 9 Tf 10.8 TL ET
+BT 1 0 0 1 557.0079 694.7717 Tm (+X) Tj T* ET
+.9 w
+n 581.1024 689.9528 m 581.1024 749.4803 l S
+n 581.1024 749.4803 m 578.3898 743.8649 l S
+n 581.1024 749.4803 m 583.8149 743.8649 l S
+BT /F2 9 Tf 10.8 TL ET
+BT 1 0 0 1 568.3465 753.7323 Tm (+Y) Tj T* ET
+0 g
+% FLOORBOARD-TAG-BEGIN id=0 edge_mm=150.0
+n 93.40157 572.315 425.1969 53.14961 re 93.40157 519.1654 159.4488 53.14961 re 306 519.1654 212.5984 53.14961 re 93.40157 466.0157 106.2992 53.14961 re 306 466.0157 53.14961 53.14961 re 412.2992 466.0157 106.2992 53.14961 re 93.40157 412.8661 212.5984 53.14961 re 359.1496 412.8661 53.14961 53.14961 re 465.4488 412.8661 53.14961 53.14961 re 93.40157 359.7165 212.5984 53.14961 re 412.2992 359.7165 106.2992 53.14961 re 93.40157 306.5669 53.14961 53.14961 re 199.7008 306.5669 53.14961 53.14961 re 412.2992 306.5669 106.2992 53.14961 re 93.40157 253.4173 53.14961 53.14961 re 199.7008 253.4173 53.14961 53.14961 re 306 253.4173 53.14961 53.14961 re 465.4488 253.4173 53.14961 53.14961 re 93.40157 200.2677 425.1969 53.14961 re
+f*
+% FLOORBOARD-TAG-END
+1.2 w
+n 40.25197 121.6063 m 323.7165 121.6063 l S
+.8 w
+n 40.25197 121.6063 m 40.25197 114.2362 l S
+.8 w
+n 68.59843 121.6063 m 68.59843 117.3543 l S
+.8 w
+n 96.94488 121.6063 m 96.94488 117.3543 l S
+.8 w
+n 125.2913 121.6063 m 125.2913 117.3543 l S
+.8 w
+n 153.6378 121.6063 m 153.6378 117.3543 l S
+.8 w
+n 181.9843 121.6063 m 181.9843 114.2362 l S
+.8 w
+n 210.3307 121.6063 m 210.3307 117.3543 l S
+.8 w
+n 238.6772 121.6063 m 238.6772 117.3543 l S
+.8 w
+n 267.0236 121.6063 m 267.0236 117.3543 l S
+.8 w
+n 295.3701 121.6063 m 295.3701 117.3543 l S
+.8 w
+n 323.7165 121.6063 m 323.7165 114.2362 l S
+BT /F1 8 Tf 9.6 TL ET
+BT 1 0 0 1 332.2205 118.2047 Tm (<- must measure 100 mm) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 98.92913 Tm (1. Print at ACTUAL SIZE / 100 % \(never 'fit to page'\). Print every sheet in one run, same settings.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 86.74016 Tm (2. With a ruler, MEASURE THE BLACK SQUARE EDGE of this sheet \(printed: 150.0 mm\). Enter the measured) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 74.55118 Tm (   value of sheet 0, in metres, as marker.edge_m in the robot config. Check the 100 mm bar above on every sheet.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 62.3622 Tm (3. Reprint any sheet whose black square differs from sheet 0 by more than 1 mm.) Tj T* ET
+ 
+endstream
+endobj
+19 0 obj
+<<
+/Length 2797
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+0 g
+0 G
+BT /F2 96 Tf 115.2 TL ET
+BT 1 0 0 1 29.33858 689.9528 Tm (1) Tj T* ET
+BT /F2 15 Tf 18 TL ET
+BT 1 0 0 1 164.4094 743.811 Tm (ROOMCLEANER FLOOR REFERENCE) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 164.4094 723.9685 Tm (sheet 2 of 9   -   AprilTag 36h11 id 1) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 164.4094 706.9606 Tm (Lay flat, any rotation, roughly where the layout page shows.) Tj T* ET
+.9 w
+n 581.1024 698.4567 m 581.1024 749.4803 l S
+n 581.1024 749.4803 m 578.3898 743.8649 l S
+n 581.1024 749.4803 m 583.8149 743.8649 l S
+BT /F2 7 Tf 8.4 TL ET
+BT 1 0 0 1 570.3307 753.7323 Tm (TOP) Tj T* ET
+0 g
+% FLOORBOARD-TAG-BEGIN id=1 edge_mm=150.0
+n 93.40157 572.315 425.1969 53.14961 re 93.40157 519.1654 53.14961 53.14961 re 199.7008 519.1654 106.2992 53.14961 re 359.1496 519.1654 159.4488 53.14961 re 93.40157 466.0157 53.14961 53.14961 re 199.7008 466.0157 53.14961 53.14961 re 359.1496 466.0157 53.14961 53.14961 re 465.4488 466.0157 53.14961 53.14961 re 93.40157 412.8661 212.5984 53.14961 re 412.2992 412.8661 106.2992 53.14961 re 93.40157 359.7165 159.4488 53.14961 re 465.4488 359.7165 53.14961 53.14961 re 93.40157 306.5669 53.14961 53.14961 re 306 306.5669 53.14961 53.14961 re 412.2992 306.5669 106.2992 53.14961 re 93.40157 253.4173 106.2992 53.14961 re 306 253.4173 53.14961 53.14961 re 465.4488 253.4173 53.14961 53.14961 re 93.40157 200.2677 425.1969 53.14961 re
+f*
+% FLOORBOARD-TAG-END
+1.2 w
+n 40.25197 121.6063 m 323.7165 121.6063 l S
+.8 w
+n 40.25197 121.6063 m 40.25197 114.2362 l S
+.8 w
+n 68.59843 121.6063 m 68.59843 117.3543 l S
+.8 w
+n 96.94488 121.6063 m 96.94488 117.3543 l S
+.8 w
+n 125.2913 121.6063 m 125.2913 117.3543 l S
+.8 w
+n 153.6378 121.6063 m 153.6378 117.3543 l S
+.8 w
+n 181.9843 121.6063 m 181.9843 114.2362 l S
+.8 w
+n 210.3307 121.6063 m 210.3307 117.3543 l S
+.8 w
+n 238.6772 121.6063 m 238.6772 117.3543 l S
+.8 w
+n 267.0236 121.6063 m 267.0236 117.3543 l S
+.8 w
+n 295.3701 121.6063 m 295.3701 117.3543 l S
+.8 w
+n 323.7165 121.6063 m 323.7165 114.2362 l S
+BT /F1 8 Tf 9.6 TL ET
+BT 1 0 0 1 332.2205 118.2047 Tm (<- must measure 100 mm) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 98.92913 Tm (1. Print at ACTUAL SIZE / 100 % \(never 'fit to page'\). Print every sheet in one run, same settings.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 86.74016 Tm (2. With a ruler, MEASURE THE BLACK SQUARE EDGE of this sheet \(printed: 150.0 mm\). Enter the measured) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 74.55118 Tm (   value of sheet 0, in metres, as marker.edge_m in the robot config. Check the 100 mm bar above on every sheet.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 62.3622 Tm (3. Reprint any sheet whose black square differs from sheet 0 by more than 1 mm.) Tj T* ET
+ 
+endstream
+endobj
+20 0 obj
+<<
+/Length 2719
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+0 g
+0 G
+BT /F2 96 Tf 115.2 TL ET
+BT 1 0 0 1 29.33858 689.9528 Tm (2) Tj T* ET
+BT /F2 15 Tf 18 TL ET
+BT 1 0 0 1 164.4094 743.811 Tm (ROOMCLEANER FLOOR REFERENCE) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 164.4094 723.9685 Tm (sheet 3 of 9   -   AprilTag 36h11 id 2) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 164.4094 706.9606 Tm (Lay flat, any rotation, roughly where the layout page shows.) Tj T* ET
+.9 w
+n 581.1024 698.4567 m 581.1024 749.4803 l S
+n 581.1024 749.4803 m 578.3898 743.8649 l S
+n 581.1024 749.4803 m 583.8149 743.8649 l S
+BT /F2 7 Tf 8.4 TL ET
+BT 1 0 0 1 570.3307 753.7323 Tm (TOP) Tj T* ET
+0 g
+% FLOORBOARD-TAG-BEGIN id=2 edge_mm=150.0
+n 93.40157 572.315 425.1969 53.14961 re 93.40157 519.1654 106.2992 53.14961 re 359.1496 519.1654 159.4488 53.14961 re 93.40157 466.0157 159.4488 53.14961 re 306 466.0157 212.5984 53.14961 re 93.40157 412.8661 53.14961 53.14961 re 199.7008 412.8661 106.2992 53.14961 re 359.1496 412.8661 159.4488 53.14961 re 93.40157 359.7165 318.8976 53.14961 re 465.4488 359.7165 53.14961 53.14961 re 93.40157 306.5669 106.2992 53.14961 re 252.8504 306.5669 106.2992 53.14961 re 412.2992 306.5669 106.2992 53.14961 re 93.40157 253.4173 53.14961 53.14961 re 306 253.4173 53.14961 53.14961 re 465.4488 253.4173 53.14961 53.14961 re 93.40157 200.2677 425.1969 53.14961 re
+f*
+% FLOORBOARD-TAG-END
+1.2 w
+n 40.25197 121.6063 m 323.7165 121.6063 l S
+.8 w
+n 40.25197 121.6063 m 40.25197 114.2362 l S
+.8 w
+n 68.59843 121.6063 m 68.59843 117.3543 l S
+.8 w
+n 96.94488 121.6063 m 96.94488 117.3543 l S
+.8 w
+n 125.2913 121.6063 m 125.2913 117.3543 l S
+.8 w
+n 153.6378 121.6063 m 153.6378 117.3543 l S
+.8 w
+n 181.9843 121.6063 m 181.9843 114.2362 l S
+.8 w
+n 210.3307 121.6063 m 210.3307 117.3543 l S
+.8 w
+n 238.6772 121.6063 m 238.6772 117.3543 l S
+.8 w
+n 267.0236 121.6063 m 267.0236 117.3543 l S
+.8 w
+n 295.3701 121.6063 m 295.3701 117.3543 l S
+.8 w
+n 323.7165 121.6063 m 323.7165 114.2362 l S
+BT /F1 8 Tf 9.6 TL ET
+BT 1 0 0 1 332.2205 118.2047 Tm (<- must measure 100 mm) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 98.92913 Tm (1. Print at ACTUAL SIZE / 100 % \(never 'fit to page'\). Print every sheet in one run, same settings.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 86.74016 Tm (2. With a ruler, MEASURE THE BLACK SQUARE EDGE of this sheet \(printed: 150.0 mm\). Enter the measured) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 74.55118 Tm (   value of sheet 0, in metres, as marker.edge_m in the robot config. Check the 100 mm bar above on every sheet.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 62.3622 Tm (3. Reprint any sheet whose black square differs from sheet 0 by more than 1 mm.) Tj T* ET
+ 
+endstream
+endobj
+21 0 obj
+<<
+/Length 2797
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+0 g
+0 G
+BT /F2 96 Tf 115.2 TL ET
+BT 1 0 0 1 29.33858 689.9528 Tm (3) Tj T* ET
+BT /F2 15 Tf 18 TL ET
+BT 1 0 0 1 164.4094 743.811 Tm (ROOMCLEANER FLOOR REFERENCE) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 164.4094 723.9685 Tm (sheet 4 of 9   -   AprilTag 36h11 id 3) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 164.4094 706.9606 Tm (Lay flat, any rotation, roughly where the layout page shows.) Tj T* ET
+.9 w
+n 581.1024 698.4567 m 581.1024 749.4803 l S
+n 581.1024 749.4803 m 578.3898 743.8649 l S
+n 581.1024 749.4803 m 583.8149 743.8649 l S
+BT /F2 7 Tf 8.4 TL ET
+BT 1 0 0 1 570.3307 753.7323 Tm (TOP) Tj T* ET
+0 g
+% FLOORBOARD-TAG-BEGIN id=3 edge_mm=150.0
+n 93.40157 572.315 425.1969 53.14961 re 93.40157 519.1654 212.5984 53.14961 re 412.2992 519.1654 106.2992 53.14961 re 93.40157 466.0157 106.2992 53.14961 re 252.8504 466.0157 106.2992 53.14961 re 465.4488 466.0157 53.14961 53.14961 re 93.40157 412.8661 53.14961 53.14961 re 199.7008 412.8661 106.2992 53.14961 re 359.1496 412.8661 53.14961 53.14961 re 465.4488 412.8661 53.14961 53.14961 re 93.40157 359.7165 53.14961 53.14961 re 306 359.7165 106.2992 53.14961 re 465.4488 359.7165 53.14961 53.14961 re 93.40157 306.5669 53.14961 53.14961 re 306 306.5669 212.5984 53.14961 re 93.40157 253.4173 53.14961 53.14961 re 199.7008 253.4173 106.2992 53.14961 re 465.4488 253.4173 53.14961 53.14961 re 93.40157 200.2677 425.1969 53.14961 re
+f*
+% FLOORBOARD-TAG-END
+1.2 w
+n 40.25197 121.6063 m 323.7165 121.6063 l S
+.8 w
+n 40.25197 121.6063 m 40.25197 114.2362 l S
+.8 w
+n 68.59843 121.6063 m 68.59843 117.3543 l S
+.8 w
+n 96.94488 121.6063 m 96.94488 117.3543 l S
+.8 w
+n 125.2913 121.6063 m 125.2913 117.3543 l S
+.8 w
+n 153.6378 121.6063 m 153.6378 117.3543 l S
+.8 w
+n 181.9843 121.6063 m 181.9843 114.2362 l S
+.8 w
+n 210.3307 121.6063 m 210.3307 117.3543 l S
+.8 w
+n 238.6772 121.6063 m 238.6772 117.3543 l S
+.8 w
+n 267.0236 121.6063 m 267.0236 117.3543 l S
+.8 w
+n 295.3701 121.6063 m 295.3701 117.3543 l S
+.8 w
+n 323.7165 121.6063 m 323.7165 114.2362 l S
+BT /F1 8 Tf 9.6 TL ET
+BT 1 0 0 1 332.2205 118.2047 Tm (<- must measure 100 mm) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 98.92913 Tm (1. Print at ACTUAL SIZE / 100 % \(never 'fit to page'\). Print every sheet in one run, same settings.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 86.74016 Tm (2. With a ruler, MEASURE THE BLACK SQUARE EDGE of this sheet \(printed: 150.0 mm\). Enter the measured) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 74.55118 Tm (   value of sheet 0, in metres, as marker.edge_m in the robot config. Check the 100 mm bar above on every sheet.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 62.3622 Tm (3. Reprint any sheet whose black square differs from sheet 0 by more than 1 mm.) Tj T* ET
+ 
+endstream
+endobj
+22 0 obj
+<<
+/Length 2768
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+0 g
+0 G
+BT /F2 96 Tf 115.2 TL ET
+BT 1 0 0 1 29.33858 689.9528 Tm (4) Tj T* ET
+BT /F2 15 Tf 18 TL ET
+BT 1 0 0 1 164.4094 743.811 Tm (ROOMCLEANER FLOOR REFERENCE) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 164.4094 723.9685 Tm (sheet 5 of 9   -   AprilTag 36h11 id 4) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 164.4094 706.9606 Tm (Lay flat, any rotation, roughly where the layout page shows.) Tj T* ET
+.9 w
+n 581.1024 698.4567 m 581.1024 749.4803 l S
+n 581.1024 749.4803 m 578.3898 743.8649 l S
+n 581.1024 749.4803 m 583.8149 743.8649 l S
+BT /F2 7 Tf 8.4 TL ET
+BT 1 0 0 1 570.3307 753.7323 Tm (TOP) Tj T* ET
+0 g
+% FLOORBOARD-TAG-BEGIN id=4 edge_mm=150.0
+n 93.40157 572.315 425.1969 53.14961 re 93.40157 519.1654 106.2992 53.14961 re 252.8504 519.1654 159.4488 53.14961 re 465.4488 519.1654 53.14961 53.14961 re 93.40157 466.0157 318.8976 53.14961 re 465.4488 466.0157 53.14961 53.14961 re 93.40157 412.8661 106.2992 53.14961 re 252.8504 412.8661 53.14961 53.14961 re 359.1496 412.8661 159.4488 53.14961 re 93.40157 359.7165 53.14961 53.14961 re 359.1496 359.7165 53.14961 53.14961 re 465.4488 359.7165 53.14961 53.14961 re 93.40157 306.5669 159.4488 53.14961 re 465.4488 306.5669 53.14961 53.14961 re 93.40157 253.4173 106.2992 53.14961 re 252.8504 253.4173 53.14961 53.14961 re 465.4488 253.4173 53.14961 53.14961 re 93.40157 200.2677 425.1969 53.14961 re
+f*
+% FLOORBOARD-TAG-END
+1.2 w
+n 40.25197 121.6063 m 323.7165 121.6063 l S
+.8 w
+n 40.25197 121.6063 m 40.25197 114.2362 l S
+.8 w
+n 68.59843 121.6063 m 68.59843 117.3543 l S
+.8 w
+n 96.94488 121.6063 m 96.94488 117.3543 l S
+.8 w
+n 125.2913 121.6063 m 125.2913 117.3543 l S
+.8 w
+n 153.6378 121.6063 m 153.6378 117.3543 l S
+.8 w
+n 181.9843 121.6063 m 181.9843 114.2362 l S
+.8 w
+n 210.3307 121.6063 m 210.3307 117.3543 l S
+.8 w
+n 238.6772 121.6063 m 238.6772 117.3543 l S
+.8 w
+n 267.0236 121.6063 m 267.0236 117.3543 l S
+.8 w
+n 295.3701 121.6063 m 295.3701 117.3543 l S
+.8 w
+n 323.7165 121.6063 m 323.7165 114.2362 l S
+BT /F1 8 Tf 9.6 TL ET
+BT 1 0 0 1 332.2205 118.2047 Tm (<- must measure 100 mm) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 98.92913 Tm (1. Print at ACTUAL SIZE / 100 % \(never 'fit to page'\). Print every sheet in one run, same settings.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 86.74016 Tm (2. With a ruler, MEASURE THE BLACK SQUARE EDGE of this sheet \(printed: 150.0 mm\). Enter the measured) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 74.55118 Tm (   value of sheet 0, in metres, as marker.edge_m in the robot config. Check the 100 mm bar above on every sheet.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 62.3622 Tm (3. Reprint any sheet whose black square differs from sheet 0 by more than 1 mm.) Tj T* ET
+ 
+endstream
+endobj
+23 0 obj
+<<
+/Length 2802
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+0 g
+0 G
+BT /F2 96 Tf 115.2 TL ET
+BT 1 0 0 1 29.33858 689.9528 Tm (5) Tj T* ET
+BT /F2 15 Tf 18 TL ET
+BT 1 0 0 1 164.4094 743.811 Tm (ROOMCLEANER FLOOR REFERENCE) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 164.4094 723.9685 Tm (sheet 6 of 9   -   AprilTag 36h11 id 5) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 164.4094 706.9606 Tm (Lay flat, any rotation, roughly where the layout page shows.) Tj T* ET
+.9 w
+n 581.1024 698.4567 m 581.1024 749.4803 l S
+n 581.1024 749.4803 m 578.3898 743.8649 l S
+n 581.1024 749.4803 m 583.8149 743.8649 l S
+BT /F2 7 Tf 8.4 TL ET
+BT 1 0 0 1 570.3307 753.7323 Tm (TOP) Tj T* ET
+0 g
+% FLOORBOARD-TAG-BEGIN id=5 edge_mm=150.0
+n 93.40157 572.315 425.1969 53.14961 re 93.40157 519.1654 159.4488 53.14961 re 359.1496 519.1654 53.14961 53.14961 re 465.4488 519.1654 53.14961 53.14961 re 93.40157 466.0157 106.2992 53.14961 re 359.1496 466.0157 159.4488 53.14961 re 93.40157 412.8661 53.14961 53.14961 re 252.8504 412.8661 53.14961 53.14961 re 359.1496 412.8661 53.14961 53.14961 re 465.4488 412.8661 53.14961 53.14961 re 93.40157 359.7165 106.2992 53.14961 re 306 359.7165 53.14961 53.14961 re 465.4488 359.7165 53.14961 53.14961 re 93.40157 306.5669 53.14961 53.14961 re 199.7008 306.5669 159.4488 53.14961 re 465.4488 306.5669 53.14961 53.14961 re 93.40157 253.4173 159.4488 53.14961 re 465.4488 253.4173 53.14961 53.14961 re 93.40157 200.2677 425.1969 53.14961 re
+f*
+% FLOORBOARD-TAG-END
+1.2 w
+n 40.25197 121.6063 m 323.7165 121.6063 l S
+.8 w
+n 40.25197 121.6063 m 40.25197 114.2362 l S
+.8 w
+n 68.59843 121.6063 m 68.59843 117.3543 l S
+.8 w
+n 96.94488 121.6063 m 96.94488 117.3543 l S
+.8 w
+n 125.2913 121.6063 m 125.2913 117.3543 l S
+.8 w
+n 153.6378 121.6063 m 153.6378 117.3543 l S
+.8 w
+n 181.9843 121.6063 m 181.9843 114.2362 l S
+.8 w
+n 210.3307 121.6063 m 210.3307 117.3543 l S
+.8 w
+n 238.6772 121.6063 m 238.6772 117.3543 l S
+.8 w
+n 267.0236 121.6063 m 267.0236 117.3543 l S
+.8 w
+n 295.3701 121.6063 m 295.3701 117.3543 l S
+.8 w
+n 323.7165 121.6063 m 323.7165 114.2362 l S
+BT /F1 8 Tf 9.6 TL ET
+BT 1 0 0 1 332.2205 118.2047 Tm (<- must measure 100 mm) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 98.92913 Tm (1. Print at ACTUAL SIZE / 100 % \(never 'fit to page'\). Print every sheet in one run, same settings.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 86.74016 Tm (2. With a ruler, MEASURE THE BLACK SQUARE EDGE of this sheet \(printed: 150.0 mm\). Enter the measured) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 74.55118 Tm (   value of sheet 0, in metres, as marker.edge_m in the robot config. Check the 100 mm bar above on every sheet.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 62.3622 Tm (3. Reprint any sheet whose black square differs from sheet 0 by more than 1 mm.) Tj T* ET
+ 
+endstream
+endobj
+24 0 obj
+<<
+/Length 2796
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+0 g
+0 G
+BT /F2 96 Tf 115.2 TL ET
+BT 1 0 0 1 29.33858 689.9528 Tm (6) Tj T* ET
+BT /F2 15 Tf 18 TL ET
+BT 1 0 0 1 164.4094 743.811 Tm (ROOMCLEANER FLOOR REFERENCE) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 164.4094 723.9685 Tm (sheet 7 of 9   -   AprilTag 36h11 id 6) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 164.4094 706.9606 Tm (Lay flat, any rotation, roughly where the layout page shows.) Tj T* ET
+.9 w
+n 581.1024 698.4567 m 581.1024 749.4803 l S
+n 581.1024 749.4803 m 578.3898 743.8649 l S
+n 581.1024 749.4803 m 583.8149 743.8649 l S
+BT /F2 7 Tf 8.4 TL ET
+BT 1 0 0 1 570.3307 753.7323 Tm (TOP) Tj T* ET
+0 g
+% FLOORBOARD-TAG-BEGIN id=6 edge_mm=150.0
+n 93.40157 572.315 425.1969 53.14961 re 93.40157 519.1654 53.14961 53.14961 re 199.7008 519.1654 53.14961 53.14961 re 306 519.1654 212.5984 53.14961 re 93.40157 466.0157 106.2992 53.14961 re 252.8504 466.0157 265.748 53.14961 re 93.40157 412.8661 53.14961 53.14961 re 199.7008 412.8661 53.14961 53.14961 re 412.2992 412.8661 106.2992 53.14961 re 93.40157 359.7165 53.14961 53.14961 re 199.7008 359.7165 106.2992 53.14961 re 359.1496 359.7165 53.14961 53.14961 re 465.4488 359.7165 53.14961 53.14961 re 93.40157 306.5669 106.2992 53.14961 re 306 306.5669 53.14961 53.14961 re 412.2992 306.5669 106.2992 53.14961 re 93.40157 253.4173 53.14961 53.14961 re 199.7008 253.4173 318.8976 53.14961 re 93.40157 200.2677 425.1969 53.14961 re
+f*
+% FLOORBOARD-TAG-END
+1.2 w
+n 40.25197 121.6063 m 323.7165 121.6063 l S
+.8 w
+n 40.25197 121.6063 m 40.25197 114.2362 l S
+.8 w
+n 68.59843 121.6063 m 68.59843 117.3543 l S
+.8 w
+n 96.94488 121.6063 m 96.94488 117.3543 l S
+.8 w
+n 125.2913 121.6063 m 125.2913 117.3543 l S
+.8 w
+n 153.6378 121.6063 m 153.6378 117.3543 l S
+.8 w
+n 181.9843 121.6063 m 181.9843 114.2362 l S
+.8 w
+n 210.3307 121.6063 m 210.3307 117.3543 l S
+.8 w
+n 238.6772 121.6063 m 238.6772 117.3543 l S
+.8 w
+n 267.0236 121.6063 m 267.0236 117.3543 l S
+.8 w
+n 295.3701 121.6063 m 295.3701 117.3543 l S
+.8 w
+n 323.7165 121.6063 m 323.7165 114.2362 l S
+BT /F1 8 Tf 9.6 TL ET
+BT 1 0 0 1 332.2205 118.2047 Tm (<- must measure 100 mm) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 98.92913 Tm (1. Print at ACTUAL SIZE / 100 % \(never 'fit to page'\). Print every sheet in one run, same settings.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 86.74016 Tm (2. With a ruler, MEASURE THE BLACK SQUARE EDGE of this sheet \(printed: 150.0 mm\). Enter the measured) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 74.55118 Tm (   value of sheet 0, in metres, as marker.edge_m in the robot config. Check the 100 mm bar above on every sheet.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 62.3622 Tm (3. Reprint any sheet whose black square differs from sheet 0 by more than 1 mm.) Tj T* ET
+ 
+endstream
+endobj
+25 0 obj
+<<
+/Length 2704
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+0 g
+0 G
+BT /F2 96 Tf 115.2 TL ET
+BT 1 0 0 1 29.33858 689.9528 Tm (7) Tj T* ET
+BT /F2 15 Tf 18 TL ET
+BT 1 0 0 1 164.4094 743.811 Tm (ROOMCLEANER FLOOR REFERENCE) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 164.4094 723.9685 Tm (sheet 8 of 9   -   AprilTag 36h11 id 7) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 164.4094 706.9606 Tm (Lay flat, any rotation, roughly where the layout page shows.) Tj T* ET
+.9 w
+n 581.1024 698.4567 m 581.1024 749.4803 l S
+n 581.1024 749.4803 m 578.3898 743.8649 l S
+n 581.1024 749.4803 m 583.8149 743.8649 l S
+BT /F2 7 Tf 8.4 TL ET
+BT 1 0 0 1 570.3307 753.7323 Tm (TOP) Tj T* ET
+0 g
+% FLOORBOARD-TAG-BEGIN id=7 edge_mm=150.0
+n 93.40157 572.315 425.1969 53.14961 re 93.40157 519.1654 159.4488 53.14961 re 306 519.1654 53.14961 53.14961 re 412.2992 519.1654 106.2992 53.14961 re 93.40157 466.0157 53.14961 53.14961 re 306 466.0157 212.5984 53.14961 re 93.40157 412.8661 106.2992 53.14961 re 359.1496 412.8661 53.14961 53.14961 re 465.4488 412.8661 53.14961 53.14961 re 93.40157 359.7165 159.4488 53.14961 re 306 359.7165 53.14961 53.14961 re 412.2992 359.7165 106.2992 53.14961 re 93.40157 306.5669 106.2992 53.14961 re 306 306.5669 212.5984 53.14961 re 93.40157 253.4173 159.4488 53.14961 re 306 253.4173 212.5984 53.14961 re 93.40157 200.2677 425.1969 53.14961 re
+f*
+% FLOORBOARD-TAG-END
+1.2 w
+n 40.25197 121.6063 m 323.7165 121.6063 l S
+.8 w
+n 40.25197 121.6063 m 40.25197 114.2362 l S
+.8 w
+n 68.59843 121.6063 m 68.59843 117.3543 l S
+.8 w
+n 96.94488 121.6063 m 96.94488 117.3543 l S
+.8 w
+n 125.2913 121.6063 m 125.2913 117.3543 l S
+.8 w
+n 153.6378 121.6063 m 153.6378 117.3543 l S
+.8 w
+n 181.9843 121.6063 m 181.9843 114.2362 l S
+.8 w
+n 210.3307 121.6063 m 210.3307 117.3543 l S
+.8 w
+n 238.6772 121.6063 m 238.6772 117.3543 l S
+.8 w
+n 267.0236 121.6063 m 267.0236 117.3543 l S
+.8 w
+n 295.3701 121.6063 m 295.3701 117.3543 l S
+.8 w
+n 323.7165 121.6063 m 323.7165 114.2362 l S
+BT /F1 8 Tf 9.6 TL ET
+BT 1 0 0 1 332.2205 118.2047 Tm (<- must measure 100 mm) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 98.92913 Tm (1. Print at ACTUAL SIZE / 100 % \(never 'fit to page'\). Print every sheet in one run, same settings.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 86.74016 Tm (2. With a ruler, MEASURE THE BLACK SQUARE EDGE of this sheet \(printed: 150.0 mm\). Enter the measured) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 74.55118 Tm (   value of sheet 0, in metres, as marker.edge_m in the robot config. Check the 100 mm bar above on every sheet.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 62.3622 Tm (3. Reprint any sheet whose black square differs from sheet 0 by more than 1 mm.) Tj T* ET
+ 
+endstream
+endobj
+26 0 obj
+<<
+/Length 2802
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+0 g
+0 G
+BT /F2 96 Tf 115.2 TL ET
+BT 1 0 0 1 29.33858 689.9528 Tm (8) Tj T* ET
+BT /F2 15 Tf 18 TL ET
+BT 1 0 0 1 164.4094 743.811 Tm (ROOMCLEANER FLOOR REFERENCE) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 164.4094 723.9685 Tm (sheet 9 of 9   -   AprilTag 36h11 id 8) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 164.4094 706.9606 Tm (Lay flat, any rotation, roughly where the layout page shows.) Tj T* ET
+.9 w
+n 581.1024 698.4567 m 581.1024 749.4803 l S
+n 581.1024 749.4803 m 578.3898 743.8649 l S
+n 581.1024 749.4803 m 583.8149 743.8649 l S
+BT /F2 7 Tf 8.4 TL ET
+BT 1 0 0 1 570.3307 753.7323 Tm (TOP) Tj T* ET
+0 g
+% FLOORBOARD-TAG-BEGIN id=8 edge_mm=150.0
+n 93.40157 572.315 425.1969 53.14961 re 93.40157 519.1654 53.14961 53.14961 re 199.7008 519.1654 53.14961 53.14961 re 359.1496 519.1654 53.14961 53.14961 re 465.4488 519.1654 53.14961 53.14961 re 93.40157 466.0157 106.2992 53.14961 re 252.8504 466.0157 53.14961 53.14961 re 465.4488 466.0157 53.14961 53.14961 re 93.40157 412.8661 53.14961 53.14961 re 412.2992 412.8661 106.2992 53.14961 re 93.40157 359.7165 53.14961 53.14961 re 306 359.7165 212.5984 53.14961 re 93.40157 306.5669 53.14961 53.14961 re 252.8504 306.5669 53.14961 53.14961 re 359.1496 306.5669 53.14961 53.14961 re 465.4488 306.5669 53.14961 53.14961 re 93.40157 253.4173 212.5984 53.14961 re 359.1496 253.4173 159.4488 53.14961 re 93.40157 200.2677 425.1969 53.14961 re
+f*
+% FLOORBOARD-TAG-END
+1.2 w
+n 40.25197 121.6063 m 323.7165 121.6063 l S
+.8 w
+n 40.25197 121.6063 m 40.25197 114.2362 l S
+.8 w
+n 68.59843 121.6063 m 68.59843 117.3543 l S
+.8 w
+n 96.94488 121.6063 m 96.94488 117.3543 l S
+.8 w
+n 125.2913 121.6063 m 125.2913 117.3543 l S
+.8 w
+n 153.6378 121.6063 m 153.6378 117.3543 l S
+.8 w
+n 181.9843 121.6063 m 181.9843 114.2362 l S
+.8 w
+n 210.3307 121.6063 m 210.3307 117.3543 l S
+.8 w
+n 238.6772 121.6063 m 238.6772 117.3543 l S
+.8 w
+n 267.0236 121.6063 m 267.0236 117.3543 l S
+.8 w
+n 295.3701 121.6063 m 295.3701 117.3543 l S
+.8 w
+n 323.7165 121.6063 m 323.7165 114.2362 l S
+BT /F1 8 Tf 9.6 TL ET
+BT 1 0 0 1 332.2205 118.2047 Tm (<- must measure 100 mm) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 98.92913 Tm (1. Print at ACTUAL SIZE / 100 % \(never 'fit to page'\). Print every sheet in one run, same settings.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 86.74016 Tm (2. With a ruler, MEASURE THE BLACK SQUARE EDGE of this sheet \(printed: 150.0 mm\). Enter the measured) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 74.55118 Tm (   value of sheet 0, in metres, as marker.edge_m in the robot config. Check the 100 mm bar above on every sheet.) Tj T* ET
+BT /F1 7.6 Tf 9.12 TL ET
+BT 1 0 0 1 40.25197 62.3622 Tm (3. Reprint any sheet whose black square differs from sheet 0 by more than 1 mm.) Tj T* ET
+ 
+endstream
+endobj
+xref
+0 27
+0000000000 65535 f 
+0000000061 00000 n 
+0000000102 00000 n 
+0000000209 00000 n 
+0000000321 00000 n 
+0000000516 00000 n 
+0000000711 00000 n 
+0000000906 00000 n 
+0000001101 00000 n 
+0000001296 00000 n 
+0000001491 00000 n 
+0000001687 00000 n 
+0000001883 00000 n 
+0000002079 00000 n 
+0000002275 00000 n 
+0000002345 00000 n 
+0000002669 00000 n 
+0000002788 00000 n 
+0000006446 00000 n 
+0000009606 00000 n 
+0000012455 00000 n 
+0000015226 00000 n 
+0000018075 00000 n 
+0000020895 00000 n 
+0000023749 00000 n 
+0000026597 00000 n 
+0000029353 00000 n 
+trailer
+<<
+/ID 
+[<7bd4c0ca8a73b048df53bc8931ce9d63><7bd4c0ca8a73b048df53bc8931ce9d63>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 15 0 R
+/Root 14 0 R
+/Size 27
+>>
+startxref
+32207
+%%EOF

@@ -437,3 +437,8 @@ Adafruit 3886 MPU-6050 as selected, "not recorded ordered").
   ~0.11 mm per side; test-fit before enlarging. If enlarging is needed, ream or
   file it by hand (no pressing). Deburr both faces flat, because burrs cost
   thermal contact.
+- Heat fin test fit on the NEMA 17 (photos 16–18, 10/21): pilot boss sits
+  centred in the 7/8 in hole with an even gap; all four M3 threads line up
+  through the fin holes. The 0.48 mm sheet bows along its 250 mm length when
+  handled, so flatten it before the final mount; the free length may buzz
+  with stepper vibration (watch for this in the hold test).

@@ -37,19 +37,27 @@ class SimRobot:
         self.camera = CameraModel.load(cfg.camera.intrinsics_file)
         ck = dict(camera_kw or {})
         # D27: the true camera mount differs from the configured one by a random tilt (``mount_err_rad`` per axis,
-        # about the camera's horizontal axes) that the startup has to measure. The plant's attitude noise stays
-        # ``SimCamera.rot_sigma`` (2 mrad, the level the IMU simulation had); the ESTIMATOR is told
-        # ``claw.vision_attitude_sigma_rad`` (10 mrad). Noisier plants: pass ``camera_kw={"rot_sigma": ...}``
-        # (verification/imu_removal_results.md: at 5-10 mrad the floor-stage checks fail).
+        # about the camera's horizontal axes) that the startup has to measure.
+        # Measurement noise (SimCamera.noise_model, default "tags"): drawn from the tags actually in view with corner noise
+        # ``camera.corner_sigma_px`` (0.3 px, configurable; ``camera_kw={"pixel_sigma": ...}`` changes the PLANT only, add
+        # ``est_pixel_sigma`` to change what the estimator is told); every frame carries its own covariance. The old
+        # fixed iid attitude noise (2 mrad plant, estimator told claw.vision_attitude_sigma_rad) is
+        # ``camera_kw={"noise_model": "fixed"}`` (regression).
         mrng = np.random.default_rng(seed + 777)
         ck.setdefault("mount_rotvec", (*mrng.normal(0.0, mount_err_rad, 2), 0.0))
+        ck.setdefault("pixel_sigma", cfg.camera.corner_sigma_px)
+        ck.setdefault("cov_inflate", cfg.camera.pose_cov_inflate)
         self.simcam = SimCamera(self.world, self.camera, cfg.claw.T_body_cam, cfg.marker.edge_m,
                                 min_side_px=cfg.camera.min_marker_pixels, seed=seed, **ck)
         self.claw = SimClaw(self.world, self.simcam, seed=seed)
         self.vision = VisionSource(self.simcam, cfg.claw.T_body_cam, self.camera.fx, cfg.marker.edge_m,
                                    max_age_s=cfg.camera.max_frame_age_s, now_us=self.rt.now_us,
-                                   pixel_sigma=ck.get("pixel_sigma", 0.3), imu=self.claw if cfg.claw.imu else None,
-                                   rot_sigma=cfg.claw.vision_attitude_sigma_rad)
+                                   pixel_sigma=ck.get("est_pixel_sigma") or ck["pixel_sigma"],
+                                   imu=self.claw if cfg.claw.imu else None,
+                                   rot_sigma=cfg.claw.vision_attitude_sigma_rad, rot_floor=cfg.claw.vision_attitude_floor_rad)
         self.ledger = TrustLedger()
         self.ctx = RobotContext(cfg, self.co, self.claw, self.vision, self.camera, self.ledger, log=log,
                                 data_dir=data_dir)
+        # a board floor reference: the excitation design (visibility, predicted covariance) knows its layout, as it would
+        # from the surveyed layout file on the hardware (marker.board_layout_file)
+        self.ctx.floor_board = ck.get("board")

@@ -153,8 +153,10 @@ def test_pendulum_period_from_the_claw_geometry():
     assert L == pytest.approx(0.19638, abs=1e-4)          # attachment plane z = 0, CoM z = -0.196 m
     T = pendulum_period_s(L)
     assert 0.85 < T < 0.95
+    # each period carries the margin that covers the compound-pendulum lengthening (tasks.grip_period_margin, 1.25)
     assert settle_dwell_s(cfg.claw, cfg.tasks) == pytest.approx(max(cfg.tasks.grip_settle_min_s,
-                                                                   cfg.tasks.grip_settle_periods * T))
+                                                                   cfg.tasks.grip_settle_periods
+                                                                   * cfg.tasks.grip_period_margin * T))
 
 
 def test_dwell_falls_back_to_the_minimum_when_there_is_no_valid_pendulum():
@@ -163,7 +165,7 @@ def test_dwell_falls_back_to_the_minimum_when_there_is_no_valid_pendulum():
     assert pendulum_length_m(claw) is None                # CoM above the attachment plane: not hanging below it
     assert settle_dwell_s(claw, cfg.tasks) == cfg.tasks.grip_settle_min_s
     assert pendulum_length_m(SimpleNamespace(com_body_m=None, attachment_points_body_m=np.zeros((4, 3)))) is None
-    tk = SimpleNamespace(grip_settle_min_s=2.0, grip_settle_periods=5.0)
+    tk = SimpleNamespace(grip_settle_min_s=2.0, grip_settle_periods=5.0, grip_period_margin=1.0)
     short = SimpleNamespace(com_body_m=np.array([0, 0, -0.02]), attachment_points_body_m=np.zeros((4, 3)))
     assert settle_dwell_s(short, tk) == 2.0                # 5 x 0.28 s < the floor
     long = SimpleNamespace(com_body_m=np.array([0, 0, -0.5]), attachment_points_body_m=np.zeros((4, 3)))
@@ -318,7 +320,10 @@ def test_new_config_fields_have_validated_defaults():
     assert math.degrees(cfg.claw.mount_offset_max_rad) == pytest.approx(5.0)
     tk = cfg.tasks
     assert (tk.grip_still_rate_rad_s, tk.grip_still_frames, tk.grip_settle_periods) == (0.02, 5, 5.0)
-    assert tk.grip_settle_min_s <= tk.grip_settle_timeout_s
+    assert tk.grip_settle_min_s <= tk.grip_settle_timeout_s and tk.grip_period_margin == 1.25
+    # per-frame covariance of the detectors: corner noise, margin, least attitude sigma
+    assert cfg.camera.corner_sigma_px == 0.3 and cfg.camera.pose_cov_inflate == 1.3
+    assert cfg.claw.vision_attitude_floor_rad == 0.001 and cfg.marker.board_layout_file is None
 
 
 @pytest.mark.parametrize("change,msg", [
@@ -332,6 +337,9 @@ def test_new_config_fields_have_validated_defaults():
     ({"claw.mount_offset_max_rad": float("nan")}, "mount_offset_max_rad"),
     ({"claw.grip_tilt_max_rad": 0.9}, "sane limit"),
     ({"calibration.attitude_sigma_rad": 0.004}, "no IMU"),
+    ({"claw.vision_attitude_floor_rad": 0.0}, "vision_attitude_floor_rad"),
+    ({"camera.corner_sigma_px": -0.3}, "corner_sigma_px"),
+    ({"tasks.grip_period_margin": 0.0}, "grip_period_margin"),
 ])
 def test_config_validation_rejects_bad_attitude_and_grip_fields(change, msg):
     import json

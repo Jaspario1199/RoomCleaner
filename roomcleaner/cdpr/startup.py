@@ -75,7 +75,7 @@ from .calibration import (IDS, BeadObs, Calibrator, OnsetSample, PoseSample, Pri
 from .attitude import mount_offset_from_up
 from .frames import inv_T, make_T, matrix_to_rotvec, planar_T, rotvec_to_matrix, tilt_angle
 from .kinematics import Geometry, geometry_from_config, tension_distribution, workspace_from_config
-from .perception import to_marker, to_room
+from .perception import cam_displacement, floor_displacement, to_marker, to_room
 from .spool import CableMap
 from .protocol import State
 from .trajectory import PlanError, limits_from_config, model_from, plan_cable_move, plan_line_from
@@ -175,6 +175,35 @@ class StartupReport:
     reasons: list = field(default_factory=list)
 
 
+class DragWatch:
+    """Pretension drag-watch: is the claw being dragged while the cables are tensioned?
+
+    Camera-frame displacement (``perception.floor_displacement``: one reference tilt, so the absolute pose's tilt-lever
+    noise cancels) from the still pose ``ref`` taken at the start of the step, FILTERED over the last ``n`` frames: the
+    mean displacement must exceed ``max(floor_m, k x the mean's own 1-sigma)``, the sigma coming from the per-frame
+    covariances (largest principal axis of the mean's covariance plus the reference's). A single frame never trips it,
+    and the threshold follows the noise: a noisier view (one tag) raises it instead of producing false alarms, and the
+    old fixed 10 mm single-frame threshold is only the floor of the threshold."""
+
+    def __init__(self, ref, *, floor_m: float, k: float, n: int = 3):
+        self.ref, self.floor_m, self.k, self.n = ref, float(floor_m), float(k), int(n)
+        self.win: list = []
+        self.last_disp_m = 0.0
+        self.last_thr_m = float(floor_m)
+
+    def update(self, o) -> bool:
+        """Feed one good frame (``PoseObs``); True = dragged."""
+        d, c_o, c_r = floor_displacement(o, self.ref)         # the claw rests on the floor: its tilt is the reference's
+        self.win = (self.win + [(d, c_o)])[-self.n:]
+        if len(self.win) < self.n:
+            return False
+        m = np.mean([w[0] for w in self.win], axis=0)
+        C = np.mean([w[1] for w in self.win], axis=0) / self.n + c_r
+        self.last_disp_m = float(np.linalg.norm(m))
+        self.last_thr_m = max(self.floor_m, self.k * math.sqrt(float(np.linalg.eigvalsh(C)[-1])))
+        return self.last_disp_m > self.last_thr_m
+
+
 class RobotContext:
     """Everything the procedures share. Working frame for motion: the room."""
 
@@ -197,6 +226,7 @@ class RobotContext:
         self.persist = lambda: None         # supervisor installs its durable save here
         self.claw_yaw_room = 0.0            # last measured claw yaw (room frame): the yaw the attitude statics hold
         self.claw_ref_room = None           # (p, R) of the last measured claw pose (room frame)
+        self.floor_board = None             # vision.board.BoardGeometry of the surveyed floor-reference layout (None = single tag)
 
     @property
     def T_B_C(self):
@@ -336,6 +366,16 @@ class StartupSequencer:
     # covariance with the board's effective span instead of the single tag edge.
     study_board = None
 
+    # The pretension drag-watch (INITIAL_LIFT, class DragWatch) judges the camera-frame displacement of the claw with a
+    # filter over this many frames: the mean of the last N displacements against max(3 x onset_translation, 10 mm, k x the
+    # mean's own sigma).
+    DRAG_WATCH_FRAMES = 3
+    DRAG_WATCH_FLOOR_M = 0.010
+    # Mount-offset hold-out check (SELF_CHECK): the residual tilt of a fresh set of frames against the corrected mount
+    # may not exceed MOUNT_RECHECK_K sigma of the two measurements (and at least MOUNT_RECHECK_FLOOR_RAD).
+    MOUNT_RECHECK_K = 4.0
+    MOUNT_RECHECK_FLOOR_RAD = 0.003
+
     def __init__(self, ctx: RobotContext):
         self.ctx = ctx
         self.cfg = ctx.cfg
@@ -346,6 +386,12 @@ class StartupSequencer:
         self.cal_report: dict | None = None     # last acceptance report of the final calibration
 
     # -------------------------------------------------------------- helpers
+    @property
+    def board(self):
+        """Visibility / span queries of the multi-tag floor reference (sim.world.FloorBoard or vision.board.BoardGeometry
+        of a surveyed layout), or None for the single tag. ``study_board`` (class attribute) wins over the context's."""
+        return self.study_board if self.study_board is not None else getattr(self.ctx, "floor_board", None)
+
     def _enter(self, state, msg=""):
         self.rep.state = state
         self.rep.history.append((round(self.ctx.now_s(), 3), state, msg))
@@ -363,8 +409,15 @@ class StartupSequencer:
     def _measure_mount(self, sp, S):
         """Camera-to-body tilt offset (D27), measured at EVERY startup while the claw rests upright on its jaws over
         the printout: the marker normal seen by the camera is body z. Stored in the context (and the saved model) and
-        applied to every later vision pose; returns a fresh still pose taken with the corrected mount. Aborts if the
-        offset is implausibly large (claw not resting upright, or the camera mount is wrong)."""
+        applied to every later vision pose. Aborts if the offset is implausibly large (claw not resting upright, or the
+        camera mount is wrong).
+
+        The correction is then CHECKED against a held-out set of frames: a fresh, independent set of ``MOUNT_FRAMES``
+        frames is taken (the claw is not touched in between) and its mean marker normal, read through the corrected
+        mount, must agree with body z within ``MOUNT_RECHECK_K`` x the combined standard error of the two sets (at
+        least ``MOUNT_RECHECK_FLOOR_RAD``). A claw that is rocking, a rest tilt that changed, or a measurement that is not
+        reproducible fails here; the old 'tilt after correction' test on the same data was zero by construction.
+        Returns the held-out still pose (corrected mount) used by the rest of SELF_CHECK."""
         ctx, cfg = self.ctx, self.cfg
         off = mount_offset_from_up(ctx.vision.T_B_C_nominal[:3, :3], sp.up_cam, sigma_rad=sp.up_sigma_rad, n=sp.n)
         if off.angle_rad > cfg.claw.mount_offset_max_rad:
@@ -372,11 +425,27 @@ class StartupSequencer:
                                   f"{math.degrees(cfg.claw.mount_offset_max_rad):.1f} deg: the claw is not resting upright "
                                   "on its jaws, or the camera mount differs from the CAD")
         ctx.set_mount_offset(off)
+        held = self._still(state=S, min_frames=MOUNT_FRAMES)
+        R_B_C = ctx.vision.T_B_C[:3, :3]
+        u_pred = R_B_C.T @ np.array([0.0, 0.0, 1.0])                 # body z in camera axes, through the corrected mount
+        u_meas = np.asarray(held.up_cam, float)
+        resid = float(math.acos(float(np.clip(u_pred @ u_meas, -1.0, 1.0))))
+        sig = math.hypot(sp.up_sigma_rad, held.up_sigma_rad)
+        limit = max(self.MOUNT_RECHECK_K * sig, self.MOUNT_RECHECK_FLOOR_RAD)
         self.rep.measurements["camera_mount_offset_rad"] = off.angle_rad
         self.rep.measurements["camera_mount_offset_sigma_rad"] = off.sigma_rad
+        self.rep.measurements["camera_mount_holdout_residual_rad"] = resid
+        self.rep.measurements["camera_mount_holdout_limit_rad"] = limit
+        if resid > limit:
+            ctx.mount_angle_rad, ctx.mount_sigma_rad = None, 0.0
+            ctx.vision.set_mount_offset(np.eye(3))
+            raise StartupAbort(S, f"camera-mount offset not reproducible: a held-out set of {held.n} frames disagrees with the "
+                                  f"corrected mount by {math.degrees(resid):.2f} deg (limit {math.degrees(limit):.2f} deg = "
+                                  f"{self.MOUNT_RECHECK_K:g} sigma): the claw is moving or was disturbed between the sets")
         ctx.log(f"camera mount tilt offset {math.degrees(off.angle_rad):.2f} deg "
-                f"(+-{math.degrees(off.sigma_rad):.2f}, {off.n} frames)")
-        return self._still(state=S, min_frames=MOUNT_FRAMES)
+                f"(+-{math.degrees(off.sigma_rad):.2f}, {off.n} frames); held-out check {math.degrees(resid):.2f} deg "
+                f"(limit {math.degrees(limit):.2f})")
+        return held
 
     def _execute(self, plan, state, *, suspended, monitor=None, stop_on_capture=False):
         r = self.ctx.co.execute(plan, monitor=monitor, stop_on_capture=stop_on_capture)
@@ -429,7 +498,9 @@ class StartupSequencer:
         # 1) the claw must demonstrably rest upright on the floor BEFORE any
         #    station is touched; only then is clearing latched faults safe
         sp = self._measure_mount(self._still(state=S, min_frames=MOUNT_FRAMES), S)
-        self.noise_m = max(sp.spread_m, 2e-4)
+        # vision noise for the onset thresholds: the RAW camera-frame scatter of the frames (not the absolute-pose
+        # scatter, whose tilt-lever part cancels in every displacement the take-up and the probe use)
+        self.noise_m = max(sp.spread_cam_m, 2e-4)
         zf = -float(cfg.claw.lowest_point_body_m[2])
         if abs(sp.p[2] - zf) > cfg.startup.floor_height_tol_m:
             raise StartupAbort(S, f"claw origin {sp.p[2]:.3f} m above the marker, expected {zf:.3f} m: "
@@ -467,6 +538,9 @@ class StartupSequencer:
             raise StartupAbort(S, f"stations not ready after arming: {bad}")
         self.p_floor = sp
         self.rep.measurements["vision_noise_m"] = self.noise_m
+        self.rep.measurements["vision_noise_absolute_m"] = sp.spread_m
+        self.rep.measurements["floor_tags_in_view"] = sp.n_tags
+        self.rep.measurements["floor_attitude_sigma_rad"] = sp.att_sigma_rad
         self.rep.measurements["claw_on_floor_M"] = sp.p.tolist()
 
     # ---------------------------------------------------------- SLACK_TAKEUP
@@ -490,7 +564,9 @@ class StartupSequencer:
                     mon["lost"] += st.frame_interval_s
                     return f"marker lost ({o.reason})" if mon["lost"] > 1.0 else None
                 mon["lost"] = 0.0
-                disp = float(np.linalg.norm(o.p - ref.p))
+                # camera-frame displacement from the reference captured at the start of this station's take-up
+                # (one reference tilt: the per-frame tilt-lever noise of the absolute pose cancels)
+                disp = float(np.linalg.norm(floor_displacement(o, ref)[0]))
                 mon["max_disp"] = max(mon["max_disp"], disp)
                 if mon["onset"] is None and disp >= thr:
                     mon["onset"] = float(ctx.co.positions()[i])
@@ -514,7 +590,7 @@ class StartupSequencer:
                 raise StartupAbort(S, f"station {sid}: {r.reason}")
             ctx.wait(st.settle_s)
             end = self._still(state=S)
-            d = end.p - ref.p
+            d = floor_displacement(end, ref)[0]          # slide direction from the camera-frame displacement
             o = OnsetSample(i, float(ctx.co.positions()[i]), end.p, end.R, end.cov,
                             bearing=math.atan2(d[1], d[0]), bearing_from=ref.p.copy(),
                             bearing_sigma=st.bearing_sigma_rad)
@@ -571,14 +647,16 @@ class StartupSequencer:
         target = ctx.model.positions_for(p0)
         rate = self._cable_rate(st.probe_speed_m_s * 2)
         drag = {"bad": None, "next": 0.0}
+        dw = DragWatch(sp, floor_m=max(3 * st.onset_translation_m, self.DRAG_WATCH_FLOOR_M), k=st.onset_noise_k,
+                       n=self.DRAG_WATCH_FRAMES)
 
         def watch(tau):
             if ctx.now_s() < drag["next"]:
                 return None
             drag["next"] = ctx.now_s() + st.frame_interval_s
             o = ctx.vision.observe()
-            if o.ok and np.linalg.norm(o.p - sp.p) > max(3 * st.onset_translation_m, 0.01):
-                drag["bad"] = float(np.linalg.norm(o.p - sp.p))
+            if o.ok and dw.update(o):
+                drag["bad"] = dw.last_disp_m
                 return "claw dragged while tensioning"
             return None
         r = self._execute(plan_cable_move(P, target - P, rate, rate / 0.2, segment_s=cfg.motion.segment_s,
@@ -622,7 +700,7 @@ class StartupSequencer:
         ctx = self.ctx
         ctx.wait(self.cfg.startup.settle_s)
         sp = self._still(n=self.cfg.calibration.noise_capture_frames, state=state, suspended=True)
-        return PoseSample(ctx.co.positions().copy(), sp.p, sp.R, sp.cov, kind, ctx.now_s())
+        return PoseSample(ctx.co.positions().copy(), sp.p, sp.R, sp.cov, kind, ctx.now_s(), att_sigma_rad=sp.att_sigma_rad)
 
     # ------------------------------------------------------------ slack probe
     # Fraction of the measured slack's 1-sigma by which a probed cable is left on the slack side of its onset (so it
@@ -645,9 +723,22 @@ class StartupSequencer:
         v = ctx.T_R_M[:3, :3].T @ probe_response(ctx.model.geometry, ctx.room_pose(ref), i, R=ctx.room_R(ref))
         vn = float(np.linalg.norm(v))
         vhat = v / vn
-        sig_proj = math.sqrt(float(vhat @ (2.0 * ref.cov) @ vhat))
+        sig_proj = math.sqrt(float(vhat @ (2.0 * ref.cov_cam) @ vhat))       # camera-frame noise: reference + one measurement
         rho = max(st.probe_onset_translation_m, st.onset_noise_k * sig_proj) / vn
         return v, vn, sig_proj, rho
+
+    def _probe_payout(self, i, back, state):
+        """Pay out ``back`` metres of cable ``i`` (undo part or all of a probe retraction; below half a microstep nothing)."""
+        ctx, cfg, st = self.ctx, self.cfg, self.cfg.startup
+        if back > 0.5 * ctx.ppu(i):
+            pb = np.zeros(4)
+            pb[i] = back / ctx.ppu(i)
+            rate = st.probe_speed_m_s
+            rb = self._execute(plan_cable_move(ctx.co.positions(), pb, rate / ctx.ppu(i), rate / ctx.ppu(i) / 0.2,
+                                               segment_s=cfg.motion.segment_s, label=f"probe back {IDS[i]}"),
+                               state, suspended=True)
+            if not rb.ok:
+                raise StartupAbort(state, f"station {IDS[i]}: probe pay-out {rb.reason}", suspended=True)
 
     def _probe_cable(self, i, ref, n_frames, state):
         """Retract cable ``i`` in small steps until the claw moves (taut onset), measure the slack, leave
@@ -660,7 +751,12 @@ class StartupSequencer:
         rec = {"station": sid, "status": "ok", "response_per_m": vn, "detect_overshoot_m": rho,
                "sigma_proj_m": sig_proj, "frames": n_frames}
         rate = st.probe_speed_m_s
-        r_arr, P_arr, C_arr = [0.0], [ref.p], [ref.cov]
+        # The series is a DIFFERENTIAL one: displacements relative to ``ref`` measured in the camera frame under one
+        # reference tilt (perception.cam_displacement), so the absolute pose's tilt-lever noise does not enter. The
+        # reference is the first point (its own camera-frame noise); the offset to the absolute position is a constant
+        # that the hinge fit's free ``p0`` absorbs.
+        r_arr, P_arr, C_arr = [0.0], [ref.p], [ref.cov_cam]
+        vhat = v / vn
         r, step, n_steps, a = 0.0, st.probe_step_m, 0, None
         while True:
             if r >= st.probe_max_m - 1e-9:
@@ -681,29 +777,35 @@ class StartupSequencer:
             n_steps += 1
             ctx.wait(st.probe_settle_s)
             sp = self._still(n=n_frames, state=state, suspended=True)
+            d_k, c_k, _ = cam_displacement(sp, ref)
             r_arr.append(r)
-            P_arr.append(sp.p)
-            C_arr.append(sp.cov)
+            P_arr.append(ref.p + d_k)
+            C_arr.append(c_k)
             a = hinge_analysis(r_arr, P_arr, C_arr, v, st.probe_response_sigma * vn, st.onset_noise_k,
                                st.probe_onset_translation_m)
             if a["detected"]:
                 break
-            moved = float(np.linalg.norm(sp.p - ref.p))
+            # The noise of THIS measurement (the board may have lost tags since the reference: fewer tags, more noise) decides
+            # whether the onset can still be resolved within the allowed over-retraction; if not, back out and skip the
+            # cable at this pose (as the pre-probe check does) instead of retracting blind or aborting on noise.
+            sig_k = math.sqrt(float(vhat @ (c_k + ref.cov_cam) @ vhat))
+            rho_k = max(st.probe_onset_translation_m, st.onset_noise_k * sig_k) / vn
+            if rho_k > st.probe_overshoot_max_m:
+                self._probe_payout(i, r, state)
+                rec.update(status="skipped", slack_m=float("nan"), peak_m=float(r), final_m=0.0, steps=n_steps,
+                           detect_overshoot_m=float(rho_k),
+                           reason=f"vision too noisy during the probe ({int(sp.n_tags)} tag(s) in view): detecting onset needs "
+                                  f"{rho_k * 1e3:.1f} mm of over-retraction (> {st.probe_overshoot_max_m * 1e3:.1f} mm); "
+                                  f"{r * 1e3:.1f} mm paid back")
+                return rec
+            moved = float(np.linalg.norm(d_k))
             if moved > max(self.PROBE_MAX_DISP_M, 2.0 * rho * vn):
                 raise StartupAbort(state, f"station {sid}: claw moved {moved * 1e3:.1f} mm during the probe without a "
                                           "significant onset (vision or response model unreliable)", suspended=True)
             step = min(max(st.probe_step_m, 0.5 * r), st.probe_max_step_m)
         s_hat, sig_s = a["s"], a["sigma_s"]
         r_final = min(max(s_hat - self.PROBE_MARGIN_SIGMA * sig_s, 0.0), r)
-        back = r - r_final
-        if back > 0.5 * ctx.ppu(i):
-            pb = np.zeros(4)
-            pb[i] = back / ctx.ppu(i)
-            rb = self._execute(plan_cable_move(ctx.co.positions(), pb, rate / ctx.ppu(i), rate / ctx.ppu(i) / 0.2,
-                                               segment_s=cfg.motion.segment_s, label=f"probe back {sid}"),
-                               state, suspended=True)
-            if not rb.ok:
-                raise StartupAbort(state, f"station {sid}: probe pay-out {rb.reason}", suspended=True)
+        self._probe_payout(i, r - r_final, state)
         rec.update(slack_m=float(s_hat), sigma_m=float(sig_s), peak_m=float(r), final_m=float(r_final),
                    steps=n_steps, significance=float(a["sig"]), response_fit_per_m=float(np.linalg.norm(a["w"])))
         return rec
@@ -757,8 +859,9 @@ class StartupSequencer:
                 Rm = ctx.T_R_M[:3, :3].T
                 for i, pose in done_pose.items():
                     u = Rm @ U[i]
-                    dist = float(u @ (ref.p - pose.p))            # motion toward anchor i since it was finished
-                    thr = max(st.probe_onset_translation_m, k * math.sqrt(float(u @ (pose.cov + ref.cov) @ u)))
+                    d_m, c_a, c_b = cam_displacement(ref, pose)   # camera-frame motion since cable i was finished
+                    dist = float(u @ d_m)                         # ... toward anchor i
+                    thr = max(st.probe_onset_translation_m, k * math.sqrt(float(u @ (c_a + c_b) @ u)))
                     if dist >= thr:
                         todo.append(i)
         taut = np.array([recs[i]["status"] == "ok" for i in range(4)])
@@ -821,9 +924,9 @@ class StartupSequencer:
         qM = to_marker(ctx.T_R_M, q_R)
         for R_try in self._attitudes_at(qM, R_M):
             T_M_B = make_T(R_try, qM)
-            if self.study_board is not None:
-                ok = self.study_board.visible(ctx.camera, ctx.T_B_C, T_M_B,
-                                              min_side_px=cfg.camera.min_marker_pixels * 1.2, margin_px=30)
+            if self.board is not None:
+                ok = self.board.visible(ctx.camera, ctx.T_B_C, T_M_B,
+                                        min_side_px=cfg.camera.min_marker_pixels * 1.2, margin_px=30)
             else:
                 ok = marker_visible(ctx.camera, ctx.T_B_C, T_M_B, cfg.marker.edge_m,
                                     min_side_px=cfg.camera.min_marker_pixels * 1.2, margin_px=30)
@@ -855,11 +958,15 @@ class StartupSequencer:
                                               f"(need {n_fit + n_wit})", suspended=True)
 
         def cov_fn(qM):
-            edge = cfg.marker.edge_m
-            if self.study_board is not None:
-                edge = self.study_board.edge_eff(ctx.camera, ctx.T_B_C, make_T(R_M, qM),
-                                                 min_side_px=cfg.camera.min_marker_pixels * 1.2, margin_px=30)
-            return predicted_vision_cov(ctx.camera, ctx.T_B_C, make_T(R_M, qM), edge)
+            # the same model as the detector: Cramer-Rao covariance of the corners that would be in view (one tag, or every
+            # tag of the board in the image), propagated to the claw
+            corners = None
+            if self.board is not None:
+                corners = self.board.visible_corners(ctx.camera, ctx.T_B_C, make_T(R_M, qM),
+                                                     min_side_px=cfg.camera.min_marker_pixels * 1.2, margin_px=30)
+            return predicted_vision_cov(ctx.camera, ctx.T_B_C, make_T(R_M, qM), cfg.marker.edge_m, corners_M=corners,
+                                        pixel_sigma=cfg.camera.corner_sigma_px, inflate=cfg.camera.pose_cov_inflate,
+                                        floor_rad=cfg.claw.vision_attitude_floor_rad)
         candM = [to_marker(ctx.T_R_M, q) for q in cands]
         here = to_marker(ctx.T_R_M, ctx.model.pose_from_positions(ctx.co.positions())[0])
         fitM, witM = design_excitation(ctx.cal, ctx.result, candM, n_fit, cov_fn=cov_fn,

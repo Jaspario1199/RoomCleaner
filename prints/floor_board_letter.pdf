@@ -133,7 +133,7 @@ endobj
 endobj
 17 0 obj
 <<
-/Length 3606
+/Length 4298
 >>
 stream
 1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
@@ -141,88 +141,96 @@ stream
 0 G
 BT /F2 17 Tf 20.4 TL ET
 BT 1 0 0 1 29.33858 735.3071 Tm (Floor reference: how to lay it out) Tj T* ET
-BT /F1 8.6 Tf 10.32 TL ET
+BT /F1 8.2 Tf 9.84 TL ET
 BT 1 0 0 1 29.33858 701.2913 Tm (1. Print this PDF on US Letter at 100 % \(Actual size, NOT 'fit to page'\); keep this page for yourself.) Tj T* ET
-BT /F1 8.6 Tf 10.32 TL ET
-BT 1 0 0 1 29.33858 686.5512 Tm (2. Measure the black square of sheet 0 \(should be 150 mm\) and enter it, in metres, as marker.edge_m.) Tj T* ET
-BT /F1 8.6 Tf 10.32 TL ET
-BT 1 0 0 1 29.33858 671.811 Tm (3. Put sheet 0 in the middle, directly under where the claw rests at startup.) Tj T* ET
-BT /F1 8.6 Tf 10.32 TL ET
-BT 1 0 0 1 29.33858 657.0709 Tm (4. Lay the other 8 sheets roughly as drawn below, about 450 mm centre to centre. Exact spacing) Tj T* ET
-BT /F1 8.6 Tf 10.32 TL ET
-BT 1 0 0 1 29.33858 642.3307 Tm (   and rotation do NOT matter - the robot surveys the layout itself - but they must not overlap or touch.) Tj T* ET
-BT /F1 8.6 Tf 10.32 TL ET
-BT 1 0 0 1 29.33858 627.5906 Tm (5. Every sheet must lie FLAT and fully visible: tape all corners down, no curl, no folds, no objects or cables) Tj T* ET
-BT /F1 8.6 Tf 10.32 TL ET
-BT 1 0 0 1 29.33858 612.8504 Tm (   across a tag, avoid glare \(close curtains / matte paper\). Carpet ridges and rugs that slide are not OK.) Tj T* ET
-BT /F1 8.6 Tf 10.32 TL ET
-BT 1 0 0 1 29.33858 598.1102 Tm (6. Sheet 0 defines the frame: its +X points right as printed. Enter the approximate room heading of) Tj T* ET
-BT /F1 8.6 Tf 10.32 TL ET
-BT 1 0 0 1 29.33858 583.3701 Tm (   that +X as marker.heading_prior_rad.) Tj T* ET
-BT /F1 8.6 Tf 10.32 TL ET
-BT 1 0 0 1 29.33858 568.6299 Tm (7. Do NOT move or bump any sheet once startup begins. If one moves, stop and run the survey again.) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 687.4016 Tm (2. Measure the black square of sheet 0 \(should be 150 mm\) and enter it, in metres, as marker.edge_m.) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 673.5118 Tm (3. Put sheet 0 in the middle, directly under where the claw rests at startup.) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 659.622 Tm (4. Lay the other 8 sheets as drawn below, 250 mm centre to centre \(tag centre to tag centre; never more than) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 645.7323 Tm (   280 mm: the resting claw must see at least TWO tags\). Exact spacing and rotation do not matter - the robot) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 631.8425 Tm (   surveys the layout itself - but a closer, tighter grid is better than a wide one.) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 617.9528 Tm (   Letter sheets are 279 mm tall, so at this pitch sheets above/below each other OVERLAP by about 29 mm) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 604.063 Tm (   \(side by side they leave a 34 mm gap\). Overlap only the blank paper margins \(the header with the big number at the) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 590.1732 Tm (   top, the scale bar and text at the bottom\); NEVER cover any part of a tag or its white border.) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 576.2835 Tm (5. Every sheet must lie FLAT and fully visible: tape all corners down, no curl, no folds, no objects or cables) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 562.3937 Tm (   across a tag, avoid glare \(close curtains / matte paper\). Carpet ridges and rugs that slide are not OK.) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 548.5039 Tm (6. Sheet 0 defines the frame: its +X points right as printed. Enter the approximate room heading of) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 534.6142 Tm (   that +X as marker.heading_prior_rad.) Tj T* ET
+BT /F1 8.2 Tf 9.84 TL ET
+BT 1 0 0 1 29.33858 520.7244 Tm (7. Do NOT move or bump any sheet once startup begins. If one moves, stop and run the survey again.) Tj T* ET
 BT /F2 8.5 Tf 10.2 TL ET
-BT 1 0 0 1 164.2677 552.4724 Tm (Schematic, looking down at the floor \(not to scale; the 0 sheet is the thick one\)) Tj T* ET
+BT 1 0 0 1 164.2677 494.0787 Tm (Schematic, looking down at the floor \(not to scale; the 0 sheet is the thick one\)) Tj T* ET
+.6 w
+n 163.9474 373.2775 85.68 110.88 re S
+.6 w
+n 177.0236 401.315 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 200.5512 425.9764 Tm (1) Tj T* ET
+.6 w
+n 263.16 373.2775 85.68 110.88 re S
+.6 w
+n 276.2362 401.315 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 299.7638 425.9764 Tm (2) Tj T* ET
+.6 w
+n 362.3726 373.2775 85.68 110.88 re S
+.6 w
+n 375.4488 401.315 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 398.9764 425.9764 Tm (3) Tj T* ET
+.6 w
+n 362.3726 274.0649 85.68 110.88 re S
+.6 w
+n 375.4488 302.1024 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 398.9764 326.7638 Tm (4) Tj T* ET
+.6 w
+n 362.3726 174.8523 85.68 110.88 re S
+.6 w
+n 375.4488 202.8898 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 398.9764 227.5512 Tm (5) Tj T* ET
+.6 w
+n 263.16 174.8523 85.68 110.88 re S
+.6 w
+n 276.2362 202.8898 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 299.7638 227.5512 Tm (6) Tj T* ET
+.6 w
+n 163.9474 174.8523 85.68 110.88 re S
+.6 w
+n 177.0236 202.8898 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 200.5512 227.5512 Tm (7) Tj T* ET
+.6 w
+n 163.9474 274.0649 85.68 110.88 re S
+.6 w
+n 177.0236 302.1024 59.52756 59.52756 re S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 200.5512 326.7638 Tm (8) Tj T* ET
 1.6 w
-n 263.16 253.0885 85.68 110.88 re S
+n 263.16 274.0649 85.68 110.88 re S
 .6 w
-n 276.2362 281.126 59.52756 59.52756 re S
+n 276.2362 302.1024 59.52756 59.52756 re S
 BT /F2 15 Tf 18 TL ET
-BT 1 0 0 1 298.063 304.6535 Tm (0) Tj T* ET
-.6 w
-n 84.57732 431.6712 85.68 110.88 re S
-.6 w
-n 97.65354 459.7087 59.52756 59.52756 re S
-BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 121.1811 484.3701 Tm (1) Tj T* ET
-.6 w
-n 263.16 431.6712 85.68 110.88 re S
-.6 w
-n 276.2362 459.7087 59.52756 59.52756 re S
-BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 299.7638 484.3701 Tm (2) Tj T* ET
-.6 w
-n 441.7427 431.6712 85.68 110.88 re S
-.6 w
-n 454.8189 459.7087 59.52756 59.52756 re S
-BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 478.3465 484.3701 Tm (3) Tj T* ET
-.6 w
-n 441.7427 253.0885 85.68 110.88 re S
-.6 w
-n 454.8189 281.126 59.52756 59.52756 re S
-BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 478.3465 305.7874 Tm (4) Tj T* ET
-.6 w
-n 441.7427 74.50583 85.68 110.88 re S
-.6 w
-n 454.8189 102.5433 59.52756 59.52756 re S
-BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 478.3465 127.2047 Tm (5) Tj T* ET
-.6 w
-n 263.16 74.50583 85.68 110.88 re S
-.6 w
-n 276.2362 102.5433 59.52756 59.52756 re S
-BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 299.7638 127.2047 Tm (6) Tj T* ET
-.6 w
-n 84.57732 74.50583 85.68 110.88 re S
-.6 w
-n 97.65354 102.5433 59.52756 59.52756 re S
-BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 121.1811 127.2047 Tm (7) Tj T* ET
-.6 w
-n 84.57732 253.0885 85.68 110.88 re S
-.6 w
-n 97.65354 281.126 59.52756 59.52756 re S
-BT /F2 11 Tf 13.2 TL ET
-BT 1 0 0 1 121.1811 305.7874 Tm (8) Tj T* ET
+BT 1 0 0 1 298.063 325.6299 Tm (0) Tj T* ET
 .5 w
-n 127.4173 54.66331 m 306 54.66331 l S
-n 127.4173 58.06488 m 127.4173 51.26173 l S
-n 306 58.06488 m 306 51.26173 l S
+n 206.7874 155.0098 m 306 155.0098 l S
+n 206.7874 158.4113 m 206.7874 151.6082 l S
+n 306 158.4113 m 306 151.6082 l S
 BT /F1 8.5 Tf 10.2 TL ET
-BT 1 0 0 1 133.0866 41.9074 Tm (about 450 mm centre to centre \(~1.1 m overall\)) Tj T* ET
+BT 1 0 0 1 212.4567 142.2539 Tm (about 250 mm centre to centre \(~0.65 m overall\)) Tj T* ET
  
 endstream
 endobj
@@ -830,15 +838,15 @@ xref
 0000002345 00000 n 
 0000002669 00000 n 
 0000002788 00000 n 
-0000006446 00000 n 
-0000009606 00000 n 
-0000012455 00000 n 
-0000015226 00000 n 
-0000018075 00000 n 
-0000020895 00000 n 
-0000023749 00000 n 
-0000026597 00000 n 
-0000029353 00000 n 
+0000007138 00000 n 
+0000010298 00000 n 
+0000013147 00000 n 
+0000015918 00000 n 
+0000018767 00000 n 
+0000021587 00000 n 
+0000024441 00000 n 
+0000027289 00000 n 
+0000030045 00000 n 
 trailer
 <<
 /ID 
@@ -850,5 +858,5 @@ trailer
 /Size 27
 >>
 startxref
-32207
+32899
 %%EOF

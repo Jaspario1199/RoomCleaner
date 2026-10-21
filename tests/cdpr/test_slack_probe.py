@@ -12,6 +12,7 @@ from roomcleaner.cdpr.calibration import IDS, Calibrator, Layout, PoseSample
 from roomcleaner.cdpr.config import ConfigError, load_config
 from roomcleaner.cdpr.protocol import State
 from roomcleaner.cdpr.sim.harness import SimRobot
+from roomcleaner.cdpr.sim.world import FloorBoard
 from roomcleaner.cdpr.startup import StartupAbort, StartupSequencer, hinge_analysis, probe_response
 from roomcleaner.cdpr.trajectory import plan_cable_move
 
@@ -105,24 +106,52 @@ def test_probe_config_is_validated_and_off_by_default():
 
 
 # ------------------------------------------------------------------ simulated rig: suspended claw
-D27_VISION_ONLY = pytest.mark.xfail(
-    strict=True,
-    reason="D27 (no IMU): the claw's honest vision-only attitude (10 mrad, lever 0.6 m = 6 mm per frame) leaves cables A and "
-           "D unresolved at the first suspended pose ('over-retraction > 6 mm even with 40 frames'); with the IMU's attitude "
-           "all four resolved. Genuine consequence, not relaxed: verification/imu_removal_results.md. strict: remove the "
-           "mark when the probe/attitude problem is solved (the test then fails as XPASS).")
-
-
 @pytest.fixture(scope="module")
 def rig():
+    # D27 follow-up: the floor reference is the printed board (3x3 sheets at the default 0.25 m pitch, 150 mm tags), so the
+    # camera sees >= 2 tags at the rest height and 3-9 tags suspended; the simulator's measurement noise comes from the
+    # tags in view (corner noise 0.3 px) and every frame carries its own covariance. The thresholds below are unchanged
+    # from before D27. The single-tag counterpart is test_single_tag_probe_limitation_is_documented.
     cfg = fast_cfg(**{"startup.slack_probe": True})
-    r = SimRobot(cfg, seed=0)
+    r = SimRobot(cfg, seed=0, camera_kw={"board": FloorBoard.nominal(0.15)})
     S = StartupSequencer(r.ctx)
     S.self_check()
     S.slack_takeup()
     S.initial_lift()
     S.visual_init()                                            # first suspended sample, itself probed
     return r, S
+
+
+@pytest.fixture(scope="module")
+def rig_single_tag():
+    """The same rig with the single 6-inch marker instead of the board (the pre-board floor reference)."""
+    cfg = fast_cfg(**{"startup.slack_probe": True})
+    r = SimRobot(cfg, seed=0)
+    S = StartupSequencer(r.ctx)
+    S.self_check()
+    S.slack_takeup()
+    S.initial_lift()
+    S.visual_init()
+    return r, S
+
+
+def test_single_tag_probe_limitation_is_documented(rig, rig_single_tag):
+    """THE SINGLE-TAG LIMITATION (D27, verification/imu_removal_review.md; documented, not hidden). With the one 6-inch tag
+    the claw's ABSOLUTE pose at the first suspended pose is poor: the attitude comes from a ~150 mm square seen from ~0.6 m
+    (tilt sigma ~ 2 sigma_px z^2 / (f a^2) = 18 mrad per frame, 0.3 px corner noise), and every mrad of tilt moves the claw
+    position by the 0.6 m lever: several mm per axis per frame, against ~1 mm for the board. That is what the calibration
+    samples carry (honestly, in their covariance). Since the probe, the take-up and the drag-watch work on camera-frame
+    displacements, the PROBE itself still resolves every cable with one tag; the limitation is the absolute pose."""
+    (rb, Sb), (r1, S1) = rig, rig_single_tag
+    sb, s1 = rb.ctx.samples[0], r1.ctx.samples[0]
+    ob, o1 = rb.vision.observe(), r1.vision.observe()
+    assert ob.ok and o1.ok and ob.n_tags >= 3 and o1.n_tags == 1
+    assert o1.att_sigma_rad > 0.010 > 0.004 > ob.att_sigma_rad                    # one tag: > 10 mrad; board: < 4 mrad
+    sig = lambda smp: math.sqrt(np.trace(smp.cov) / 3) * 1e3                      # mm, per axis, of the averaged sample
+    assert sig(s1) > 4 * sig(sb) and sig(s1) > 1.0                                # the single-tag sample is ~5-10x worse
+    # ... yet the differential probe resolved all four cables at that pose with one tag (and with the board)
+    assert s1.taut is not None and s1.taut.all() and sb.taut.all()
+    assert np.all(np.asarray(s1.taut_sigma_m) < 0.003)
 
 
 def truth_slack_mm(w):
@@ -153,7 +182,6 @@ def pay_out_until_slack(r, S, i, target_mm, step_m=0.003, cap_m=0.05):
     raise AssertionError(f"no slack after {total * 1e3:.0f} mm of payout: {truth_slack_mm(r.world)}")
 
 
-@D27_VISION_ONLY
 def test_visual_init_sample_was_probed_and_positions_restored(rig):
     r, S = rig
     smp = r.ctx.samples[0]
@@ -163,7 +191,6 @@ def test_visual_init_sample_was_probed_and_positions_restored(rig):
     assert not r.world.on_floor and np.isfinite(smp.probe["slack_m"]).all()
 
 
-@D27_VISION_ONLY
 def test_injected_slack_is_measured_and_the_cable_left_taut(rig):
     r, S = rig
     j, total = pay_out_until_slack(r, S, 2, 2.6)               # a rigid claw on four spaced lines absorbs the first mm in yaw
@@ -293,6 +320,28 @@ def test_pause_during_a_probe_holds_between_and_during_motions(rig):
     assert all(r.co.links[s].tel["st"] != State.OFF for s in IDS) and not r.world.on_floor
     S._restore_positions(P0, STATE)
     assert np.all(np.abs(r.co.positions() - P0) <= 1.0)
+
+
+def test_view_that_gets_noisy_mid_probe_skips_the_cable_and_pays_the_retraction_back(rig, monkeypatch):
+    """The board can lose tags while the claw moves during a probe: the measurement noise then exceeds what the reference
+    promised. The onset can no longer be resolved within the allowed over-retraction, so the cable is skipped at this pose
+    and the retraction is paid back (never retracted blind, never an abort on noise)."""
+    r, S = rig
+    from roomcleaner.cdpr import startup as startup_mod
+    orig = startup_mod.cam_displacement
+
+    def noisy(o, ref):
+        d, co, cr = orig(o, ref)
+        return d, co + np.eye(3) * 0.02 ** 2, cr                 # 20 mm of extra 1-sigma noise on every later measurement
+    j, total = pay_out_until_slack(r, S, 2, 3.0)                  # 3 mm of slack: the first 0.5 mm step shows nothing
+    P_before = r.co.positions().copy()
+    ref = S._still(n=10, state=STATE, suspended=True)
+    monkeypatch.setattr(startup_mod, "cam_displacement", noisy)
+    rec = S._probe_cable(j, ref, 10, STATE)
+    monkeypatch.undo()
+    assert rec["status"] == "skipped" and "too noisy during the probe" in rec["reason"] and rec["final_m"] == 0.0
+    assert np.all(np.abs(r.co.positions() - P_before) <= 1.0)     # paid back to the microstep
+    pay_out(r, S, 2, -total)
 
 
 def test_noisy_vision_skips_the_cable_instead_of_tensioning_blind(rig):

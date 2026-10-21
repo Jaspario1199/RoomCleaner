@@ -9,7 +9,7 @@ from roomcleaner.cdpr.calibration import IDS
 from roomcleaner.cdpr.homing import BeadVerifier
 from roomcleaner.cdpr.kinematics import Geometry, workspace_from_config
 from roomcleaner.cdpr.sim.harness import SimRobot
-from roomcleaner.cdpr.sim.world import World
+from roomcleaner.cdpr.sim.world import FloorBoard, World
 from roomcleaner.cdpr.startup import StartupSequencer
 from roomcleaner.cdpr.supervisor import CommandRefused, Supervisor
 from roomcleaner.cdpr.tasks import SimItemPerception, TaskRunner
@@ -20,12 +20,15 @@ from roomcleaner.cdpr.startup import RobotContext
 from roomcleaner.cdpr.transport import SimHostTransport
 from roomcleaner.cdpr.trust import TrustLedger
 
-from .simkit import ModelFrameItemPerception, assert_no_eq_failures, bring_up, build, fast_cfg
+from .simkit import (ITEM_CANDIDATES, ModelFrameItemPerception, assert_no_eq_failures, bring_up, build, fast_cfg,
+                     item_offsets_with_small_statics_tilt)
 
 
 def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
     cfg = fast_cfg(**{"startup.bead_search": True})      # D26: the bead search is optional (default off); keep exercising its gating here
-    r = SimRobot(cfg, seed=0, data_dir=tmp_path)
+    # the floor reference is the printed board (3x3 sheets, 0.25 m pitch, 150 mm tags): the honest noise of the single 6-inch tag
+    # at suspended poses (tens of mm per frame, tag-derived) cannot meet the witness criterion and is not what this lifecycle tests
+    r = SimRobot(cfg, seed=0, data_dir=tmp_path, camera_kw={"board": FloorBoard.nominal(0.15)})
     sup = Supervisor(r.ctx, state_path=tmp_path / "state.json", ledger_path=tmp_path / "ledger.json")
     assert sup.state == "DISARMED"
     rep = sup.start()
@@ -52,11 +55,12 @@ def test_full_lifecycle_startup_task_reboot_recovery_park(tmp_path):
     # (inside its scan footprint); where that is depends on the noise stream, so it is not hard-coded to the room centre.
     c = r.world.p[:2].copy()
     r.world.hamper = (np.asarray(cfg.tasks.hamper_room_m), cfg.tasks.hamper_radius_m)
-    r.world.add_item("sock", c + [-0.3, 0.2])
-    r.world.add_item("jeans", c + [0.2, 0.35], mass=0.9, height=0.08)
+    off_sock, off_jeans = item_offsets_with_small_statics_tilt(r.ctx, ITEM_CANDIDATES)
+    r.world.add_item("sock", c + off_sock)
+    r.world.add_item("jeans", c + off_jeans, mass=0.9, height=0.08)
     runner = TaskRunner(r.ctx, ModelFrameItemPerception(r.world))
     out = sup.run_task(runner)
-    assert out["done"] == ["sock", "jeans"] and sup.state == "READY"
+    assert sorted(out["done"]) == ["jeans", "sock"] and not out["failed"] and sup.state == "READY", (out, runner.approvals)      # nearest first
     assert all(it["state"] == "hamper" for it in r.world.items)
     # D27: every grip and release was approved on the host after settling (no IMU, no claw-side gate)
     assert len(runner.approvals) == 4 and all(a.get("approved") and a["still_ok"] for a in runner.approvals)

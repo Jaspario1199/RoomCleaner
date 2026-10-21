@@ -185,14 +185,6 @@ def test_bead_search_is_off_by_default_and_validated():
 
 
 # ============================================================ simulation: floor board + slack probe
-D27_VISION_ONLY = pytest.mark.xfail(
-    strict=True,
-    reason="D27 (no IMU): with vision-only attitude (10 mrad) the per-pose slack probe cannot resolve the cable onsets, "
-           "the board+probe fixture's calibration is rejected (witness RMS 9.3 mm > 6 mm) and VERIFIED-by-margin is not "
-           "reached. Genuine consequence of the noisier attitude, not relaxed: verification/imu_removal_results.md. "
-           "strict: this flips (fails) when the probe/attitude problem is solved, so the mark must then be removed.")
-
-
 @pytest.fixture(scope="module")
 def board_probe(tmp_path_factory):
     td = tmp_path_factory.mktemp("margin")
@@ -203,7 +195,9 @@ def board_probe(tmp_path_factory):
     cfg = fast_cfg(**{"startup.slack_probe": True, "calibration.length_sigma_max_m": 0.0075})
     # seed 1: the calibration criteria accept this run; seeds 0 and 2 miss the 5 mm predicted-length-sigma
     # criterion (5.4 / 5.6 mm at the time of writing) and stay LOCAL_ONLY by design
-    board = FloorBoard(3, 3, 0.42, 0.16, layout_err_m=0.0, span_mode="extent", seed=1)
+    # D27 follow-up: the printed layout (3x3 sheets, 150 mm tags, default pitch 0.25 m): >= 2 tags in view at the rest height,
+    # simulator noise from the tags in view (corner noise 0.3 px), every frame with its own covariance
+    board = FloorBoard.nominal(0.15, layout_err_m=0.0, span_mode="extent", seed=1)
     r = SimRobot(cfg, seed=1, data_dir=td, camera_kw={"board": board})
     svc = Service(r.ctx, data_dir=td)
     c = Client(create_app(svc), svc.token)
@@ -240,7 +234,6 @@ def evaluate(r, rep, **over):
             setattr(obj, key, v)
 
 
-@D27_VISION_ONLY
 def test_verified_by_margin_with_board_and_probe(board_probe):
     r, svc, c, rep = board_probe
     assert svc.sup.state == "READY", rep.reasons
@@ -261,7 +254,6 @@ def test_verified_by_margin_with_board_and_probe(board_probe):
     assert not r.cfg.startup.bead_search
 
 
-@D27_VISION_ONLY
 def test_margin_decision_is_reevaluated_and_fails_closed(board_probe):
     r, svc, c, rep = board_probe
     ok = evaluate(r, rep)
@@ -295,7 +287,6 @@ def test_margin_decision_is_reevaluated_and_fails_closed(board_probe):
     assert r.ctx.ledger.level == "VERIFIED" and r.cfg.motion.ceiling_margin_m == 0.4
 
 
-@D27_VISION_ONLY
 def test_tasks_use_the_full_workspace_only_when_verified(board_probe):
     r, svc, c, rep = board_probe
     ctx, lg = r.ctx, r.ctx.ledger
@@ -304,7 +295,8 @@ def test_tasks_use_the_full_workspace_only_when_verified(board_probe):
     here = ctx.model.pose_from_positions(ctx.co.positions())[0]
     ctx.validated_volume = here + np.array([[0, 0, 0], [.1, 0, 0], [0, .1, 0], [0, 0, .1], [.1, .1, .1], [-.1, -.1, 0]])
     cands = [q for q in StartupSequencer(ctx)._margin_volume(ctx.result)
-             if not ctx.ws.violations(ctx.model.geometry, q)]       # commanded-workspace poses the planner accepts
+             if not ctx.ws.violations(ctx.model.geometry, q)
+             and q[2] <= ctx.cfg.motion.task_max_height_m]          # commanded-workspace poses the planner accepts (and the task layer may plan to)
     far = max(cands, key=lambda q: np.linalg.norm(q - here))
     assert np.linalg.norm(far - here) > 0.6
     saved = (lg.level, lg.verified_basis, list(lg.trust_reasons), lg.margin_check)
@@ -320,7 +312,6 @@ def test_tasks_use_the_full_workspace_only_when_verified(board_probe):
         lg.level, lg.verified_basis, lg.trust_reasons, lg.margin_check = saved
 
 
-@D27_VISION_ONLY
 def test_persisted_ledger_carries_the_basis(board_probe):
     r, svc, c, rep = board_probe
     svc.sup._save()
@@ -330,7 +321,6 @@ def test_persisted_ledger_carries_the_basis(board_probe):
     assert tj["basis"] == "margin" and tj["margin_check"]["k"] == 3.0
 
 
-@D27_VISION_ONLY
 def test_blocked_bead_does_not_prevent_margin_trust_and_all_verified_beads_give_the_beads_basis(board_probe,
                                                                                                 monkeypatch):
     r, svc, c, rep = board_probe
@@ -370,7 +360,6 @@ def test_blocked_bead_does_not_prevent_margin_trust_and_all_verified_beads_give_
         lg.level, lg.verified_basis, lg.trust_reasons, lg.margin_check = saved
 
 
-@D27_VISION_ONLY
 def test_api_exposes_the_basis_numbers_and_reasons(board_probe):
     r, svc, c, rep = board_probe
     lg = r.ctx.ledger
@@ -398,7 +387,7 @@ def test_api_exposes_the_basis_numbers_and_reasons(board_probe):
 
 # ============================================================ end to end: no probe -> LOCAL_ONLY
 def test_without_the_probe_the_robot_stays_local_only(tmp_path):
-    r = SimRobot(fast_cfg(), seed=0, data_dir=tmp_path)
+    r = SimRobot(fast_cfg(), seed=0, data_dir=tmp_path, camera_kw={"board": FloorBoard.nominal(0.15)})   # the printed board
     sup = Supervisor(r.ctx, state_path=tmp_path / "state.json", ledger_path=tmp_path / "ledger.json")
     rep = sup.start()
     assert sup.state == "READY", rep.reasons

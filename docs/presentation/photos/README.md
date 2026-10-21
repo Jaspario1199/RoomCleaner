@@ -18,3 +18,4 @@ Technical Presentation — v2 draft"). Suggested placement:
 | 13 | gen-1 station lifting a test weight | 15 (results) |
 | 14 | CNC shield with four A4988 drivers | 10 (before: central) |
 | 15 | finished heat fin: 0.019 in sheet, 7/8 in centre hole + 4 motor holes | 7 (heat fin result; pairs with 01/02/06) |
+| 16, 17, 18 | heat fin test-fitted on the NEMA 17: boss centred in the 7/8 in hole, 4 motor threads lined up | 7 (heat fin: "it fits") |

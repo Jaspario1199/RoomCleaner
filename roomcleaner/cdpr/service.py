@@ -297,6 +297,24 @@ def hardware_task_factory():
     return lambda c: TaskRunner(c, ClawGarmentPerception(detector, c.camera, lambda: frame_bgr(c.claw)))
 
 
+def build_marker_detector(cfg, cam):
+    """The floor-reference detector. With ``marker.board_layout_file`` (a surveyed FloorBoardLayout) the board detector:
+    a frame with >= 2 usable tags gets the joint multi-tag pose (startup's floor stage, the suspended poses and the
+    mount-offset measurement then run on it), a frame with one tag falls back to the single-tag pose with its own,
+    honest covariance. Without a layout: the single tag (marker.id)."""
+    from .vision.marker import MarkerDetector
+    common = dict(min_side_px=cfg.camera.min_marker_pixels, max_reprojection_px=cfg.camera.max_reprojection_px,
+                  ambiguity_ratio_min=cfg.camera.ambiguity_ratio_min, corner_sigma_px=cfg.camera.corner_sigma_px,
+                  cov_inflate=cfg.camera.pose_cov_inflate)
+    if cfg.marker.board_layout_file:
+        from .vision.board import BoardDetector, FloorBoardLayout
+        layout = FloorBoardLayout.load(cfg.marker.board_layout_file)
+        if not layout.surveyed_ids():
+            raise SystemExit(f"marker.board_layout_file {cfg.marker.board_layout_file}: no surveyed tag")
+        return BoardDetector(layout, cam, **common)
+    return MarkerDetector(cfg.marker.family, cfg.marker.id, cfg.marker.edge_m, cam, **common)
+
+
 def build_hardware_context(config_path, data_dir):
     """Wire the real transports: UDP stations, HTTP claw, detector."""
     from .claw_link import DetectorFrameSource, HttpClawClient, ThreadedFrameSource
@@ -307,7 +325,6 @@ def build_hardware_context(config_path, data_dir):
     from .transport import UdpHostTransport
     from .trust import TrustLedger
     from .vision.camera import CameraModel
-    from .vision.marker import MarkerDetector
     cfg = load_config(config_path)
     rt = RealRuntime()
     addrs = {s.id: s.address for s in cfg.stations}
@@ -316,17 +333,20 @@ def build_hardware_context(config_path, data_dir):
     co = Coordinator(cfg, UdpHostTransport({k: (v.split(":")[0], int(v.split(":")[1])) for k, v in addrs.items()}), rt)
     cam = CameraModel.load(cfg.camera.intrinsics_file)
     claw = HttpClawClient(f"http://{cfg.claw.address}", now_us=rt.now_us)
-    det = MarkerDetector(cfg.marker.family, cfg.marker.id, cfg.marker.edge_m, cam,
-                         min_side_px=cfg.camera.min_marker_pixels, max_reprojection_px=cfg.camera.max_reprojection_px,
-                         ambiguity_ratio_min=cfg.camera.ambiguity_ratio_min)
+    det = build_marker_detector(cfg, cam)
     src = ThreadedFrameSource(DetectorFrameSource(claw, det, camera_mode="SVGA-800x600-q10",
                                                   T_B_C=cfg.claw.T_body_cam))
     if cfg.claw.imu:
         raise SystemExit("claw.imu = true needs an external roll/pitch provider: the claw node has no IMU (D27). "
                          "Set claw.imu to false (attitude comes from vision and the cable model).")
     vision = VisionSource(src, cfg.claw.T_body_cam, cam.fx, cfg.marker.edge_m, max_age_s=cfg.camera.max_frame_age_s,
-                          now_us=rt.now_us, rot_sigma=cfg.claw.vision_attitude_sigma_rad)
-    return RobotContext(cfg, co, claw, vision, cam, TrustLedger(), data_dir=data_dir)
+                          now_us=rt.now_us, rot_sigma=cfg.claw.vision_attitude_sigma_rad,
+                          rot_floor=cfg.claw.vision_attitude_floor_rad, pixel_sigma=cfg.camera.corner_sigma_px)
+    ctx = RobotContext(cfg, co, claw, vision, cam, TrustLedger(), data_dir=data_dir)
+    if getattr(det, "layout", None) is not None:          # board detector: the excitation design sees the same tags
+        from .vision.board import BoardGeometry
+        ctx.floor_board = BoardGeometry.from_layout(det.layout)
+    return ctx
 
 
 if __name__ == "__main__":

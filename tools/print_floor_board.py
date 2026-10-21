@@ -3,7 +3,9 @@
     python -m tools.print_floor_board --out prints/floor_board_letter.pdf [--png-dpi 100]
     python -m tools.print_floor_board --out sheet3.pdf --ids 3 --edge-mm 150 --no-instructions
 
-Page 1 is the layout instructions; then one US Letter sheet per tag id (default
+Page 1 is the layout instructions (sheets about 250 mm centre to centre: US Letter is 279 mm tall, so neighbours above and
+below overlap by ~30 mm - overlap the blank paper margins, never a tag; verification/imu_removal_review.md F3); then one
+US Letter sheet per tag id (default
 ids 0..8, AprilTag 36h11, black square 150 mm = 8 cells of 18.75 mm, white
 quiet zone of 1 cell, everything inside the 6.35 mm printer margins).
 
@@ -28,6 +30,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from roomcleaner.cdpr.vision.board import DEFAULT_PITCH_M, MAX_PITCH_M
 from roomcleaner.cdpr.vision.marker import _FAMILIES
 
 MM = 72.0 / 25.4                      # PostScript points per millimetre
@@ -37,6 +40,8 @@ PRINTER_MARGIN_MM = 6.35              # 1/4 in
 QUIET_CELLS = 1
 DEFAULT_EDGE_MM = 150.0
 BAR_MM = 100.0
+DEFAULT_PITCH_MM = DEFAULT_PITCH_M * 1000.0       # sheet centre to centre of the layout page (250 mm, D27 follow-up)
+MAX_PITCH_MM = MAX_PITCH_M * 1000.0               # validated maximum (280 mm): farther apart and the resting claw sees ONE tag
 TAG_BEGIN = "% FLOORBOARD-TAG-BEGIN"
 TAG_END = "% FLOORBOARD-TAG-END"
 
@@ -147,32 +152,41 @@ def _tag_sheet(c, marker_id, idx, n_sheets, edge_mm, family, origin_id, ids):
         _text(c, geo["x0_mm"] - geo["cell_mm"], yb + 8 + 4.3 * k, ln, 7.6)
 
 
-def _layout_sheet(c, ids, origin_id, edge_mm, pitch_mm=450.0):
+def _layout_sheet(c, ids, origin_id, edge_mm, pitch_mm=DEFAULT_PITCH_MM):
     m = PRINTER_MARGIN_MM
     c.setFillGray(0)
     c.setStrokeGray(0)
     _text(c, m + 4, 20, "Floor reference: how to lay it out", 17, True)
+    overlap = max(LETTER_MM[1] - pitch_mm, 0.0)               # the sheets are laid portrait: they overlap along the page height
+    gap_x = pitch_mm - LETTER_MM[0]
     steps = [
         "1. Print this PDF on US Letter at 100 % (Actual size, NOT 'fit to page'); keep this page for yourself.",
         f"2. Measure the black square of sheet {origin_id} (should be {edge_mm:.0f} mm) and enter it, in metres, as marker.edge_m.",
         f"3. Put sheet {origin_id} in the middle, directly under where the claw rests at startup.",
-        f"4. Lay the other {len(ids) - 1} sheets roughly as drawn below, about 450 mm centre to centre. Exact spacing",
-        "   and rotation do NOT matter - the robot surveys the layout itself - but they must not overlap or touch.",
+        f"4. Lay the other {len(ids) - 1} sheets as drawn below, {pitch_mm:.0f} mm centre to centre (tag centre to tag centre; never more than",
+        f"   {MAX_PITCH_MM:.0f} mm: the resting claw must see at least TWO tags). Exact spacing and rotation do not matter - the robot",
+        "   surveys the layout itself - but a closer, tighter grid is better than a wide one.",
+        (f"   Letter sheets are {LETTER_MM[1]:.0f} mm tall, so at this pitch sheets above/below each other OVERLAP by about {overlap:.0f} mm"
+         if overlap > 0.5 else "   The sheets do not overlap at this pitch."),
+        (f"   (side by side they leave a {gap_x:.0f} mm gap). Overlap only the blank paper margins (the header with the big number at the"
+         if overlap > 0.5 else "   Keep the white border of every tag clear."),
+        ("   top, the scale bar and text at the bottom); NEVER cover any part of a tag or its white border." if overlap > 0.5 else ""),
         "5. Every sheet must lie FLAT and fully visible: tape all corners down, no curl, no folds, no objects or cables",
         "   across a tag, avoid glare (close curtains / matte paper). Carpet ridges and rugs that slide are not OK.",
         f"6. Sheet {origin_id} defines the frame: its +X points right as printed. Enter the approximate room heading of",
         "   that +X as marker.heading_prior_rad.",
         "7. Do NOT move or bump any sheet once startup begins. If one moves, stop and run the survey again.",
     ]
+    steps = [x for x in steps if x]
     for k, ln in enumerate(steps):
-        _text(c, m + 4, 32 + 5.2 * k, ln, 8.6)
+        _text(c, m + 4, 32 + 4.9 * k, ln, 8.2)
     # schematic: 3x3 grid of Letter sheets (portrait), looking down at the floor
     k = 0.14
     sw, sh = LETTER_MM[0] * k, LETTER_MM[1] * k
     gp = pitch_mm * k
     geo = sheet_geometry(edge_mm)
     tag_dy = geo["y0_mm"] + edge_mm / 2 - LETTER_MM[1] / 2            # tag centre below the sheet centre (mm, real)
-    top = 88.0
+    top = 32 + 4.9 * len(steps) + 8
     cx, cy = LETTER_MM[0] / 2, top + sh / 2 + gp
     _text(c, cx - 50, top - 3.5, "Schematic, looking down at the floor (not to scale; the 0 sheet is the thick one)", 8.5, True)
     order = [origin_id] + [i for i in ids if i != origin_id]
@@ -181,7 +195,7 @@ def _layout_sheet(c, ids, origin_id, edge_mm, pitch_mm=450.0):
     for i, rc in zip(order[1:], ring):
         pos[i] = rc
     t = edge_mm * k
-    for i, (gx, gy) in pos.items():
+    for i, (gx, gy) in sorted(pos.items(), key=lambda kv: (kv[0] == origin_id)):
         x, y = cx + gx * gp, cy + gy * gp
         c.setLineWidth(1.6 if i == origin_id else 0.6)
         c.rect((x - sw / 2) * MM, (LETTER_MM[1] - (y + sh / 2)) * MM, sw * MM, sh * MM, stroke=1, fill=0)
@@ -195,13 +209,19 @@ def _layout_sheet(c, ids, origin_id, edge_mm, pitch_mm=450.0):
     c.line((cx - gp) * MM, (LETTER_MM[1] - ys) * MM, cx * MM, (LETTER_MM[1] - ys) * MM)
     for xe in (cx - gp, cx):
         c.line(xe * MM, (LETTER_MM[1] - ys + 1.2) * MM, xe * MM, (LETTER_MM[1] - ys - 1.2) * MM)
-    _text(c, cx - gp + 2, ys + 4.5, f"about {pitch_mm:.0f} mm centre to centre (~1.1 m overall)", 8.5)
+    _text(c, cx - gp + 2, ys + 4.5, f"about {pitch_mm:.0f} mm centre to centre (~{2 * pitch_mm / 1000 + edge_mm / 1000:.2f} m overall)", 8.5)
 
 
 def build_pdf(out, ids=range(9), edge_mm=DEFAULT_EDGE_MM, family="apriltag_36h11", *, instructions=True,
-              origin_id=None):
-    """Write the multi-page Letter PDF; returns the Path."""
+              origin_id=None, pitch_mm=DEFAULT_PITCH_MM):
+    """Write the multi-page Letter PDF; returns the Path. ``pitch_mm``: sheet pitch drawn on the layout page and stated
+    in its instructions (default 250 mm; refused above the validated maximum of 280 mm)."""
     from reportlab.pdfgen import canvas
+    if not 0 < pitch_mm <= MAX_PITCH_MM + 1e-9:
+        raise ValueError(f"sheet pitch {pitch_mm:g} mm is outside (0, {MAX_PITCH_MM:g}] mm: with sheets farther apart the "
+                         "resting claw sees a single tag and the attitude estimate is not validated")
+    if pitch_mm < edge_mm + 2 * edge_mm / (sheet_geometry(edge_mm, family)["n"]) + 1e-9:
+        raise ValueError(f"sheet pitch {pitch_mm:g} mm is smaller than a tag with its white border ({edge_mm * 1.25:.0f} mm)")
     ids = [int(i) for i in ids]
     if len(set(ids)) != len(ids):
         raise ValueError("duplicate ids")
@@ -215,7 +235,7 @@ def build_pdf(out, ids=range(9), edge_mm=DEFAULT_EDGE_MM, family="apriltag_36h11
     c.setTitle("RoomCleaner floor reference (US Letter)")
     c.setAuthor("RoomCleaner tools/print_floor_board.py")
     if instructions:
-        _layout_sheet(c, ids, origin_id, edge_mm)
+        _layout_sheet(c, ids, origin_id, edge_mm, pitch_mm)
         c.showPage()
     for k, i in enumerate(ids):
         _tag_sheet(c, i, k, len(ids), edge_mm, family, origin_id, ids)
@@ -307,11 +327,13 @@ def main(argv=None):
     ap.add_argument("--ids", nargs="+", default=["0-8"], help="tag ids, e.g. 0-8 or 0 1 2 or 0,1,2 (first = origin sheet)")
     ap.add_argument("--edge-mm", type=float, default=DEFAULT_EDGE_MM, help="black square edge (default 150)")
     ap.add_argument("--family", default="apriltag_36h11", choices=sorted(_FAMILIES))
+    ap.add_argument("--pitch-mm", type=float, default=DEFAULT_PITCH_MM,
+                    help=f"sheet centre-to-centre pitch stated on the layout page (default {DEFAULT_PITCH_MM:g}, max {MAX_PITCH_MM:g})")
     ap.add_argument("--no-instructions", action="store_true", help="omit the layout page")
     ap.add_argument("--png-dpi", type=int, default=0, help="also write page PNGs at this dpi (needs pdftoppm)")
     a = ap.parse_args(argv)
     ids = _ids(a.ids)
-    out = build_pdf(a.out, ids, a.edge_mm, a.family, instructions=not a.no_instructions)
+    out = build_pdf(a.out, ids, a.edge_mm, a.family, instructions=not a.no_instructions, pitch_mm=a.pitch_mm)
     try:
         for line in verify_pdf(out, ids, a.edge_mm, a.family, instructions=not a.no_instructions):
             print("check:", line)

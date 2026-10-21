@@ -44,7 +44,7 @@ from pathlib import Path
 import numpy as np
 
 from .calibration import IDS
-from .perception import to_marker, to_room
+from .perception import cam_displacement, to_marker, to_room
 from .protocol import Fault, State
 from .startup import StartupAbort, StartupSequencer
 from .trajectory import PlanError, plan_cable_move, plan_line_from
@@ -335,15 +335,16 @@ class Supervisor:
             L0, sig = ctx.cal.visual_reference(ctx.result, i, co.positions()[i], sp.p, sp.R, sp.cov)
             ctx.model.maps[s] = ctx.model.maps[s].with_reference(L0)
             if tauten:
-                thr = max(st.onset_translation_m, 4 * max(sp.spread_m, 2e-4), 3 * math.sqrt(np.trace(sp.cov * sp.n)))
+                # onset = camera-frame displacement from this still pose (one reference tilt), against the camera-frame noise
+                thr = max(st.onset_translation_m, 4 * max(sp.spread_cam_m, 2e-4), 3 * math.sqrt(np.trace(sp.cov_cam * sp.n)))
                 mon = {"next": 0.0}
 
-                def moved(tau, ref=sp.p, mon=mon):
+                def moved(tau, ref=sp, mon=mon):
                     if ctx.now_s() < mon["next"]:
                         return None
                     mon["next"] = ctx.now_s() + st.frame_interval_s
                     o = ctx.vision.observe()
-                    return "taut" if o.ok and np.linalg.norm(o.p - ref) >= thr else None
+                    return "taut" if o.ok and np.linalg.norm(cam_displacement(o, ref)[0]) >= thr else None
                 ppu = ctx.ppu(i)
                 delta = np.zeros(4)
                 delta[i] = -(3 * sig + 0.010) / ppu

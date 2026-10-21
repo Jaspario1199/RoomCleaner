@@ -35,7 +35,8 @@ import numpy as np
 
 from ..frames import inv_T, make_T, planar_T, rot_z, rotvec_to_matrix
 from ..spool import LayeredSpool
-from ..vision.marker import MarkerObservation
+from ..vision.board import DEFAULT_PITCH_M, BoardGeometry
+from ..vision.marker import MarkerObservation, pose_covariance
 
 G = 9.81
 
@@ -361,7 +362,7 @@ class World:
             self.settle()
 
 
-class FloorBoard:
+class FloorBoard(BoardGeometry):
     """STUDY HOOK (floor-reference study, not used by default): a grid of
     AprilTags laid out on the floor around the marker origin (the marker frame
     is the centre of the grid; the centre tag coincides with the single marker).
@@ -395,46 +396,15 @@ class FloorBoard:
         self.dpsi = rng.normal(0, layout_err_m / self.edge, n) if layout_err_m > 0 else np.zeros(n)
         self.layout_err_m = layout_err_m
 
+    @classmethod
+    def nominal(cls, tag_edge_m=0.15, pitch_m=None, **kw):
+        """The printed layout of decision D26/D27: 3x3 sheets at the default pitch (vision.board.DEFAULT_PITCH_M)."""
+        return cls(3, 3, DEFAULT_PITCH_M if pitch_m is None else pitch_m, tag_edge_m, **kw)
+
     @property
     def extent_m(self):
         c = self.corners.reshape(-1, 3)
         return float(c[:, 0].max() - c[:, 0].min()), float(c[:, 1].max() - c[:, 1].min())
-
-    def visible_tags(self, camera, T_B_C, T_M_B, *, min_side_px, margin_px=4):
-        """Indices of the tags fully in view and at least ``min_side_px`` large."""
-        T_C_M = inv_T(np.asarray(T_M_B, float) @ np.asarray(T_B_C, float))
-        pc = self.corners @ T_C_M[:3, :3].T + T_C_M[:3, 3]                  # (n, 4, 3)
-        n = len(pc)
-        ok = np.all(pc[:, :, 2] > 0.05, axis=1)
-        out = []
-        if not ok.any():
-            return out
-        idx = np.flatnonzero(ok)
-        uv = camera.project(pc[idx].reshape(-1, 3)).reshape(len(idx), 4, 2)
-        for j, k in enumerate(idx):
-            if not np.all(camera.in_image(uv[j], margin_px)):
-                continue
-            side = np.mean([np.linalg.norm(uv[j][m] - uv[j][(m + 1) % 4]) for m in range(4)])
-            if side >= min_side_px:
-                out.append(int(k))
-        return out
-
-    def visible(self, camera, T_B_C, T_M_B, *, min_side_px, margin_px=4) -> bool:
-        return bool(self.visible_tags(camera, T_B_C, T_M_B, min_side_px=min_side_px, margin_px=margin_px))
-
-    def edge_eff_for(self, ks) -> float:
-        c = self.corners[list(ks)].reshape(-1, 3)
-        if self.span_mode == "rms":
-            r = np.sqrt(np.mean(np.sum((c[:, :2] - c[:, :2].mean(0)) ** 2, axis=1)))
-            return float(math.sqrt(2.0) * r)
-        ex = c[:, 0].max() - c[:, 0].min()
-        ey = c[:, 1].max() - c[:, 1].min()
-        return float(math.sqrt(ex * ey))
-
-    def edge_eff(self, camera, T_B_C, T_M_B, *, min_side_px, margin_px=4):
-        """Effective span for the excitation design's predicted covariance."""
-        ks = self.visible_tags(camera, T_B_C, T_M_B, min_side_px=min_side_px, margin_px=margin_px)
-        return self.edge_eff_for(ks) if ks else self.edge
 
     def biased_T_C_M(self, T_C_M, ks):
         """Board pose a nominal-grid estimator infers from the visible tags when
@@ -464,11 +434,27 @@ def rot_z4(a):
 class SimCamera:
     """Marker observations from the true claw pose (no image rendering):
     visibility and size checks as the detector applies them, pose noise from
-    the same error model, optional dropouts and stale frames."""
+    the same error model, optional dropouts and stale frames.
+
+    Measurement noise (``noise_model``):
+
+    * ``"tags"`` (default): the noise of a frame comes from the tags actually in view. The pose error is drawn from the
+      Cramer-Rao covariance of the pose for the corners of those tags (iid corner noise ``pixel_sigma`` px, the same
+      model as the detector, ``vision.marker.pose_covariance``): range, tag size, focal length and the number of tags
+      all matter, the attitude error is anisotropic (tilt >> yaw) and correlated with the position error. The frame
+      carries the covariance the detector would report for it (corner noise ``est_pixel_sigma``, default
+      ``pixel_sigma``; margin ``cov_inflate``). A single tag at 0.5-1 m gives 13-50 mrad of tilt; a board with three or
+      more tags 1-3 mrad (verification/imu_removal_review.md).
+    * ``"fixed"``: the previous simulator, kept for regression: an iid rotation error of ``rot_sigma`` rad per axis
+      whatever is in view, lateral / depth position noise from ``pixel_sigma`` and the tag span, no covariance on the
+      frame (the estimator then falls back to its configured attitude sigma).
+    """
 
     def __init__(self, world: World, camera, T_B_C, edge_m, *, pixel_sigma=0.3, rot_sigma=0.002,
                  dropout=0.0, min_side_px=40.0, seed=0, bias_m=(0, 0, 0), board_span_m=None, board=None,
-                 mount_rotvec=(0.0, 0.0, 0.0)):
+                 mount_rotvec=(0.0, 0.0, 0.0), noise_model="tags", est_pixel_sigma=None, cov_inflate=1.3):
+        if noise_model not in ("tags", "fixed"):
+            raise ValueError("noise_model must be 'tags' or 'fixed'")
         self.w = world
         self.cam = camera
         # ``T_B_C`` is the nominal (configured) mount; the TRUE camera is rotated from it by ``mount_rotvec`` (rad,
@@ -479,6 +465,9 @@ class SimCamera:
         self.edge = edge_m
         self.pixel_sigma = pixel_sigma
         self.rot_sigma = rot_sigma
+        self.noise_model = noise_model
+        self.est_pixel_sigma = est_pixel_sigma          # None = the plant's pixel_sigma (a detector that knows the truth)
+        self.cov_inflate = cov_inflate
         self.dropout = dropout
         self.min_side = min_side_px
         self.rng = np.random.default_rng(seed)
@@ -488,10 +477,40 @@ class SimCamera:
         # marker for accuracy once the camera is high enough to see all of it.
         self.board_span = board_span_m
         self.covered = False          # injected: marker hidden (laundry on it, person walking)
-        self.board = board            # STUDY HOOK: FloorBoard (multi-tag floor reference); None = single marker
+        self.board = board            # FloorBoard (multi-tag floor reference); None = single marker
+        self.last_att_sigma = None    # plant truth of the last frame: 1-sigma of roll/pitch (tags model), for studies
+
+    # -- measurement noise ---------------------------------------------------
+    def _measure(self, T_C_M, obj_M, side, uv, t_us, edge) -> MarkerObservation:
+        """Observation of the pose ``T_C_M`` of M from the corners ``obj_M`` ((n, 3) in M)."""
+        z = float(T_C_M[2, 3])
+        T = T_C_M.copy()
+        cov = None
+        if self.noise_model == "tags":
+            C = pose_covariance(obj_M, T_C_M, self.cam.K, self.pixel_sigma, 1.0)
+            L = np.linalg.cholesky(C + 1e-24 * np.eye(6))
+            e = L @ self.rng.normal(0, 1, 6)
+            T[:3, :3] = rotvec_to_matrix(e[:3]) @ T[:3, :3]
+            T[:3, 3] += e[3:] + self.bias
+            self.last_att_sigma = math.sqrt((C[0, 0] + C[1, 1]) / 2)
+        else:
+            lat = self.pixel_sigma * z / self.cam.fx
+            dep = 2 * self.pixel_sigma * z * z / (self.cam.fx * edge)
+            noise_t = self.rng.normal(0, 1, 3) * [lat, lat, dep] + self.bias
+            Rn = rotvec_to_matrix(self.rng.normal(0, self.rot_sigma, 3))
+            T[:3, :3] = Rn @ T[:3, :3]
+            T[:3, 3] += noise_t
+        obs = MarkerObservation(True, "", T, 0.3, 50.0, side, uv, frame_id=self.frame, capture_us=t_us, edge_eff=edge)
+        if self.noise_model == "tags":
+            px = self.pixel_sigma if self.est_pixel_sigma is None else self.est_pixel_sigma
+            obs.pose_cov = pose_covariance(obj_M, T, self.cam.K, px, self.cov_inflate)
+            obs.anchor_M = np.asarray(obj_M, float).mean(axis=0)
+            obs.n_tags = len(obj_M) // 4
+        return obs
 
     def _observe_board(self, t_us) -> MarkerObservation:
-        """STUDY HOOK: observation of a multi-tag floor board (see FloorBoard)."""
+        """Observation of a multi-tag floor board (see FloorBoard): all tags in view enter one joint pose; a single tag in
+        view is the single-tag pose (with its own, larger, covariance)."""
         T_C_M = inv_T(self.w.T_M_B() @ self.T_B_C)
         if self.covered:
             return MarkerObservation(False, "marker not found", frame_id=self.frame, capture_us=t_us)
@@ -503,19 +522,9 @@ class SimCamera:
             return MarkerObservation(False, "ambiguous pose", frame_id=self.frame, capture_us=t_us)
         edge = self.board.edge_eff_for(ks)
         T_C_M = self.board.biased_T_C_M(T_C_M, ks)
-        z = float(T_C_M[2, 3])
-        lat = self.pixel_sigma * z / self.cam.fx
-        dep = 2 * self.pixel_sigma * z * z / (self.cam.fx * edge)
-        noise_t = self.rng.normal(0, 1, 3) * [lat, lat, dep] + self.bias
-        from ..frames import rotvec_to_matrix
-        Rn = rotvec_to_matrix(self.rng.normal(0, self.rot_sigma, 3))
-        T = T_C_M.copy()
-        T[:3, :3] = Rn @ T[:3, :3]
-        T[:3, 3] += noise_t
         uv = self.cam.project(self.board.corners[ks[0]] @ T_C_M[:3, :3].T + T_C_M[:3, 3])
         side = float(np.mean([np.linalg.norm(uv[k] - uv[(k + 1) % 4]) for k in range(4)]))
-        return MarkerObservation(True, "", T, 0.3, 50.0, side, uv, frame_id=self.frame, capture_us=t_us,
-                                 edge_eff=edge)
+        return self._measure(T_C_M, self.board.corners_for(ks), side, uv, t_us, edge)
 
     def observe(self, t_us) -> MarkerObservation:
         self.frame += 1
@@ -538,23 +547,14 @@ class SimCamera:
                                      frame_id=self.frame, capture_us=t_us)
         if self.rng.random() < self.dropout:
             return MarkerObservation(False, "ambiguous pose", frame_id=self.frame, capture_us=t_us)
-        z = float(T_C_M[2, 3])
-        edge = self.edge
-        if self.board_span:
+        edge, obj = self.edge, pts
+        if self.board_span:                          # legacy study option: a big virtual marker of edge ``board_span``
             hb = self.board_span / 2
-            bp = np.array([[-hb, hb, 0], [hb, hb, 0], [hb, -hb, 0], [-hb, -hb, 0]]) @ T_C_M[:3, :3].T + T_C_M[:3, 3]
+            big = np.array([[-hb, hb, 0], [hb, hb, 0], [hb, -hb, 0], [-hb, -hb, 0]])
+            bp = big @ T_C_M[:3, :3].T + T_C_M[:3, 3]
             if np.all(bp[:, 2] > 0.05) and np.all(self.cam.in_image(self.cam.project(bp), 4)):
-                edge = self.board_span
-        lat = self.pixel_sigma * z / self.cam.fx
-        dep = 2 * self.pixel_sigma * z * z / (self.cam.fx * edge)
-        noise_t = self.rng.normal(0, 1, 3) * [lat, lat, dep] + self.bias
-        from ..frames import rotvec_to_matrix
-        Rn = rotvec_to_matrix(self.rng.normal(0, self.rot_sigma, 3))
-        T = T_C_M.copy()
-        T[:3, :3] = Rn @ T[:3, :3]
-        T[:3, 3] += noise_t
-        return MarkerObservation(True, "", T, 0.3, 50.0, side, uv, frame_id=self.frame, capture_us=t_us,
-                                 edge_eff=edge)
+                edge, obj = self.board_span, big
+        return self._measure(T_C_M, obj, side, uv, t_us, edge)
 
 
 class SimClaw:

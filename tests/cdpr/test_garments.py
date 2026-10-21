@@ -10,11 +10,12 @@ from roomcleaner.cdpr.frames import make_T, rot_z
 from roomcleaner.cdpr.garments import BlobDetector, ClawFloorMapper, ClawGarmentPerception
 from roomcleaner.cdpr.sim.harness import SimRobot
 from roomcleaner.cdpr.sim.render import render_claw_view
+from roomcleaner.cdpr.sim.world import FloorBoard
 from roomcleaner.cdpr.supervisor import Supervisor
 from roomcleaner.cdpr.tasks import TaskRunner
 from roomcleaner.cdpr.vision.camera import CameraModel
 
-from .simkit import assert_no_eq_failures, fast_cfg
+from .simkit import ITEM_CANDIDATES, assert_no_eq_failures, fast_cfg, item_offsets_with_small_statics_tilt
 
 
 # ---------------------------------------------------------------- (a) mapper
@@ -57,7 +58,7 @@ def test_floor_mapper_round_trip(tilt_deg, dist, tol_m):
 def rig(tmp_path_factory):
     d = tmp_path_factory.mktemp("garments")
     cfg = fast_cfg()
-    r = SimRobot(cfg, seed=0, data_dir=d)
+    r = SimRobot(cfg, seed=0, data_dir=d, camera_kw={"board": FloorBoard.nominal(0.15)})     # the printed board (see test_system)
     sup = Supervisor(r.ctx, state_path=d / "state.json", ledger_path=d / "ledger.json")
     rep = sup.start()
     assert sup.state == "READY", rep.reasons
@@ -102,8 +103,9 @@ def test_task_delivers_items_with_visual_verification(rig):
     r, sup = rig
     _reset_items(r.world)
     c = r.world.p[:2].copy()                       # around where the startup left the claw (inside its camera footprint)
-    items = [c + [-0.35, 0.2], c + [-0.15, 0.35]]   # inside the validated volume and away from the hamper (the scan
-    #                                                 ignores anything within its radius)
+    # inside the validated volume, away from the hamper (the scan ignores anything within its radius), and where the cable
+    # model's static tilt at the grip pose is within the host's grip limit (it ranges from 2 to 9 deg across the room)
+    items = [c + o for o in item_offsets_with_small_statics_tilt(r.ctx, ITEM_CANDIDATES)]
     assert all(np.linalg.norm(xy - np.asarray(r.cfg.tasks.hamper_room_m)) > r.cfg.tasks.hamper_radius_m + 0.1
                for xy in items)
     r.world.add_item("sock", items[0])

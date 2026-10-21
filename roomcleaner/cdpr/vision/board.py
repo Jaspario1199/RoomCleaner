@@ -45,6 +45,13 @@ from ..frames import inv_T, make_T, matrix_to_rotvec, rotvec_to_matrix
 from .marker import _FAMILIES, MarkerDetector, MarkerObservation
 
 DEFAULT_IDS = tuple(range(9))
+# Sheet pitch (centre to centre, m) of the printed 3x3 layout: the default of the layout instructions
+# (tools/print_floor_board.py) and of the nominal layout below. Chosen so that >= 2 tags are in view when the claw rests
+# on the floor (lens ~0.5 m up): verification/imu_removal_review.md measured 1 tag in 8 of 8 seeds at the old 0.42 m,
+# 3-4 tags (1.0-2.0 mrad tilt) at 0.25 m; validated up to MAX_PITCH_M (0.30 gave 2 of 3 startups, 0.28 is the
+# limit the review recommends).
+DEFAULT_PITCH_M = 0.25
+MAX_PITCH_M = 0.28
 
 
 # ----------------------------------------------------------------- geometry
@@ -111,6 +118,36 @@ class FloorBoardLayout:
         self.origin_id = int(origin_id)
         self.tags: dict[int, TagPose] = {i: TagPose(i) for i in ids}
         self.tags[self.origin_id] = TagPose(self.origin_id, 0.0, 0.0, 0.0, True, np.zeros((3, 3)), 0, "origin")
+
+    @staticmethod
+    def nominal_positions(pitch_m: float = DEFAULT_PITCH_M, ids=DEFAULT_IDS, origin_id: int | None = None) -> dict:
+        """{id: (x, y)} of the intended 3x3 grid (the layout page of the printout): ``origin_id`` (default the first id)
+        in the middle, the others clockwise from the top-left corner. Only a nominal layout: the real positions are
+        surveyed (BoardSurvey) because the user does not place the sheets exactly."""
+        ids = [int(i) for i in ids]
+        origin_id = ids[0] if origin_id is None else int(origin_id)
+        order = [origin_id] + [i for i in ids if i != origin_id]
+        ring = [(-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0)]    # page view: +Y up
+        if len(order) > 9:
+            raise ValueError("a 3x3 layout holds at most 9 sheets")
+        pos = {order[0]: (0.0, 0.0)}
+        for i, (gx, gy) in zip(order[1:], ring):
+            pos[i] = (gx * float(pitch_m), gy * float(pitch_m))
+        return pos
+
+    @classmethod
+    def nominal(cls, edge_m: float, pitch_m: float = DEFAULT_PITCH_M, ids=DEFAULT_IDS, *,
+                family: str = "apriltag_36h11", origin_id: int = 0, sigma_xy_m: float = 0.02) -> "FloorBoardLayout":
+        """Layout with every tag at its nominal grid position, flagged surveyed with a coarse sigma. For tests, the
+        simulator and a first guess before the survey: do NOT use it for the absolute accuracy claims of a real board."""
+        if pitch_m > MAX_PITCH_M + 1e-9:
+            raise ValueError(f"pitch {pitch_m:.3f} m exceeds the validated maximum {MAX_PITCH_M:.2f} m")
+        lay = cls(edge_m, ids, family=family, origin_id=origin_id)
+        cov = np.diag([sigma_xy_m ** 2, sigma_xy_m ** 2, (sigma_xy_m / edge_m) ** 2])
+        for i, (x, y) in cls.nominal_positions(pitch_m, ids, origin_id).items():
+            if i != origin_id:
+                lay.set_pose(i, x, y, 0.0, cov, 0, "nominal")
+        return lay
 
     # -- queries
     @property
@@ -207,7 +244,7 @@ class BoardObservation(MarkerObservation):
 class BoardDetector:
     def __init__(self, layout: FloorBoardLayout, camera, *, min_side_px=40.0, max_reprojection_px=2.0,
                  ambiguity_ratio_min=3.0, border_px=4, continuity_rad=0.35, upright_rad=0.6, outlier_px=2.0,
-                 corner_inflate_px=0.0):
+                 corner_inflate_px=0.0, refine=True, corner_sigma_px=0.3, cov_inflate=1.3):
         """``corner_inflate_px``: move every detected corner this far outward from its
         quad's centre. 0 = trust the detector. cv2's sub-pixel refinement of small
         (~50 px) tags is biased inward by ~0.15 px, which scales the whole layout by
@@ -225,7 +262,8 @@ class BoardDetector:
         # parameter holder + single-tag pose / ambiguity rules (shared with marker.py)
         self._sel = MarkerDetector(layout.family, layout.origin_id, layout.edge_m, camera, min_side_px=min_side_px,
                                    max_reprojection_px=max_reprojection_px, ambiguity_ratio_min=ambiguity_ratio_min,
-                                   border_px=border_px, continuity_rad=continuity_rad, upright_rad=upright_rad)
+                                   border_px=border_px, continuity_rad=continuity_rad, upright_rad=upright_rad,
+                                   refine=refine, corner_sigma_px=corner_sigma_px, cov_inflate=cov_inflate)
 
     # -- raw detection
     def detect_tags(self, image):
@@ -318,6 +356,7 @@ class BoardDetector:
         self._sel.select_pose(cands, obs, prev_T_C_M=prev_T_C_M, up_in_cam=up_in_cam, up_sigma_rad=up_sigma_rad)
         if obs.ok:
             obs.edge_eff = lay.extent_eff(ids)
+            self._sel.attach_covariance(obs, np.vstack([lay.corners_M(i) for i in ids]))
         return obs
 
     # -- internals
@@ -334,6 +373,8 @@ class BoardDetector:
             obs.candidates = [(e, T @ T_T_M) for e, T in obs.candidates]
         obs.used_ids = [tid]
         obs.edge_eff = None
+        if obs.ok:                       # covariance of THIS tag's corners about the pose of M (includes the tag-to-M lever)
+            self._sel.attach_covariance(obs, self.layout.corners_M(tid))
         return obs
 
     def _obj_img(self, ids, dets):
@@ -365,6 +406,69 @@ class BoardDetector:
         obj, img = self._obj_img(ids, dets)
         e = self._corner_errors(obj, img, T).reshape(len(ids), 4)
         return {i: float(np.sqrt(np.mean(e[k] ** 2))) for k, i in enumerate(ids)}
+
+
+# ------------------------------------------------------- visibility queries
+class BoardGeometry:
+    """Which tags of a board are usable from a claw pose, and their corners: the queries the excitation design (and the
+    simulator) need. ``corners``: (n, 4, 3) black-square corners in M; ``edge``: tag edge (m); ``span_mode`` as in
+    ``sim.world.FloorBoard``. Built from a layout with :meth:`from_layout`."""
+
+    span_mode = "extent"
+
+    def __init__(self, corners, edge, span_mode="extent"):
+        self.corners = np.asarray(corners, float)
+        self.edge = float(edge)
+        self.span_mode = span_mode
+
+    @classmethod
+    def from_layout(cls, layout: FloorBoardLayout, ids=None):
+        ids = layout.surveyed_ids() if ids is None else list(ids)
+        return cls(np.array([layout.corners_M(i) for i in ids]), layout.edge_m)
+
+    def visible_tags(self, camera, T_B_C, T_M_B, *, min_side_px, margin_px=4):
+        """Indices of the tags fully in view and at least ``min_side_px`` large."""
+        T_C_M = inv_T(np.asarray(T_M_B, float) @ np.asarray(T_B_C, float))
+        pc = self.corners @ T_C_M[:3, :3].T + T_C_M[:3, 3]                  # (n, 4, 3)
+        ok = np.all(pc[:, :, 2] > 0.05, axis=1)
+        out = []
+        if not ok.any():
+            return out
+        idx = np.flatnonzero(ok)
+        uv = camera.project(pc[idx].reshape(-1, 3)).reshape(len(idx), 4, 2)
+        for j, k in enumerate(idx):
+            if not np.all(camera.in_image(uv[j], margin_px)):
+                continue
+            side = np.mean([np.linalg.norm(uv[j][m] - uv[j][(m + 1) % 4]) for m in range(4)])
+            if side >= min_side_px:
+                out.append(int(k))
+        return out
+
+    def visible(self, camera, T_B_C, T_M_B, *, min_side_px, margin_px=4) -> bool:
+        return bool(self.visible_tags(camera, T_B_C, T_M_B, min_side_px=min_side_px, margin_px=margin_px))
+
+    def edge_eff_for(self, ks) -> float:
+        c = self.corners[list(ks)].reshape(-1, 3)
+        if self.span_mode == "rms":
+            r = np.sqrt(np.mean(np.sum((c[:, :2] - c[:, :2].mean(0)) ** 2, axis=1)))
+            return float(math.sqrt(2.0) * r)
+        ex = c[:, 0].max() - c[:, 0].min()
+        ey = c[:, 1].max() - c[:, 1].min()
+        return float(math.sqrt(ex * ey))
+
+    def edge_eff(self, camera, T_B_C, T_M_B, *, min_side_px, margin_px=4):
+        """Effective span of the tags in view (the single tag edge when none is)."""
+        ks = self.visible_tags(camera, T_B_C, T_M_B, min_side_px=min_side_px, margin_px=margin_px)
+        return self.edge_eff_for(ks) if ks else self.edge
+
+    def corners_for(self, ks) -> np.ndarray:
+        """(4 len(ks), 3) corners of the tags ``ks`` in M."""
+        return self.corners[list(ks)].reshape(-1, 3)
+
+    def visible_corners(self, camera, T_B_C, T_M_B, *, min_side_px, margin_px=4):
+        """Corners of the tags in view ((4 n, 3)), or None if none is."""
+        ks = self.visible_tags(camera, T_B_C, T_M_B, min_side_px=min_side_px, margin_px=margin_px)
+        return self.corners_for(ks) if ks else None
 
 
 # --------------------------------------------------------- synthetic render

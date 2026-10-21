@@ -82,16 +82,40 @@ def pendulum_length_m(claw) -> float | None:
 
 
 def pendulum_period_s(L_m: float) -> float:
+    """Period of a simple pendulum of length ``L_m``. A rigid claw is a compound pendulum, whose period is longer
+    (T = 2 pi sqrt((k^2 + L^2) / (g L)), k = radius of gyration about the centre of mass: ~20 % for k = 0.13 m, L = 0.196 m;
+    verification/imu_removal_review.md F8c); the settle gate multiplies this by ``tasks.grip_period_margin``."""
     return 2.0 * math.pi * math.sqrt(L_m / G)
 
 
-def settle_dwell_s(claw, tasks) -> float:
-    """Dwell used when no camera motion signal exists: ``grip_settle_periods`` pendulum periods (never less than
-    ``grip_settle_min_s``); the minimum alone when the claw geometry gives no valid pendulum length."""
+def loaded_pendulum_length_m(claw, payload_kg: float) -> float | None:
+    """Pendulum length with ``payload_kg`` held in the jaws: depth of the combined centre of mass below the attachment
+    plane, the payload taken at the lowest point of the claw (the jaw tips; conservative, a garment sits a little
+    higher). Equal to :func:`pendulum_length_m` for no payload or when the claw gives no mass / lowest point."""
     L = pendulum_length_m(claw)
+    if L is None or not payload_kg or payload_kg <= 0:
+        return L
+    m = getattr(claw, "mass_kg", None)
+    low = getattr(claw, "lowest_point_body_m", None)
+    if m is None or low is None:
+        return L
+    z_attach = float(np.mean(np.asarray(claw.attachment_points_body_m, float).reshape(-1, 3)[:, 2]))
+    Lp = z_attach - float(np.asarray(low, float)[2])
+    if Lp <= L:
+        return L
+    return (m * L + payload_kg * Lp) / (m + payload_kg)
+
+
+def settle_dwell_s(claw, tasks, payload_kg: float = 0.0) -> float:
+    """Dwell used when no camera motion signal exists: ``grip_settle_periods`` pendulum periods, each the simple-pendulum
+    period times ``tasks.grip_period_margin`` (1.25: covers the compound-pendulum lengthening), never less than
+    ``grip_settle_min_s``; the minimum alone when the claw geometry gives no valid pendulum length. ``payload_kg``: the
+    mass in the jaws (a release): the loaded centre of mass hangs lower, so the period and the dwell are longer."""
+    L = loaded_pendulum_length_m(claw, payload_kg)
     if L is None:
         return float(tasks.grip_settle_min_s)
-    return float(max(tasks.grip_settle_min_s, tasks.grip_settle_periods * pendulum_period_s(L)))
+    return float(max(tasks.grip_settle_min_s,
+                     tasks.grip_settle_periods * tasks.grip_period_margin * pendulum_period_s(L)))
 
 
 # ------------------------------------------------------------------ attitude estimate
@@ -114,7 +138,9 @@ def estimate_attitude(ctx, p_room) -> AttitudeEstimate:
     o = ctx.vision.observe()
     if o.ok:
         R = ctx.T_R_M[:3, :3] @ o.R
-        sig = math.hypot(cl.vision_attitude_sigma_rad, getattr(ctx, "mount_sigma_rad", 0.0))
+        # this frame's own attitude sigma (tag geometry, see vision/marker.py), else the configured constant
+        att = getattr(o, "att_sigma_rad", None)
+        sig = math.hypot(cl.vision_attitude_sigma_rad if att is None else att, getattr(ctx, "mount_sigma_rad", 0.0))
         return AttitudeEstimate(R, tilt_angle(R), sig, "vision")
     R = ctx.model.geometry.R_at(np.asarray(p_room, float))
     return AttitudeEstimate(R, tilt_angle(R), cl.statics_attitude_sigma_rad, "statics")
@@ -144,15 +170,25 @@ def image_motion_rad_s(prev, cur, fx) -> float | None:
     return shift / (fx * dt)
 
 
-def wait_until_still(ctx, *, interval_s: float | None = None) -> SettleResult:
+def wait_until_still(ctx, *, interval_s: float | None = None, payload_kg: float = 0.0) -> SettleResult:
     """Wait for the claw to stop moving. Camera motion signal when the floor reference is in view; otherwise a
-    dwell of ``grip_settle_periods`` pendulum periods. Never returns ok on a timeout while motion is observed."""
+    dwell of ``grip_settle_periods`` pendulum periods counted from the LAST OBSERVED MOTION (a claw seen swinging and
+    then lost is not approved 'early': the time while the camera still saw it moving does not count towards the dwell;
+    with no motion ever observed the dwell counts from the start of waiting). Never returns ok on a timeout while
+    motion is observed.
+
+    ``payload_kg`` > 0 (a loaded release): the dwell of the LOADED pendulum is applied in full even when the camera
+    signal reports stillness, and the timeout is extended to cover it: after a transport with the garment in the jaws
+    the swing is larger and slower than the camera test, which needs only ``grip_still_frames`` quiet pairs, can see."""
     tk = ctx.cfg.tasks
     dt = interval_s or ctx.cfg.startup.frame_interval_s
     fx = ctx.camera.fx
+    full_dwell = settle_dwell_s(ctx.cfg.claw, tk, payload_kg)
+    timeout = tk.grip_settle_timeout_s if payload_kg <= 0 else max(tk.grip_settle_timeout_s, full_dwell + 2 * dt)
     prev, still, misses, waited, worst = None, 0, 0, 0.0, 0.0
+    t_motion = 0.0                                   # waiting time of the last observed motion (0 = none seen)
     seen_signal = False
-    while waited <= tk.grip_settle_timeout_s:
+    while waited <= timeout:
         o = ctx.vision.observe()
         if o.ok and getattr(o, "corners", None) is not None:
             rate = image_motion_rad_s(prev, o, fx) if prev is not None else None
@@ -160,15 +196,17 @@ def wait_until_still(ctx, *, interval_s: float | None = None) -> SettleResult:
             if rate is not None:
                 seen_signal = True
                 worst = max(worst, rate)
-                still = still + 1 if rate <= tk.grip_still_rate_rad_s else 0
-                if still >= tk.grip_still_frames:
+                if rate <= tk.grip_still_rate_rad_s:
+                    still += 1
+                else:
+                    still, t_motion = 0, waited
+                if still >= tk.grip_still_frames and (payload_kg <= 0 or waited - t_motion >= full_dwell):
                     return SettleResult(True, "camera", waited, still, rate)
         else:
             misses += 1
             prev, still = None, 0
             if misses >= tk.grip_still_frames:       # no camera motion signal: pendulum dwell instead
-                dwell = settle_dwell_s(ctx.cfg.claw, tk)
-                rest = max(dwell - waited, 0.0)
+                rest = max(full_dwell - (waited - t_motion), 0.0)
                 if rest > 0:
                     ctx.wait(rest)
                 return SettleResult(True, "dwell", waited + rest, 0, None,
@@ -177,4 +215,4 @@ def wait_until_still(ctx, *, interval_s: float | None = None) -> SettleResult:
         waited += dt
     why = "claw still moving" if seen_signal else "no usable frames"
     return SettleResult(False, "camera", waited, still, worst if seen_signal else None,
-                        f"{why} after {tk.grip_settle_timeout_s:.0f} s (worst image rate {worst:.3f} rad/s)")
+                        f"{why} after {timeout:.0f} s (worst image rate {worst:.3f} rad/s)")

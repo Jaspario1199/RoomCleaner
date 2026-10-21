@@ -130,15 +130,16 @@ class TaskRunner:
     def _here(self):
         return self.ctx.model.pose_from_positions(self.ctx.co.positions())[0]
 
-    def _settle_and_approve(self, what, target=None):
+    def _settle_and_approve(self, what, target=None, payload_kg=0.0):
         """Wait until the claw is still, then approve on the host. Returns (ok, why). ``target``: the pose the claw
         will go to next (the grip pose); its predicted tilt is checked too. Tilt now: vision when the floor reference
         is in view, else the cable model's static tilt; the predicted tilt (R_at) at the current and target pose must
-        also be within ``claw.grip_tilt_max_rad``."""
+        also be within ``claw.grip_tilt_max_rad``. ``payload_kg``: mass in the jaws (a release): the full dwell of the
+        loaded pendulum is applied (attitude.wait_until_still)."""
         ctx = self.ctx
         lim = self.cfg.claw.grip_tilt_max_rad
-        res = wait_until_still(ctx)
-        rec = dict(what=what, method=res.method, waited_s=round(res.waited_s, 2), still_ok=res.ok)
+        res = wait_until_still(ctx, payload_kg=payload_kg)
+        rec = dict(what=what, method=res.method, waited_s=round(res.waited_s, 2), still_ok=res.ok, payload_kg=payload_kg)
         self.approvals.append(rec)
         if not res.ok:
             return False, f"claw would not settle ({res.reason})"
@@ -234,7 +235,7 @@ class TaskRunner:
         self._move(np.array([here[0], here[1], z_t]), label="raise", payload=tc.max_payload_kg)
         self._move(np.array([hamper[0], hamper[1], z_t]), label="transport", payload=tc.max_payload_kg)
         on_state("RELEASE", item.id)
-        ok, why = self._settle_and_approve(f"release {item.id}")
+        ok, why = self._settle_and_approve(f"release {item.id}", payload_kg=tc.max_payload_kg)
         if not ok:
             return False, f"release not approved: {why}"
         ctx.claw.grip(False)

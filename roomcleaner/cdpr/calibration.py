@@ -75,6 +75,10 @@ class PoseSample:
     taut: np.ndarray | None = None          # (4,) bool or None (not probed)
     taut_sigma_m: np.ndarray | None = None  # (4,) extra 1-sigma per probed reading (m)
     probe: dict | None = None               # raw probe record (logs only)
+    # 1-sigma of this pose's roll or pitch from its own frames (tag geometry, vision/marker.py); None = unknown. The
+    # attachment-lever term of the length noise uses max(calibration.attitude_sigma_rad, this): the configured value is
+    # the floor, a poorly seen pose (one tag far away: tens of mrad) is not credited with more than it delivers.
+    att_sigma_rad: float | None = None
 
     def __post_init__(self):
         self.P = np.asarray(self.P, float).reshape(4)
@@ -371,7 +375,8 @@ class Calibrator:
             return np.zeros((0, 4))
         out = np.array([smp.length_sigma(sl) for smp in samples])
         if self.spaced:        # attitude error moves the attachment point: |b_i| * sigma_R along the line, at most
-            out = np.hypot(out, self.cc.attitude_sigma_rad * np.linalg.norm(self.attach, axis=1)[None, :])
+            att = np.array([max(self.cc.attitude_sigma_rad, smp.att_sigma_rad or 0.0) for smp in samples])[:, None]
+            out = np.hypot(out, att * np.linalg.norm(self.attach, axis=1)[None, :])
         return out
 
     # -- residuals and Jacobian ---------------------------------------------
@@ -1043,13 +1048,17 @@ def marker_visible(camera, T_B_C, T_M_B, edge_m, *, min_side_px, margin_px=20) -
     return bool(side >= min_side_px)
 
 
-def predicted_vision_cov(camera, T_B_C, T_M_B, edge_m, *, pixel_sigma=0.3, rot_sigma=0.01) -> np.ndarray:
-    """Expected claw-position covariance at a pose (same model as the detector)."""
+def predicted_vision_cov(camera, T_B_C, T_M_B, edge_m, *, pixel_sigma=0.3, rot_sigma=None, corners_M=None,
+                         inflate=1.3, floor_rad=0.001) -> np.ndarray:
+    """Expected claw-position covariance (marker frame) at a pose: the same model as the detector. The pose covariance
+    is the Cramer-Rao bound of the corners that would be in view (``corners_M``: (n, 3) in M; default the square tag of
+    edge ``edge_m`` at the marker origin), propagated through the marker-to-claw lever (anisotropic: mostly horizontal
+    for a camera looking down). ``rot_sigma`` is accepted for compatibility and unused."""
     from .frames import inv_T
+    from .vision.marker import claw_cov_from_pose, pose_covariance
     T_C_M = inv_T(T_M_B @ T_B_C)
-    z = float(T_C_M[2, 3])
-    lat = pixel_sigma * z / camera.fx
-    dep = 2 * pixel_sigma * z * z / (camera.fx * edge_m)
-    R_M_C = inv_T(T_C_M)[:3, :3]
-    C = R_M_C @ np.diag([lat ** 2, lat ** 2, dep ** 2]) @ R_M_C.T
-    return C + np.eye(3) * (rot_sigma * float(np.linalg.norm(T_B_C[:3, 3]))) ** 2
+    if corners_M is None:
+        h = edge_m / 2
+        corners_M = np.array([[-h, h, 0], [h, h, 0], [h, -h, 0], [-h, -h, 0]], float)
+    C6 = pose_covariance(corners_M, T_C_M, camera.K, pixel_sigma, inflate)
+    return claw_cov_from_pose(C6, T_C_M, T_B_C, floor_rad=floor_rad)[0]

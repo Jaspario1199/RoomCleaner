@@ -66,6 +66,10 @@ def case_table():
     }
     for name, (nx, ny, p) in grids.items():
         add(name, "3", board=(nx, ny, p, e, "extent", 0.0))
+    # the printed layout of D26/D27 (tools/print_floor_board.py): 150 mm tags, default pitch 0.25 m (>= 2 tags in view at the
+    # 0.5 m rest height; verification/imu_removal_review.md F3)
+    from roomcleaner.cdpr.vision.board import DEFAULT_PITCH_M
+    add("3i printed layout 3x3 p0.25 (0.65 m, 9 sheets, 150 mm tags)", "3", board=(3, 3, DEFAULT_PITCH_M, 0.15, "extent", 0.0))
     add("3g dense 5x5 p0.21, rms span", "3", board=(5, 5, 0.21, e, "rms", 0.0))
     add("3h dense 7x7 p0.22, rms span", "3", board=(7, 7, 0.22, e, "rms", 0.0))
     # wider excitation box (config knob calibration.expanded_box_m, overridden in memory only) and stiffer cable
@@ -227,6 +231,11 @@ def run_one(args):
         ck["board_span_m"] = spec["span"]
     if spec["pix"]:
         ck["pixel_sigma"] = spec["pix"]
+        ck["est_pixel_sigma"] = spec.get("est_pix") or spec["pix"]         # plant and estimator agree unless --est-pix
+    elif spec.get("est_pix"):
+        ck["est_pixel_sigma"] = spec["est_pix"]
+    if spec.get("noise_model"):
+        ck["noise_model"] = spec["noise_model"]
     board = None
     if spec["board"]:
         nx, ny, p, e, mode, err = spec["board"]
@@ -279,6 +288,10 @@ def run_one(args):
         out["reasons"] = [x[:160] for x in rep.reasons][:4]
         out["log_tail"] = [x[:200] for x in r.log_lines if "reject" in x.lower() or "abort" in x.lower()][-2:]
         out["trust"] = r.ctx.ledger.level
+        out["startup_complete"] = rep.outcome == "READY"
+        out["floor_tags_in_view"] = m.get("floor_tags_in_view")
+        out["floor_attitude_sigma_mrad"] = None if m.get("floor_attitude_sigma_rad") is None else m["floor_attitude_sigma_rad"] * 1e3
+        out["vision_noise_mm"] = [m.get("vision_noise_m", float("nan")) * 1e3, m.get("vision_noise_absolute_m", float("nan")) * 1e3]
         out["accepted"] = "absolute_sigma_m" in m
         if out["accepted"]:
             sig = np.asarray(m["absolute_sigma_m"])
@@ -445,6 +458,9 @@ def main():
                     help="config override for every case, e.g. startup.probe_overshoot_max_m=0.012 (repeatable)")
     ap.add_argument("--no-whatif", action="store_true", help="skip the what-if refits (faster)")
     ap.add_argument("--tag", default="", help="suffix for case names (to tell runs apart in one output)")
+    ap.add_argument("--pix", type=float, default=None, help="corner noise (px) of the PLANT, every case (and of the estimator unless --est-pix)")
+    ap.add_argument("--est-pix", type=float, default=None, help="corner noise (px) the ESTIMATOR is told (default: same as --pix / config)")
+    ap.add_argument("--noise-model", default=None, choices=["tags", "fixed"], help="SimCamera noise model (default tags)")
     a = ap.parse_args()
     table = case_table()
     cases = {}
@@ -467,8 +483,15 @@ def main():
     for kv in a.set:
         k_, v_ = kv.split("=", 1)
         extra[k_] = json.loads(v_)
+    over = {}
+    if a.pix:
+        over["pix"] = a.pix
+    if a.est_pix:
+        over["est_pix"] = a.est_pix
+    if a.noise_model:
+        over["noise_model"] = a.noise_model
     cases = {(k + (f" [{a.tag}]" if a.tag else "")): dict(v, cfg={**(v.get("cfg") or {}), **extra},
-                                                         no_whatif=a.no_whatif) for k, v in cases.items()}
+                                                         no_whatif=a.no_whatif, **over) for k, v in cases.items()}
     jobs = [(k, v, s) for k, v in cases.items() for s in range(a.seed0, a.seed0 + a.seeds)]
     print(f"{len(jobs)} runs on {a.procs} processes", flush=True)
     results = []

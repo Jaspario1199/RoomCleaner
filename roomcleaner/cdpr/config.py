@@ -128,7 +128,12 @@ class ClawConfig:
                                                      # provider that is not the claw node (none exists on the hardware)
     grip_tilt_max_rad: float = math.radians(5)       # host-side grip approval limit (predicted R_at and, when the floor
                                                      # reference is in view, measured tilt)
-    vision_attitude_sigma_rad: float = 0.010         # honest 1-sigma of roll OR pitch from a vision pose (D27); no IMU
+    vision_attitude_sigma_rad: float = 0.010         # D27: 1-sigma of roll OR pitch for a vision frame that carries NO covariance of
+                                                     # its own (legacy source / fixed-noise simulation). Frames from the detectors
+                                                     # carry a per-frame, tag-geometry covariance (vision/marker.py) and use this
+                                                     # only through the validation below
+    vision_attitude_floor_rad: float = 0.001         # least attitude sigma added to a frame's own covariance (unmodelled
+                                                     # systematics: lens, JPEG, print flatness)
     statics_attitude_sigma_rad: float = 0.07         # 1-sigma of the cable-model (R_at) tilt: CoM height / payload
                                                      # sensitivity of a few degrees (verification/multi_attachment_review.md)
     mount_offset_max_rad: float = math.radians(5)    # startup aborts if the measured camera-to-body tilt offset exceeds
@@ -145,6 +150,9 @@ class MarkerConfig:
     heading_sigma_rad: float = math.radians(20)
     position_prior_room_m: np.ndarray | None = None  # None -> room centre
     position_sigma_m: float = 0.5
+    board_layout_file: str | None = None             # surveyed multi-sheet floor reference (vision/board.py FloorBoardLayout JSON):
+                                                     # when set, the BoardDetector replaces the single-tag detector (a frame with
+                                                     # >= 2 usable tags gets the joint multi-tag pose, else the single tag)
 
 
 @dataclass
@@ -156,6 +164,9 @@ class CameraConfig:
     min_marker_pixels: float = 40.0
     max_reprojection_px: float = 2.0
     ambiguity_ratio_min: float = 3.0                 # 2nd/1st reprojection error to accept
+    corner_sigma_px: float = 0.3                     # 1-sigma of a detected tag corner (px per image axis): the per-frame pose
+                                                     # covariance (vision/marker.py) is derived from it. Measure it on real frames.
+    pose_cov_inflate: float = 1.3                    # margin on the Cramer-Rao standard deviation of that covariance
 
 
 @dataclass
@@ -280,6 +291,7 @@ class TaskConfig:
     grip_still_frames: int = 5                      # ... for this many consecutive frame pairs
     grip_settle_periods: float = 5.0                # no camera motion signal: dwell this many pendulum periods
     grip_settle_min_s: float = 2.0                  # floor on that dwell (a short pendulum length gives tiny periods)
+    grip_period_margin: float = 1.25                # x the simple-pendulum period (a rigid claw is a compound pendulum, ~20 % longer)
     grip_settle_timeout_s: float = 15.0             # give up waiting for stillness after this long
 
 
@@ -490,6 +502,7 @@ def load_config(path_or_dict) -> SystemConfig:
         imu=bool(cd.pop("imu", False)),
         grip_tilt_max_rad=_f(cd.pop("grip_tilt_max_rad", math.radians(5)), "claw.grip_tilt_max_rad"),
         vision_attitude_sigma_rad=_f(cd.pop("vision_attitude_sigma_rad", 0.010), "claw.vision_attitude_sigma_rad"),
+        vision_attitude_floor_rad=_f(cd.pop("vision_attitude_floor_rad", 0.001), "claw.vision_attitude_floor_rad"),
         statics_attitude_sigma_rad=_f(cd.pop("statics_attitude_sigma_rad", 0.07), "claw.statics_attitude_sigma_rad"),
         mount_offset_max_rad=_f(cd.pop("mount_offset_max_rad", math.radians(5)), "claw.mount_offset_max_rad"),
         address=cd.pop("address", None),
@@ -510,6 +523,7 @@ def load_config(path_or_dict) -> SystemConfig:
         heading_sigma_rad=_f(md.pop("heading_sigma_rad", math.radians(20)), "marker.heading_sigma_rad", positive=True),
         position_prior_room_m=_vec(md.pop("position_prior_room_m", None), "marker.position_prior_room_m", n=2),
         position_sigma_m=_f(md.pop("position_sigma_m", 0.5), "marker.position_sigma_m", positive=True),
+        board_layout_file=md.pop("board_layout_file", None),
     )
     if md:
         raise ConfigError(f"marker: unknown keys {sorted(md)}")
@@ -552,6 +566,9 @@ def load_config(path_or_dict) -> SystemConfig:
             raise ConfigError(f"{k} must be a number >= 0")
     cl, ca = cfg.claw, cfg.calibration
     for k, v in (("claw.grip_tilt_max_rad", cl.grip_tilt_max_rad), ("claw.vision_attitude_sigma_rad", cl.vision_attitude_sigma_rad),
+                 ("claw.vision_attitude_floor_rad", cl.vision_attitude_floor_rad),
+                 ("camera.corner_sigma_px", cfg.camera.corner_sigma_px), ("camera.pose_cov_inflate", cfg.camera.pose_cov_inflate),
+                 ("tasks.grip_period_margin", cfg.tasks.grip_period_margin),
                  ("claw.statics_attitude_sigma_rad", cl.statics_attitude_sigma_rad),
                  ("claw.mount_offset_max_rad", cl.mount_offset_max_rad),
                  ("calibration.attitude_sigma_rad", ca.attitude_sigma_rad)):

@@ -9,7 +9,7 @@ Status: implemented and tested on synthetic data only. No real camera frames, no
 | Printable multi-page Letter PDF (layout page + 9 tag sheets) and its self-check | `tools/print_floor_board.py` |
 | Layout, joint-PnP detector, survey | `roomcleaner/cdpr/vision/board.py` |
 | Tests (31) | `tests/cdpr/test_floor_board.py` |
-| Review copy of the printout | `prints/floor_board_letter.pdf` and `prints/floor_board_letter-01..10.png` (100 dpi) |
+| Review copy of the printout | `prints/floor_board_letter.pdf` and `prints/floor_board_letter-01..10.png` (100 dpi): since the D27 follow-up the 0.25 m layout (sheets overlap by ~30 mm along the page height: overlap the blank margins, never a tag); the original 450 mm version is kept as `prints/floor_board_letter_450mm.pdf` / `..._450mm-01..10.png` |
 | Small refactor | `vision/marker.py`: the accept / disambiguate / reject tail of `pose_from_corners` is now `MarkerDetector.select_pose` (behaviour unchanged, `test_vision.py` still passes) so the board detector reuses the exact ambiguity rules |
 
 ### Printable PDF
@@ -79,4 +79,4 @@ So at least 2 sheets are visible from about 0.7 m; the survey flight wants 1.2-1
 6. Tilt/gravity: without an IMU vector the survey uses the "camera looks straight down" prior only for disambiguation; with gravity (3 mrad) errors roughly halve. Tested with synthetic noise only.
 7. Noise limits (3 mm / 0.86 deg spread, 2 mm / 0.34 deg sigma, 1.5 px rms) are tuned on synthetic data at 0.3-0.6 px corner noise and must be re-tuned with real frames.
 8. Real camera frames, JPEG artefacts, lens distortion beyond the 5-parameter model (survey supports k1 k2 p1 p2 k3 only) and rolling shutter while the claw swings are untested. The survey assumes the camera is still enough that every frame has one pose.
-9. Not wired into startup/perception/config (out of scope of this task, see hand-off notes).
+9. ~~Not wired into startup/perception/config.~~ Since the D27 follow-up (`verification/board_attitude_results.md`): `marker.board_layout_file` makes the service use `BoardDetector` (>= 2 usable tags: joint pose, else single tag with its own covariance), every accepted frame carries a per-frame pose covariance, and the default layout pitch is 0.25 m (`DEFAULT_PITCH_M`). The survey itself is still not run by the startup (the layout file is produced by `BoardSurvey` offline).

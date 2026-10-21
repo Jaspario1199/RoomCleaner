@@ -80,3 +80,43 @@ def ModelFrameItemPerception(world, **kw):
             bias = self.w.p[:2] - here[:2]
             return [replace(s, xy=s.xy - bias) for s in super().scan(ctx)]
     return _ModelFrame(world, **kw)
+
+
+def item_offsets_with_small_statics_tilt(ctx, candidates=None, n=2, max_deg=4.0, min_sep=0.15, scan_half=0.6):
+    """The first ``n`` offsets (m, from where the startup left the claw; default: a 0.1 m grid ordered by distance) that a task can
+    serve: the predicted STATICS tilt at the grip pose is <= ``max_deg`` (the host refuses a grip at > claw.grip_tilt_max_rad = 5 deg,
+    and the cable model's tilt on the floor ranges from 2 to 11 deg across the room, so an offset that is fine for one noise stream
+    is refused for another), the hover and grip poses are inside the trusted volume, the item lies inside the scan footprint
+    (``scan_half``, Chebyshev) of the claw AND of the hamper (the next scan happens where the previous item was delivered) and clear of
+    the hamper."""
+    import math
+
+    from roomcleaner.cdpr.attitude import predicted_tilt_rad
+    from roomcleaner.cdpr.tasks import TrustedVolume
+    cfg = ctx.cfg
+    zf = -float(cfg.claw.lowest_point_body_m[2])
+    c = np.asarray(ctx.model.pose_from_positions(ctx.co.positions())[0][:2], float)
+    hamper = np.asarray(cfg.tasks.hamper_room_m, float)
+    vol = TrustedVolume(ctx)
+    if candidates is None:
+        g = np.round(np.arange(-0.5, 0.51, 0.1), 2)
+        candidates = sorted(((x, y) for x in g for y in g), key=lambda o: (np.hypot(*o), o))
+    out = []
+    for off in candidates:
+        off = np.asarray(off, float)
+        xy = c + off
+        grip = np.r_[xy, zf + cfg.tasks.grip_clearance_m]
+        hover = np.r_[xy, zf + 0.08 + cfg.tasks.approach_clearance_m]
+        deg = math.degrees(predicted_tilt_rad(ctx.model.geometry, grip))
+        if (deg <= max_deg and np.max(np.abs(xy - hamper)) <= scan_half
+                and np.linalg.norm(xy - hamper) > cfg.tasks.hamper_radius_m + 0.15
+                and vol.allows(grip, below_ok=True) and vol.allows(hover)
+                and all(np.linalg.norm(off - o) >= min_sep for o in out)):
+            out.append(off)
+        if len(out) == n:
+            return out
+    raise AssertionError(f"fewer than {n} candidate item positions that are served by the task layer (tilt <= {max_deg} deg, "
+                         f"inside the trusted volume and the scan footprint of the claw and of the hamper)")
+
+
+ITEM_CANDIDATES = None          # default: the grid of the helper

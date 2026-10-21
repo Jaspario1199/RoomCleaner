@@ -241,3 +241,18 @@ by: charge only with SW1 OFF, attended, on a non-flammable surface, with an
 overcharge/over-discharge protection (confirm on the label/datasheet before the
 first charge, because a 2-wire pack cannot be balance-charged). Deck B7, the
 phone-app start checklist and the claw spec follow this wording.
+
+D32. **Gripper 1021 is the build baseline; hands are four-bar couplers** (Jasper,
+2026-10-21: "this is my final gripper assembly"; lead design of the hands).
+Jasper's `1021LaundryAssem` (v6r gears, his gear housing, arms, housing,
+cylinder, 12 in tube) supersedes v7 for building; v6/v7 are kept as history.
+Each hand joins the gear crank pin (r 53) to the arm tip (r 50): a
+near-parallelogram four-bar (ground 36.54, coupler 34.67), so the hands
+stay within ~1° of parallel. Working crank range −5° to −62° (faces meet);
+servo travel ≈ 114°; the arm hits the crank at −70°. 53 mm opening, and the
+tips drop ~38 mm while closing (close from ~35–40 mm above the floor). The
+follower must be meshed 6° from its file pose. The housing gets the verified
+v6 camera bay (r 90, same lens position). Cable-to-bay clearance is ≥ 12 mm
+within ±15° claw yaw; contact is possible at ≥ 30° yaw near the ceiling, so
+start square to the room. Spec: cad/GRIPPER_1021_SPEC.md; checks:
+verification/gripper1021_build_notes.md, gripper1021_hands_lead_check.md.

@@ -491,3 +491,20 @@ Open decisions for Jasper: winch capacity after the pull test (3:1 reduction
 vs lighter claw); grip-tilt gate (~12° + aim with predicted tilt, recommended);
 compound web 6 vs 7 holes; Ø10 bearing-floor opening after a spin test;
 slack_probe default (keep false until probe H1/M2 are closed).
+
+## Session milestone (10/21 evening, lead)
+- Gripper 1021 (D32): hands and housing+camera bay built from Jasper's final
+  assembly, verified (implementer tests 40/40, plus the lead's independent sweep
+  and housing spot check), and sent as STEP + STL. Exports:
+  exports/{step,stl}/gripper1021_*.
+- KiCad: station Rev D (ERC 0/0, netlist = perfboard) and claw Rev B (D31)
+  are in docs/electrical/*/kicad/ and in deck backups B8/B9.
+- Phone app (docs/PHONE_APP_SPEC.md) committed; demo artifact published
+  (docs/app_demo/). Independent review is running. A live `--sim` start
+  under heavy CPU ended RECOVERY_REQUIRED at pretension; to be reproduced
+  quietly.
+- Keep-alive pumping: rounds 1 and 2 done. A full-startup pump-gap guard test
+  passes. Open: probe-on outcome variance (N4), and a tiny-move segment bug
+  (fix running). `faults.lease_s` must still be sized on the real host.
+- D31: claw power (Tenergy 2S, ZTW 6 V, MP1584 5 V, on-claw charger) and its
+  charging rule.

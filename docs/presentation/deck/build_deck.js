@@ -481,11 +481,11 @@ async function build() {
     rail: [
       "Swap a station without re-calibrating the room.",
       "Anchor error maps 1:1; studs see pull-out.",
-      "Fixed frame plus slide-in housing, SF ≥ 3.",
+      "Fixed frame + slide-in; SF 3 at 34 N, 1.5 at 68 N.",
       "SolidWorks static study pending.",
       "Statics can't see creep; pull test too.",
     ],
-    fund: { eq: "σ = M c / I (rail root);   δ = F L³ / (3 E I) (cable exit)", sub: "Pass limits at the 34 N slip-limit load: peak σ ≤ 8.33 MPa (SF ≥ 3 on 25 MPa derated yield), deflection ≤ 0.5 mm at the cable exit." },
+    fund: { eq: "σ = M c / I (rail root);   δ = F L³ / (3 E I) (cable exit)", sub: "Pass: SF ≥ 3 at the 34 N slip load (σ ≤ 8.33 MPa on 25 MPa derated PETG) and SF ≥ 1.5 at 68 N dynamic; ≤ 0.5 mm at the cable exit." },
     notes: {
       say: "Making the station removable moved the anchor from a screw to a slide, and anchor error turns one-to-one into claw position error, so I am stress-testing the slide-in.",
       numbers: "PLANNED, no results yet: SolidWorks linear static study of the station mount, reporting peak stress, safety factor and deflection at the cable exit. Pass limits: SF at least 3 on derated PETG; deflection at most 0.5 mm. The line pulls the station away from the wall, so the stud screws see pull-out rather than shear. Load basis: slip-limit tension x a dynamic factor. Linear statics cannot see creep or layer-adhesion weakness, so a physical pull test closes the gap.",
@@ -709,7 +709,7 @@ async function build() {
         cell(["Vref cap 0.75–0.85 V", "One motor on all four driver channels", "18 V on the meter at the supply", "Buck output 5.00 V", "Fin fits the motor", "Logic rail 1.14 V (the fault)"]),
         cell(["Cable statics, 32 to 4.6 N", "Gear stress (Lewis)", "Fin efficiency, 74 % to 37 %", "Wire drop, 0.51 V", "Grip force per jaw"]),
         cell(["Control system and sync", "Startup calibration", "Camera view vs tube length", "Jaw force, four-bar model"]),
-        cell(["Hold test: motor case below 60 °C", "Station pull test, empty and full spool", "SolidWorks station study: SF ≥ 3, ≤ 0.5 mm", "1 lb, four stations, 300 mm at 50 mm/s: ≤ 2 mm per cable"]),
+        cell(["Hold test: motor case below 60 °C", "Station pull test, empty and full spool", "SolidWorks station study: SF 3 at 34 N, 1.5 at 68 N, ≤ 0.5 mm", "1 lb, four stations, 300 mm at 50 mm/s: ≤ 2 mm per cable"]),
       ],
     ], { x: M, y: 2.0, w: W - 2 * M, colW: [colW, colW, colW, colW], rowH: [0.42, 3.2], fontFace: "Calibri", objectName: "evidence_table" });
     s.addShape(pres.shapes.RECTANGLE, { x: M, y: 5.85, w: W - 2 * M, h: 0.85, fill: { color: C.accent5 }, line: { color: C.accent1, width: 1.5 }, objectName: "first_test_card" });

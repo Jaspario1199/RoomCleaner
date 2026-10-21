@@ -1,11 +1,11 @@
-// RoomCleaner interview deck v3: v2's story and style, plus equation boxes in the corner of process slides, charts
-// from the Google Sheet "RoomCleaner engineering calculations", a heat-fin length slide, a manufacturing section and a
-// first-test slide.  Content contract: docs/presentation/DECK_V3_NOTES.md.  v1 and v2 are kept unchanged.
+// RoomCleaner interview deck v4: deck v3's content in the assertion-evidence format (Alley, Penn State): every content
+// slide is titled with a full-sentence takeaway, the visual is the evidence, plain neutral styling (Arial, black text,
+// one blue accent, square equation boxes, plain captions).  Content contract: docs/presentation/DECK_V4_NOTES.md.
+// v1, v2 and v3 are kept unchanged; the figures and Sheet charts are read from deck_v3/fig.
 //
-//   /usr/bin/python3 docs/presentation/deck_v3/sheet_charts.py     (after exporting the Sheet to deck_v3/sheet_export.pdf)
-//   /usr/bin/python3 docs/presentation/deck_v3/make_figures.py
+//   (figures: docs/presentation/deck_v3/sheet_charts.py and make_figures.py, as for v3)
 //   NODE_PATH=<pptxgenjs node_modules> APPLY_THEME=<pptx skill>/scripts/apply_theme.js \
-//   SOFFICE_PY=<pptx skill>/scripts/office/soffice.py node docs/presentation/deck_v3/build_deck_v3.js
+//   SOFFICE_PY=<pptx skill>/scripts/office/soffice.py node docs/presentation/deck_v4/build_deck_v4.js
 "use strict";
 const path = require("path");
 const { execFileSync } = require("child_process");
@@ -13,31 +13,32 @@ const pptxgen = require("pptxgenjs");
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
 const P = (...p) => path.join(ROOT, ...p);
-const OUT = path.join(__dirname, "RoomCleaner_Buntinx_Oct27_v3.pptx");
+const OUT = path.join(__dirname, "RoomCleaner_Buntinx_Oct27_v4.pptx");
+const FIGDIR = path.join(__dirname, "..", "deck_v3", "fig");
 const { size: imgSize } = require("../deck_v2/img_size.js");
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/1UGFnkL1v305WnDYj5aj5zBtgxnxmGP7_TVRN0afZTGs/edit";
 
 const THEME = {
-  name: "RoomCleaner v3", headFontFace: "Calibri", bodyFontFace: "Calibri",
+  name: "RoomCleaner v4", headFontFace: "Arial", bodyFontFace: "Arial",
   colors: { dk1: "1A1A1A", lt1: "FFFFFF", dk2: "1F3A5F", lt2: "F2F2F4", accent1: "1F3A5F", accent2: "8A8F98",
             accent3: "B23A2E", accent4: "4F6D8F", accent5: "D9DEE5", accent6: "5B6470", hlink: "1F3A5F", folHlink: "4F6D8F" },
 };
-const HEX = { ink: "1A1A1A", navy: "1F3A5F", grey: "8A8F98", mid: "5B6470", light: "F2F2F4", rule: "D9DEE5", red: "B23A2E", navy2: "4F6D8F", eq: "F5F7FA" };
+const HEX = { ink: "000000", navy: "1F3A5F", grey: "7F7F7F", mid: "404040", light: "F2F2F2", rule: "BFBFBF", red: "B23A2E", navy2: "4F6D8F", eq: "F2F2F2" };
 
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE";                       // 13.33 x 7.5 in
 pres.author = "Jasper Buntinx";
 pres.title = "RoomCleaner";
-pres.theme = { headFontFace: "Calibri", bodyFontFace: "Calibri" };
+pres.theme = { headFontFace: "Arial", bodyFontFace: "Arial" };
 const W = 13.333, M = 0.6;
 
 pres.defineSlideMaster({
   title: "CONTENT", background: { color: "FFFFFF" },
   objects: [
     { line: { x: M, y: 7.0, w: W - 2 * M, h: 0, line: { color: HEX.rule, width: 0.75 } } },
-    { text: { text: "RoomCleaner  |  Jasper Buntinx", options: { x: M, y: 7.05, w: 6, h: 0.3, fontSize: 10, color: HEX.grey, fontFace: "Calibri", margin: 0 } } },
+    { text: { text: "RoomCleaner  |  Jasper Buntinx  |  October 27, 2026", options: { x: M, y: 7.05, w: 7, h: 0.3, fontSize: 10, color: HEX.grey, fontFace: "Arial", margin: 0 } } },
   ],
-  slideNumber: { x: W - M - 0.6, y: 7.05, w: 0.6, h: 0.3, fontSize: 10, color: HEX.grey, align: "right", fontFace: "Calibri" },
+  slideNumber: { x: W - M - 0.6, y: 7.05, w: 0.6, h: 0.3, fontSize: 10, color: HEX.grey, align: "right", fontFace: "Arial" },
 });
 pres.defineSlideMaster({ title: "SECTION", background: { color: HEX.navy } });
 pres.defineSlideMaster({ title: "TITLE", background: { color: "FFFFFF" } });
@@ -62,7 +63,7 @@ function bullets(sl, items, x, y, w, h, size = 20) {
   items.forEach((it, i) => {
     const sub = it.startsWith("- ");
     const t = sub ? it.slice(2) : it;
-    const base = { fontSize: sub ? size - 3 : size, color: sub ? HEX.mid : HEX.ink, fontFace: "Calibri" };
+    const base = { fontSize: sub ? size - 3 : size, color: sub ? HEX.mid : HEX.ink, fontFace: "Arial" };
     const para = { bullet: sub ? { indent: 18 } : { indent: 20 }, indentLevel: sub ? 1 : 0, paraSpaceAfter: sub ? 4 : 9 };
     const rs = runs(t, { ...base, ...para, align: "left" });   // paragraph options on every run: pptxgenjs takes them from the last run
     rs.forEach((r, j) => { r.options.breakLine = j === rs.length - 1 && i < items.length - 1; });
@@ -76,20 +77,20 @@ const EQ_LINE = 0.34;
 const eqHeight = eq => 0.44 + EQ_LINE * eq.lines.length + (eq.note ? 0.26 : 0);
 function eqBox(sl, eq, x, y, w) {
   const h = eqHeight(eq);
-  sl.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, rectRadius: 0.06, fill: { color: HEX.eq }, line: { color: HEX.rule, width: 0.75 }, objectName: "equation box" });
-  sl.addText("EQUATIONS", { x: x + 0.18, y: y + 0.1, w: w - 0.36, h: 0.22, fontSize: 10, bold: true, color: HEX.navy, charSpacing: 1.5,
-                            fontFace: "Calibri", margin: 0, isTextBox: true, objectName: "equation label" });
+  sl.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: HEX.eq }, line: { color: HEX.eq, width: 0.5 }, objectName: "equation box" });
+  sl.addText("Key equations", { x: x + 0.18, y: y + 0.09, w: w - 0.36, h: 0.24, fontSize: 11, bold: true, color: HEX.mid,
+                                fontFace: "Arial", margin: 0, isTextBox: true, objectName: "equation label" });
   const arr = [];
   eq.lines.forEach((ln, i) => {
     const rs = runs(ln, { fontSize: 15, color: HEX.ink, fontFace: "Cambria", paraSpaceAfter: 4, align: "left" })
-      .flatMap(r => r.text.split(/(→)/).filter(Boolean).map(t => ({ text: t, options: t === "→" ? { ...r.options, fontFace: "Calibri" } : { ...r.options } })));   // own copy: breakLine is set per run
+      .flatMap(r => r.text.split(/(→)/).filter(Boolean).map(t => ({ text: t, options: t === "→" ? { ...r.options, fontFace: "Arial" } : { ...r.options } })));   // own copy: breakLine is set per run
     rs.forEach((r, j) => { r.options.breakLine = j === rs.length - 1 && i < eq.lines.length - 1; });
     arr.push(...rs);
   });
   sl.addText(arr, { x: x + 0.18, y: y + 0.36, w: w - 0.36, h: EQ_LINE * eq.lines.length + 0.02, valign: "top", align: "left", margin: 0,
                     isTextBox: true, objectName: "equations" });
-  if (eq.note) sl.addText(eq.note, { x: x + 0.18, y: y + h - 0.33, w: w - 0.36, h: 0.24, fontSize: 10.5, italic: true, color: HEX.grey,
-                                     fontFace: "Calibri", margin: 0, isTextBox: true, objectName: "equation source" });
+  if (eq.note) sl.addText(eq.note, { x: x + 0.18, y: y + h - 0.33, w: w - 0.36, h: 0.24, fontSize: 10.5, color: HEX.grey,
+                                     fontFace: "Arial", margin: 0, isTextBox: true, objectName: "equation source" });
 }
 function fitImage(sl, file, x, y, w, h, alt, opts = {}) {
   const { w: iw, h: ih } = imgSize(file);
@@ -99,29 +100,28 @@ function fitImage(sl, file, x, y, w, h, alt, opts = {}) {
   return { x: dx, y: dy, w: dw, h: dh };
 }
 function caption(sl, text, x, y, w) {
-  sl.addText(text, { x, y, w, h: 0.32, fontSize: 12, italic: true, color: HEX.grey, fontFace: "Calibri", margin: 0, isTextBox: true, objectName: "caption" });
+  sl.addText(text, { x, y, w, h: 0.32, fontSize: 11, color: HEX.grey, fontFace: "Arial", margin: 0, isTextBox: true, objectName: "caption" });
 }
 // Chart made in the Google Sheet, cropped from its PDF export by sheet_charts.py.
 function sheetChart(sl, name, tab, x, y, w, h) {
-  const r = fitImage(sl, path.join(__dirname, "fig", `sheet_${name}.png`), x, y, w, h - 0.42, `Chart from the calculation sheet: ${tab}`, { alignTop: true });
+  const r = fitImage(sl, path.join(FIGDIR, `sheet_${name}.png`), x, y, w, h - 0.42, `Chart from the calculation sheet: ${tab}`, { alignTop: true });
   sl.addShape(pres.shapes.RECTANGLE, { x: r.x, y: r.y, w: r.w, h: r.h, fill: { type: "none" }, line: { color: HEX.rule, width: 0.75 }, objectName: "chart frame" });
-  caption(sl, `Expected values: my calculation sheet (Google Sheets), “${tab}” tab`, r.x, r.y + r.h + 0.08, Math.max(r.w, 4.5));
+  caption(sl, `Source: calculation sheet (Google Sheets), “${tab}” tab. Calculated, not measured.`, r.x, r.y + r.h + 0.08, Math.max(r.w, 4.5));
   return r;
 }
-function head(sl, section, title) {
-  sl.addText(section.toUpperCase(), { x: M, y: 0.32, w: 9, h: 0.3, fontSize: 12, bold: true, color: HEX.navy, charSpacing: 1.5,
-                                      fontFace: "Calibri", margin: 0, isTextBox: true });
-  sl.addText(title, { x: M, y: 0.62, w: W - 2 * M, h: 0.75, fontSize: 30, bold: true, color: HEX.ink, fontFace: "Calibri",
-                      margin: 0, valign: "middle", isTextBox: true });
+function head(sl, section, title) {     // assertion headline: one full sentence, at most two lines
+  sl.addText(title, { x: M, y: 0.36, w: W - 2 * M, h: 0.98, fontSize: 26, bold: true, color: HEX.ink, fontFace: "Arial",
+                      margin: 0, valign: "bottom", isTextBox: true, objectName: "headline" });
+  sl.addShape(pres.shapes.LINE, { x: M, y: 1.44, w: W - 2 * M, h: 0, line: { color: HEX.rule, width: 0.75 }, objectName: "headline rule" });
 }
 let SECTION_NAME = "";
 function section(num, title, sub) {
   SECTION_NAME = title;
   pres.addSection({ title });
   const sl = pres.addSlide({ masterName: "SECTION", sectionTitle: title });
-  sl.addText(String(num).padStart(2, "0"), { x: M, y: 2.2, w: 3, h: 1.2, fontSize: 60, bold: true, color: "8FA6C2", fontFace: "Calibri", margin: 0, isTextBox: true });
-  sl.addText(title, { x: M, y: 3.35, w: 11.5, h: 1.0, fontSize: 40, bold: true, color: "FFFFFF", fontFace: "Calibri", margin: 0, isTextBox: true });
-  if (sub) sl.addText(sub, { x: M, y: 4.35, w: 11.5, h: 0.8, fontSize: 20, color: "D9DEE5", fontFace: "Calibri", margin: 0, isTextBox: true });
+  sl.addText(String(num).padStart(2, "0"), { x: M, y: 2.2, w: 3, h: 1.2, fontSize: 60, bold: true, color: "8FA6C2", fontFace: "Arial", margin: 0, isTextBox: true });
+  sl.addText(title, { x: M, y: 3.35, w: 11.5, h: 1.0, fontSize: 40, bold: true, color: "FFFFFF", fontFace: "Arial", margin: 0, isTextBox: true });
+  if (sub) sl.addText(sub, { x: M, y: 4.35, w: 11.5, h: 0.8, fontSize: 20, color: "D9DEE5", fontFace: "Arial", margin: 0, isTextBox: true });
   sl.addNotes(sub || title);
   return sl;
 }
@@ -136,7 +136,7 @@ function content(title, items, visual, notes, opts = {}) {
   const split = opts.split || 0.52;
   const bw = (W - 2 * M) * split - 0.2;
   const eqH = opts.eq ? eqHeight(opts.eq) : 0;
-  bullets(sl, items, M, 1.6, bw, opts.eq ? 5.25 - eqH - 0.2 : 5.2, opts.size || (opts.eq ? 18 : 20));
+  bullets(sl, items, M, 1.62, bw, opts.eq ? 5.23 - eqH - 0.2 : 5.18, opts.size || 18);
   if (opts.eq) eqBox(sl, opts.eq, M, 6.85 - eqH, bw);
   const vx = M + bw + 0.45, vw = W - M - vx, vy = 1.6, vh = 5.25;
   if (typeof visual === "function") visual(sl, vx, vy, vw, vh);
@@ -165,7 +165,7 @@ function calFlow(sl, x, y, w, h) {
     sl.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: p.x, y: p.y, w: bw, h: bh, rectRadius: 0.08, fill: { color: last ? HEX.navy : "FFFFFF" },
                                                  line: { color: HEX.navy, width: 1.25 }, objectName: `calibration step ${i + 1}` });
     sl.addText([{ text: `${i + 1}  `, options: { bold: true, color: last ? "FFFFFF" : HEX.navy } }, { text: s, options: { color: last ? "FFFFFF" : HEX.ink } }],
-               { x: p.x + 0.08, y: p.y, w: bw - 0.16, h: bh, fontSize: 14, fontFace: "Calibri", valign: "middle", align: "center", margin: 0, isTextBox: true });
+               { x: p.x + 0.08, y: p.y, w: bw - 0.16, h: bh, fontSize: 14, fontFace: "Arial", valign: "middle", align: "center", margin: 0, isTextBox: true });
   });
   const arrow = (ax, ay, aw, ah, flipH) => sl.addShape(pres.shapes.LINE, { x: ax, y: ay, w: aw, h: ah, flipH, line: { color: HEX.grey, width: 1.5, endArrowType: "triangle" } });
   arrow(x + bw + 0.05, y + bh / 2, gx - 0.1, 0); arrow(x + 2 * bw + gx + 0.05, y + bh / 2, gx - 0.1, 0);
@@ -175,23 +175,23 @@ function calFlow(sl, x, y, w, h) {
 
 const R = f => P("docs/presentation/deck_assets/renders", f);
 const PH = f => P("docs/presentation/photos", f);
-const FG = f => path.join(__dirname, "fig", f);
+const FG = f => path.join(FIGDIR, f);
 
 // ================================================================================================ 1 title
 {
   pres.addSection({ title: "Opening" }); SECTION_NAME = "Opening";
   const sl = pres.addSlide({ masterName: "TITLE", sectionTitle: "Opening" });
   sl.addShape(pres.shapes.RECTANGLE, { x: 0, y: 0, w: 5.6, h: 7.5, fill: { color: HEX.navy }, line: { color: HEX.navy } });
-  sl.addText("RoomCleaner", { x: M, y: 2.3, w: 4.8, h: 1.0, fontSize: 44, bold: true, color: "FFFFFF", fontFace: "Calibri", margin: 0, isTextBox: true });
-  sl.addText("A four-cable ceiling robot that picks laundry off the floor", { x: M, y: 3.35, w: 4.6, h: 1.2, fontSize: 20, color: "D9DEE5", fontFace: "Calibri", margin: 0, isTextBox: true });
-  sl.addText("Jasper Buntinx\nTechnical presentation  ·  October 27, 2026", { x: M, y: 6.0, w: 4.8, h: 0.8, fontSize: 14, color: "D9DEE5", fontFace: "Calibri", margin: 0, isTextBox: true });
+  sl.addText("RoomCleaner", { x: M, y: 2.3, w: 4.8, h: 1.0, fontSize: 44, bold: true, color: "FFFFFF", fontFace: "Arial", margin: 0, isTextBox: true });
+  sl.addText("A four-cable ceiling robot that picks laundry off the floor", { x: M, y: 3.35, w: 4.6, h: 1.2, fontSize: 20, color: "D9DEE5", fontFace: "Arial", margin: 0, isTextBox: true });
+  sl.addText("Jasper Buntinx\nTechnical presentation  ·  October 27, 2026", { x: M, y: 6.0, w: 4.8, h: 0.8, fontSize: 14, color: "D9DEE5", fontFace: "Arial", margin: 0, isTextBox: true });
   fitImage(sl, R("gripper1021_final.png"), 6.0, 0.4, 3.2, 6.7, "Final claw: electronics housing with camera bay, tube and gripper");
   fitImage(sl, PH("13_gen1_station_lifting_test_weight.jpg"), 9.4, 0.9, 3.4, 5.7, "Gen-1 winch station lifting a test weight");
   sl.addNotes("One sentence: a cable robot whose four winches sit in the ceiling corners and move one claw anywhere over the floor.");
 }
 
 // ================================================================================================ 2-3 goal, outline
-content("Goal and constraints", [
+content("Goal: pick laundry off the floor anywhere in an 11 × 9 ft room", [
   "Pick clothes off the floor and drop them in a hamper, from anywhere in the room",
   "Four winches near the ceiling corners hold one claw on four cables",
   "Room 11 × 9 ft with a 9 ft ceiling",
@@ -213,9 +213,9 @@ content("Goal and constraints", [
                  ["Status and next steps", "First test, what is built, what I learned"]];
   items.forEach(([t, s], i) => {
     const y = 1.6 + i * 0.75;
-    sl.addText(String(i + 1), { x: M, y, w: 0.6, h: 0.6, fontSize: 24, bold: true, color: HEX.navy, fontFace: "Calibri", margin: 0, isTextBox: true });
-    sl.addText(t, { x: M + 0.7, y: y - 0.02, w: 10, h: 0.38, fontSize: 21, bold: true, color: HEX.ink, fontFace: "Calibri", margin: 0, isTextBox: true });
-    sl.addText(s, { x: M + 0.7, y: y + 0.34, w: 10, h: 0.32, fontSize: 15, color: HEX.mid, fontFace: "Calibri", margin: 0, isTextBox: true });
+    sl.addText(String(i + 1), { x: M, y, w: 0.6, h: 0.6, fontSize: 24, bold: true, color: HEX.navy, fontFace: "Arial", margin: 0, isTextBox: true });
+    sl.addText(t, { x: M + 0.7, y: y - 0.02, w: 10, h: 0.38, fontSize: 21, bold: true, color: HEX.ink, fontFace: "Arial", margin: 0, isTextBox: true });
+    sl.addText(s, { x: M + 0.7, y: y + 0.34, w: 10, h: 0.32, fontSize: 15, color: HEX.mid, fontFace: "Arial", margin: 0, isTextBox: true });
   });
   sl.addNotes("The talk follows the order the problems appeared in.");
 }
@@ -223,7 +223,7 @@ content("Goal and constraints", [
 // ================================================================================================ section 1
 section(1, "How a cable robot works", "Four cables, one point, and the vectors that connect them");
 
-content("Position vectors", [
+content("Each cable length is the distance from its anchor to the claw", [
   "Room frame at a floor corner: anchor i (the pulley exit) at **a**_i, the claw at **p**",
   "Each cable is the vector from the claw to its anchor",
   "Its length is the distance between those two points",
@@ -238,7 +238,7 @@ content("Position vectors", [
   "Δθ_i = ΔL_i / r   (r = spool radius with the wound line)",
 ] } });
 
-content("Statics: why cable angle matters", [
+content("Cables only pull, so tension climbs as they flatten near the ceiling", [
   "Force balance: the cable pulls and the weight sum to zero",
   "Cables only pull: every tension must stay positive",
   "Centred claw, equal shares: tension rises as the cables flatten",
@@ -253,7 +253,7 @@ content("Statics: why cable angle matters", [
   "W = (0.45 + 0.454) kg × 9.81 m/s² = 8.87 N",
 ] } });
 
-content("The winch", [
+content("At the driver's 1.06 A limit, each winch pulls 18 to 24 N", [
   "NEMA 17 stepper, printed spool, outlet pulley",
   "Current limit set by the driver's reference voltage: 0.85 V → 1.06 A",
   "Running torque < holding torque: 0.7 assumed, the pull test measures it",
@@ -270,7 +270,7 @@ content("The winch", [
 // ================================================================================================ section 2
 section(2, "From one box to modular stations", "How adding safety features changed the whole architecture");
 
-content("First idea: one central controller", [
+content("The first design drove all four motors from one central controller", [
   "One Arduino Uno and a CNC shield with four A4988 drivers, in a single box",
   "The computer sends moves; the shield steps all four motors from one clock, so sync is free",
   "Each motor gets a long 4-wire cable from the box to its corner",
@@ -278,7 +278,7 @@ content("First idea: one central controller", [
 ], { file: [PH("14_gen1_cnc_shield_a4988.jpg"), PH("05_gen1_spool_plate.jpg")], alt: "Gen-1 CNC shield and spool plate", caption: "Gen 1: central shield with four drivers; spool plate on the wall" },
 "Simple and synchronised by design. It only stopped working once I wanted more than a motor at each corner.");
 
-content("Why it did not scale: the wiring", [
+content("Sensors at every winch made central wiring five times longer", [
   "I wanted more safety: a homing switch and an encoder at every winch, plus fault detection",
   "Per corner: motor 4 + switch 2 + encoder 4 = **10 conductors**, not 4",
   "Real cable routes are 6, 21, 23 and 32 ft (82 ft)",
@@ -291,7 +291,7 @@ content("Why it did not scale: the wiring", [
   "ΔV = I · R′ · 2L = 2 A × 4.016 mΩ/ft × 64 ft = 0.51 V",
 ], note: "16 AWG on the longest run (32 ft); 2 A is illustrative" } });
 
-content("Decision: a controller in every winch", [
+content("A controller in every winch cut the wiring to one power pair", [
   "Each station: XIAO ESP32-C3 + A4988 driver + 5 V buck; only 12 V power travels, on 2 wires",
   "Switch and encoder wires stay inside the station, a few centimetres long",
   "The host computer plans the path and sends each station timed segments over Wi-Fi",
@@ -302,7 +302,7 @@ content("Decision: a controller in every winch", [
 "Sync moved from wiring into software: time-stamped segments and a host that keeps every station's clock.",
 { eq: { lines: ["Δx = v · Δt = 50 mm/s × 50 ms = 2.5 mm of cable mismatch"] } });
 
-content("Making the units modular", [
+content("Electronics at every corner turned the wall plate into a housing", [
   "Gen 1 was a plate screwed into the wall: fine for a bare motor",
   "Each corner now carries a controller, driver, buck, switch and encoder",
   "- they need protection, a clean look and a path for heat",
@@ -311,7 +311,7 @@ content("Making the units modular", [
 ], { file: [R("gen1_corner_mount.png"), R("shell_v3.png")], alt: "Gen-1 corner plate vs gen-2 housing", caption: "Gen-1 corner plate (left) vs the gen-2 station housing (right)" },
 "Once there are electronics in every corner, the wall plate becomes a product housing.");
 
-content("Slide-in mount", [
+content("A slide-in mount lets a station come off without moving its anchor", [
   "I take stations down often: to test, rework, repair or modify them",
   "Drilling in and out each time damages the wall and moves the anchor point",
   "A fixed wall frame goes into a stud once; the station slides in and locks",
@@ -322,7 +322,7 @@ content("Slide-in mount", [
 "34 N is the snag case: holding torque at the empty spool. The study checks stress below 8.3 MPa (derated PETG / 3) and deflection at the cable exit.",
 { eq: { lines: ["SF = σ_allow / σ_max ≥ 3  →  σ_max ≤ 25 MPa / 3 = 8.3 MPa"], note: "Allowable: derated PETG yield, 25 MPa" } });
 
-content("Self-calibration: set it up anywhere", [
+content("The robot measures its own geometry every time it is set up", [
   "Every time the stations go back up, the robot measures its own geometry",
   "- no tape measure, no numbers typed in, nothing for a user to get wrong",
   "The claw camera reads a printed floor board (a grid of tags) to get the claw's pose",
@@ -334,7 +334,7 @@ content("Self-calibration: set it up anywhere", [
   caption(sl, "Startup calibration; the claw camera looks straight down at the board", x, y + h - 0.25, w);
 }, "Simulated so far; the hardware run is the first test.");
 
-content("Plug-in power", [
+content("Each station needs only one 12 V cable, so it unplugs cleanly", [
   "Each station has one cable: a 16 AWG pair from a fused 12 V supply",
   "Plug in to use; unplug and store the cables when the robot is not needed",
   "Stations slide off the wall frames if wanted",
@@ -344,7 +344,7 @@ content("Plug-in power", [
 ], { file: [PH("10_buck_converter_wiring.jpg"), PH("08_bench_wiring_b.jpg")], alt: "Station power wiring", caption: "Inside a station: the buck converter and its wiring; only 12 V comes in" },
 "Unplugging a motor from an energised A4988 can kill the driver, so the plug carries only 12 V.");
 
-content("Cooling", [
+content("Without the fin, a sealed housing would push the motor past 60 °C", [
   "A sealed printed housing traps the motor's heat",
   "- PETG at the loaded motor mount softens and creeps: 60 °C limit",
   "Fix: vents, plus an aluminium fin straight up through the shell",
@@ -359,7 +359,7 @@ content("Cooling", [
   "Fin in parallel with the shell:  1/R = 1/R_shell + 1/R_fin",
 ] } });
 
-content("Bio-inspired fin: antelope horns", [
+content("The fin copies an antelope horn: a thin blade that sheds heat", [
   "Idea from my bio-inspired design class: antelope horns",
   "A horn is a heat exchanger: warm blood flows into its core, heat leaves through the surface",
   "The fin copies that: one tall, thin blade rising straight up from the heat source",
@@ -373,13 +373,12 @@ content("Bio-inspired fin: antelope horns", [
   "Tall and thin: large area for little mass,  A = 2 w L",
 ] } });
 
-content("Heat fin: how much length is useful", [
+content("Past 136 mm, the thin fin adds less than 5 % more cooling", [
   "The far end runs cooler, so each extra mm does less",
   "**0.019 in sheet (built):** 95 % of a long fin's heat by **136 mm**",
   "**1/8 in plate (drawn):** 95 % by **349 mm**",
   "Built 200 mm above the cover: past 136 mm the sheet adds < 5 %",
-  "Looks: horn-like, straight up at motor width (44 mm), matte black",
-  "- black radiates more than bare aluminium",
+  "Looks: horn-like, motor width (44 mm), matte black to radiate more",
 ], { sheet: "heat_fin", tab: "Heat fin" },
 "Efficiency at the built length: 37 % (sheet) vs 74 % (plate); fin resistance 22.1 vs 10.9 K/W. The 200 mm length was sized for the 1/8 in plate; the thin sheet would do the same job at about 140 mm.",
 { eq: { lines: [
@@ -391,7 +390,7 @@ content("Heat fin: how much length is useful", [
 // ================================================================================================ section 3
 section(3, "Homing and calibration", "Why the first homing plan limited the robot, and what replaced it");
 
-content("First plan: bead homing", [
+content("The first plan homed each cable with a bead and a switch", [
   "A bead on each cable trips a switch at the outlet → a known cable length",
   "The robot zeroes itself from that: set it up anywhere",
   "I expected that to be enough, possibly even without encoders",
@@ -399,7 +398,7 @@ content("First plan: bead homing", [
 ], { file: PH("09_homing_switch_perfboard.jpg"), alt: "Homing switch on the bench", caption: "KW12-3 homing switch on the bench" },
 "The idea was a cheap absolute reference per cable.");
 
-content("The problem: beads limit the motion", [
+content("Bead homing at one point leaves under a third of the room reachable", [
   "A bead cannot pass the outlet, so a cable can never be shorter than its homing length",
   "To home all four at one point, each bead sits at that point's length",
   "- then the claw can never get closer to any anchor than from that point",
@@ -412,7 +411,7 @@ content("The problem: beads limit the motion", [
   "Reachable: every cable at or above its homing length",
 ] } });
 
-content("New calibration: camera, floor board and margins", [
+content("Camera poses fit the geometry, and safety margins cover the error", [
   "Startup: take up slack one cable at a time, lift, then look at the floor board from several poses",
   "Least-squares fit of the anchor positions and cable zero lengths; held-out poses check the fit",
   "Safety comes from margins, not precision",
@@ -421,14 +420,14 @@ content("New calibration: camera, floor board and margins", [
 ], (sl, x, y, w, h) => {
   calFlow(sl, x, y + 0.3, w, 3.2);
   sl.addText("If the fit is not good enough: more poses, then fit again", { x, y: y + 3.7, w, h: 0.35, fontSize: 14, italic: true, color: HEX.mid,
-                                                                           fontFace: "Calibri", align: "center", margin: 0, isTextBox: true });
+                                                                           fontFace: "Arial", align: "center", margin: 0, isTextBox: true });
 }, "The robot only unlocks the full workspace when k × σ fits inside the margin; otherwise it stays local. Simulated so far.",
 { eq: { lines: [
   "min over **a**_i, L_{i0}:   Σ_k Σ_i ( L_{i0} + d_{ik} − ‖**a**_i − **p**_k‖ )²",
   "Full workspace only if k · σ ≤ margin",
 ], note: "d: cable paid out at pose k (encoder);  p: claw position from the camera" } });
 
-content("Why a floor board", [
+content("Seeing four tags instead of one cuts position error from 6.6 to 0.7 mm", [
   "Angle error becomes position error through the lever arm",
   "One tag: 12.9 mrad × 0.51 m ≈ 6.6 mm per frame",
   "Four tags in view: about 0.7 mm",
@@ -441,7 +440,7 @@ content("Why a floor board", [
 // ================================================================================================ section 4
 section(4, "The claw", "From fingers to a parallel-jaw gripper");
 
-content("Claw evolution", [
+content("Each claw generation fixed a problem found in the one before", [
   "Five tendon-driven TPU fingers → a geared clamp → a lighter open frame → the final parallel-jaw gripper",
   "Each step fixed a problem I found:",
   "- the first clamp's jaws could not pinch thin fabric",
@@ -451,7 +450,7 @@ content("Claw evolution", [
 ], { file: [R("gen1_tentacle_claw.png"), R("claw_v6.png"), R("gripper_v7.png"), R("gripper1021_head.png")], alt: "Claw generations", caption: "Fingers, v6 clamp, v7 open frame, final gripper" },
 "Mass drove most of the changes; every gram of claw is a gram of laundry the winches cannot lift.", { split: 0.44 });
 
-content("Final gripper: gears and four-bar hands", [
+content("A geared four-bar keeps the jaws parallel through a 53 mm stroke", [
   "Servo → 18T pinion → 36T/24T compound → 24T sync gear: mirror-image jaws",
   "Each hand: gear crank (53 mm) + swing arm (50 mm), a near-parallelogram four-bar",
   "- jaws stay parallel within about 1° over the stroke",
@@ -467,7 +466,7 @@ content("Final gripper: gears and four-bar hands", [
   "Lewis: σ = F_t / (b m Y),   F_t = 2τ / d",
 ] } });
 
-content("First setup: an overhead camera", [
+content("The first setup found laundry with one camera on the ceiling", [
   "One camera on the ceiling, looking straight down and framing the whole floor",
   "A detector that works from words (YOLO-World) finds “sock”, “towel”, “t-shirt” with no training",
   "Each item's bottom-centre pixel, where it meets the floor, becomes a floor position",
@@ -481,7 +480,7 @@ content("First setup: an overhead camera", [
   "Tilted:  (x, y, 1) ∝ **H** · (u, v, 1),   **H** fitted from 4 floor points",
 ], note: "u, v: pixel;  W × D: floor size;  w × h: image size in pixels" } });
 
-content("Moving the camera to the claw", [
+content("The camera moved from the ceiling to the claw, right at the grasp", [
   "The overhead camera was one more device to mount, wire and calibrate in every room",
   "The claw and cables hide the spot right where it grasps: it cannot see the grip",
   "Its floor map assumes a flat floor, but a pile of clothes has height",
@@ -491,7 +490,7 @@ content("Moving the camera to the claw", [
 ], { file: R("gripper1021_final.png"), alt: "Claw with camera bay", caption: "Camera bay on the electronics housing (cover in navy)" },
 "Sees the grasp spot from about 17 cm; at contact the jaws hide it, so the last view guides the final approach. The gen-1 camera case and its software are kept in the repository.");
 
-content("Weight vs lift: where it stands", [
+content("Today the claw plus jeans is heavier than the winches can lift", [
   "Driver limit 1.06 A → running pull ≈ 18–24 N per winch (full vs empty spool)",
   "- about 1.1 kg total lift at the worst point in the room",
   "The claw is not weighed yet: CAD says ~0.76 kg printed, plus a 0.1 kg battery",
@@ -508,7 +507,7 @@ content("Weight vs lift: where it stands", [
 // ================================================================================================ section 5
 section(5, "Manufacturing", "Printed PETG parts, and a heat fin cut and drilled on a manual mill");
 
-content("Designing parts to be printed", [
+content("Every printed fit is designed for how FDM prints, then measured", [
   "PETG on a Creality K1 (0.4 mm nozzle, 0.2 mm layers); PLA creeps under load",
   "Orientation: flat face on the bed, loads along the layers, no supports on mating faces",
   "Printed holes come out undersize (bead rounding, shrink, first-layer squash)",
@@ -522,7 +521,7 @@ content("Designing parts to be printed", [
   "Spool: Ø5.2 too tight → u ≥ 0.2 mm, so Ø5.45 gives c ≈ 0.25 mm",
 ] } });
 
-content("Print, measure, adjust: the spool", [
+content("The spool took three prints to fit the shaft and carry the torque", [
   "v1: longer than the motor shaft could engage, so it was shortened",
   "v2: the Ø5.2 bore printed too tight on the 5 mm shaft",
   "v3: bore opened to Ø5.45 with a D-flat; the set screw on the flat carries the torque",
@@ -531,7 +530,7 @@ content("Print, measure, adjust: the spool", [
 ], { file: [R("spool_v1.png"), R("spool_v2.png"), R("spool_v3.png")], alt: "Spool v1, v2, v3", caption: "Spool v1, v2, v3 (CAD)" },
 "The bore fit only locates the spool; torque goes through the set screw on the flat.", { split: 0.5 });
 
-content("Machining the heat fin", [
+content("The fin was sheared and drilled in one mill setup to hold ±0.1 mm", [
   "Shop drawing first: a 1:1 US Letter print with a hole template and inch dimensions",
   "Sheared the blank from 0.019 in aluminium sheet: 44 × 250 mm (±0.5)",
   "Manual mill, one setup: all five holes located from the bottom and left edges",
@@ -545,7 +544,7 @@ content("Machining the heat fin", [
 // ================================================================================================ section 6
 section(6, "Electronics and software", "The station board, a bring-up lesson, and how the robot is controlled");
 
-content("Station board", [
+content("The station board boots safe, and its schematic matches it net for net", [
   "The driver boots disabled (EN pull-up): a reset never steps the motor",
   "USB and the 5 V buck cannot back-feed each other: a link jumper plus a Schottky diode",
   "100 µF at the driver's motor supply",
@@ -555,7 +554,7 @@ content("Station board", [
      caption: "KiCad schematic (left), checked net by net against the soldered perfboard (right)" },
 "Rules check: 0 errors. 16 nets, 55 pins match the perfboard.", { split: 0.42 });
 
-content("A motor that would not move", [
+content("A 1.14 V logic rail, not the code, kept the first motor still", [
   "The log said it was stepping; the shaft did not turn",
   "The meter said the logic rail was 1.14 V instead of 3.3 V: a bad connection",
   "After the fix it moved",
@@ -564,7 +563,7 @@ content("A motor that would not move", [
 ], { file: [PH("07_bench_wiring_a.jpg"), PH("12_bench_bringup_laptop.jpg")], alt: "Bench wiring and bring-up", caption: "Bench wiring and bring-up" },
 "Lesson: measure before trusting the software's view of the hardware.");
 
-content("Control software and phone app", [
+content("The host plans, the stations execute, and the phone confirms moves", [
   "The host plans paths; the stations execute timed segments; a lost link means hold",
   "Stop never disables: there is no brake, so faults and pause keep holding torque",
   "Phone app over home Wi-Fi: robot status, live claw camera, guided setup, chat",
@@ -577,7 +576,7 @@ content("Control software and phone app", [
 // ================================================================================================ section 7
 section(7, "Status and next steps");
 
-content("First test", [
+content("First test: self-calibration and a short move on the real hardware", [
   "Stations up in studs, powered from the switched power strip",
   "Self-calibration on the real hardware: slack take-up, lift, floor-board poses, fit",
   "Then a short lift and a 300 mm move at 50 mm/s with the 1 lb test load",
@@ -585,11 +584,11 @@ content("First test", [
   "Pass limits written before the run",
 ], (sl, x, y, w, h) => {
   sl.addShape(pres.shapes.RECTANGLE, { x, y, w, h: h - 0.4, fill: { color: HEX.light }, line: { color: HEX.grey, width: 1, dashType: "dash" }, objectName: "first test photo placeholder" });
-  sl.addText("Photo / video from the first test", { x, y: y + (h - 0.4) / 2 - 0.3, w, h: 0.6, fontSize: 18, color: HEX.grey, fontFace: "Calibri",
+  sl.addText("Photo / video from the first test", { x, y: y + (h - 0.4) / 2 - 0.3, w, h: 0.6, fontSize: 18, color: HEX.grey, fontFace: "Arial",
                                                      align: "center", valign: "middle", margin: 0, isTextBox: true, objectName: "placeholder text" });
 }, "Placeholder: replace the box with the first-test photo and the measured numbers (calibration error bars, cable error over the 300 mm move).");
 
-content("Status and next steps", [
+content("Built and simulated; the next tests turn estimates into measurements", [
   "Built: stations, station boards, heat fins, gripper parts",
   "Designed and checked in CAD: the hands and the camera housing",
   "Calibration and control: simulated, then the first test",
@@ -601,7 +600,7 @@ content("Status and next steps", [
 ], { file: PH("17_heat_fin_on_motor_angle.jpg"), alt: "Heat fin on the motor", caption: "Built: the heat fin test-fitted on the motor" },
 "Everything that is calculated or simulated is called that; the test list is what turns it into measurements.");
 
-content("What I learned", [
+content("Measure early, print test coupons first, and design for the worst case", [
   "Measure before trusting a margin: the driver limit and the 1.14 V rail",
   "Print the test coupon before the part: the spool bore",
   "Hold tolerance where it matters: one mill setup for the fin's holes",
@@ -614,8 +613,8 @@ content("What I learned", [
 {
   pres.addSection({ title: "Close" }); SECTION_NAME = "Close";
   const sl = pres.addSlide({ masterName: "SECTION", sectionTitle: "Close" });
-  sl.addText("Questions", { x: M, y: 2.8, w: 11, h: 1.0, fontSize: 48, bold: true, color: "FFFFFF", fontFace: "Calibri", margin: 0, isTextBox: true });
-  sl.addText("Jasper Buntinx  ·  jasper_buntinx@tamu.edu", { x: M, y: 3.9, w: 11, h: 0.6, fontSize: 20, color: "D9DEE5", fontFace: "Calibri", margin: 0, isTextBox: true });
+  sl.addText("Questions", { x: M, y: 2.8, w: 11, h: 1.0, fontSize: 48, bold: true, color: "FFFFFF", fontFace: "Arial", margin: 0, isTextBox: true });
+  sl.addText("Jasper Buntinx  ·  jasper_buntinx@tamu.edu", { x: M, y: 3.9, w: 11, h: 0.6, fontSize: 20, color: "D9DEE5", fontFace: "Arial", margin: 0, isTextBox: true });
   sl.addNotes("Backups follow: schematics, gear strength, safety, calculations and sources.");
 }
 
@@ -654,7 +653,7 @@ content("Backup: safety", [
     "- Allegro MicroSystems: A4988 datasheet (current limit)",
   ], null, "", { section: "Backup", split: 0.9 });
   sl.addText([{ text: "RoomCleaner engineering calculations (Google Sheets)", options: { hyperlink: { url: SHEET_URL, tooltip: "Open the calculation sheet" } } }],
-             { x: M, y: 6.25, w: 8, h: 0.4, fontSize: 16, color: HEX.navy, fontFace: "Calibri", margin: 0, isTextBox: true, objectName: "sheet link" });
+             { x: M, y: 6.25, w: 8, h: 0.4, fontSize: 16, color: HEX.navy, fontFace: "Arial", margin: 0, isTextBox: true, objectName: "sheet link" });
 }
 
 // ------------------------------------------------------------------------------------------------ write

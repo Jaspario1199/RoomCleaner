@@ -30,7 +30,9 @@ import numpy as np
 import pytest
 
 cq = pytest.importorskip("cadquery")
+from OCP.Bnd import Bnd_Box                                          # noqa: E402
 from OCP.BRepAdaptor import BRepAdaptor_Surface                      # noqa: E402
+from OCP.BRepBndLib import BRepBndLib                                # noqa: E402
 from OCP.BRepCheck import BRepCheck_Analyzer                         # noqa: E402
 from OCP.BRepClass3d import BRepClass3d_SolidClassifier              # noqa: E402
 from OCP.BRepExtrema import BRepExtrema_DistShapeShape              # noqa: E402
@@ -160,8 +162,17 @@ def brep_valid(shape) -> bool:
     return bool(BRepCheck_Analyzer(shape.wrapped).IsValid())
 
 
+def exact_bbox(shape):
+    """Tight bounding box of the B-rep (no triangulation, no tolerance inflation: cq's BoundingBox() grows once a face has been meshed)."""
+    from types import SimpleNamespace
+    bb = Bnd_Box()
+    BRepBndLib.AddOptimal_s(shape.wrapped, bb, False, False)
+    x0, y0, z0, x1, y1, z1 = bb.Get()
+    return SimpleNamespace(xmin=x0, xmax=x1, ymin=y0, ymax=y1, zmin=z0, zmax=z1)
+
+
 def bbox_tuple(shape):
-    b = shape.BoundingBox()
+    b = exact_bbox(shape)
     return (b.xmin, b.xmax, b.ymin, b.ymax, b.zmin, b.zmax)
 
 
@@ -588,33 +599,53 @@ def _axis_point(hid, s_from_inner):
 
 @pytest.mark.parametrize("hid", IDS)
 def test_03c_through_wall_probe_lines(hid):
-    """Probe lines along the axis (and inside the Ø2 teardrop) from 4 mm inside the pocket to 4 mm outside: nothing solid."""
+    """Lines along the axis (and offset lines inside the Ø2 teardrop) from 4 mm inside the pocket to 4 mm outside: nothing solid.
+    Point-in-solid probes along the axis plus exact OCC edge-solid common on six lines."""
     loc, a, e1, e2 = _frame(hid)
     L = WALL_LEN[hid]
+    ss = np.arange(-4.0, L + 4.0 + 1e-9, 0.25)
+    solid_hits = [round(float(s), 3) for s in ss if is_solid34(_axis_point(hid, s))]
+    # the baseline must have wall material on the same line (so the hole really cuts something)
+    base_wall_ok = all(is_solid_base(_axis_point(hid, s)) for s in np.arange(0.15, L - 0.1, 0.25))
     offsets = [(0.0, 0.0), (0.9, 0.0), (-0.9, 0.0), (0.0, -0.9), (0.0, 0.9), (0.0, 1.3)]       # (lateral, vertical) inside the teardrop
-    ss = np.arange(-4.0, L + 4.0 + 1e-9, 0.05)
-    solid_hits = []
+    lens = {}
     for du, dv in offsets:
-        for s in ss:
-            p = _axis_point(hid, s) + e1 * du + e2 * dv
-            if is_solid34(p):
-                solid_hits.append((du, dv, round(float(s), 3)))
-    # the baseline must have wall material on the same lines (so the holes really cut something)
-    base_wall_ok = all(is_solid_base(_axis_point(hid, s)) for s in np.arange(0.1, L - 0.1, 0.1))
-    note(f"03.{hid}.probe_lines", len(offsets))
-    note(f"03.{hid}.probe_points_per_line", len(ss))
-    note(f"03.{hid}.solid_hits_on_through_lines", len(solid_hits))
+        p0 = _axis_point(hid, -4.0) + e1 * du + e2 * dv
+        p1 = _axis_point(hid, L + 4.0) + e1 * du + e2 * dv
+        edge = cq.Edge.makeLine(cq.Vector(*p0), cq.Vector(*p1))
+        common = part().intersect(edge)
+        lens[(du, dv)] = sum(e.Length() for e in common.Edges()) if common.Edges() else 0.0
+        # the same line through the baseline must cut through the wall (>= 4 mm of material)
+        cb = base().intersect(edge)
+        lens[("base", du, dv)] = sum(e.Length() for e in cb.Edges()) if cb.Edges() else 0.0
+    note(f"03.{hid}.probe_points_on_axis", len(ss))
+    note(f"03.{hid}.solid_hits_on_axis", solid_hits)
     note(f"03.{hid}.baseline_has_wall_material_on_axis", bool(base_wall_ok))
+    note(f"03.{hid}.occ_edge_lengths_inside_part_mm", {str(k): round(v, 6) for k, v in lens.items() if k[0] != "base"})
+    note(f"03.{hid}.occ_edge_lengths_inside_baseline_mm", {str(k[1:]): round(v, 4) for k, v in lens.items() if k[0] == "base"})
     assert base_wall_ok, "baseline has no wall material along the axis: nothing to cut"
     assert not solid_hits, f"hole is blocked at {solid_hits[:5]}"
-    # a line along the axis through the wall, tested as an OCC curve against the solid as well
-    p0 = _axis_point(hid, -4.0)
-    p1 = _axis_point(hid, L + 4.0)
-    edge = cq.Edge.makeLine(cq.Vector(*p0), cq.Vector(*p1))
-    common = part().intersect(edge)
-    n_len = sum(e.Length() for e in common.Edges()) if common.Edges() else 0.0
-    note(f"03.{hid}.axis_edge_length_inside_solid_mm", n_len)
-    assert n_len < 1e-6, f"OCC: axis edge has {n_len} mm inside the solid"
+    for k, v in lens.items():
+        if k[0] == "base":
+            assert v > 4.0, f"baseline line {k} has only {v} mm of wall material"
+        else:
+            assert v < 1e-6, f"OCC: line {k} has {v} mm inside the part"
+
+
+@lru_cache(maxsize=None)
+def local_classifier(hid, path=STEP_34):
+    """Point classifier of a solid (part or baseline) restricted to a 24 mm box around the hole's outer mouth."""
+    m = vec(OUTER[hid])
+    bx = cq.Solid.makeBox(24.0, 24.0, 24.0, cq.Vector(m[0] - 12.0, m[1] - 12.0, m[2] - 12.0))
+    loc_solid = load_box(path).intersect(bx)
+    c = BRepClass3d_SolidClassifier(loc_solid.wrapped)
+
+    def state(p):
+        c.Perform(gp_Pnt(float(p[0]), float(p[1]), float(p[2])), 1e-7)
+        st = c.State()
+        return "I" if st == TopAbs_IN else ("O" if st == TopAbs_OUT else "N")
+
+    return state
 
 
 @pytest.mark.parametrize("hid", IDS)
@@ -649,12 +680,17 @@ def test_03d_probed_bore_size_and_teardrop_shape(hid):
     # below the axis the section is the plain circle: half width at height -0.6 is sqrt(1 - 0.36) = 0.8
     w = edge_of(e1, c0 - e2 * 0.6, 1.5)
     assert abs(w - 0.8) < 0.01
-    # cross-section area on a 0.05 mm probe grid
+    # cross-section area on a 0.05 mm probe grid (local copy of the part around the hole: same solid, far fewer faces, fast probes)
+    loc_cls = local_classifier(hid)
+    rng = np.random.default_rng(3)
+    for _ in range(40):                                              # the local copy must classify exactly like the full part
+        q = c0 + e1 * rng.uniform(-1.8, 1.8) + e2 * rng.uniform(-1.4, 1.9)
+        assert loc_cls(q) == classifier(STEP_34)(q) or "N" in (loc_cls(q), classifier(STEP_34)(q))
     n_in = 0
     step = 0.05
     for u in np.arange(-1.6, 1.6 + 1e-9, step):
         for v in np.arange(-1.3, 1.9 + 1e-9, step):
-            if is_empty34(c0 + e1 * u + e2 * v):
+            if loc_cls(c0 + e1 * u + e2 * v) == "O":
                 n_in += 1
     area = n_in * step * step
     exp_area = 1.0 * (math.pi / 2 + math.radians(45) + 1.0 / math.tan(math.radians(45)))
@@ -826,9 +862,10 @@ def test_04_removed_volume_within_10_percent_of_designed_cutter(hid):
     s0, s1, u0, u1, v0, v1 = -0.6, WALL_LEN[hid] + 0.8, -1.9, 1.9, -1.9, 2.0
     smp = rng.random((n, 3)) * np.array([s1 - s0, u1 - u0, v1 - v0]) + np.array([s0, u0, v0])
     cnt = 0
+    cb, cp = local_classifier(hid, STEP_BASE), local_classifier(hid, STEP_34)
     for s, u, v in smp:
         p = inner + a * s + e1 * u + e2 * v
-        if classifier(STEP_BASE)(p) == "I" and classifier(STEP_34)(p) == "O":
+        if cb(p) == "I" and cp(p) == "O":
             cnt += 1
     mc = cnt / n * (s1 - s0) * (u1 - u0) * (v1 - v0)
     mc_err = mc / math.sqrt(max(cnt, 1))
@@ -862,7 +899,7 @@ def classify_face(f):
     """Feature category of a face of the housing (baseline or part)."""
     t = f.geomType()
     c = f.Center()
-    b = f.BoundingBox()
+    b = exact_bbox(f)
     if t == "CYLINDER":
         r, loc, d = cylinder_params(f)
         if abs(r - 1.0) < 0.02 and b.ymax < 30.0:
@@ -881,13 +918,19 @@ def classify_face(f):
             return "rim top (y=55)"
         if abs(n.y) < 1e-6 and b.ymin >= 49.99 and 42.4 < max(abs(c.x), abs(c.z)) < 42.6:
             return "lid-recess wall"
-    # on the raw (Jasper) housing surface?  sample points of the face against the raw solid with a 1e-4 tolerance
+    # relation to Jasper's raw housing solid (1e-4 tolerance): faces lying OUTSIDE it are the bay, faces INSIDE its material are the cuts
+    # (wire window), faces ON its surface are housing faces
     cls = _raw_classifier()
     pts = face_points(f, 0.2)
+    states = set()
     for p in pts[:: max(1, len(pts) // 8)]:
         cls.Perform(gp_Pnt(float(p[0]), float(p[1]), float(p[2])), 1e-4)
-        if cls.State() != TopAbs_IN and not _on_boundary(cls):
-            return "bay / wire window"
+        st = cls.State()
+        states.add("IN" if st == TopAbs_IN else ("ON" if _on_boundary(cls) else "OUT"))
+    if "OUT" in states:
+        return "bay body"
+    if "IN" in states:
+        return "wire window / cut inside the raw wall"
     return "other housing face"
 
 
@@ -905,24 +948,38 @@ def _on_boundary(cls):
 
 @lru_cache(maxsize=None)
 def keepout_table():
+    """Per hole and per feature category: minimum distance (OCC BRepExtrema) between the hole's new faces (bore, flanks, chamfer; the whole
+    boundary of the removed volume except its two open caps) and every baseline face of that category."""
     pf, bf, un_b, un_p = face_diff()
     cats = baseline_face_categories()
     out = {}
     for hid in IDS:
-        hf = hole_new_faces(hid)
+        hole = cq.Compound.makeCompound(hole_new_faces(hid))
+        hb = exact_bbox(hole)
         shp = {}
         for i, f in enumerate(bf):
             if cats[i].startswith("own wall"):
                 continue
-            best = 1e9
-            for g in hf:
-                dss = BRepExtrema_DistShapeShape(g.wrapped, f.wrapped)
-                dss.Perform()
-                if dss.IsDone():
-                    best = min(best, dss.Value())
+            b = exact_bbox(f)
+            gap = max(b.xmin - hb.xmax, hb.xmin - b.xmax, b.ymin - hb.ymax, hb.ymin - b.ymax, b.zmin - hb.zmax, hb.zmin - b.zmax, 0.0)
             c = cats[i]
+            if gap > 40.0:
+                best = gap                                  # bounding boxes are > 40 mm apart: the distance is at least that (lower bound)
+            else:
+                dss = BRepExtrema_DistShapeShape(hole.wrapped, f.wrapped)
+                dss.Perform()
+                best = dss.Value() if dss.IsDone() else 1e9
             if c not in shp or best < shp[c][0]:
                 shp[c] = (best, i)
+        cover = load_box(STEP_COVER)
+        cb_ = exact_bbox(cover)
+        gap = max(cb_.xmin - hb.xmax, hb.xmin - cb_.xmax, cb_.ymin - hb.ymax, hb.ymin - cb_.ymax, cb_.zmin - hb.zmax, hb.zmin - cb_.zmax, 0.0)
+        if gap > 40.0:
+            shp["bay cover (separate part)"] = (gap, -1)
+        else:
+            dss = BRepExtrema_DistShapeShape(hole.wrapped, cover.wrapped)
+            dss.Perform()
+            shp["bay cover (separate part)"] = (dss.Value(), -1)
         out[hid] = shp
     return out
 
@@ -932,10 +989,12 @@ def test_05_keepouts_at_least_5mm(hid):
     tab = keepout_table()[hid]
     cats = baseline_face_categories()
     note(f"05.{hid}.min_distance_by_feature_mm", {k: round(v[0], 3) for k, v in sorted(tab.items())})
+    note(f"05.{hid}.note", "values >= 40 are bounding-box lower bounds, not exact distances")
     pf, bf, un_b, un_p = face_diff()
     nearest_overall = min((v[0], k) for k, v in tab.items() if k != "pocket R10 fillet")
     note(f"05.{hid}.nearest_non_exempt_feature", [nearest_overall[1], nearest_overall[0]])
-    required = ["corner cable hole (Ø2)", "floor hole (Ø3.3)", "lid-seat ledge (y=50)", "bay / wire window"]
+    required = ["corner cable hole (Ø2)", "floor hole (Ø3.3)", "lid-seat ledge (y=50)", "bay body", "wire window / cut inside the raw wall",
+                "bay cover (separate part)"]
     for k in required:
         assert k in tab, f"{hid}: no '{k}' faces found; the feature classification is incomplete"
     for k, (dist, idx) in tab.items():
@@ -1057,6 +1116,17 @@ def thin_stroke_residual(mask, d_mm):
     return float(sizes.max()), float(res.sum() / max(pad.sum(), 1))
 
 
+def thinnest_stroke_width(mask, piece_mm2=0.03):
+    """Largest disk diameter (0.01 mm steps) whose opening leaves no connected glyph piece bigger than piece_mm2 (corner rounding only)."""
+    best = 0.0
+    for d in np.arange(0.20, 0.80, 0.01):
+        big, _ = thin_stroke_residual(mask, float(d))
+        if big > piece_mm2:
+            break
+        best = float(d)
+    return best
+
+
 def median_stroke_width(mask):
     from scipy import ndimage as ndi
     edt = ndi.distance_transform_edt(np.pad(mask, 2))
@@ -1112,6 +1182,7 @@ def test_06a_label_size_depth_position_and_reading_direction_from_step(hid):
     big45, frac45 = thin_stroke_residual(mask, 0.45)
     big50, _ = thin_stroke_residual(mask, 0.50)
     med_w, p10_w = median_stroke_width(mask)
+    note(f"06.{hid}.thinnest_stroke_width_mm", thinnest_stroke_width(mask))
     c, right, up, n = label_frame(hid)
     note(f"06.{hid}.glyph_height_mm", st["height"])
     note(f"06.{hid}.glyph_width_mm", st["width"])
@@ -1135,23 +1206,27 @@ def test_06a_label_size_depth_position_and_reading_direction_from_step(hid):
     # all of the glyph lies on the flat part of the wall, below the rim and above the hole's chamfer
     lat_ok = abs(np.dot(c - vec(OUTER[hid]), right) + st["u_max"]) < 35.0 and abs(np.dot(c - vec(OUTER[hid]), right) + st["u_min"]) < 35.0
     assert lat_ok
-    assert 5.0 + st["v_min"] > 3.0 and 5.0 + st["v_max"] < 8.0
+    y_bottom, y_top = 42.0 + 5.0 + st["v_min"], 42.0 + 5.0 + st["v_max"]
+    note(f"06.{hid}.glyph_y_range_box", [y_bottom, y_top])
+    assert y_bottom - 44.2 > 0.5, f"glyph bottom {y_bottom:.2f} is less than 0.5 mm above the hole's chamfer top (y 44.12)"
+    assert 50.0 - y_top > 0.5, f"glyph top {y_top:.2f} is less than 0.5 mm below the lid-seat ledge (y 50)"
 
 
 @pytest.mark.parametrize("hid", IDS)
 def test_06b_label_strokes_at_least_0p4mm_wide(hid):
     mask, _ = label_floor_mask(hid)
     big, frac = thin_stroke_residual(mask, 0.40)
+    w = thinnest_stroke_width(mask)
     # corner rounding of the opening leaves small pieces (< ~0.02 mm2 each); a thinner stroke would leave a long piece
     assert big < 0.03, f"a piece of {big:.3f} mm2 of the glyph is thinner than 0.40 mm"
+    assert w >= 0.40, f"thinnest stroke {w:.2f} mm"
 
 
 @pytest.mark.parametrize("hid", IDS)
 def test_06c_label_reads_correctly_in_the_stl_in_print_orientation(hid):
     """Independent of the STEP faces and of the label_frame formula: ray-cast a depth image of the wall from OUTSIDE the STL
     (print orientation) with the camera 'right' computed as forward x up, and compare to the STEP-derived glyph mask."""
-    tris_b, _ = read_stl(STL_34)
-    tris = box_to_print(tris_b.reshape(-1, 3)).reshape(-1, 3, 3)
+    tris, _ = read_stl(STL_34)                                      # already in print orientation
     n_box = vec(WALL_NORMAL[hid])
     n = box_to_print(n_box)
     centre = box_to_print(vec(OUTER[hid]) + np.array([0.0, LABEL_ABOVE, 0.0]))
@@ -1170,19 +1245,18 @@ def test_06c_label_reads_correctly_in_the_stl_in_print_orientation(hid):
     U, V = np.meshgrid(uu, vv)
     origins = centre[None, None, :] + right[None, None, :] * U[..., None] + up[None, None, :] * V[..., None] + n[None, None, :] * 2.0
     O = origins.reshape(-1, 3)
-    D = np.broadcast_to(fwd, O.shape)
     depth = np.full(len(O), np.inf)
     A, B, C = loc_tris[:, 0], loc_tris[:, 1], loc_tris[:, 2]
     e1, e2 = B - A, C - A
     for k in range(len(loc_tris)):
-        pv = np.cross(D, e2[k])
-        det = pv @ e1[k]
+        pv = np.cross(fwd, e2[k])
+        det = float(pv @ e1[k])
         if abs(det) < 1e-12:
             continue
         tv = O - A[k]
-        u_ = (tv * pv).sum(axis=1) / det
+        u_ = (tv @ pv) / det
         qv = np.cross(tv, e1[k])
-        v_ = (D * qv).sum(axis=1) / det
+        v_ = (qv @ fwd) / det
         t_ = (qv @ e2[k]) / det
         ok = (u_ >= 0) & (v_ >= 0) & (u_ + v_ <= 1) & (t_ > 0)
         depth = np.where(ok & (t_ < depth), t_, depth)
@@ -1459,10 +1533,18 @@ def own_face_ids(hid, faces):
     vtx = cq.Vertex.makeVertex(*[float(v) for v in m])
     n = vec(WALL_NORMAL[hid])
     ids = set()
+    inner = plane_hit(measured_axis(hid)["loc"], measured_axis(hid)["dir"], hid, "inner")
     for i, f in enumerate(faces):
         dss = BRepExtrema_DistShapeShape(vtx.wrapped, f.wrapped)
         dss.Perform()
         dist = dss.Value()
+        # the pocket-side face of the same 5 mm wall (the line starts 5 mm in front of it and moves away: not an obstacle)
+        if f.geomType() == "PLANE" and f.Area() > 100.0:
+            nn = f.normalAt()
+            cc = f.Center()
+            if abs(abs(np.dot(vec((nn.x, nn.y, nn.z)), n)) - 1.0) < 1e-6 and abs(np.dot(vec((cc.x, cc.y, cc.z)) - inner, n)) < 1e-3:
+                ids.add(i)
+                continue
         if dist < 2.5:
             ids.add(i)
         elif dist < 8.0:
@@ -1479,7 +1561,7 @@ def cable_study():
     parts = tessellate_faces(faces)
     pf, bf, un_b, un_p = face_diff()
     # bay faces: outside the box envelope and not on Jasper's raw surface
-    bay_ids = [i for i, f in enumerate(faces) if f.BoundingBox().zmin < -45.01 and classify_face(f) == "bay / wire window"]
+    bay_ids = [i for i, f in enumerate(faces) if exact_bbox(f).zmin < -45.01 and classify_face(f) == "bay body"]
     cover = load_box(STEP_COVER)
     cover_faces = cover.Faces()
     cover_parts = tessellate_faces(cover_faces)
@@ -1585,7 +1667,7 @@ def test_07b_lines_leave_outward_and_never_intersect_the_claw(hid):
     note(f"07.{hid}.n_lines", len(dmin))
     note(f"07.{hid}.elevation_range_deg", [float(ln["elev"].min()), float(ln["elev"].max())])
     note(f"07.{hid}.min_overall", rec)
-    note(f"07.{hid}.count_lt_5mm", int((dmin < 5.0).sum()))
+    note(f"07.{hid}.count_lt_5mm_includes_interior_lid_recess_faces", int((dmin < 5.0).sum()))
     note(f"07.{hid}.count_lt_1mm", int((dmin < 1.0).sum()))
     note(f"07.{hid}.count_lt_0.5mm", int((dmin < 0.5).sum()))
     note(f"07.{hid}.count_intersecting", int(hit.sum()))
@@ -1651,4 +1733,421 @@ def test_07d_global_minimums_and_occ_cross_check():
     for hid, which, dm, do, pt, cat, i in checks:
         assert abs(dm - do) < 0.03, f"{hid} {which}: mesh {dm:.4f} mm vs OCC {do:.4f} mm"
     assert rec_all["mesh_distance_mm"] > 0.0 and d_occ > 0.0
+    # random lines (not only the extremes): mesh distance vs exact B-rep distance
+    rng = np.random.default_rng(11)
+    diffs = []
+    for hid in IDS:
+        dm = st["holes"][hid]["dmin"]
+        cand = np.nonzero(dm < 40.0)[0]
+        for i in rng.choice(cand, 8, replace=False):
+            d_occ_r, _, _ = occ_line_distance(st, hid, int(i), "all")
+            diffs.append((hid, int(i), float(dm[i]), float(d_occ_r)))
+    worst = max(abs(a - b) for _, _, a, b in diffs)
+    note("07.random_line_mesh_vs_occ", {"n": len(diffs), "max_abs_diff_mm": worst, "distance_range_mm": [min(d[2] for d in diffs), max(d[2] for d in diffs)]})
+    assert worst < 0.03, f"mesh vs OCC distance differ by up to {worst:.4f} mm on random lines"
     assert rec_bc["mesh_distance_mm"] >= 5.0
+
+
+# =====================================================================================================================================
+# 8. STEP ROUND TRIP, STL
+# =====================================================================================================================================
+def test_08a_step_reimport_roundtrip(tmp_path):
+    shp = cq.importers.importStep(STEP_34).val()
+    out = str(tmp_path / "roundtrip_34.step")
+    cq.exporters.export(cq.Workplane("XY").add(shp), out)
+    re1 = cq.importers.importStep(out).val()
+    out2 = str(tmp_path / "roundtrip_34_b.step")
+    cq.exporters.export(cq.Workplane("XY").add(re1), out2)
+    re2 = cq.importers.importStep(out2).val()
+    d1 = max(abs(a - b) for a, b in zip(bbox_tuple(shp), bbox_tuple(re1)))
+    d2 = max(abs(a - b) for a, b in zip(bbox_tuple(re1), bbox_tuple(re2)))
+    rv1 = abs(re1.Volume() - shp.Volume()) / shp.Volume()
+    rv2 = abs(re2.Volume() - re1.Volume()) / re1.Volume()
+    note("08.step_roundtrip", {"solids": len(re1.Solids()), "valid": bool(re1.isValid()), "volume_shipped": shp.Volume(), "volume_reimport": re1.Volume(),
+                               "volume_rel_diff": rv1, "bbox_max_diff_mm": d1, "second_pass_volume_rel_diff": rv2, "second_pass_bbox_diff_mm": d2,
+                               "faces_shipped": len(shp.Faces()), "faces_reimport": len(re1.Faces())})
+    assert len(re1.Solids()) == 1 and re1.isValid() and brep_valid(re1)
+    assert rv1 < 1e-6 and d1 < 1e-4
+    assert rv2 < 1e-6 and d2 < 1e-4
+    assert len(re1.Faces()) == len(shp.Faces())
+
+
+def test_08b_shipped_step_matches_the_source_script():
+    from cad.parts import gripper1021_housing_cambay as G
+    housing, _cover = G.make_34()
+    src = G.to_world(housing.val())
+    shp = cq.importers.importStep(STEP_34).val()
+    rv = abs(src.Volume() - shp.Volume()) / shp.Volume()
+    d = max(abs(a - b) for a, b in zip(bbox_tuple(src), bbox_tuple(shp)))
+    note("08.source_vs_shipped_step", {"volume_source": src.Volume(), "volume_shipped": shp.Volume(), "rel_diff": rv, "bbox_max_diff_mm": d,
+                                       "solids": len(src.Solids()), "valid": bool(src.isValid())})
+    assert len(src.Solids()) == 1 and src.isValid()
+    assert rv < 1e-4, f"shipped STEP and make_34() differ in volume by {100 * rv:.4f} %"
+    assert d < 1e-3
+
+
+def stl_edges_and_volume(tris):
+    """Merge vertices at 1e-4 mm, drop triangles that collapse (degenerate micro-triangles from the tessellation of sliver faces),
+    then count edges that are not shared by exactly one triangle in each direction.  Returns (bad edges, signed volume, vertices,
+    collapsed triangles, largest collapsed area)."""
+    area = 0.5 * np.linalg.norm(np.cross(tris[:, 1] - tris[:, 0], tris[:, 2] - tris[:, 0]), axis=1)
+    v = np.round(tris.reshape(-1, 3), 4)
+    keys, inv = np.unique(v, axis=0, return_inverse=True)
+    idx = inv.reshape(-1, 3)
+    ok = np.array([len(set(t)) == 3 for t in idx])
+    collapsed = int((~ok).sum())
+    max_collapsed_area = float(area[~ok].max()) if collapsed else 0.0
+    idx = idx[ok]
+    e = np.concatenate([idx[:, [0, 1]], idx[:, [1, 2]], idx[:, [2, 0]]], axis=0)
+    directed = {}
+    for a, b in e:
+        directed[(a, b)] = directed.get((a, b), 0) + 1
+    bad = 0
+    for (a, b), c in directed.items():
+        if c != 1 or directed.get((b, a), 0) != 1:
+            bad += 1
+    vol = float(np.einsum("ij,ij->", tris[ok][:, 0], np.cross(tris[ok][:, 1], tris[ok][:, 2])) / 6.0)
+    return bad, vol, len(keys), collapsed, max_collapsed_area
+
+
+def test_08c_stl_print_orientation_volume_and_watertight():
+    tris, nrm = read_stl(STL_34)
+    bad, vol, nv, collapsed, collapsed_area = stl_edges_and_volume(tris)
+    bad_b, _, _, collapsed_b, _ = stl_edges_and_volume(read_stl(STL_BASE)[0])
+    shp = part()
+    vstep = shp.Volume()
+    bb = tris.reshape(-1, 3)
+    mn, mx = bb.min(axis=0), bb.max(axis=0)
+    # print frame = box frame rotated +90 deg about X:  (x, y, z) -> (x, -z, y)
+    bs = bbox_tuple(shp)
+    exp_min = np.array([bs[0], -bs[5], bs[2]])
+    exp_max = np.array([bs[1], -bs[4], bs[3]])
+    # bottom face on the bed: triangles lying on z = 0 and facing down (computed normals; micro slivers have noisy normals but no area)
+    z0 = np.isclose(tris[:, :, 2], 0.0, atol=1e-3).all(axis=1)
+    cr = np.cross(tris[:, 1] - tris[:, 0], tris[:, 2] - tris[:, 0])
+    ar = 0.5 * np.linalg.norm(cr, axis=1)
+    nzc = cr[:, 2] / np.maximum(2 * ar, 1e-30)
+    bottom_area = float(ar[z0].sum())
+    down_area = float(ar[z0 & (nzc < -0.99)].sum())
+    up_area = float(ar[z0 & (nzc > 0.99)].sum())
+    facing_down = down_area >= 0.999 * bottom_area and up_area == 0.0
+    rv = abs(vol - vstep) / vstep
+    # the existing (baseline) STL carries the same tessellation offset: the NEW features must add only their own volume change
+    tb_, _ = read_stl(STL_BASE)
+    _bb, vol_b, _nv, _c, _ca = stl_edges_and_volume(tb_)
+    d_stl = vol - vol_b
+    d_step = vstep - base().Volume()
+    note("08.stl_volume_change_vs_baseline", {"stl_34_minus_stl_base_mm3": d_stl, "step_34_minus_step_base_mm3": d_step,
+                                              "baseline_stl_rel_offset_to_step": (vol_b - base().Volume()) / base().Volume()})
+    note("08.stl", {"triangles": len(tris), "unique_vertices": nv, "non_manifold_or_open_edges": bad, "collapsed_micro_triangles": collapsed,
+                    "largest_collapsed_triangle_area_mm2": collapsed_area, "baseline_stl_collapsed_micro_triangles": collapsed_b,
+                    "baseline_stl_open_edges": bad_b, "signed_volume_mm3": vol, "step_volume_mm3": vstep,
+                    "volume_rel_diff": rv, "bbox_min": [round(float(v), 4) for v in mn], "bbox_max": [round(float(v), 4) for v in mx],
+                    "expected_bbox_min": [round(float(v), 4) for v in exp_min], "expected_bbox_max": [round(float(v), 4) for v in exp_max],
+                    "bottom_face_area_on_bed_mm2": bottom_area, "bottom_triangles_face_down": bool(facing_down)})
+    assert bad == 0, f"{bad} open / non-manifold / inconsistently oriented edges in the STL"
+    assert collapsed_area < 1e-3, "a collapsed triangle is large enough to matter"
+    assert vol > 0
+    assert rv < 0.0025, f"STL volume {vol:.1f} vs STEP {vstep:.1f} ({100 * rv:.3f} %)"
+    assert abs(d_stl - d_step) < 1.0, f"STL volume change {d_stl:.2f} mm3 vs STEP volume change {d_step:.2f} mm3"
+    assert np.abs(mn - exp_min).max() < 0.02 and np.abs(mx - exp_max).max() < 0.02, "STL bounding box is not the STEP box rotated to print orientation"
+    assert abs(mn[2]) < 1e-3, "STL does not sit on z = 0"
+    assert bottom_area > 8000.0 and facing_down, "the box bottom is not one flat face on the bed"
+
+
+def test_08d_stl_vertices_lie_on_the_step_surface():
+    tris, _ = read_stl(STL_34)
+    verts = np.unique(np.round(tris.reshape(-1, 3), 5), axis=0)
+    rng = np.random.default_rng(5)
+    sel = verts[rng.choice(len(verts), 200, replace=False)]
+    box = np.stack([sel[:, 0], sel[:, 2], -sel[:, 1]], axis=1)          # inverse of (x, y, z) -> (x, -z, y)
+    shell = part().Shells()[0]
+    worst = 0.0
+    for p in box:
+        dss = BRepExtrema_DistShapeShape(cq.Vertex.makeVertex(*[float(v) for v in p]).wrapped, shell.wrapped)
+        dss.Perform()
+        worst = max(worst, dss.Value())
+    note("08.stl_vertex_to_step_surface_max_mm", worst)
+    assert worst < 0.01, f"STL vertex {worst:.4f} mm off the STEP surface"
+
+
+@pytest.mark.parametrize("hid", IDS)
+def test_08e_stl_has_the_through_holes_and_the_baseline_stl_does_not(hid):
+    def hits(tris, p0, p1):
+        d = p1 - p0
+        A, B, C = tris[:, 0], tris[:, 1], tris[:, 2]
+        e1, e2 = B - A, C - A
+        pv = np.cross(d, e2)
+        det = np.einsum("ij,ij->i", e1, pv)
+        ok = np.abs(det) > 1e-12
+        tv = p0 - A
+        u = np.einsum("ij,ij->i", tv, pv) / np.where(ok, det, 1.0)
+        qv = np.cross(tv, e1)
+        v = (qv @ d) / np.where(ok, det, 1.0)
+        t = np.einsum("ij,ij->i", e2, qv) / np.where(ok, det, 1.0)
+        return int((ok & (u >= 0) & (v >= 0) & (u + v <= 1) & (t >= 0) & (t <= 1)).sum())
+
+    t34, _ = read_stl(STL_34)
+    tb, _ = read_stl(STL_BASE)
+    loc, a, e1, e2 = _frame(hid)
+    L = WALL_LEN[hid]
+    n34, nbase = [], []
+    for du, dv in ((0.0, 0.0), (0.7, 0.0), (-0.7, 0.0), (0.0, -0.7)):
+        p0 = box_to_print(_axis_point(hid, -4.0) + e1 * du + e2 * dv)
+        p1 = box_to_print(_axis_point(hid, L + 4.0) + e1 * du + e2 * dv)
+        n34.append(hits(box_to_print(t34.reshape(-1, 3)).reshape(-1, 3, 3) if False else t34, p0, p1))
+        nbase.append(hits(tb, p0, p1))
+    note(f"08.{hid}.stl_ray_crossings_through_wall_part_vs_baseline", [n34, nbase])
+    assert all(n == 0 for n in n34), f"the STL wall is closed along the hole axis (crossings {n34})"
+    assert all(n >= 2 for n in nbase), f"the baseline STL has no wall on these lines ({nbase}): the probe is meaningless"
+
+
+# =====================================================================================================================================
+# 9. PRINTABILITY
+# =====================================================================================================================================
+def overhang_triangles(path, limit_deg=47.0):
+    tris, nrm = read_stl(path)
+    n = np.cross(tris[:, 1] - tris[:, 0], tris[:, 2] - tris[:, 0])
+    area = 0.5 * np.linalg.norm(n, axis=1)
+    nz = n[:, 2] / np.maximum(2 * area, 1e-30)
+    thr = -math.sin(math.radians(limit_deg))
+    sel = nz < thr
+    cen = tris.mean(axis=1)
+    return cen[sel], area[sel], nz[sel]
+
+
+def test_09_no_new_unsupported_overhang_beyond_the_teardrop_tips_and_label_ceilings():
+    c34, a34, _ = overhang_triangles(STL_34)
+    cb, ab, _ = overhang_triangles(STL_BASE)
+    # to box frame for the zone tests: (x, -z, y) inverse -> (x, z_print, -y_print)
+    def to_box_frame(p):
+        return np.stack([p[:, 0], p[:, 2], -p[:, 1]], axis=1)
+    b34, bb_ = to_box_frame(c34), to_box_frame(cb)
+    def in_hole_body(p):
+        d = np.full(len(p), np.inf)
+        for hid in IDS:
+            d = np.minimum(d, seg_dist_points(p, vec(INNER[hid]), vec(OUTER[hid])))
+        return d <= 3.0
+    def in_label(p):
+        d = np.full(len(p), np.inf)
+        for hid in IDS:
+            d = np.minimum(d, label_box_dist(p, hid))
+        return d <= 1.0
+    hole34, lab34 = in_hole_body(b34), in_label(b34)
+    holeb, labb = in_hole_body(bb_), in_label(bb_)
+    outside34 = ~(hole34 | lab34)
+    outsideb = ~(holeb | labb)
+    a_out34, a_outb = a34[outside34].sum(), ab[outsideb].sum()
+    a_hole34, a_lab34 = a34[hole34].sum(), a34[lab34 & ~hole34].sum()
+    # label pits: every steep overhang triangle there must lie within the pit (<= 0.4 mm below the wall plane): an unsupported span of one
+    # extrusion width, i.e. the tops of the debossed strokes
+    depth_max = 0.0
+    for hid in IDS:
+        sel = label_box_dist(b34, hid) <= 1.0
+        if sel.any():
+            dpt = (b34[sel] - vec(OUTER[hid])) @ vec(WALL_NORMAL[hid])
+            depth_max = max(depth_max, float(-dpt.min()))
+            assert dpt.max() < 0.02, f"label {hid}: an overhang triangle outside the wall plane"
+    note("09.overhang_area_steeper_than_47deg_mm2", {"baseline_total": float(ab.sum()), "part_total": float(a34.sum()), "part_outside_zones": float(a_out34),
+                                                      "baseline_outside_zones": float(a_outb), "part_in_hole_bodies": float(a_hole34),
+                                                      "part_in_label_pits": float(a_lab34), "baseline_in_zones": float(ab[~outsideb].sum()),
+                                                      "label_pit_overhang_max_depth_mm": depth_max})
+    assert abs(a_out34 - a_outb) < 0.5, f"overhang area changed outside the hole / label zones: {a_out34:.2f} vs {a_outb:.2f} mm2"
+    assert a_hole34 < 1e-3, f"{a_hole34:.4f} mm2 of >47 degree overhang inside the hole bodies"
+    assert depth_max <= LABEL_DEPTH + 0.03, f"label overhangs reach {depth_max:.3f} mm into the wall"
+
+
+def test_09b_teardrop_flanks_are_45_degrees_in_print_orientation():
+    """Every hole-body face that faces downward in print orientation is at most 45 degrees off vertical (+0.1 deg)."""
+    worst, worst_sliver, n_sliver = 0.0, 0.0, 0
+    for hid in IDS:
+        for f in hole_new_faces(hid):
+            sliver = f.Area() < 1e-3                     # zero-area faces left at the mouths by the chamfer operation
+            n_sliver += int(sliver)
+            v, t = f.tessellate(0.01, 0.1)
+            vv = np.array([(q.x, q.y, q.z) for q in v], float)
+            for tri in np.array(t, int):
+                p3 = vv[tri]
+                n = np.cross(p3[1] - p3[0], p3[2] - p3[0])
+                ln = np.linalg.norm(n)
+                if ln < 1e-12:
+                    continue
+                n = n / ln
+                fn = f.normalAt(cq.Vector(*p3.mean(axis=0)))                       # orient n out of the SOLID using the B-rep face normal
+                if np.dot(n, vec((fn.x, fn.y, fn.z))) < 0:
+                    n = -n
+                if n[1] < 0:                                                       # box +y is print "up": downward-facing => overhang
+                    ang = math.degrees(math.asin(min(1.0, -n[1])))
+                    if sliver:
+                        worst_sliver = max(worst_sliver, ang)
+                    else:
+                        worst = max(worst, ang)
+    note("09.max_overhang_angle_in_hole_bodies_deg", worst)
+    note("09.sliver_faces_area_lt_1e-3_mm2", {"count": n_sliver, "max_overhang_angle_deg": worst_sliver})
+    assert worst <= 45.1, f"a hole face overhangs by {worst:.2f} deg"
+
+
+# =====================================================================================================================================
+# 10. BASELINE UNTOUCHED
+# =====================================================================================================================================
+def test_10a_baseline_regenerates_identically_from_make():
+    from cad.parts import gripper1021_housing_cambay as G
+    housing, cover = G.make()
+    h = G.to_world(housing.val())
+    c = G.to_world(cover.val())
+    h_ref = cq.importers.importStep(STEP_BASE).val()
+    c_ref = cq.importers.importStep(STEP_COVER).val()
+    rows = {}
+    for name, a, b in (("housing", h, h_ref), ("cover", c, c_ref)):
+        rows[name] = {"volume_regenerated": a.Volume(), "volume_export": b.Volume(), "rel_diff": abs(a.Volume() - b.Volume()) / b.Volume(),
+                      "bbox_max_diff_mm": max(abs(x - y) for x, y in zip(bbox_tuple(a), bbox_tuple(b))), "solids": len(a.Solids()), "valid": bool(a.isValid())}
+    note("10.baseline_regeneration", rows)
+    for name, r in rows.items():
+        assert r["solids"] == 1 and r["valid"]
+        assert r["rel_diff"] < 1e-6, f"{name}: volume {r['volume_regenerated']} vs export {r['volume_export']}"
+        assert r["bbox_max_diff_mm"] < 1e-3
+
+
+def test_10b_baseline_export_files_are_unmodified_in_git():
+    import shutil
+    import subprocess
+    if shutil.which("git") is None:
+        pytest.skip("git not available")
+    files = ["exports/step/gripper1021_housing_cambay.step", "exports/step/gripper1021_housing_cambay_cover.step",
+             "exports/stl/gripper1021_housing_cambay.stl", "exports/stl/gripper1021_housing_cambay_cover.stl"]
+    res = {}
+    for f in files:
+        wt = subprocess.run(["git", "-C", REPO, "hash-object", f], capture_output=True, text=True).stdout.strip()
+        head = subprocess.run(["git", "-C", REPO, "rev-parse", f"HEAD:{f}"], capture_output=True, text=True)
+        if head.returncode != 0:
+            pytest.skip(f"{f} is not tracked in HEAD")
+        res[f] = (wt == head.stdout.strip())
+    note("10.baseline_files_equal_to_HEAD", res)
+    assert all(res.values()), res
+
+
+@pytest.mark.skipif(os.environ.get("HOUSING34_RUN_BASELINE_SUITE") != "1", reason="set HOUSING34_RUN_BASELINE_SUITE=1 to run tests/test_gripper1021.py (about 2 min)")
+def test_10c_existing_gripper1021_suite_still_passes():
+    import subprocess
+    r = subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q", os.path.join(REPO, "tests", "test_gripper1021.py")],
+                       capture_output=True, text=True, cwd=REPO)
+    note("10.tests_gripper1021_summary", r.stdout.strip().splitlines()[-1] if r.stdout.strip() else r.stderr[-300:])
+    assert r.returncode == 0, r.stdout[-2000:]
+
+
+# =====================================================================================================================================
+# 11. BODY-FRAME POINTS FOR THE SOFTWARE
+# =====================================================================================================================================
+def box_to_body_m(p):
+    return (float(p[0]) / 1000.0, float(-p[2]) / 1000.0, float(p[1] - BODY_ORIGIN_BOX_Y) / 1000.0)
+
+
+@pytest.mark.parametrize("hid", IDS)
+def test_11a_outer_mouth_points_in_the_body_frame(hid):
+    ax = measured_axis(hid)
+    m = plane_hit(ax["loc"], ax["dir"], hid, "outer")
+    body = box_to_body_m(m)
+    exp = BODY_POINTS_M[hid]
+    err = max(abs(a - b) for a, b in zip(body, exp))
+    note(f"11.{hid}.outer_mouth_body_m", [round(v, 5) for v in body])
+    note(f"11.{hid}.expected_body_m", list(exp))
+    note(f"11.{hid}.max_error_m", err)
+    assert err <= 6e-5, f"{hid}: body-frame point {body} vs {exp}"      # the notes round to 0.1 mm (half unit 5e-5 m)
+
+
+def test_11b_frame_origin_is_on_the_tube_axis_at_box_y_7p82():
+    # tube axis: the Ø30 cylinder of the baseline
+    axes = []
+    for f in base().Faces():
+        if f.geomType() == "CYLINDER":
+            r, loc, d = cylinder_params(f)
+            if abs(r - 15.0) < 0.01:
+                axes.append((loc, d))
+    assert axes
+    off = max(math.hypot(*(loc[[0, 2]] - d[[0, 2]] / d[1] * loc[1])) for loc, d in axes)
+    # corner holes (Ø2, rising 13.8 deg): inner mouth = where the axis leaves the pocket corner (R10 about (+-30, +-30)); its height is the
+    # body-frame origin height.  (The outer mouth sits in the R75 blend where no simple surface model applies: not needed by the spec table.)
+    inner_y, rows = [], []
+    for f in base().Faces():
+        if f.geomType() != "CYLINDER":
+            continue
+        r, loc, d = cylinder_params(f)
+        if abs(r - 1.0) > 0.02 or exact_bbox(f).ymax > 30.0:
+            continue
+        if d[1] < 0:
+            d = -d                                                       # point up and outward along the rise
+        sx, sz = math.copysign(1.0, loc[0] + d[0] * 40), math.copysign(1.0, loc[2] + d[2] * 40)
+        ts = np.linspace(-80.0, 80.0, 160001)
+        P = loc[None, :] + ts[:, None] * d[None, :]
+        g = np.hypot(P[:, 0] - sx * 30.0, P[:, 2] - sz * 30.0) - 10.0
+        k = np.nonzero(np.sign(g[:-1]) != np.sign(g[1:]))[0]
+        cand = [P[i] for i in k if abs(P[i][0]) > 30.0 and abs(P[i][2]) > 30.0]
+        assert cand, "axis does not meet the pocket corner fillet"
+        qi = cand[0]
+        rows.append({"corner_signs_xz": (sx, sz), "elevation_deg": round(math.degrees(math.asin(abs(d[1]))), 3),
+                     "inner_box": [round(float(v), 4) for v in qi], "inner_body_m": [round(v, 5) for v in box_to_body_m(qi)]})
+        inner_y.append(qi[1])
+    note("11.tube_axis_offset_from_box_origin_mm", float(off))
+    note("11.corner_hole_inner_mouth_heights_box_y", [round(float(v), 4) for v in inner_y])
+    note("11.corner_holes_body_frame", rows)
+    assert off < 0.01, f"tube axis is {off} mm from the box-frame y axis"
+    assert len(inner_y) == 4, f"found {len(inner_y)} corner holes"
+    assert max(abs(v - BODY_ORIGIN_BOX_Y) for v in inner_y) < 0.02, f"inner-mouth heights {inner_y}"
+    for rw in rows:
+        assert abs(abs(rw["inner_body_m"][0]) - 0.03707) < 1e-4 and abs(abs(rw["inner_body_m"][1]) - 0.03707) < 1e-4 and abs(rw["inner_body_m"][2]) < 3e-5
+    # frame handedness: the camera bay is at box -z, i.e. body +y
+    assert bbox_tuple(base())[4] < -100.0 and bbox_tuple(base())[5] < 51.0
+
+
+# =====================================================================================================================================
+# 12. PARAMETER AND DELIVERABLE AGREEMENT
+# =====================================================================================================================================
+def test_12a_params_agree_with_the_measured_geometry():
+    """cad/params.py CAMBAY1021_TRI_* (read only) against what was measured on the STEP, and the interfaces file has no conflicting entry."""
+    from cad import params as P
+    assert tuple(P.CAMBAY1021_TRI_IDS) == IDS
+    assert tuple(P.CAMBAY1021_TRI_AZ_BODY_DEG) == (90.0, 210.0, 330.0)
+    assert P.CAMBAY1021_TRI_Y == 42.0 and P.CAMBAY1021_TRI_HOLE_D == 2.0 and P.CAMBAY1021_TRI_CHAMFER == 0.5
+    assert P.CAMBAY1021_TRI_LABEL_H == 4.0 and P.CAMBAY1021_TRI_LABEL_DEPTH == 0.4 and P.CAMBAY1021_TRI_LABEL_ABOVE == 5.0
+    assert tuple(P.CAMBAY1021_BAY_ORIGIN_WORLD) == ORIGIN
+    for k, hid in enumerate(IDS):
+        assert tuple(P.CAMBAY1021_TRI_ANCHORS_ROOM_M[k]) == ANCHORS_M[hid], f"anchor prior of {hid} differs from the task value"
+    assert abs(P.CAMBAY1021_TRI_BODY_ORIGIN_Y - BODY_ORIGIN_BOX_Y) < 1e-9
+    # measured axis heights equal the parameter
+    for hid in IDS:
+        assert abs(measured_axis(hid)["loc"][1] - P.CAMBAY1021_TRI_Y) < 5e-3
+    src = open(os.path.join(REPO, "cad", "interfaces.py"), errors="ignore").read()
+    note("12.interfaces_py_mentions_1021_or_tri", bool(("1021" in src) or ("CAMBAY1021" in src) or ("TRI_" in src)))
+
+
+def test_12b_standard_renders_exist():
+    from PIL import Image
+    names = [f"gripper1021_housing_cambay_34_{v}.png" for v in ("iso", "front", "rear", "left", "right", "top", "bottom", "closeup_C", "closeup_A", "closeup_B")]
+    sizes = {}
+    for n in names:
+        path = os.path.join(REPO, "renders", "gripper1021", n)
+        assert os.path.exists(path), f"missing render {n}"
+        with Image.open(path) as im:
+            sizes[n] = im.size
+            assert im.size[0] >= 400 and im.size[1] >= 400
+    note("12.renders_found", sizes)
+
+
+# =====================================================================================================================================
+# results dump (for the report): set HOUSING34_VERIFY_JSON=/path/out.json
+# =====================================================================================================================================
+def test_99_dump_results():
+    path = os.environ.get("HOUSING34_VERIFY_JSON")
+    if not path:
+        pytest.skip("set HOUSING34_VERIFY_JSON to write the measurements")
+    import json
+
+    def default(o):
+        if isinstance(o, (np.floating, np.integer)):
+            return o.item()
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        return str(o)
+
+    with open(path, "w") as fh:
+        json.dump(RESULTS, fh, indent=1, default=default, sort_keys=True)

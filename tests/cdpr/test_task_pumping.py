@@ -253,13 +253,15 @@ def test_the_path_check_of_a_task_move_runs_on_the_pumped_worker_and_keeps_the_s
 
 
 def test_the_task_layer_runs_nothing_else_slow_on_the_command_thread_static_guard():
-    """tasks.py: ``plan_line_from`` is only ever the argument of ``run_pumped``; the other calls of the runner are cheap by
+    """tasks.py: ``plan_line_from`` is only ever the argument of ``run_pumped`` (so is the dry-run's ``plan_legs`` and the claw's grip
+    when it does blocking I/O); the other calls of the runner are cheap by
     measurement (TrustedVolume 0.2 ms for 15 points, 12 ms for 1000; pose_from_positions 1-2 ms; Workspace.violations < 1 ms)."""
     tree = ast.parse(inspect.getsource(T))
-    direct = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "plan_line_from"]
-    assert direct == []
-    pumped = [ast.unparse(n.args[1]) for n in ast.walk(tree) if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "run_pumped"]
-    assert pumped == ["plan_line_from"]
+    direct = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and getattr(n.func, "id", None) in ("plan_line_from", "plan_line")
+              and not any(isinstance(p, ast.FunctionDef) and p.name == "plan_legs" for p in ast.walk(tree) if n in list(ast.walk(p)))]
+    assert direct == []                                     # (the only direct plan_line call is inside the pumped ``plan_legs`` closure)
+    pumped = sorted(ast.unparse(n.args[1]) for n in ast.walk(tree) if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "run_pumped")
+    assert pumped == ["claw.grip", "plan_legs", "plan_line_from"]        # the planned move, the dry-run closure, the claw's grip
 
 
 # ===================================================================== (e) the helper itself

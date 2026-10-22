@@ -768,15 +768,16 @@ content("First test: self-calibration and a short move on the real hardware", [
 }, "Placeholder: replace the box with the first-test photo and the measured numbers (calibration error bars, cable error over the 300 mm move).");
 
 content("Built and simulated; the next tests turn estimates into measurements", [
-  "Built: stations, station boards, heat fins, gripper parts",
-  "Designed and checked in CAD: the hands and the camera housing",
+  "Built: stations, station boards, heat fins, the claw body (tube, mount, servo in its gear housing)",
+  "Designed and checked in CAD: the hands, the camera housing, the encoder casing",
   "Calibration and control: simulated, then the first test",
   "Next tests, with pass limits written first:",
   "- winch pull test (decides the capacity fix)",
   "- 90-min hold test: motor and printed mount under 60 °C",
   "- SolidWorks static and thermal studies of the station",
   "- four-station lift: 1 lb, 300 mm at 50 mm/s, within 2 mm per cable",
-], { file: PH("17_heat_fin_on_motor_angle.jpg"), alt: "Heat fin on the motor", caption: "Built: the heat fin test-fitted on the motor" },
+], { file: [PH("17_heat_fin_on_motor_angle.jpg"), PH("21_claw_printed_tube_servo.jpg")], alt: "Heat fin on the motor and the printed claw body",
+     caption: "Built: the heat fin on the motor (left); the printed claw body with its servo (right)" },
 "Everything that is calculated or simulated is called that; the test list is what turns it into measurements.");
 
 content("Measure early, print test coupons first, and design for the worst case", [

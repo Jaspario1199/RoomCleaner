@@ -66,3 +66,6 @@ Facts behind the obstacle slide (code, not hardware):
   - `gripper1021_asbuilt.png`: the claw as built, with the housing carrying both cable patterns (D34) and its camera-bay cover,
     the 10.48 in tube (D36: the head moved up by the 38.6 mm cut), the 1021 head and the four-bar hands.
 - **Unchanged, by choice (Jasper):** the title slide keeps `gripper1021_final.png` (12 in tube). The slide says "10.5 in tube" (10.48 as built).
+- **Photo 21 (Jasper, 10/22):** the printed claw body (tube in the top mount, servo in the gear housing). It now appears on the
+  "Built and simulated" slide next to the heat fin. That slide's bullets list the claw body as built and the encoder casing as
+  designed.

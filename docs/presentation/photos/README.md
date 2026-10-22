@@ -21,3 +21,4 @@ Technical Presentation — v2 draft"). Suggested placement:
 | 16, 17, 18 | heat fin test-fitted on the NEMA 17: boss centred in the 7/8 in hole, 4 motor threads lined up | 7 (heat fin: "it fits") |
 | 19 | soldered station perfboard: point-to-point wiring, 100 µF at the driver supply, buck module underneath (Jasper, 10/21) | deck v3 "Station board" |
 | 20 | slicing a PETG plate for the Creality K1 (0.4 mm nozzle, 0.20 mm standard, supports on) (Jasper, 10/21) | deck v3 "Designing parts to be printed" |
+| 21 | printed claw: aluminium tube in the top mount, MG996R servo seated in the gear housing, slotted housing half beside it (Jasper, 10/22) | deck v4.2 "Built and simulated" (built claw) |

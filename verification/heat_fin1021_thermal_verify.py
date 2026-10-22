@@ -431,7 +431,7 @@ def section2():
         chk("2.6e", f"{tag} shank and head coaxial (mm)", 0.0, 0.0, 1e-6, ok=okcoax)
         chk("2.7a", f"{tag} thread/shank engagement behind the fin motor face = tip depth below -t (mm)", 3.825 if key == "detailed_fin1p8" else 4.0, eng, 0.002, ok=all(abs(e - (3.825 if key == "detailed_fin1p8" else 4.0)) < 0.002 for e in eng))
         if key == "detailed_fin1p8":
-            under_head = [(Y0 + 5.0) - merged_cyl(b[f"screw_{n}"], 1)[0][3] for n in (1, 2, 3, 4)] if False else [(Y0 + 5.0) - min(c[3] for c in merged_cyl(b[f"screw_{n}"], 1) if abs(c[0] - 1.5) < 0.005) for n in (1, 2, 3, 4)]
+            under_head = [(Y0 + 5.0) - min(c[3] for c in merged_cyl(b[f"screw_{n}"], 1) if abs(c[0] - 1.5) < 0.005) for n in (1, 2, 3, 4)]
             chk("2.7b", f"{tag} screw length under the head = M3 x 12 (mm) -> 5 (tab) + 3.175 (fin) + 3.825 (engagement)", 12.0, under_head, 0.002, ok=all(abs(u - 12.0) < 0.002 for u in under_head))
         # screw/hole radial relations and no overlap with fin/tab/motor
         gaps_fin, gaps_tab, ovl, share = [], [], [], []
@@ -508,8 +508,371 @@ def section2():
 STATION_TOUCH: dict = {}
 
 
-if __name__ == "__main__":
+
+
+def section2b():
+    """Cross-checks of the thermal STEPs against the builder's contact CSV and against the shell / spool references."""
+    import csv
+    shell = load(REF / "Shell_Casing.step").translate(O)
+    spool = load(REF / "Spool1011.step").translate(O)
+    wall = [s for s in cq.importers.importStep(str(REF / "Wall_Mount_v3.step")).vals()][0].translate(O)
+    # shell slot walls, measured on the shell file
+    slot = sorted(f.Center().y for f in load(REF / "Shell_Casing.step").Faces()
+                  if f.geomType() == "PLANE" and abs(f.normalAt().y) > 0.999 and 27 < f.BoundingBox().zmin < 28 and 31 < f.BoundingBox().zmax < 32 and f.BoundingBox().xmin < -20)
+    top_z = max(f.BoundingBox().zmax for f in load(REF / "Shell_Casing.step").Faces()
+                if f.geomType() == "PLANE" and abs(f.normalAt().y) > 0.999 and 27 < f.BoundingBox().zmin < 28 and 31 < f.BoundingBox().zmax < 32 and f.BoundingBox().xmin < -20)
+    chk("2.11a", "shell fin-slot walls measured on Shell_Casing.step: y (file frame) and roof-plate top z", "y -2.690 / +2.310; top z 31.16 +- 0.05 (design)",
+        f"y {slot[0]:.3f} / {slot[-1]:.3f}; top z {top_z - RES.z:.3f} (file {top_z:.4f})", 0.05, ok=len(slot) == 2 and abs(top_z - RES.z - 31.16) < 0.05 and abs(slot[0] + 2.69) < 0.01 and abs(slot[1] - 2.31) < 0.01,
+        note="split plane z 31.16 agrees with the shell roof at the slot")
+    chk("2.11b", "split plane (fin_in top, file frame) vs shell roof top at the slot (mm)", 0.0, (bbox6(station("fin1p8")["fin_in"])[5] - O.z) - top_z, 0.05)
+    f18, f019 = station("fin1p8"), station("fin0p019")
+    ov18 = sum(overlap_vol(f18[k], shell) for k in ("fin_in", "fin_out"))
+    ov019 = sum(overlap_vol(f019[k], shell) for k in ("fin_in", "fin_out"))
+    chk("2.11c", "1/8 in fin vs shell (finding F1: motor-side slot wall overlaps the fin) (mm3; builder 68.94)", 68.94, ov18, 1.0)
+    chk("2.11d", "0.019 in fin vs shell (mm3)", 0.0, ov019, 0.01)
+    # motor / slipin vs shell, spool
+    for key in ("fin1p8", "fin0p019", "detailed_fin1p8"):
+        b = station(key)
+        mot = [n for n in b if n in ("motor_block", "front_cap", "stator", "winding", "rear_cap", "shaft", "connector")]
+        dist = min(b[n].distance(shell) for n in mot if n != "shaft")
+        chk("2.11e", f"[{key}] motor bodies (excl. shaft) minimum distance to the shell (mm; builder: 1.9)", 1.9, round(dist, 4), 0.05)
+        chk("2.11f", f"[{key}] overlap of slipin_mount / inserts / screws / motor bodies with the shell (mm3)", 0.0, max(overlap_vol(b[n], shell) for n in b if not n.startswith("fin")), 0.01)
+    # shaft vs spool bore in the detailed station
+    d = station("detailed_fin1p8")
+    chk("2.11g", "[detailed_fin1p8] shaft / spool overlap and shaft end y (design; expected 20.825) (mm3 / mm)", "0 / 20.825",
+        f"{overlap_vol(d['shaft'], spool):.5f} / {bbox6(d['shaft'])[3] - Y0:.4f}", 0.01, ok=overlap_vol(d["shaft"], spool) < 0.01 and abs(bbox6(d["shaft"])[3] - Y0 - 20.825) < 0.005)
+    shaft_in_bore = bbox6(d["shaft"])[3] - Y0 - 7.0
+    chk("2.11h", "[detailed_fin1p8] shaft engagement in the spool bore (y 7 .. shaft end) (mm; spec 13.8)", 13.8, round(shaft_in_bore, 3), 0.05)
+    # contact CSV (builder) vs my fuse-area measurement
+    for key in ("fin1p8", "fin0p019", "detailed_fin1p8"):
+        rows = {}
+        with open(ROOT / "renders" / "thermal_station1021" / f"thermal_station1021_{key}_contacts.csv") as fh:
+            for line in csv.reader(fh):
+                if not line or line[0].startswith("near gaps") or line[0] == "body A":
+                    continue
+                if len(line) >= 3 and line[2].replace(".", "", 1).isdigit():
+                    rows[tuple(sorted(line[:2]))] = float(line[2])
+        b = station(key)
+        pairs = set(STATION_TOUCH.get(key, []))
+        okc = pairs == set(rows)
+        worst = 0.0
+        worst_pair = None
+        for pr in sorted(pairs & set(rows)):
+            a = contact_area(b[pr[0]], b[pr[1]])
+            dd = abs(a - rows[pr])
+            if dd > worst:
+                worst, worst_pair = dd, pr
+        chk("2.12", f"[{key}] touching pairs and contact areas: my {len(pairs)} touching pairs vs the builder's {len(rows)}-row contact CSV (set equality; worst area difference mm2)",
+            "same pairs, areas within 0.01", f"same set={okc}; extra mine={sorted(pairs - set(rows))}; missing={sorted(set(rows) - pairs)}; worst |dA|={worst:.4f} {worst_pair}", 0.01, ok=okc and worst < 0.01)
+    # body-table CSV volumes
+    for key in ("fin1p8", "fin0p019", "detailed_fin1p8"):
+        b = station(key)
+        with open(ROOT / "renders" / "thermal_station1021" / f"thermal_station1021_{key}_bodies.csv") as fh:
+            rd = [r for r in csv.reader(fh)]
+        tab = {r[0]: float(r[4]) for r in rd[1:] if r and r[0] not in ("total", "") and r[4]}
+        dev = max(abs(tab[k] - b[k].Volume()) for k in tab if k in b)
+        chk("2.13", f"[{key}] body table volumes vs measured (max |dV| mm3, over {len(tab)} rows; every body listed={set(tab) == set(b)})", 0.0, dev, 0.01, ok=dev < 0.01 and set(tab) == set(b))
+    # engagement arithmetic of the claims (screw length - tab - fin)
+    for L, t, label in ((12, 3.175, "M3x12 + 1/8 in"), (8, 0.483, "M3x8 + 0.019 in"), (10, 0.483, "M3x10 + 0.019 in")):
+        eng = L - 5.0 - t
+        chk("2.14", f"engagement arithmetic {label} = L - 5 (tab) - t (mm)", {"M3x12 + 1/8 in": 3.825, "M3x8 + 0.019 in": 2.517, "M3x10 + 0.019 in": 4.517}[label], round(eng, 3), 0.001)
+    return {}
+
+
+# ================================================================ SECTION 3: detailed NEMA 17
+def section3():
+    nm = named(STEP / "nema17_thermal.step")
+    dup = nm.pop("__duplicates__")
+    want = ["front_cap", "stator", "winding", "rear_cap", "shaft", "connector"]
+    chk("3.1a", "nema17_thermal.step components", sorted(want), sorted(nm), 0, ok=sorted(nm) == sorted(want) and not dup)
+    chk("3.1b", "each part: one valid solid, one shell", "6 x (1 solid, 1 shell, valid)", [(k, len(v.Solids()), len(v.Shells()), is_valid(v)) for k, v in nm.items()], 0,
+        ok=all(len(v.Solids()) == 1 and len(v.Shells()) == 1 and is_valid(v) for v in nm.values()))
+    fc, st, wd, rc, sh, cn = (nm[k] for k in want)
+    for k in ("front_cap", "stator", "rear_cap"):
+        bb = bbox6(nm[k])
+        chk("3.2a", f"{k}: body 42.3 mm square (x and z extent) (mm)", (42.3, 42.3), (round(bb[1] - bb[0], 4), round(bb[5] - bb[4], 4)), 0.01, ok=abs(bb[1] - bb[0] - 42.3) < 0.01 and abs(bb[5] - bb[4] - 42.3) < 0.01)
+    chk("3.2b", "body length: rear cap back face y -38; front cap boss end y +2 (front face y 0) (mm)", (-38.0, 2.0), (round(bbox6(rc)[2], 4), round(bbox6(fc)[3], 4)), 0.005,
+        ok=abs(bbox6(rc)[2] + 38) < 0.005 and abs(bbox6(fc)[3] - 2.0) < 0.005)
+    front_face = [f for f in fc.Faces() if f.geomType() == "PLANE" and abs(f.normalAt().y - 1) < 1e-6 and abs(f.Center().y) < 1e-6]
+    chk("3.2c", "front face is at y = 0 (one planar face, boss and 4 holes cut out of it)", "1 face at y 0", len(front_face), 0, ok=len(front_face) == 1)
+    # chamfers on the four long edges: probe a corner
+    cham = all(not st.isInside(cq.Vector(sx * 20.5, -19, sz * 20.5), 1e-6) and st.isInside(cq.Vector(sx * 19.0, -19, sz * 19.0), 1e-6) for sx in (-1, 1) for sz in (-1, 1))
+    chk("3.2d", "stator long edges chamfered 3 mm (corner point (20.5,20.5) outside, (19,19) inside, all 4 corners)", True, cham, 0, ok=cham)
+    cf = [f.Area() for f in st.Faces() if f.geomType() == "PLANE" and abs(abs(f.normalAt().x) - math.sqrt(0.5)) < 1e-3 and abs(abs(f.normalAt().z) - math.sqrt(0.5)) < 1e-3]
+    chk("3.2e", "stator chamfer faces: 4 x 3 sqrt2 x 22 (mm2)", 3 * math.sqrt(2) * 22, [round(a, 3) for a in cf], 0.05, ok=len(cf) == 4 and all(abs(a - 3 * math.sqrt(2) * 22) < 0.05 for a in cf))
+    # tapped holes
+    th = merged_cyl(fc, 1)
+    taps = sorted((round(a, 3), round(b, 3), round(r, 3), round(hi - lo, 3)) for r, a, b, lo, hi, _ in th if abs(r - 1.5) < 0.005)
+    exp = sorted((sx * 15.5, sz * 15.5, 1.5, 4.5) for sx in (-1, 1) for sz in (-1, 1))
+    chk("3.3a", "front_cap: 4 tapped holes Ø3.0 x 4.5 deep on the 31 mm square (x, z, r, depth)", exp, taps, 0.005,
+        ok=len(taps) == 4 and all(all(abs(u - v) < 0.005 for u, v in zip(p, q)) for p, q in zip(taps, exp)))
+    chk("3.3b", "tap holes open at the front face (hole top y = 0, bottom y = -4.5)", (0.0, -4.5), sorted({(round(hi, 3), round(lo, 3)) for r, a, b, lo, hi, _ in th if abs(r - 1.5) < 0.005}), 0.005,
+        ok=sorted({(round(hi, 3), round(lo, 3)) for r, a, b, lo, hi, _ in th if abs(r - 1.5) < 0.005}) == [(0.0, -4.5)])
+    boss = [c for c in th if abs(c[0] - 11.0) < 0.005]
+    chk("3.4", "front_cap pilot boss Ø22 on the axis, y 0 .. +2", "Ø22, y 0..2", [(round(2 * c[0], 3), round(c[1], 3), round(c[2], 3), round(c[3], 3), round(c[4], 3)) for c in boss], 0.005,
+        ok=len(boss) == 1 and abs(boss[0][3]) < 0.005 and abs(boss[0][4] - 2.0) < 0.005 and abs(boss[0][1]) < 0.005 and abs(boss[0][2]) < 0.005)
+    shf = merged_cyl(sh, 1)
+    chk("3.5", "shaft Ø5.0, y -37 .. +24 (24 proud of the front face)", "Ø5, -37..24", [(round(2 * c[0], 3), round(c[3], 3), round(c[4], 3)) for c in shf], 0.005,
+        ok=len(shf) == 1 and abs(shf[0][0] - 2.5) < 0.005 and abs(shf[0][3] + 37) < 0.005 and abs(shf[0][4] - 24) < 0.005 and abs(shf[0][1]) < 0.005 and abs(shf[0][2]) < 0.005)
+    bores = [(round(2 * r, 3), round(lo, 2), round(hi, 2)) for r, a, b, lo, hi, _ in merged_cyl(fc, 1) if abs(r - 2.5) < 0.005] + [(round(2 * r, 3), round(lo, 2), round(hi, 2)) for r, a, b, lo, hi, _ in merged_cyl(rc, 1) if abs(r - 2.5) < 0.005]
+    chk("3.6", "bores that carry the shaft: front cap Ø5.0 through (y -8..2), rear cap Ø5.0 blind seat y -37..-30", [(5.0, -8.0, 2.0), (5.0, -37.0, -30.0)], bores, 0.01,
+        ok=sorted(bores) == sorted([(5.0, -8.0, 2.0), (5.0, -37.0, -30.0)]))
+    cbb = bbox6(cn)
+    chk("3.7", "connector 16 (z) x 6 (y) x 6 (x), x 21.15..27.15, y -38..-32, flush with the back face", ((21.15, 27.15), (-38, -32), (-8, 8)), (tuple(round(v, 3) for v in cbb[0:2]), tuple(round(v, 3) for v in cbb[2:4]), tuple(round(v, 3) for v in cbb[4:6])), 0.005,
+        ok=all(abs(a - b) < 0.005 for a, b in zip(cbb, (21.15, 27.15, -38, -32, -8, 8))))
+    stator_bore = [c for c in merged_cyl(st, 1) if abs(c[0] - 17.0) < 0.005]
+    wi = merged_cyl(wd, 1)
+    chk("3.8", "stator bore Ø34, winding annulus Ø23..Ø34 x 22 inside it", "bore Ø34; winding Ø23/Ø34, y -30..-8", (len(stator_bore), sorted((round(2 * c[0], 2), round(c[3], 2), round(c[4], 2)) for c in wi)), 0.005,
+        ok=len(stator_bore) == 1 and sorted((round(2 * c[0], 2), round(c[3], 2), round(c[4], 2)) for c in wi) == [(23.0, -30.0, -8.0), (34.0, -30.0, -8.0)])
+    # overlaps and contacts
+    items = sorted(nm.items())
+    worst, wp, contacts = 0.0, None, []
+    for (na, sa), (nb, sb) in itertools.combinations(items, 2):
+        v = overlap_vol(sa, sb)
+        if v > worst:
+            worst, wp = v, (na, nb)
+        if sa.distance(sb) < 1e-6:
+            contacts.append((na, nb, round(contact_area(sa, sb), 2)))
+    chk("3.9a", "max pairwise overlap, 15 pairs, incl. the shaft-to-cap contact pairs (mm3, limit 0.01)", 0.0, worst, 0.01, note=f"worst {wp}")
+    sc = {(a, b): c for a, b, c in contacts}
+    chk("3.9b", "shaft-to-cap contact is surface contact: front_cap-shaft pi x 5 x 10 = 157.08, rear_cap-shaft pi x 5 x 7 + pi x 2.5^2 = 129.59 (mm2)", (157.08, 129.59),
+        (sc.get(("front_cap", "shaft")), sc.get(("rear_cap", "shaft"))), 0.05, ok=abs(sc.get(("front_cap", "shaft"), 0) - 157.08) < 0.05 and abs(sc.get(("rear_cap", "shaft"), 0) - 129.59) < 0.05)
+    chk("3.9c", "contact list (touching pairs, mm2)", "list", contacts, 0, ok=True)
+    chk("3.9d", "shaft to winding distance (air around the shaft inside the stator; 17 - ... = 11.5 - 2.5 = 9.0 mm)", 9.0, round(sh.distance(wd), 4), 0.01)
+    # mass / volume
+    dens = {"front_cap": 2.74, "stator": 7.65, "winding": 5.0, "rear_cap": 2.74, "shaft": 7.85, "connector": 1.40}
+    tot = sum(nm[k].Volume() * dens[k] / 1000 for k in nm)
+    chk("3.10", "total mass with the table densities (g) vs 0.28 kg reference motor (builder: 288.15, +2.9 %)", 288.15, round(tot, 2), 0.1)
+    # --- placement
+    for key, t in (("fin1p8", T_PROD), ("fin0p019", T_PROTO)):
+        asm = named(STEP / f"nema17_thermal_{key}_asm1021.step")
+        asm.pop("__duplicates__")
+        okp = sorted(asm) == sorted(want)
+        mx = 0.0
+        for k in want:
+            a, m = bbox6(asm[k]), bbox6(nm[k])
+            sh_ = (X0, Y0 - t, Z0)
+            ex = (m[0] + sh_[0], m[1] + sh_[0], m[2] + sh_[1], m[3] + sh_[1], m[4] + sh_[2], m[5] + sh_[2])
+            mx = max(mx, max(abs(u - v) for u, v in zip(a, ex)))
+            okp &= abs(asm[k].Volume() - nm[k].Volume()) < 1e-3
+        chk("3.11a", f"[{key}] nema17 asm1021 file = motor-frame model translated by (X0, Y0 - t, Z0) = front face on the fin motor face, axis on x 0 / z 2.64 (max bbox deviation mm)", 0.0, round(mx, 5), 0.01, ok=okp and mx < 0.01)
+        chk("3.11b", f"[{key}] front face y (design) == -t; shaft end y (design) == 24 - t (mm)", (-t, 24 - t), (round(bbox6(asm['front_cap'])[3] - 2.0 - Y0, 4), round(bbox6(asm['shaft'])[3] - Y0, 4)), 0.003,
+            ok=abs(bbox6(asm["front_cap"])[3] - 2.0 - Y0 + t) < 0.003 and abs(bbox6(asm["shaft"])[3] - Y0 - (24 - t)) < 0.003)
+    # 1/8 in asm file == the motor bodies in the detailed station
+    d = station("detailed_fin1p8")
+    asm18 = named(STEP / "nema17_thermal_fin1p8_asm1021.step")
+    asm18.pop("__duplicates__")
+    dv = max(max(abs(u - v) for u, v in zip(bbox6(asm18[k]), bbox6(d[k]))) for k in want)
+    chk("3.11c", "nema17_thermal_fin1p8_asm1021 == the six motor bodies of thermal_station1021_detailed_fin1p8 (max bbox deviation, mm)", 0.0, round(dv, 5), 0.002,
+        ok=dv < 0.002 and all(abs(asm18[k].Volume() - d[k].Volume()) < 1e-3 for k in want))
+    # the pilot boss against the fin and tab pilot holes, for both fin thicknesses
+    slip = load(REF / "Slipin_mount_piecev3.step").translate(O)
+    for key, t in (("fin1p8", T_PROD), ("fin0p019", T_PROTO)):
+        asm = named(STEP / f"nema17_thermal_{key}_asm1021.step")
+        asm.pop("__duplicates__")
+        fin = load(STEP / ("heat_fin1021_1p8_asm1021.step" if key == "fin1p8" else "heat_fin1021_0p019_asm1021.step"))
+        ovs = {"fin": overlap_vol(asm["front_cap"], fin), "slipin": max(overlap_vol(v, slip) for v in asm.values()), "boss end vs tab face (mm)": None}
+        boss_end = bbox6(asm["front_cap"])[3] - Y0
+        chk("3.12", f"[{key}] nema17 front cap boss in the fin pilot (Ø22.5) / tab pilot (Ø22.4): overlap with fin and slip-in (mm3); boss end y (design)", "0 / 0",
+            f"fin {ovs['fin']:.5f} / slipin {ovs['slipin']:.5f}; boss end y {boss_end:.3f} (fin tab-side face at y 0, tab pilot r 11.2 vs boss r 11)", 0.01, ok=ovs["fin"] < 0.01 and ovs["slipin"] < 0.01)
+    # rebuild check: files current with the builder
+    from cad.parts import nema17_thermal as N
+    nb = N.make_bodies()
+    chk("3.13", "nema17_thermal.step volumes == fresh build_bodies() (max |dV| mm3; the builder's own code, only a currency check)", 0.0, max(abs(nb[k].Volume() - nm[k].Volume()) for k in want), 0.01)
+    return {}
+
+
+# ================================================================ SECTION 4: Ø4 caps
+def section4():
+    names = {"std": "encoder1021_magnet_cap_v2_m4", "short": "encoder1021_magnet_cap_v2_m4_peg1p9"}
+    exp_end = {"std": 22.6, "short": 24.1}
+    exp_vol = {"std": 531.94, "short": 502.31}
+    caps = {k: load(STEP / f"{v}.step") for k, v in names.items()}
+    caps_asm = {k: load(STEP / f"{v}_asm1021.step") for k, v in names.items()}
+    off = cq.Vector(X0, Y0, Z0)          # station-frame cap file -> assembly
+    for k in ("std", "short"):
+        c, a = caps[k], caps_asm[k]
+        chk("4.1", f"[{k}] station-frame cap: one valid solid", "1 solid, valid", f"{len(c.Solids())} solid, valid={is_valid(c)}, shells={len(c.Shells())}", 0, ok=len(c.Solids()) == 1 and is_valid(c) and len(c.Shells()) == 1)
+        chk("4.2", f"[{k}] cap volume (mm3; build notes)", exp_vol[k], round(c.Volume(), 3), 0.05)
+        bb = bbox6(c)
+        chk("4.3a", f"[{k}] peg end y (mm; station frame)", exp_end[k], bb[2], 0.01)
+        chk("4.3b", f"[{k}] head: Ø14 x ... magnet face at y 29.3 (bbox x, z = +-7; y max 29.3)", (14.0, 14.0, 29.3), (round(bb[1] - bb[0], 3), round(bb[5] - bb[4], 3), round(bb[3], 3)), 0.005,
+            ok=abs(bb[1] - bb[0] - 14) < 0.005 and abs(bb[5] - bb[4] - 14) < 0.005 and abs(bb[3] - 29.3) < 0.005)
+        pk = [x for x in merged_cyl(c, 1) if abs(x[0] - 2.15) < 0.005]
+        chk("4.4a", f"[{k}] magnet pocket Ø4.3 on the shaft axis, y 26.75 .. 29.3 (Ø, axis x/z, floor y, rim y)", (4.3, 0.0, 0.0, 26.75, 29.3), [(round(2 * x[0], 3), round(x[1], 3), round(x[2], 3), round(x[3], 3), round(x[4], 3)) for x in pk], 0.005,
+            ok=len(pk) == 1 and abs(pk[0][3] - 26.75) < 0.005 and abs(pk[0][4] - 29.3) < 0.005 and abs(pk[0][1]) < 0.005 and abs(pk[0][2]) < 0.005)
+        # the pocket really is Ø4.3 over its full depth: probe at three angles at r 2.14 inside / 2.16 outside (outside only where no rib: angle 0 is the +x flat side = open... use 90/270)
+        mid_y = 28.0
+        air = [not c.isInside(cq.Vector(2.1 * math.cos(math.radians(an)), mid_y, 2.1 * math.sin(math.radians(an))), 1e-6) for an in (0, 30, 90, 270)]
+        wall = [c.isInside(cq.Vector(2.2 * math.cos(math.radians(an)), mid_y, 2.2 * math.sin(math.radians(an))), 1e-6) for an in (0, 30, 90, 270)]
+        chk("4.4b", f"[{k}] pocket probe at y 28: air at r 2.1 and wall at r 2.2 at 0/30/90/270 deg (the Ø4.0 magnet + 0.15 per side)", True, all(air) and all(wall), 0, ok=all(air) and all(wall))
+        # magnet Ø4.0 x 2.5 fits: only the 3 crush ribs touch it
+        mag = cq.Workplane("XZ").circle(2.0).extrude(-2.5).val().translate(cq.Vector(0, 26.8, 0))   # y 26.8 .. 29.3
+        mb = bbox6(mag)
+        crush = overlap_vol(mag, c)
+        chk("4.4c", f"[{k}] Ø4.0 x 2.5 magnet (y 26.8..29.3, flush with the face) vs the cap: only crush-rib overlap (mm3; builder 0.403, limit < 1)", 0.403, round(crush, 3), 0.15, ok=0.0 <= crush < 1.0)
+        # asm copy == station copy + offset
+        d = max(abs(a_ - (b_ + o_)) for a_, b_, o_ in zip(bbox6(a), bb, (off.x, off.x, off.y, off.y, off.z, off.z)))
+        chk("4.5a", f"[{k}] asm1021 copy = station copy translated by (O + RES + (0, 0, 2.64)) (max bbox deviation mm); volume equal", 0.0, round(d, 5), 0.001, ok=d < 0.001 and abs(a.Volume() - c.Volume()) < 1e-4)
+    # peg ends in the assembly frame
+    for k in ("std", "short"):
+        chk("4.5b", f"[{k}] asm1021 peg end y (design, from the tab face y 0 of the assembly) (mm)", exp_end[k], round(bbox6(caps_asm[k])[2] - Y0, 4), 0.01)
+    # shaft clearance
+    n019 = named(STEP / "nema17_thermal_fin0p019_asm1021.step")
+    n019.pop("__duplicates__")
+    n18 = named(STEP / "nema17_thermal_fin1p8_asm1021.step")
+    n18.pop("__duplicates__")
+    sh019, sh18 = n019["shaft"], n18["shaft"]
+    chk("4.6a", "0.019 in motor shaft end y (design) from nema17_thermal_fin0p019_asm1021 (mm; 22.0 + 1.517 = 23.517)", 23.517, round(bbox6(sh019)[3] - Y0, 4), 0.003)
+    chk("4.6b", "1/8 in motor shaft end y (design) from nema17_thermal_fin1p8_asm1021 (mm; 20.825)", 20.825, round(bbox6(sh18)[3] - Y0, 4), 0.003)
+    # ideal Ø5 shaft ending at design y 23.517 on the station-frame cap axis (axis at x 0, z 0 in the station-frame cap files)
+    shaft_ideal = cq.Solid.makeCylinder(2.5, 60.0, cq.Vector(0, 23.517 - 60.0, 0), cq.Vector(0, 1, 0))
+    for k, label in (("short", "peg1p9"), ("std", "standard")):
+        dist = caps[k].distance(shaft_ideal)
+        ov = overlap_vol(caps[k], shaft_ideal)
+        if k == "short":
+            chk("4.6c", f"[{label}] clearance to an ideal Ø5 shaft ending at y 23.517 (mm; required >= 0.5; builder 0.583)", ">= 0.5", f"{dist:.4f} (overlap {ov:.5f})", 0.0, ok=dist >= 0.5 and ov < 1e-6)
+        else:
+            chk("4.6d", f"[{label}] vs the same 23.517 shaft: INTERFERENCE expected (why the short peg exists): overlap (mm3; builder ~18)", "> 0 (collides)", f"{ov:.3f} mm3, distance {dist:.4f}", 0.0, ok=ov > 5.0)
+    dd = caps_asm["short"].distance(sh019)
+    chk("4.6e", "[peg1p9 asm1021] clearance to the nema17 0.019 in asm shaft (mm; required >= 0.5)", ">= 0.5", round(dd, 4), 0.0, ok=dd >= 0.5)
+    dd_std = caps_asm["std"].distance(sh18)
+    chk("4.6f", "[standard asm1021] clearance to the nema17 1/8 in asm shaft (mm; builder 1.775)", 1.775, round(dd_std, 4), 0.005)
+    ov_std019 = overlap_vol(caps_asm["std"], sh019)
+    chk("4.6g", "[standard asm1021] vs the 0.019 in motor shaft: overlap (mm3, expected collision ~18, builder note)", "> 0", round(ov_std019, 3), 0.0, ok=ov_std019 > 5.0)
+    # touching check against Jasper's assembly STEP (method of tools/export_encoder1021_asm.py)
+    asm_solids = cq.importers.importStep(str(ASM_SRC)).val().Solids()
+    refs = {p.stem: load(p).translate(O) for p in REF.glob("*.step")}
+    nmap = {}
+    for i, s_ in enumerate(asm_solids):
+        for n_, r_ in refs.items():
+            if abs(r_.Volume() - s_.Volume()) < 0.01 and (r_.Center() - s_.Center()).Length < 0.01:
+                nmap[i] = n_
+    for k, vol in (("std", 0.477), ("short", 0.234)):
+        a = caps_asm[k]
+        cont = {nmap.get(i, f"solid {i}"): round(a.intersect(s_).Volume(), 4) for i, s_ in enumerate(asm_solids) if a.distance(s_) < 1e-6}
+        chk("4.7", f"[{k} asm1021] touches only Spool1011 in Jasper's assembly STEP (distance < 1e-6), contact volume (mm3; builder {vol})", {"Spool1011": vol}, cont, 0.005,
+            ok=set(cont) == {"Spool1011"} and abs(cont["Spool1011"] - vol) < 0.005)
+        near = sorted((round(a.distance(s_), 3), nmap.get(i, f"solid {i}")) for i, s_ in enumerate(asm_solids) if a.distance(s_) >= 1e-6)
+        chk("4.7b", f"[{k} asm1021] nearest other solids in the original assembly (shaft ends at y 22.0 there)", "info", near[:3], 0, ok=True)
+    # STL
+    for k in ("std", "short"):
+        tri, nrm = read_stl(STL / f"{names[k]}.stl")
+        vol, area = stl_volume_area(tri)
+        mb_ = (tri[:, :, 0].min(), tri[:, :, 0].max(), tri[:, :, 1].min(), tri[:, :, 1].max(), tri[:, :, 2].min(), tri[:, :, 2].max())
+        wt, bad = stl_watertight(tri)
+        zlen = {"std": 6.7, "short": 5.2}[k]
+        chk("4.8a", f"[{k}] STL bbox 14 x 14 x {zlen} with the magnet face on the bed (z min 0)", (14.0, 14.0, zlen, 0.0),
+            (round(mb_[1] - mb_[0], 3), round(mb_[3] - mb_[2], 3), round(mb_[5] - mb_[4], 3), round(mb_[4], 4)), 0.01,
+            ok=abs(mb_[1] - mb_[0] - 14) < 0.01 and abs(mb_[3] - mb_[2] - 14) < 0.01 and abs(mb_[5] - mb_[4] - zlen) < 0.01 and abs(mb_[4]) < 0.01)
+        chk("4.8b", f"[{k}] STL volume vs STEP (relative; tessellated, tol 1 %)", 0.0, abs(vol - caps[k].Volume()) / caps[k].Volume(), 0.01)
+        chk("4.8c", f"[{k}] STL closed manifold (bad edges)", 0, bad, 0)
+        # peg up: the highest vertices are the peg (radius <= 2.6 about the axis); pocket opens at z=0: vertices at r=2.15 exist at z in 0..2.55
+        top = tri[:, :, 2] > mb_[5] - 0.01
+        rr = np.hypot(tri[:, :, 0][top], tri[:, :, 1][top])
+        pocket_v = tri.reshape(-1, 3)
+        pr = np.hypot(pocket_v[:, 0], pocket_v[:, 1])
+        sel = (np.abs(pr - 2.15) < 0.02) & (pocket_v[:, 2] < 0.05)
+        chk("4.8d", f"[{k}] STL orientation: peg end at top (z max, radius <= 2.6), pocket rim (r 2.15) on the bed (z 0)", True, bool(rr.max() < 2.6 and sel.sum() > 6), 0, ok=bool(rr.max() < 2.6 and sel.sum() > 6))
+    # rebuild currency check
+    from cad.parts import encoder1021 as E
+    for k, key in (("std", "m4"), ("short", "m4_peg1p9")):
+        v = E.build_v2_variant(key).val()
+        chk("4.9", f"[{k}] cap file == fresh builder output (volume difference mm3; currency check)", 0.0, abs(v.Volume() - caps[k].Volume()), 0.01)
+    return {}
+
+
+
+
+# ================================================================ SECTION 5: every STEP file
+STEP_FILES = [
+    ("heat_fin1021_1p8", 1, 26905.824), ("heat_fin1021_1p8_asm1021", 1, 26905.824), ("heat_fin1021_0p019_asm1021", 1, 4093.075),
+    ("thermal_station1021_fin1p8", 13, 313249.667), ("thermal_station1021_fin0p019", 13, None), ("thermal_station1021_detailed_fin1p8", 18, None),
+    ("nema17_thermal", 6, 60241.53), ("nema17_thermal_fin1p8_asm1021", 6, 60241.53), ("nema17_thermal_fin0p019_asm1021", 6, 60241.53),
+    ("encoder1021_magnet_cap_v2_m4", 1, 531.941), ("encoder1021_magnet_cap_v2_m4_asm1021", 1, 531.941),
+    ("encoder1021_magnet_cap_v2_m4_peg1p9", 1, 502.312), ("encoder1021_magnet_cap_v2_m4_peg1p9_asm1021", 1, 502.312),
+]
+
+
+def section5():
+    import tempfile
+    tmp = Path(tempfile.mkdtemp(prefix="verify_step_"))
+    for stem, nsol, vol_exp in STEP_FILES:
+        path = STEP / f"{stem}.step"
+        if not path.exists():
+            chk("5.0", f"{stem}.step exists", True, False, 0, ok=False)
+            continue
+        s = load(path)
+        bb = bbox6(s)
+        shapes_ok = is_valid(s) and all(is_valid(x) for x in s.Solids())
+        shells_ok = all(len(x.Shells()) == 1 for x in s.Solids())
+        out = tmp / f"{stem}_rt.step"
+        cq.exporters.export(cq.Workplane().add(s), str(out))
+        r = load(out)
+        rb = bbox6(r)
+        dv = abs(r.Volume() - s.Volume()) / s.Volume()
+        db = max(abs(a - b) for a, b in zip(bb, rb))
+        chk("5.1", f"{stem}: valid BREP, {nsol} solid(s), one shell each (no stray bodies)", f"{nsol} solids, valid", f"{len(s.Solids())} solids, valid={shapes_ok}, 1 shell each={shells_ok}", 0, ok=len(s.Solids()) == nsol and shapes_ok and shells_ok)
+        chk("5.2", f"{stem}: re-export + reimport: volume (relative) and bbox (mm), solid count", "dV/V <= 1e-6, dbbox <= 1e-4", f"dV/V {dv:.2e}, dbbox {db:.2e}, solids {len(r.Solids())}", 0, ok=dv <= 1e-6 and db <= 1e-4 and len(r.Solids()) == len(s.Solids()))
+        if vol_exp is not None:
+            chk("5.3", f"{stem}: total volume vs build-notes value (mm3)", vol_exp, round(s.Volume(), 3), max(0.01, vol_exp * 2e-6))
+        if nsol > 1:
+            n = named(path)
+            n.pop("__duplicates__")
+            sv = sum(x.Volume() for x in n.values())
+            chk("5.4", f"{stem}: every component named (none empty/None), volumes sum to file total", "all named", f"{len(n)} names, none None={None not in n}, sum V {sv:.3f}", 0, ok=None not in n and abs(sv - s.Volume()) < 1e-3 and all(k for k in n))
+    return {}
+
+
+def controls():
+    """Negative controls: the detectors used above must fire on a deliberately broken input (nothing on disk is touched)."""
+    b = station("fin1p8")
+    sc = b["screw_1"].translate(cq.Vector(0, 0.1, 0))             # head pushed 0.1 mm into the tab
+    v = overlap_vol(sc, b["slipin_mount"])
+    chk("9.1", "control: screw_1 moved +0.1 mm in y must show overlap with the slip-in (head annulus 14.137 x 0.1 = 1.41 mm3)", 1.414, round(v, 3), 0.05)
+    sc2 = b["screw_1"].translate(cq.Vector(0.15, 0, 0))           # shank off-axis by 0.15 mm toward the fin hole wall (gap 0.2 -> 0.05)
+    chk("9.2", "control: screw_1 shifted 0.15 mm in x: shank-to-fin distance must drop to ~0.05", 0.05, round(sc2.distance(b["fin_in"]), 3), 0.01)
+    cap = load(STEP / "encoder1021_magnet_cap_v2_m4.step")
+    ideal = cq.Solid.makeCylinder(2.5, 60.0, cq.Vector(0, 23.517 - 60.0, 0), cq.Vector(0, 1, 0))
+    chk("9.3", "control: standard cap (end 22.6) vs the 23.517 shaft must collide (>5 mm3)", "> 5", round(overlap_vol(cap, ideal), 2), 0, ok=overlap_vol(cap, ideal) > 5)
+    chk("9.4", "control: contact_area() of two bodies 1 mm apart is 0", 0.0, round(contact_area(b["fin_out"], b["motor_block"].translate(cq.Vector(0, 0, 100))), 6), 1e-6)
+    return {}
+
+
+def run_all():
     section1()
     section2()
+    section2b()
+    section3()
+    section4()
+    section5()
+    controls()
+
+
+def _clean(x):
+    if isinstance(x, (np.floating, np.integer)):
+        return float(x)
+    if isinstance(x, (list, tuple)):
+        return [_clean(i) for i in x]
+    if isinstance(x, dict):
+        return {str(k): _clean(v) for k, v in x.items()}
+    if isinstance(x, np.bool_):
+        return bool(x)
+    return x
+
+
+def write_results():
+    out = ROOT / "verification" / "heat_fin1021_thermal_results.json"
+    out.write_text(json.dumps(_clean(RESULTS), indent=1, default=str))
+    return out
+
+
+if __name__ == "__main__":
+    import time
+    t0 = time.time()
+    run_all()
     for r in RESULTS:
-        print(r["status"], r["id"], r["item"], "| exp", r["expected"], "| meas", r["measured"], "| tol", r["tol"])
+        print(r["status"], r["id"], r["item"], "| exp", _clean(r["expected"]), "| meas", _clean(r["measured"]), "| tol", r["tol"], r["note"])
+    nf = sum(r["status"] == "FAIL" for r in RESULTS)
+    print(f"{len(RESULTS)} checks, {nf} FAIL, {time.time() - t0:.0f} s; results -> {write_results()}")
+    sys.exit(1 if nf else 0)

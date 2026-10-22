@@ -1,6 +1,6 @@
 # Deck v5: notes and content contract (2026-10-22)
 
-`deck_v5/build_deck_v5.js` builds `deck_v5/RoomCleaner_Buntinx_Oct27_v5.pptx` / `.pdf`: 22 main slides + 13 backups,
+`deck_v5/build_deck_v5.js` builds `deck_v5/RoomCleaner_Buntinx_Oct27_v5.pptx` / `.pdf`: 23 main slides + 13 backups,
 validated. `deck_v5/contact_sheet.png` shows all 33. Decks v1 to v4 are unchanged.
 
 ## Why v5
@@ -44,11 +44,19 @@ What changed from v4 (52 slides):
 | 16 | Machining the Fin | photos 06, 03, 02, 15 | Built |
 | 17 | Electronics Bring-Up | photos 19, 12 | Measured |
 | 18 | First Test | placeholder + pass-limit table | Planned · this week |
-| 19 | Good and Poor Decisions | eight thumbnails | |
-| 20 | Thorough vs Scrappy | mill photo; ESP32 breadboard drawing | |
-| 21 | Lessons Learned | actual vs half-time bars | |
-| 22 | Questions | | |
+| 19 | Thermal Check | SolidWorks plot placeholder; hand calc / SolidWorks / hold test table | Calculated · simulation next |
+| 20 | Good and Poor Decisions | eight thumbnails | |
+| 21 | Thorough vs Scrappy | mill photo; ESP32 breadboard drawing | |
+| 22 | Lessons Learned | actual vs half-time bars | |
+| 23 | Questions | | |
 | B | Where It Stands, Fin Length, Floor Board Accuracy, Startup Calibration, Logic: Gen 1 vs Final, One Run, Phone App, Obstacles, Claw Electrical, Gear Strength, Safety, Acronyms, Calculations and Sources | | |
+
+## Update, Oct 22: thermal check
+
+New slide 19, **Thermal Check** (Test part): does the PETG mount stay under 60 °C at 1.5 A? Hand calc, SolidWorks and the
+hold test side by side. The SolidWorks walkthrough is `docs/simulation/SW_THERMAL_MOTOR_ASSEMBLY.md` (Study C: motor, fin
+and slip-in mount in the 10/21 assembly at 4.05 W); the answer sheet comes from `calculations/thermal_assembly_1p5a.py`.
+Placeholders: the SolidWorks plot and the SolidWorks and hold-test cells. Backup "Where It Stands" gained a thermal-model row.
 
 ## Update, Oct 22: objectives and trade-offs
 
@@ -84,6 +92,7 @@ New placeholder: how 1.5 A was reached (Vref reading), on "Where It Stands" and 
 4. Slide 18: a photo or video of the three-station test, and the four result cells (record failures too).
 5. Backup "Where It Stands": how many stations are built, and how 1.5 A was reached.
 6. Slide 6, Cost tile: the total spent.
+7. Slide 19: the SolidWorks temperature plot and results, then the hold-test results.
 
 In the speaker notes only: the start date (git shows Jul 16) and what happened in September; time per fin and any scrap; the
 1.14 V readings and date; confirm "several stations before one was proven" as a poor decision.

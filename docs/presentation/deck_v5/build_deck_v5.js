@@ -625,6 +625,27 @@ content("First Test", [
 "the fit's error bars. Fill in the results after the test, including any that fail.",
 { split: 0.42, status: "Planned · this week" });
 
+content("Thermal Check", [
+  "**Question:** does the PETG mount stay under 60 °C at 1.5 A?",
+  "**Hand calc:** motor 56–59 °C (vented shell, painted fin)",
+  "**SolidWorks:** motor, fin and PETG mount in my assembly; 4.05 W in the motor",
+  "**Hold test:** 90 minutes at 1.5 A; thermocouples on the motor and the fin",
+  "**If too hot:** drop to 1.35 A (≈ 51 °C) and keep the fin painted",
+], (sl, x, y, w, h) => {
+  placeholderBox(sl, "[[SolidWorks temperature plot: motor, fin and slip-in mount]]", x, y, w, 2.4);
+  table(sl, ["Method", "Motor", "PETG mount", "Fin carries"], [
+    ["Hand calc", "56–59 °C", "≈ 53–58 °C", "1.4–1.6 W"],
+    ["SolidWorks", "[[]]", "[[]]", "[[]]"],
+    ["Hold test", "[[]]", "[[]]", "n/a"],
+  ], x, y + 2.55, w, [0.28, 0.24, 0.26, 0.22], { size: 14, rowH: 0.5, name: "thermal methods" });
+  caption(sl, "Three ways to know one temperature: calculate it, simulate it, measure it", x, y + 2.55 + 4 * 0.5 + 0.12, w);
+}, "The 60 °C limit is for the loaded PETG, and that is the one temperature the hand calculation cannot give: it only knows the motor node. " +
+"The SolidWorks study puts my own 10/21 assembly in: motor block with 4.05 W (1.5 A squared times 1.8 ohm), the fin with an equivalent " +
+"conductivity because my CAD fin is 2 mm and the real one is 0.483 mm (k times t is what conducts), the PETG slip-in mount, convection inside " +
+"the shell at 27 °C and outside at 23 °C. The answer sheet says the motor should land at 56 to 59 °C, with the fin carrying about 40 % of the heat. " +
+"Then the hold test measures it. If they disagree, I fit h and the coil resistance, not the physics. Walkthrough: docs/simulation/SW_THERMAL_MOTOR_ASSEMBLY.md.",
+{ split: 0.42, status: "Calculated · simulation next" });
+
 // ================================================================================================ LESSONS
 part("Lessons");
 {
@@ -747,11 +768,12 @@ part("Backup");
     ["Wall stations", "Built; bench-commissioned [[how many]]", "Three-station test, then the fourth"],
     ["Station electronics", "Built; drivers at 1.5 A [[how: Vref reading]]", "90-minute hold test at 1.5 A"],
     ["Heat fin", "Built (sheared and milled)", "Hold test with and without the fin"],
+    ["Thermal model of the station", "Hand calc at 1.5 A; SolidWorks study set up", "Run it; then the hold test"],
     ["Claw body: tube, mount, servo, gears", "Built", "Weigh it"],
     ["Claw hands, camera housing, encoder casing", "Checked in CAD; printing", "Fit checks on the first print"],
     ["Calibration and control software", "Simulated end to end", "First hardware run"],
     ["Winch pull", "Calculated at 1.5 A: 25–34 N", "Luggage-scale pull test"],
-  ], M, 1.65, W - 2 * M, [0.32, 0.36, 0.32], { size: 14, rowH: 0.62 });
+  ], M, 1.6, W - 2 * M, [0.32, 0.36, 0.32], { size: 13, rowH: 0.56 });
   sl.addNotes("Everything calculated or simulated is called that; the next-test column is what turns it into measurements.");
 }
 

@@ -229,7 +229,7 @@ def render_all(out_dir: str = RENDER_DIR) -> list:
     bodies = make_bodies()
     paths = []
     items = [(bodies[k], COLORS[k], 1.0, 0.03) for k in P.NEMA17T_BODIES]
-    for view, tag in (((0.55, -0.62, 0.56), "front_iso"), ((-0.55, 0.62, 0.40), "rear_iso")):
+    for view, tag in (((-0.55, 0.62, 0.40), "front_iso"), ((0.55, -0.62, 0.56), "rear_iso")):          # the front face (boss, shaft) points to +y
         p = os.path.join(out_dir, f"{NAME}_{tag}.png")
         E.render_scene(items, p, (view, (0, 0, 1)), f"{NAME}: {tag.replace('_', ' ')} (front cap, stator, winding, rear cap, shaft, connector)",
                        px=800, note="motor frame: front face y = 0, shaft toward +y; no rotor")

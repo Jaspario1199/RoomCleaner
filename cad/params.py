@@ -739,7 +739,8 @@ FIN1021_PROTO_PEG_MIN_CLEAR = 0.5                   # required clearance peg end
 # THERMAL STATION 1021 (THERMAL_*): simulation-ready named bodies for ANSYS / SOLIDWORKS    cad/thermal_station1021.py
 # One STEP per fin variant, assembly coordinates, every solid named.  Units mm.  Densities are vendor-typical, not certified.
 # =============================================================================
-THERMAL_VARIANTS = (("fin1p8", FIN1021_T_PRODUCTION_MM), ("fin0p019", FIN1021_T_PROTOTYPE_MM))   # (export key, fin thickness)
+THERMAL_VARIANTS = (("fin1p8", FIN1021_T_PRODUCTION_MM, "block"), ("fin0p019", FIN1021_T_PROTOTYPE_MM, "block"),
+                    ("detailed_fin1p8", FIN1021_T_PRODUCTION_MM, "detailed"))   # (export key, fin thickness, motor model: Motor_Reference block or the NEMA17T_* bodies)
 THERMAL_INSERTS = ("deck", "enc")     # which candidate brass insert sleeves exist ("deck": 1 in the deck under the spool, "enc": 4 in the encoder divot)
 THERMAL_SCREW_HEAD_D = 5.5            # M3 socket head, simplified
 THERMAL_SCREW_HEAD_H = 3.0            # head seated on the tab's spool-side face (y 5 .. 8)

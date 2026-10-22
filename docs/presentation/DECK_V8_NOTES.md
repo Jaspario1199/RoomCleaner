@@ -148,3 +148,11 @@ To confirm before Tuesday: which spool bore is printed (Ø5.30 in the 10/21 CAD,
 inserts, and the insert part number.
 
 Main deck: 22 slides.
+
+**Update (Oct 22, Jasper):** the "Which Part Gives First" chart slide is taken out; the design idea (the motor is the weakest
+link and the encoder reports the overload) is a note on Final Wall Station, with the slip-force box, and the detail is in that
+slide's speaker notes for Jasper to elaborate. The Sheet tab "Weakest link" stays as the record.
+The manufacturing slide shows shaded snapshots of Jasper's parts (`deck_v8/make_mfg_snapshots.py`, some cut open, no added
+dimensions) instead of the drawn detail figure (`make_mfg_figure.py`, kept on file). Takeaways gain "size every part to a load
+number"; next steps gain the lighter redesign (`docs/decisions/WEIGHT_REDESIGN_PROPOSAL_20261022.md`) and continuous testing;
+Poor decisions gain "parts built far stronger than any load needed". Main deck: 21 slides.

@@ -469,16 +469,30 @@ content("Claw: Four Versions to a Parallel Grip", [
 
 // ================================================================================================ PHASE 4: FINAL DESIGN
 section("Final Design"); PHASE = "Phase 4 of 5: Final design";
-content("Final Wall Station", [
-  "Slide-in wall mount: the station lifts off while the anchor stays in the stud",
-  "Load path: cable, spool, set screw, motor, 5 mm PETG tab, slide-in, wall mount, screws, stud",
-  "Every part must outlast the motor's 48 N slip force (two slides on); SolidWorks static study to run at that force",
-  "Aluminum fin exits through a slot in the shell top",
-], { file: SC("station_shell_transparent_1022.png"), alt: "Final wall station with a transparent shell", caption: "Final wall station (SolidWorks), shell shown transparent" },
-"Walk the load from the cable to the stud. At 1.5 A the motor holds up to 48 N on the empty spool before it slips, so that is the most the cable can put " +
-"on the station. The PETG tab has to carry it below 60 °C, which is where the thermal limit on the cooling slide comes from. " +
-"If asked: the static manual was written at the old 34 N and scales linearly; the 1/8 in fin needs the shell slot about 1 mm wider on the motor side, and M3 × 12 screws.",
-{ size: 17, space: 12 });
+{
+  // The design idea (D39) is noted here and elaborated by Jasper; numbers from calculations/lift_chain_weakest_link.json.
+  const WL = require(P("calculations", "lift_chain_weakest_link.json"));
+  const n0 = v => String(Math.round(v));
+  content("Final Wall Station", [
+    "Slide-in wall mount: the station lifts off while the anchor stays in the stud",
+    "Load path: cable, spool, set screw, motor, PETG tab, slide-in, wall mount, screws, stud",
+    `Design idea: the motor is the weakest link. It slips at ${n0(WL.fuse.slip_low)}–${n0(WL.fuse.upper)} N, before any part breaks, and the spool encoder reports the overload`,
+    "Aluminum fin exits through a slot in the shell top",
+  ], { file: SC("station_shell_transparent_1022.png"), alt: "Final wall station with a transparent shell", caption: "Final wall station (SolidWorks), shell shown transparent" },
+  "Walk the load from the cable to the stud. The design idea: make the motor the part that gives first. At 1.5 A it holds up to 48 N on the empty spool " +
+  "(59 N at most, with a 40 N·cm motor and the cable at its steepest angle); above that it skips, the encoder on the spool sees the spool fall behind the " +
+  "command, and the station stops and reports an overload, so nothing is damaged. Every other part has to outlast that. " +
+  "Elaborate: studs are far from the limit (one #6 wood screw holds about 309 N at the code design value; the same screws in drywall alone let go at about " +
+  "46 N, below the motor, so studs only); as drawn, the spool's set screw in printed plastic may slip first and the warm motor tab's sharp corner is only " +
+  "about 1.2 times the motor; fixes are the set screw into metal (the pull test settles it) and a 6 mm tab with fillets. The rest of the station is 17 to 225 " +
+  "times stronger than it needs to be, which is where the lighter redesign comes from. If asked: calculation and independent check in " +
+  "calculations/lift_chain_weakest_link.md; the static manual was written at the old 34 N and scales linearly; the 1/8 in fin needs the shell slot about " +
+  "1 mm wider on the motor side, and M3 × 12 screws.",
+  { size: 16, space: 10, eq: { title: "Motor slip force (the fuse)", lines: [
+    "F = τ_h / r = 0.36 N·m / 0.0075 m = **48 N**",
+    "F_{max} = 48 N × 1.11 (motor) × 1.11 (cable angle) = **59 N**",
+  ] } });
+}
 
 content("Winch Pull at 1.5 A", [
   "NEMA 17 (National Electrical Manufacturers Association) stepper at its rated 1.5 A, up from 1.06 A: 41 % more pull",
@@ -493,33 +507,6 @@ content("Winch Pull at 1.5 A", [
   "F_{design} = 25.2 N / 1.5 = **16.8 N**",
 ] } });
 
-{
-  // Numbers from calculations/lift_chain_weakest_link.py (its JSON); the chart is the Sheet's "Weakest link" tab.
-  const WL = require(P("calculations", "lift_chain_weakest_link.json"));
-  const n0 = v => String(Math.round(v));
-  const drywall = WL.drywall.lower;
-  const rk = name => WL.ranking.find(r => r.link.startsWith(name));
-  const tabNow = rk("Motor tab, 5 mm, sharp"), tab6 = rk("Motor tab, 6 mm");
-  content("Which Part Gives First", [
-    `Goal: the motor slips before any part breaks. It slips at ${n0(WL.fuse.slip_low)}–${n0(WL.fuse.upper)} N of cable pull; jeans need ${n0(WL.jeans_peak)} N`,
-    `A slip of ${WL.detection.tol_line_mm.toFixed(1)} mm of cable trips the spool encoder; the station stops and reports an overload`,
-    `As drawn, the spool's set screw in printed plastic may slip first, and the warm tab's sharp corner gives at ${n0(tabNow.lower)} N, ${tabNow.ratio.toFixed(1)} times the motor`,
-    `Fixes: a 6 mm tab with fillets on both roots (${tab6.ratio.toFixed(1)} times); the set screw into metal, and the pull test decides it`,
-    `Studs only: one #6 screw holds ${n0(WL.wall.withdrawal_6_spf.design)} N (code design value); in drywall the mount lets go at ${n0(drywall)} N`,
-  ], { sheet: "weakest_link", tab: "Weakest link" },
-  "The question for every part between the cable and the stud: does it outlast the motor? The motor is the fuse: above its holding torque it skips, " +
-  "the spool's encoder sees the spool fall behind the command, and the station stops. That only works if everything else is stronger. " +
-  "As drawn, two parts are too close: the set screw that holds the spool on the shaft is threaded into printed plastic, so it may slip first, and the motor tab " +
-  "runs warm next to the motor, so its sharp back corner gives at about 1.2 times the motor. A 6 mm tab with fillets fixes the tab. The set screw goes into metal " +
-  "(a short insert or a captive nut: a standard 5.7 mm insert does not fit the 5.35 mm hub wall), and the pull test settles it: paint a line across the shaft " +
-  "and the spool; if it breaks, the spool slipped. If asked: wood-screw withdrawal from the NDS, W = 2850 G² D per inch of thread, G 0.42 for spruce-pine-fir; " +
-  "the average test failure is about 5.5 times that. If a 2:1 gear stage is added, the motor's pull doubles and this ranking has to be redone. " +
-  "Independent check: verification/lift_chain_weakest_link_check.md.",
-  { size: 15, space: 8, eq: { title: "Motor slip force (the fuse)", lines: [
-    "F = τ_h / r = 0.36 N·m / 0.0075 m = **48 N**",
-    "F_{max} = 48 N × 1.11 (motor) × 1.11 (cable angle) = **59 N**",
-  ] } });
-}
 
 {
   const sl = blank("Motor Cooling");
@@ -575,12 +562,28 @@ content("Build: Printing, Machining, Bring-Up", [
 { size: 17, space: 12 });
 
 {
-  // Every number is measured from Jasper's STEP files (cad/reference/gripper_1021, cad/reference/station_1021) or his fin drawing
-  // (cad/parts/heat_fin1021.py); figure: docs/presentation/deck_v8/make_mfg_figure.py.
+  // Every number is measured from Jasper's STEP files (cad/reference/gripper_1021, cad/reference/station_1021, solidworks/v3) or
+  // his fin method (10/22). Snapshots are shaded views of his own parts, some cut open (docs/presentation/deck_v8/make_mfg_snapshots.py);
+  // no drawings or dimensions are added to them.
   const sl = blank("Manufacturing: Fits and Datums");
   const fx = M, fw = 6.2, bx = fx + fw + 0.3, bw = W - M - bx;
-  fitImage(sl, path.join(__dirname, "fig", "mfg_details.png"), fx, 1.2, fw, 5.25, "Fit details from the CAD: gear bearing pocket, entry lip, slide-in dovetail, fin datums", { alignTop: true });
-  caption(sl, "From my SolidWorks parts: claw gear, wall station, heat fin (mm)", fx, 6.5, fw);
+  const tiles = [
+    ["snap_gear_lip.png", "Gear: Ø14.000 entry lip, 8 T-slots"],
+    ["snap_gear_stack.png", "Cut open: 687 bearing on the printed pin"],
+    ["snap_dovetail.png", "Slide-in rib in the wall-mount dovetail"],
+    ["snap_insert_pocket.png", "Heat-set pocket: Ø4.1 × 7 over Ø3.4"],
+    ["snap_spool.png", "v3 spool: D-bore and set-screw hole"],
+    [PH("01_mill_drilling_fin_closeup.jpg"), "Fin: holes drilled from the first hole"],
+  ];
+  const tw = (fw - 0.12) / 2, th = 1.5, rowH = th + 0.3;
+  tiles.forEach(([f, cap], i) => {
+    const x = fx + (i % 2) * (tw + 0.12), y = 1.2 + Math.floor(i / 2) * rowH;
+    const file = path.isAbsolute(f) ? f : path.join(__dirname, "fig", f);
+    sl.addShape(pres.shapes.RECTANGLE, { x, y, w: tw, h: th, fill: { color: "FFFFFF" }, line: { color: HEX.rule, width: 0.75 }, objectName: "tile frame" });
+    fitImage(sl, file, x + 0.02, y + 0.02, tw - 0.04, th - 0.04, cap);
+    sl.addText(cap, { x, y: y + th + 0.02, w: tw, h: 0.24, fontSize: 10.5, color: HEX.mid, fontFace: "Arial", margin: 0, isTextBox: true, objectName: "tile caption" });
+  });
+  caption(sl, "My SolidWorks parts; blue and tan are cut faces, dark grey the bought bearing", fx, 6.6, fw);
   table(sl, ["Feature", "As drawn", "Fit"], [
     ["Gear bearings (687)", "Ø14.075 pocket behind a Ø14.000 lip, 1.95 long, 8 T-slots", "Snaps past the lip, +0.075 behind it"],
     ["Gear pins", "Printed Ø7.000 pin into a Ø7.05 socket", "Line-to-line in the bearing; +0.05"],
@@ -664,16 +667,17 @@ section("Results and Takeaways"); PHASE = "";
     ["One controller per winch", "Five times less wire; each station tested alone"],
     ["Camera calibration instead of bead homing", "Whole room reachable; caught on paper before building"],
     ["Teeth checked at servo stall", "A clamp stalls the servo on every grip: safety factor 2.05"],
-  ], M, 1.3, W - 2 * M, cw, { size: 15, rowH: 0.5, name: "good decisions" });
+  ], M, 1.3, W - 2 * M, cw, { size: 15, rowH: 0.45, name: "good decisions" });
   table(sl, ["Poor decision", "Result"], [
     ["Mass not tracked through four claw versions", "v6 reached 4.6 times its budget in CAD; the claw is 0.15 kg over"],
     ["Prototype fin cut from scrap sheet", "Only 1–4 K of thermal margin"],
     ["Build and test week ends on presentation day", "System results arrive at the last minute"],
-  ], M, 3.45, W - 2 * M, cw, { size: 15, rowH: 0.5, headColor: HEX.red, name: "poor decisions" });
+    ["Parts built far stronger than any load needed", "Station mount 17 to 225 times the motor's pull; 1.2 L of PETG per station"],
+  ], M, 3.3, W - 2 * M, cw, { size: 15, rowH: 0.45, headColor: HEX.red, name: "poor decisions" });
   bullets(sl, [
-    "Thorough where a mistake is expensive: the fin's single mill setup, the stall check on the teeth",
+    "Thorough where a mistake is expensive: fin holes drilled from the first hole as zero, the stall check on the teeth",
     "Scrappy where it is cheap to undo: a jumpered ESP32 after a controller failed, a floor board printed on paper",
-  ], M, 5.65, W - 2 * M, 1.2, 16, { space: 8, name: "thorough and scrappy" });
+  ], M, 5.75, W - 2 * M, 1.05, 16, { space: 6, name: "thorough and scrappy" });
   sl.addNotes("Good: each was a trade I priced first. Poor: the mass problem was not the budget but that I never re-checked it as the claw changed four times; " +
               "the scrap fin saved a day and cost the thermal margin; and the schedule leaves no slack after the first test. " +
               "Scrappy: when a controller board died two days before the test, I moved the same circuit to an ESP32 dev board with nine jumpers instead of redesigning it. " +
@@ -685,18 +689,25 @@ content("Takeaways and Next Steps", [
   "- Pull-test one winch and weigh a mock claw in week 1; set the mass budget from that",
   "- Kill ideas on paper first: bead homing and the central board failed calculations I could have run in week 1",
   "- Prove one full station, calibration included, before copying it",
+  "- Size every part to a load number; over-building cost weight, plastic and print time",
   "Next steps",
   "- Pull test, then enter the measured limit in the planner",
   "- Hold test at 1.5 A, three-station test, grip pads",
   "- Spool set screw into metal; 6 mm motor tab with fillets on both roots",
+  "- Lighter redesign sized to the loads: about 60 % less station plastic, claw to its 0.45 kg budget",
+  "- Continuous testing: long runs logging tracking faults, temperatures and creep",
   "- A brake or non-backdrivable stage, so a power loss cannot drop the claw",
 ], (sl, x, y, w, h) => scheduleBars(sl, x, y + 1.3, w,
     [["Plan", 7, HEX.pale], ["One station", 14, HEX.navy2], ["Copy", 7, HEX.pale], ["Clamp", 14, HEX.navy2], ["Test", 7, HEX.navy]],
     "Same time scale. Half time: plan (pull test, mass budget), one station, copy, clamp, test."),
 "In half the time I would not build the central board, bead homing or the finger claw at all; the week-1 calculations already killed them. " +
 "Next steps in order: the pull test first, because both the lift margin and the planner's tension check depend on it. " +
+"The redesign uses the weakest-link numbers: the mount and dovetails are 90 to 225 times stronger than the motor can pull, so the station can lose about " +
+"60 % of its plastic while the motor tab, the one part that is short, gets thicker; a carbon tube and thinner housings bring the claw to 0.45 kg, " +
+"which lifts the jeans margin from 4 % to about 16 % (docs/decisions/WEIGHT_REDESIGN_PROPOSAL_20261022.md). Continuous testing then runs the robot for hours " +
+"and logs every tracking fault, temperature and any creep. " +
 "Leave this slide up for questions.",
-{ figW: 7.0, size: 16, space: 6 });
+{ figW: 7.0, size: 14, space: 4 });
 
 }
 

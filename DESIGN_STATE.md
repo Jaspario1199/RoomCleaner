@@ -577,9 +577,14 @@ slack_probe default (keep false until probe H1/M2 are closed).
   hardware `faults.tracking_tol_counts` 60.
 - Open facts: which spool is printed (10/21 CAD bore Ø5.30, v3 Ø5.45); how 1.5 A was reached (the whole table scales with I).
 - Calculation Sheet: new tab "Weakest link" (formulas for the fuse, NDS withdrawal and knot; chart of the ranking).
-- Deck v8: new slides "Which Part Gives First" (Phase 4) and "Manufacturing: Fits and Datums" (Phase 5, figure cut from
-  Jasper's STEP files by `docs/presentation/deck_v8/make_mfg_figure.py`); Final Wall Station load path, results row and next
-  steps updated. 22 main slides.
+- Deck v8: the design idea is a note on Final Wall Station (the force chart slide was taken out at Jasper's request); new
+  slide "Manufacturing: Fits and Datums" (Phase 5) with shaded snapshots of Jasper's parts
+  (`docs/presentation/deck_v8/make_mfg_snapshots.py`, run under xvfb-run); results row, poor decisions, takeaways and next
+  steps updated. 21 main slides.
+- Lighter-parts proposal for the next phase: `docs/decisions/WEIGHT_REDESIGN_PROPOSAL_20261022.md` (station plastic about
+  1.17 L to 0.48 L per station; claw to its 0.45 kg budget, jeans margin about 16 %). Not approved.
+- The 10/21 assembly's spool (Spool1011, bore Ø5.30) has **no set-screw hole**; the v3 Spoolv3 (Ø5.45) has the Ø2.8 radial
+  hole. If Spool1011 is the printed spool, all torque goes through the D-flat alone. Jasper to confirm which is printed.
 - Manufacturing facts measured from Jasper's parts: gear bearing pockets Ø14.075 behind a Ø14.000 × 1.95 mm entry lip cut by
   8 T-slots (0.4 mm gap backed by a 0.5 mm slot), 687 bearings on printed Ø7.000 pins into Ø7.05 sockets; slide-in 0.175 mm
   per side, 30° dovetail flanks 0.14 to 0.21 mm; insert holes M3 Ø4.1 × 7 (slide-in), Ø4.0 × 5 (gear housing), M2.5 Ø3.45 × 4

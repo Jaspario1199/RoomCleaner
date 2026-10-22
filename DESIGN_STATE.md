@@ -558,8 +558,9 @@ slack_probe default (keep false until probe H1/M2 are closed).
 - Deck: v7 (`docs/presentation/DECK_V7_NOTES.md`) is current — one story by project phase, figure plus statements.
 
 ## Claw weighed (10/22, Jasper)
-- Claw 0.60 kg without the battery (CAD estimate was 0.76 kg). With the 0.10 kg battery (spec) and 0.90 kg jeans the
-  claw needs 1.60 kg of lift against the 1.56 kg capacity at 1.5 A: 0.04 kg (about 3 %) short. The 1 lb test (1.15 kg) fits.
-  The claw is still 0.15 kg over its 0.45 kg budget. Sheet "Lift budget" updated (input row 13); deck v7 updated.
-- Fix options, in order: the pull test (running torque above the assumed 0.7 of holding may close it), a 40 g claw cut,
-  or a 2:1 gear stage at each winch (clears it and allows about 1 A, halving the motor heat).
+- Claw 0.60 kg **with the battery** (confirmed by Jasper; the CAD-based estimate was 0.86 kg with battery). With 0.90 kg jeans
+  the winches must hold 1.50 kg against the 1.56 kg capacity at 1.5 A: jeans fit with 0.06 kg (4 %) margin. The 1 lb test
+  (1.05 kg) fits with 0.5 kg spare. The claw is still 0.15 kg over its 0.45 kg budget. Sheet "Lift budget" updated (input row 13,
+  margin row 18; the jeans bar is no longer red); deck v7 updated ("Weight Budget", results table, decisions, next steps).
+- The 4 % margin rests on the assumed 0.7 running/holding torque ratio: the luggage-scale pull test confirms it. If it falls
+  short, a 2:1 gear stage at each winch restores the margin and allows about 1 A (half the motor heat).

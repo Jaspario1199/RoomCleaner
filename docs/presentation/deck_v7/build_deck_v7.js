@@ -465,22 +465,21 @@ content("Motor Cooling", [
   "At 1.5 A: (1.5 A)² × 1.8 Ω = **4.05 W**",
 ] } });
 
-content("Weight Budget: Open Issue", [
+content("Weight Budget", [
   "Lift capacity at 1.5 A: 1.56 kg",
-  "Claw weighed at 0.60 kg; the CAD estimate was 0.76 kg",
-  "1 lb test fits; jeans are 0.04 kg over",
-  "Next: the pull test, then a 40 g cut or gears at each winch",
+  "Claw with battery weighed at 0.60 kg, against a 0.86 kg estimate",
+  "Jeans fit with 0.06 kg to spare; the 1 lb test with 0.5 kg",
+  "The margin is thin, so the pull test confirms it",
 ], { sheet: "lift_budget", tab: "Lift budget" },
-"Be upfront: with the weighed claw, claw plus battery plus jeans is 1.60 kg against 1.56 kg, so jeans are still 0.04 kg (about 3 %) over. It was 0.66 kg over at 1.06 A. " +
-"Root cause: I set the mass budget late, after the claw grew; the claw is still 0.15 kg over its 0.45 kg budget. " +
-"k = 1.101 is the worst cable tension per unit weight over the room with 2 m/s²: the middle of a long wall at task height. " +
-"The CAD estimate (0.55 fill × 927 g solid + 198 g tube + 55 g servo = 0.76 kg) was conservative; the battery (0.10 kg, from its spec) is added on top. " +
-"The gap is now small enough that the pull test may close it on its own (running torque above the assumed 0.7 of holding). If not: take 40 g out of the claw, " +
-"or add a 2:1 gear stage at each winch, which clears it with margin and lets the current drop back to about 1 A, halving the heat.",
+"At 1.06 A the claw plus jeans was 0.66 kg too heavy; raising the current to 1.5 A and weighing the claw closed it. Claw with battery weighed 0.60 kg against a " +
+"0.86 kg estimate (0.55 fill × 927 g solid + 198 g tube + 55 g servo + 99 g battery): the fill assumption was conservative. With 0.90 kg jeans that is 1.50 kg against " +
+"1.56 kg, a 4 % margin. k = 1.101 is the worst cable tension per unit weight over the room with 2 m/s²: the middle of a long wall at task height. " +
+"Still a poor decision: I set the mass budget late, after the claw grew, and the claw is 0.15 kg over its 0.45 kg budget. The 4 % margin rests on the 0.7 running-torque " +
+"assumption, so the pull test decides it; if it comes in low, a 2:1 gear stage at each winch restores the margin and lets the current drop back to about 1 A, halving the heat.",
 { eq: { title: "Lift capacity", lines: [
   "m_{max} = F_{design} / (k g)",
   "= 16.8 / (1.101 × 9.81) = **1.56 kg**",
-  "Needed: 0.60 + 0.10 + 0.90 = **1.60 kg**",
+  "Needed: 0.60 + 0.90 = **1.50 kg**",
 ] } });
 
 // ================================================================================================ PHASE 5: BUILD AND TEST
@@ -544,8 +543,8 @@ section("Results and Takeaways");
   const sl = blank("Results Against Targets");
   const NOT = { text: "Not met", color: HEX.red, bold: true };
   table(sl, ["Target", "Goal", "Current", "Status"], [
-    ["Lift capacity", "1.60 kg with jeans", "1.56 kg (calculated)", { text: "0.04 kg short", color: HEX.red, bold: true }],
-    ["Claw mass", "0.45 kg", "0.60 kg (weighed)", NOT],
+    ["Lift capacity", "1.50 kg with jeans", "1.56 kg (calculated)", "Met, 4 % margin"],
+    ["Claw mass", "0.45 kg", "0.60 kg with battery (weighed)", NOT],
     ["Motor temperature", "Below 60 °C", "45–49 °C with the 1/8 in fin", "Met in design"],
     ["Working area", "Full 11 × 9 ft floor", "All but 0.2 m along the walls", "Met in design"],
     ["Wiring", "One cable per station", "One 12 V pair; 0.51 V drop", "Met"],
@@ -553,8 +552,9 @@ section("Results and Takeaways");
     ["Speed", "50 mm/s at 2 m/s²", "Not yet run", "To be tested"],
     ["Cost", "Hobby budget", "[[total cost]]", "[[]]"],
   ], M, 1.3, W - 2 * M, [0.22, 0.25, 0.35, 0.18], { size: 15, rowH: 0.6 });
-  sl.addNotes("Back to the targets from the start. Two are not met, and they are the same problem: lift capacity and claw mass. Motor temperature and working area " +
-              "are met by the design and wait on the hold test; accuracy and speed wait on the system test.");
+  sl.addNotes("Back to the targets from the start. Lift capacity is now met with jeans, but with only a 4 % margin that the pull test must confirm. " +
+              "Claw mass is not met: 0.60 kg against a 0.45 kg budget. Motor temperature and working area are met by the design and wait on the hold test; " +
+              "accuracy and speed wait on the system test.");
 }
 
 {
@@ -566,7 +566,7 @@ section("Results and Takeaways");
     ["Gear strength checked at servo stall", "Failure caught in CAD, before printing"],
   ], M, 1.3, W - 2 * M, cw, { size: 16, rowH: 0.55, name: "good decisions" });
   table(sl, ["Poor decision", "Result"], [
-    ["Mass budget set late", "Claw 0.15 kg over budget; jeans 0.04 kg over capacity"],
+    ["Mass budget set late", "Claw 0.15 kg over budget; only a 4 % lift margin with jeans"],
     ["Bead homing as the first plan", "Under a third of the room reachable"],
     ["Several stations built before one was proven", "Every fix repeated on each station [[confirm]]"],
   ], M, 3.95, W - 2 * M, cw, { size: 16, rowH: 0.55, headColor: HEX.red, name: "poor decisions" });
@@ -596,15 +596,15 @@ content("Takeaways and Next Steps", [
   "- Prove one station before building the rest",
   "- In half the time: freeze requirements in week 1, order long-lead parts on day 1",
   "Next steps",
-  "- Pull test; then a 40 g claw cut or gears at each winch",
+  "- Pull test to confirm the 4 % lift margin; gears if it falls short",
   "- 90-minute hold test at 1.5 A with the 1/8 in fin",
   "- Three-station test, then add the fourth station",
 ], (sl, x, y, w, h) => scheduleBars(sl, x, y + 1.5, w),
 "Takeaways: weigh the claw and set its budget from the measured pull before designing it; one complete station tested end to end before building more; " +
 "coupons before every new fit; a meter on every rail before debugging code. Half the time: most lost time was the redesign and the generations a frozen requirement " +
 "and an early test would have avoided; the chart compares the actual 15 weeks with a 7-week plan on the same scale. " +
-"Next steps, in order: the luggage-scale pull test turns the 0.7 running-torque assumption into a measurement; with the claw weighed at 0.60 kg it decides between a 40 g cut " +
-"and a 2:1 gear stage at each winch (which also lets the current drop back to about 1 A). Then machine the 1/8 in fin, widen the shell slot about 1 mm, " +
+"Next steps, in order: the luggage-scale pull test turns the 0.7 running-torque assumption into a measurement; with the claw weighed at 0.60 kg it confirms the 4 % margin with jeans, " +
+"or calls for a 2:1 gear stage at each winch (which also lets the current drop back to about 1 A). Then machine the 1/8 in fin, widen the shell slot about 1 mm, " +
 "and run the SolidWorks study and the 90-minute hold test. Then the three-station test with 1 lb, one garment, and the fourth station.",
 { figW: 7.4, space: 8 });
 

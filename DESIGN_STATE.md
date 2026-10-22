@@ -605,6 +605,9 @@ slack_probe default (keep false until probe H1/M2 are closed).
   break the monitoring loop.
 - Still to do at the bench stage (D39): set `faults.tracking_tol_counts` on the hardware configs below one 82-count skip
   (60 proposed); they are null today.
+- Tests (lead, 10/22): the 24 test files that use trust, coordinator or supervisor: 640 passed, 1 skipped, 2 failed. The 2
+  failures (`tests/cdpr/test_tiny_moves.py::test_task_runner_move_handles_a_tiny_or_zero_move`, a test stand-in without
+  `wait`) fail the same way on b81d6c5, before this change: pre-existing, not caused by it.
 
 ## Deck photos and a corrected hole (10/22, Jasper's photos)
 - New photos 23 to 26 (`docs/presentation/photos/`): end-stop switch pressed into the slide-in's lower lug; the station shell on

@@ -13,11 +13,11 @@ cad/reference/station_1021/*.step are this frame shifted by +2.64 mm in z, and c
 (+0.004243, +0.001645, +0.003854) mm: reference_parts() puts them into this frame (with or without that residual).
 
 MAGNET CAP  (one per station)
-    Ø14 x 3.3 head against the spool's outer face (y 26.0 .. 29.3), Ø6.2 x 2.55 magnet pocket opening toward +y on the axis
+    Ø14 x 3.3 head against the spool's outer face (y 26.0 .. 29.3), Ø(magnet + 0.2) x 2.55 magnet pocket (Ø4.2 for the measured Ø4.0 magnet, Jasper 10/22; Ø6.2 was the Ø6 assumption) opening toward +y on the axis
     (glue film 0.05 mm: the magnet face sits flush at y = 29.3), 0.8 mm pry notch under the head rim, and a D-peg in the
     spool's empty bore end: Ø5.10 with its flat at x = +2.05, 3 axial crush ribs 0.15 high, 3.4 long (end at y = 22.6,
     0.6 mm clear of the shaft end at 22.0).
-    Print: magnet face on the bed, peg up; the only overhang is the 6.2 mm bridge over the magnet pocket.
+    Print: magnet face on the bed, peg up; the only overhang is the bridge over the magnet pocket (4.2 mm, 6.2 mm for the Ø6 record).
 
 ENCODER CASING (one per station)
     Board pocket 23.4 x 23.4 centred on the chip axis (pocket outline locates the chip), 2 mm frame walls, four 3 x 3 front-stop
@@ -233,7 +233,7 @@ def make_peg(ribs: bool = True, overlap: float = 0.0, v2: bool = False) -> cq.Wo
 
 def _magnet_ribs(c: Cfg) -> cq.Workplane:
     """v2: `mag_rib_n` crush ribs inside the magnet pocket (equally spaced, one opposite the peg flat's side), tip radius
-    pocket r - mag_rib_h = magnet r - crush, so they centre the Ø6 magnet; 45 deg lead-in at the mouth."""
+    pocket r - mag_rib_h = magnet r - crush, so they centre the magnet (Ø4.0 measured; Ø6 was the first assumption); 45 deg lead-in at the mouth."""
     r_wall = c.pocket_d / 2
     r_tip = r_wall - c.mag_rib_h
     y0, y1 = c.pocket_floor_y - FUSE, c.magnet_face_y
@@ -253,7 +253,7 @@ def _magnet_ribs(c: Cfg) -> cq.Workplane:
 
 def make_magnet_cap(ribs: bool = True, v2: bool = False) -> cq.Workplane:
     """Head + pocket + pry notch + D-peg, one solid, station frame (peg toward -y).  ribs=False drops the crush ribs (tests).
-    v2: pocket Ø6.3 with three crush ribs on the magnet, peg ribs 0.20 high with a 0.45 tip."""
+    v2: pocket Ø(magnet + 0.30) = Ø4.3 with three crush ribs on the magnet, peg ribs 0.20 high with a 0.45 tip."""
     c = Cfg(v2)
     y_face, y_top = c.spool_face_y, c.magnet_face_y
     head = _cyl_y(c.head_d / 2, y_face, y_top)
@@ -268,7 +268,7 @@ def make_magnet_cap(ribs: bool = True, v2: bool = False) -> cq.Workplane:
 
 
 def make_magnet() -> cq.Workplane:
-    """Reference magnet (display / fit checks only): Ø6 x 2.5, face flush at the head top, glue film under it."""
+    """Reference magnet (display / fit checks only): Ø ENC1021_MAGNET_D (4.0) x 2.5, face flush at the head top, glue film under it."""
     c = Cfg()
     return _cyl_y(c.magnet_d / 2, c.magnet_bottom_y, c.magnet_face_y)
 
@@ -996,7 +996,7 @@ def render_sections(out_dir: str = RENDER_DIR, v2: bool = False) -> list:
         # magnet pocket ribs: section at y = 28 seen from +y
         p = os.path.join(out_dir, f"{pre}{cap_name}_section_magnet_ribs.png")
         render_scene(items([(keep(cap, y1=28.0), "cap", 1.0, 0.01), (keep(mag, y1=28.0), "mag", 0.8, 0.01)]),
-                     p, ((0, 1, 0), (0, 0, 1)), "v2 magnet pocket seen from +y at y = 28: Ø6.3 pocket, 3 ribs, Ø6.0 magnet (0.12 crush)",
+                     p, ((0, 1, 0), (0, 0, 1)), f"v2 magnet pocket seen from +y at y = 28: Ø{c.pocket_d:.1f} pocket, 3 ribs, Ø{c.magnet_d:.1f} magnet (0.12 crush)",
                      px=900, bounds=((-8, 22, -8), (8, 29, 8)), note="-x right (camera at +y), +z up")
         paths.append(p)
     return paths

@@ -1,0 +1,34 @@
+body A,body B,contact area mm2,face pairs,planar mm2,cylindrical mm2,overlap mm3,distance mm
+stator,winding,2349.911,1,0.000,2349.911,0.000000,1.07e-14
+fin_in,slipin_mount,1298.552,1,1298.552,0.000,0.000000,1.21e-13
+front_cap,fin_in,1288.830,1,1288.830,0.000,0.000000,2.22e-15
+front_cap,stator,863.370,1,863.370,0.000,0.000000,0.00e+00
+stator,rear_cap,863.370,1,863.370,0.000,0.000000,0.00e+00
+stator,slipin_mount,798.600,1,798.600,0.000,0.000000,3.99e-12
+front_cap,winding,492.445,1,492.445,0.000,0.000000,0.00e+00
+winding,rear_cap,492.445,1,492.445,0.000,0.000000,1.42e-14
+front_cap,slipin_mount,290.400,1,290.400,0.000,0.000000,3.99e-12
+rear_cap,slipin_mount,290.400,1,290.400,0.000,0.000000,3.99e-12
+front_cap,shaft,157.080,1,0.000,157.080,0.000000,0.00e+00
+fin_in,fin_out,133.350,1,133.350,0.000,0.000000,2.13e-14
+rear_cap,shaft,129.591,2,19.635,109.956,0.000000,0.00e+00
+rear_cap,connector,96.000,1,96.000,0.000,0.000000,0.00e+00
+slipin_mount,insert_deck,73.419,2,0.000,73.419,0.000000,0.00e+00
+slipin_mount,insert_enc_1,49.239,3,5.885,43.354,0.000000,0.00e+00
+slipin_mount,insert_enc_2,49.239,3,5.885,43.354,0.000000,0.00e+00
+slipin_mount,insert_enc_3,49.239,3,5.885,43.354,0.000000,0.00e+00
+slipin_mount,insert_enc_4,49.239,3,5.885,43.354,0.000000,0.00e+00
+front_cap,screw_1,36.050,1,0.000,36.050,0.000000,0.00e+00
+front_cap,screw_2,36.050,1,0.000,36.050,0.000000,0.00e+00
+front_cap,screw_3,36.050,1,0.000,36.050,0.000000,4.50e-12
+front_cap,screw_4,36.050,1,0.000,36.050,0.000000,4.50e-12
+slipin_mount,screw_2,14.137,1,14.137,0.000,0.000000,1.78e-15
+slipin_mount,screw_4,14.137,1,14.137,0.000,0.000000,1.78e-15
+slipin_mount,screw_1,14.137,1,14.137,0.000,0.000000,1.78e-15
+slipin_mount,screw_3,14.137,1,14.137,0.000,0.000000,1.78e-15
+
+near gaps (not touching),body B,gap mm
+fin_in,screw_2,0.2000
+fin_in,screw_4,0.2000
+fin_in,screw_3,0.2000
+fin_in,screw_1,0.2000

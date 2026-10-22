@@ -1,0 +1,15 @@
+name,material to assign,k W/m.K,density g/cm3,volume mm3,mass g,note
+motor_block,Structural steel (motor proxy; effective density so the block = THERMAL_MOTOR_MASS_G),50.0,4.118,67879.923,279.534,"isothermal-ish steel block, as in the FEA of calculations/thermal_assembly_1p5a.py"
+fin_in,Aluminium 6061-T6,167.0,2.700,864.683,2.335,5052-H32 is similar (k 138): the fin is built in either
+fin_out,Aluminium 6061-T6,167.0,2.700,3228.392,8.717,5052-H32 is similar (k 138): the fin is built in either
+slipin_mount,PETG,0.2,1.270,217693.152,276.470,print orientation matters (k across layers is lower); cad/materials.py density
+screw_1,"Steel (M3 socket head, 12.9 alloy / A2 equivalent)",50.0,7.850,138.306,1.086,A2 stainless would be about 16
+screw_2,"Steel (M3 socket head, 12.9 alloy / A2 equivalent)",50.0,7.850,138.306,1.086,A2 stainless would be about 16
+screw_3,"Steel (M3 socket head, 12.9 alloy / A2 equivalent)",50.0,7.850,138.306,1.086,A2 stainless would be about 16
+screw_4,"Steel (M3 socket head, 12.9 alloy / A2 equivalent)",50.0,7.850,138.306,1.086,A2 stainless would be about 16
+insert_deck,Brass (CuZn heat-set insert),115.0,8.500,47.275,0.402,candidate inserts; Jasper has not confirmed which ones are used
+insert_enc_1,Brass (CuZn heat-set insert),115.0,8.500,23.538,0.200,candidate inserts; Jasper has not confirmed which ones are used
+insert_enc_2,Brass (CuZn heat-set insert),115.0,8.500,23.538,0.200,candidate inserts; Jasper has not confirmed which ones are used
+insert_enc_3,Brass (CuZn heat-set insert),115.0,8.500,23.538,0.200,candidate inserts; Jasper has not confirmed which ones are used
+insert_enc_4,Brass (CuZn heat-set insert),115.0,8.500,23.538,0.200,candidate inserts; Jasper has not confirmed which ones are used
+total,,,,290360.803,572.601,

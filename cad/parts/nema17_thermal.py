@@ -106,11 +106,14 @@ def make_bodies() -> dict:
     return {k: _one(v, k) for k, v in bodies.items()}
 
 
-def to_station(shape: cq.Shape, t_mm: float, assembly: bool = False) -> cq.Shape:
+def to_station(shape: cq.Shape, t_mm: float, assembly: bool = False, origin: tuple | None = None) -> cq.Shape:
     """Motor frame -> station_1021 frame with the front face on the fin's motor face (y = -t, residual included so it is the Heat_horn's face
-    shifted by the fin thickness); assembly=True adds O (asm1021 coordinates)."""
-    dx, dy, dz = P.ENC1021_REF_RESIDUAL
-    s = shape.translate(cq.Vector(dx, dy - t_mm, P.ENC1021_REF_SHIFT_Z + dz))
+    shifted by the fin thickness); assembly=True adds O (asm1021 coordinates).  `origin` = (x, y, z) puts the motor-frame origin (axis, front face)
+    exactly there instead (cad/thermal_station1021.py passes the MEASURED tab-hole axis and fin face, so the shared faces coincide to rounding)."""
+    if origin is None:
+        dx, dy, dz = P.ENC1021_REF_RESIDUAL
+        origin = (dx, dy - t_mm, P.ENC1021_REF_SHIFT_Z + dz)
+    s = shape.translate(cq.Vector(*origin))
     return s.translate(cq.Vector(*ASM_ORIGIN)) if assembly else s
 
 

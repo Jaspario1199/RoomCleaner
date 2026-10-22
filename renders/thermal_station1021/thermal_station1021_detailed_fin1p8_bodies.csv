@@ -1,0 +1,20 @@
+name,material to assign,k W/m.K,density g/cm3,volume mm3,mass g,note
+front_cap,Aluminium die-cast (A380),96.0,2.740,14607.001,40.023,carries the 4 tapped holes and the pilot boss: the heat path into the fin
+stator,Silicon-steel laminations,25.0,7.650,18994.134,145.305,k is IN-PLANE; across the stack (along y) about 1 to 2 W/m.K because of the lamination insulation (orthotropic if the study allows)
+winding,"Copper winding + slot insulation, homogenised",1.0,5.000,10833.782,54.169,"the heat source: assign the 4.05 W here; effective k 0.5 to 2 (fill and varnish), density ~50 % copper fill"
+rear_cap,Aluminium die-cast (A380),96.0,2.740,14032.875,38.450,blind Ø5.0 shaft seat 7 mm deep
+shaft,Carbon steel,50.0,7.850,1197.732,9.402,"Ø5, no D-flat in this model; exposed 24 mm beyond the front face"
+connector,PBT,0.25,1.400,576.000,0.806,"housing only, no pins"
+fin_in,Aluminium 6061-T6,167.0,2.700,5683.991,15.347,5052-H32 is similar (k 138): the fin is built in either
+fin_out,Aluminium 6061-T6,167.0,2.700,21221.833,57.299,5052-H32 is similar (k 138): the fin is built in either
+slipin_mount,PETG,0.2,1.270,217693.152,276.470,print orientation matters (k across layers is lower); cad/materials.py density
+screw_1,"Steel (M3 socket head, 12.9 alloy / A2 equivalent)",50.0,7.850,156.098,1.225,A2 stainless would be about 16
+screw_2,"Steel (M3 socket head, 12.9 alloy / A2 equivalent)",50.0,7.850,156.098,1.225,A2 stainless would be about 16
+screw_3,"Steel (M3 socket head, 12.9 alloy / A2 equivalent)",50.0,7.850,156.098,1.225,A2 stainless would be about 16
+screw_4,"Steel (M3 socket head, 12.9 alloy / A2 equivalent)",50.0,7.850,156.098,1.225,A2 stainless would be about 16
+insert_deck,Brass (CuZn heat-set insert),115.0,8.500,47.275,0.402,candidate inserts; Jasper has not confirmed which ones are used
+insert_enc_1,Brass (CuZn heat-set insert),115.0,8.500,23.538,0.200,candidate inserts; Jasper has not confirmed which ones are used
+insert_enc_2,Brass (CuZn heat-set insert),115.0,8.500,23.538,0.200,candidate inserts; Jasper has not confirmed which ones are used
+insert_enc_3,Brass (CuZn heat-set insert),115.0,8.500,23.538,0.200,candidate inserts; Jasper has not confirmed which ones are used
+insert_enc_4,Brass (CuZn heat-set insert),115.0,8.500,23.538,0.200,candidate inserts; Jasper has not confirmed which ones are used
+total,,,,305606.322,643.376,

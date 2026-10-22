@@ -621,7 +621,9 @@ def test_6_clearances_and_unchanged(cap, cas, ref_corr, ref_plain):
 
 def test_6_step_roundtrip_and_stl(cap, cas, tmp_path):
     from cad.parts import encoder1021 as E
-    for nm, step_shape, builder, stl_path in (("cap v2", cap, E.make_magnet_cap(v2=True).val(), CAP2_STL), ("casing v2", cas, E.make_casing(v2=True).val(), CAS2_STL)):
+    with E.params_override(ENC1021_MAGNET_D=6.0):     # the v2 cap on disk was exported for the Ø6 magnet (before Jasper's 10/22 measurement, Ø4.0): superseded record
+        cap_builder = E.make_magnet_cap(v2=True).val()
+    for nm, step_shape, builder, stl_path in (("cap v2", cap, cap_builder, CAP2_STL), ("casing v2", cas, E.make_casing(v2=True).val(), CAS2_STL)):
         bs, ss = builder.BoundingBox(), step_shape.BoundingBox()
         for k in ("xmin", "xmax", "ymin", "ymax", "zmin", "zmax"):
             check("6", f"{nm}: STEP vs builder bbox {k}", getattr(bs, k), getattr(ss, k), 1e-3)

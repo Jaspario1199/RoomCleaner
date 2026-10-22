@@ -757,6 +757,7 @@ THERMAL_FIN_SPLIT_TOL = 0.05
 THERMAL_FIN_SPLIT_MARGIN = 6.0        # the shell top is measured inside the Heat_horn x/y footprint widened by this
 THERMAL_OVERLAP_LIMIT_MM3 = 0.01      # no pair of bodies may overlap by more than this
 THERMAL_CONTACT_TOL_MM = 1.0e-4       # two faces closer than this, parallel / coaxial, count as touching
+THERMAL_NEAR_GAP_MM = 0.5              # non-touching pairs closer than this are listed as near gaps (screw shank to fin / tab hole wall, ...)
 THERMAL_SLOT_CLEAR = 0.5              # clearance asked on the motor side of the shell's fin slot beyond the fin's motor face
 THERMAL_MOTOR_MASS_G = 280.0          # calculations/simulation_loads.py M_MOTOR (REPO guide 0.28 kg): effective density of the block
 THERMAL_DENSITY_G_CM3 = (("aluminium", FIN1021_AL_G_CM3), ("petg", 1.27), ("steel", 7.85), ("brass", 8.5))   # petg: cad/materials.py

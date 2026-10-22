@@ -27,7 +27,7 @@ sys.path.insert(0, REPO)
 
 from cad import params as P                                      # noqa: E402
 from cad.parts import encoder1021 as E                           # noqa: E402
-from tests.test_encoder1021 import Probe, _bb, _cyl_faces, _stl_triangles, _vol   # noqa: E402
+from tests.test_encoder1021 import RECORD_MAGNET_D, Probe, _bb, _cyl_faces, _stl_triangles, _vol   # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.isdir(E.REF_DIR), reason="station_1021 reference parts not available")
 
@@ -95,6 +95,8 @@ def test_variant_is_one_valid_solid(variants, key):
 
 def test_nominal_parts_are_still_the_nominal_exports(nominal_cap, nominal_casing):
     """After the variants were built the nominal builders still give the nominal parts, equal to the exports on disk."""
+    with E.params_override(ENC1021_MAGNET_D=RECORD_MAGNET_D):                          # the nominal cap on disk is for the Ø6 magnet (superseded record)
+        nominal_cap = E.make_magnet_cap().val()
     for name, fresh in ((E.CAP_NAME, nominal_cap), (E.CASING_NAME, nominal_casing)):
         on_disk = cq.importers.importStep(os.path.join(E.STEP_DIR, f"{name}.step")).val()
         assert on_disk.Volume() == pytest.approx(fresh.Volume(), rel=1e-5)
@@ -284,6 +286,9 @@ def test_variant_exports_exist_and_match_the_build(variants, key):
     stl = os.path.join(E.STL_DIR, f"{stem}.stl")
     assert os.path.exists(step) and os.path.exists(stl), "run /usr/bin/python3 -m cad.parts.encoder1021 variants"
     fresh = variants[key]
+    if part == "cap":                                                                # the cap variant files on disk are for the Ø6 magnet (superseded record)
+        with E.params_override(ENC1021_MAGNET_D=RECORD_MAGNET_D):
+            fresh = E.build_variant(key).val()
     back = cq.importers.importStep(step).val()
     assert back.isValid() and len(back.Solids()) == 1
     assert back.Volume() == pytest.approx(fresh.Volume(), rel=1e-5)

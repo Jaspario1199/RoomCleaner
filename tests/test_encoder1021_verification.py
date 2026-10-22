@@ -1085,7 +1085,9 @@ def test_6_bridge_stiffness_hand_calc_reproduced(cas):
 # =====================================================================================================================
 def test_7_step_roundtrip_and_stl(cap, cas, tmp_path):
     from cad.parts import encoder1021 as E            # builder's solids (only here)
-    for nm, step_shape, builder, stl_path in (("cap", cap, E.make_magnet_cap().val(), CAP_STL), ("casing", cas, E.make_casing().val(), CAS_STL)):
+    with E.params_override(ENC1021_MAGNET_D=6.0):     # the cap on disk was exported for the Ø6 magnet (before Jasper's 10/22 measurement, Ø4.0): superseded record
+        cap_builder = E.make_magnet_cap().val()
+    for nm, step_shape, builder, stl_path in (("cap", cap, cap_builder, CAP_STL), ("casing", cas, E.make_casing().val(), CAS_STL)):
         bs, ss = builder.BoundingBox(), step_shape.BoundingBox()
         for k in ("xmin", "xmax", "ymin", "ymax", "zmin", "zmax"):
             check("7", f"{nm}: STEP file vs builder bbox {k}", getattr(bs, k), getattr(ss, k), 1e-3)

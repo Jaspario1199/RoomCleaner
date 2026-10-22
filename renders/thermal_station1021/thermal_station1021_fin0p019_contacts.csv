@@ -1,0 +1,24 @@
+body A,body B,contact area mm2,face pairs,planar mm2,cylindrical mm2,overlap mm3,distance mm
+motor_block,slipin_mount,1607.400,1,1607.400,0.000,0.000000,4.71e-10
+motor_block,fin_in,1300.548,1,1300.548,0.000,0.000000,1.58e-14
+fin_in,slipin_mount,1298.552,1,1298.552,0.000,0.000000,1.21e-13
+slipin_mount,insert_deck,73.419,2,0.000,73.419,0.000000,0.00e+00
+slipin_mount,insert_enc_1,49.239,3,5.885,43.354,0.000000,0.00e+00
+slipin_mount,insert_enc_2,49.239,3,5.885,43.354,0.000000,0.00e+00
+slipin_mount,insert_enc_3,49.239,3,5.885,43.354,0.000000,0.00e+00
+slipin_mount,insert_enc_4,49.239,3,5.885,43.354,0.000000,0.00e+00
+motor_block,screw_3,44.768,2,7.069,37.699,0.000000,0.00e+00
+motor_block,screw_4,44.768,2,7.069,37.699,0.000000,0.00e+00
+motor_block,screw_1,44.768,2,7.069,37.699,0.000000,0.00e+00
+motor_block,screw_2,44.768,2,7.069,37.699,0.000000,0.00e+00
+fin_in,fin_out,20.286,1,20.286,0.000,0.000000,2.13e-14
+slipin_mount,screw_2,14.137,1,14.137,0.000,0.000000,1.78e-15
+slipin_mount,screw_4,14.137,1,14.137,0.000,0.000000,1.78e-15
+slipin_mount,screw_1,14.137,1,14.137,0.000,0.000000,1.78e-15
+slipin_mount,screw_3,14.137,1,14.137,0.000,0.000000,1.78e-15
+
+near gaps (not touching),body B,gap mm
+fin_in,screw_1,0.2000
+fin_in,screw_2,0.2000
+fin_in,screw_3,0.2000
+fin_in,screw_4,0.2000

@@ -41,6 +41,9 @@ pytestmark = pytest.mark.skipif(not os.path.isdir(E.REF_DIR), reason="station_10
 
 C0 = E.Cfg()
 INTERFERENCE_TOL_MM3 = 1e-3          # a true face contact leaves < 0.001 mm3 of numerical sliver
+RECORD_MAGNET_D = 6.0                # magnet Ø of the cap exports made before Jasper measured the magnet (10/22: Ø4.0, ENC1021_MAGNET_D): those files stay as the superseded record
+POCKET_D = P.ENC1021_MAGNET_D + P.ENC1021_CAP_POCKET_CLEAR_D     # v1 magnet pocket Ø (4.2 for the Ø4.0 magnet)
+POCKET_R = POCKET_D / 2
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -196,7 +199,7 @@ def test_derived_levels_match_spec():
     assert c.pcb_back_y == pytest.approx(33.85, abs=1e-9)
     assert c.peg_end_y == pytest.approx(22.6, abs=1e-9)
     assert c.frame_front_y == pytest.approx(31.0, abs=1e-9) and c.frame_front_y >= 31.0 - 1e-9
-    assert (c.pocket_d, c.pocket_depth) == (pytest.approx(6.2), pytest.approx(2.55))
+    assert (c.pocket_d, c.pocket_depth) == (pytest.approx(POCKET_D), pytest.approx(P.ENC1021_MAGNET_T + P.ENC1021_CAP_POCKET_EXTRA_DEPTH))
     assert c.head_t == pytest.approx(3.3)
     assert c.pocket_half * 2 == pytest.approx(23.4) and (c.pocket_half + c.wall) * 2 == pytest.approx(27.4)
     assert c.foot_top_x - c.plate_x == pytest.approx(3.0)            # 3 mm proud of the plate face
@@ -294,7 +297,7 @@ def test_cap_bbox_and_volume(cap):
     assert (z0, z1) == (pytest.approx(-7.0, abs=1e-3), pytest.approx(7.0, abs=1e-3))
     assert y0 == pytest.approx(22.6, abs=1e-3) and y1 == pytest.approx(29.3, abs=1e-3)
     v = cap.Volume()
-    assert 450.0 < v < 530.0
+    assert 450.0 < v < 600.0                                                     # 531.9 for the Ø4.0 magnet (490.2 for the Ø6 record)
     print("cap volume %.1f mm3, mass %.2f g (PETG)" % (v, v * P.ENC1021_PETG_G_CM3 / 1000))
 
 
@@ -363,16 +366,16 @@ def test_cap_clear_of_motor_shaft_and_all_other_parts(cap, ref):
 
 
 def test_cap_magnet_pocket_and_face_level(cap_probe, magnet, cap):
-    """Pocket Ø6.2 x 2.55 on the axis, opening toward +y; the magnet face sits flush at y = 29.3 (+-0.05)."""
+    """Pocket Ø(magnet + 0.2) x 2.55 on the axis, opening toward +y; the magnet face sits flush at y = 29.3 (+-0.05)."""
     # top face of the head (r = 5): first solid met from above
     y_top = 31.0 - cap_probe.boundary((5.0, 31.0, 0.0), (0, -1, 0), 8.0)
     assert y_top == pytest.approx(29.3, abs=0.01)
     y_floor = 31.0 - cap_probe.boundary((0.0, 31.0, 0.0), (0, -1, 0), 8.0)           # pocket floor on the axis
     assert y_floor == pytest.approx(26.75, abs=0.01)
     assert y_top - y_floor == pytest.approx(2.55, abs=0.01)
-    for a in (0, 45, 90, 180, 270):                                                   # pocket radius 3.1, centred on the axis
+    for a in (0, 45, 90, 180, 270):                                                   # pocket radius POCKET_R, centred on the axis
         r = cap_probe.boundary((0.0, 28.0, 0.0), (math.cos(math.radians(a)), 0, math.sin(math.radians(a))), 5.0)
-        assert r == pytest.approx(3.1, abs=0.01), a
+        assert r == pytest.approx(POCKET_R, abs=0.01), a
     # reference magnet: glued flush, and the worst case (bottomed in the pocket) is 0.05 lower
     bb = magnet.BoundingBox()
     assert bb.ymax == pytest.approx(29.3, abs=0.05)
@@ -716,14 +719,14 @@ def test_casing_prints_without_supports_over_the_pocket(casing):
 
 def test_cap_prints_without_supports_one_bridge_over_the_pocket(cap):
     """Print orientation: magnet face (y = 29.3) on the bed, peg up.  The only downward face is the pocket floor seen as a
-    ceiling: one 6.2 mm bridge (no supports needed for a bridge this short)."""
+    ceiling: one bridge of the pocket diameter (4.2 mm for the Ø4.0 magnet; no supports needed for a bridge this short)."""
     over = E.overhang_faces(cap, "cap")
     assert len(over) == 1
     o = over[0]
-    assert o["area"] == pytest.approx(math.pi * 3.1 ** 2, rel=0.03)
+    assert o["area"] == pytest.approx(math.pi * POCKET_R ** 2, rel=0.03)
     assert o["print_z"] == pytest.approx(2.55, abs=0.06)
     (lo, hi) = o["bbox"]
-    assert hi[0] - lo[0] == pytest.approx(6.2, abs=0.05)               # bridge span
+    assert hi[0] - lo[0] == pytest.approx(POCKET_D, abs=0.05)          # bridge span
     assert hi[0] - lo[0] <= 8.0
 
 
@@ -773,7 +776,8 @@ def test_exports_are_current(name, part, mk):
     step = os.path.join(E.STEP_DIR, f"{name}.step")
     stl = os.path.join(E.STL_DIR, f"{name}.stl")
     assert os.path.exists(step) and os.path.exists(stl), "run /usr/bin/python3 -m cad.parts.encoder1021"
-    fresh = mk().val()
+    with E.params_override(ENC1021_MAGNET_D=RECORD_MAGNET_D):                           # the v1 cap on disk was exported for the Ø6 magnet (record)
+        fresh = mk().val()
     on_disk = cq.importers.importStep(step).val()
     assert on_disk.Volume() == pytest.approx(fresh.Volume(), rel=1e-5)
     for u, v in zip(_bb(fresh), _bb(on_disk)):

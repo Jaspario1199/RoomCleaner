@@ -4,7 +4,8 @@ RSS 0.44 mm against about 0.25 mm; spec: the lead's task 2026-10-22; parts: cad/
 
 v2 changes (v1, the fit-test variants and their exports are unchanged and re-checked here):
   board pocket   0.25 mm per side + 8 crush ribs (2 per wall, clear of pad rows / hook lips / tabs): rib tip 0.10 inside the board outline
-  magnet pocket  Ø6.3 + 3 crush ribs: tip 0.12 inside the Ø6.0 magnet
+  magnet pocket  Ø(magnet + 0.30) + 3 crush ribs: tip 0.12 inside the magnet.  The magnet is Ø4.0 (Jasper measured 10/22; ENC1021_MAGNET_D): pocket Ø4.3, rib tip r 1.88.
+                 The cap exports made for the earlier Ø6.0 assumption stay on disk as the superseded record and are compared with builds at RECORD_MAGNET_D.
   peg            0.20 high ribs with a 0.45 tip (the rib020 variant), crush 0.10 into the Ø5.30 bore
   foot           23.4 (0.3 per side) + 8 crush bumps that follow the measured divot dish wall, 0.10 interference at every depth they cover
 
@@ -29,11 +30,14 @@ sys.path.insert(0, REPO)
 
 from cad import params as P                                      # noqa: E402
 from cad.parts import encoder1021 as E                           # noqa: E402
-from tests.test_encoder1021 import Probe, _bb, _cyl_faces, _stl_triangles, _vol   # noqa: E402
+from tests.test_encoder1021 import POCKET_D, RECORD_MAGNET_D, Probe, _bb, _cyl_faces, _stl_triangles, _vol   # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.isdir(E.REF_DIR), reason="station_1021 reference parts not available")
 
 TOL = 1e-3                                  # mm3: a true face contact leaves less than this
+MAG_R = P.ENC1021_MAGNET_D / 2              # magnet radius (Ø4.0 measured by Jasper 10/22; the Ø6 exports are the superseded record)
+POCKET_R2 = MAG_R + P.ENC1021_V2_CAP_POCKET_CLEAR_D / 2          # v2 pocket radius (2.15)
+RIB_TIP_R = MAG_R - P.ENC1021_V2_MAGNET_RIB_CRUSH                # rib tip radius = magnet r - crush (1.88)
 C2 = E.Cfg(v2=True)
 EPS = P.ENC1021_V2_RIB_TOL
 RIB_ANGLES = (180, 300, 60)                 # peg and magnet ribs: from +x toward +z
@@ -101,7 +105,7 @@ def test_v1_master_values_are_unchanged():
     assert (P.ENC1021_PCB_CLEAR, P.ENC1021_FOOT_SIZE, P.ENC1021_CAP_RIB_H, P.ENC1021_CAP_RIB_W_TIP,
             P.ENC1021_CAP_POCKET_CLEAR_D, P.ENC1021_HOOK_OVERLAP, P.ENC1021_FLEX_WALL_T) == (0.2, 23.6, 0.15, 0.3, 0.2, 0.4, 1.2)
     c1 = E.Cfg()
-    assert (c1.pocket_half, c1.foot, c1.rib_h, c1.rib_wt, c1.pocket_d) == (pytest.approx(11.7), 23.6, 0.15, 0.3, pytest.approx(6.2))
+    assert (c1.pocket_half, c1.foot, c1.rib_h, c1.rib_wt, c1.pocket_d) == (pytest.approx(11.7), 23.6, 0.15, 0.3, pytest.approx(POCKET_D))
 
 
 @pytest.mark.parametrize("name,key", [(E.CAP_NAME, "cap"), (E.CASING_NAME, "casing"),
@@ -109,7 +113,9 @@ def test_v1_master_values_are_unchanged():
                                       ("encoder1021_casing_foot234", "foot234")])
 def test_v1_and_variant_exports_still_equal_their_builds(name, key):
     """The v1 / variant exports on disk are what the (refactored) v1 builders still produce: zero boolean difference."""
-    fresh = {"cap": E.make_magnet_cap, "casing": E.make_casing}.get(key, lambda: E.build_variant(key))().val()
+    record = E.params_override(ENC1021_MAGNET_D=RECORD_MAGNET_D) if key in ("cap", "rib020", "rib025") else E.params_override()   # the cap files on disk are for the Ø6 magnet (record)
+    with record:
+        fresh = {"cap": E.make_magnet_cap, "casing": E.make_casing}.get(key, lambda: E.build_variant(key))().val()
     disk = cq.importers.importStep(os.path.join(E.STEP_DIR, f"{name}.step")).val()
     assert disk.Volume() == pytest.approx(fresh.Volume(), rel=1e-5)
     assert fresh.cut(disk).Volume() < 0.01 and disk.cut(fresh).Volume() < 0.01
@@ -127,7 +133,7 @@ def test_cap2_is_one_valid_solid_with_the_v1_envelope(cap2, cap1):
     assert _bb(cap2) == pytest.approx(_bb(cap1), abs=1e-6)                 # 14 x 6.7 x 14, y 22.6 .. 29.3
     v = cap2.Volume()
     print("cap v2 volume %.1f mm3, %.2f g" % (v, v * P.ENC1021_PETG_G_CM3 / 1000))
-    assert 470.0 < v < 500.0
+    assert 480.0 < v < 560.0                                               # 531.9 for the Ø4.0 magnet (487 for the Ø6 record)
 
 
 def test_cap2_magnet_pocket_and_levels_unchanged(pc2):
@@ -137,17 +143,17 @@ def test_cap2_magnet_pocket_and_levels_unchanged(pc2):
     assert y_floor == pytest.approx(26.75, abs=0.01) and y_top - y_floor == pytest.approx(2.55, abs=0.01)
     assert 20.0 + pc2.boundary((0.0, 20.0, 0.0), (0, 1, 0), 5.0) == pytest.approx(22.6, abs=0.01)     # peg end
     assert 20.0 + pc2.boundary((5.0, 20.0, 0.0), (0, 1, 0), 9.0) == pytest.approx(26.0, abs=0.01)     # head underside
-    for a in (0, 120, 240):                                                # between the ribs: pocket Ø6.3
-        assert pc2.boundary((0.0, 28.0, 0.0), _ray(a), 5.0, 0.01) == pytest.approx(3.15, abs=0.005), a
+    for a in (0, 120, 240):                                                # between the ribs: pocket Ø(magnet + 0.30) = Ø4.3
+        assert pc2.boundary((0.0, 28.0, 0.0), _ray(a), 5.0, 0.01) == pytest.approx(POCKET_R2, abs=0.005), a
 
 
 def test_cap2_three_magnet_ribs_centre_the_magnet(pc2, magnet):
-    """3 ribs at 60 / 180 / 300 deg: tip radius 2.88 = magnet r 3.0 - 0.12 crush, tip at least 0.45 wide, full pocket depth."""
+    """3 ribs at 60 / 180 / 300 deg: tip radius = magnet r - 0.12 crush (1.88 for the Ø4.0 magnet), tip at least 0.45 wide, full pocket depth."""
     for y in (26.9, 27.5, 28.2, 29.0):
         for a in RIB_ANGLES:
             r = pc2.boundary((0.0, y, 0.0), _ray(a), 5.0, 0.005)
-            assert r == pytest.approx(2.88, abs=0.005), (y, a, r)
-            assert 3.0 - r == pytest.approx(0.12, abs=0.005)                # crush on the Ø6.0 magnet
+            assert r == pytest.approx(RIB_TIP_R, abs=0.005), (y, a, r)
+            assert MAG_R - r == pytest.approx(0.12, abs=0.005)              # crush on the magnet
             ca, sa = _ray(a)[0], _ray(a)[2]
             tang = (-sa, 0.0, ca)
             p0 = ((r + 0.01) * ca, y, (r + 0.01) * sa)                      # just outside the tip, inside the rib
@@ -156,14 +162,14 @@ def test_cap2_three_magnet_ribs_centre_the_magnet(pc2, magnet):
     # exactly three ribs (angular scan), equally spaced, nothing else narrows the pocket
     prev, starts = False, []
     for a in np.arange(0.0, 360.0, 0.5):
-        inrib = pc2.boundary((0.0, 28.0, 0.0), _ray(a), 5.0, 0.01) < 3.1
+        inrib = pc2.boundary((0.0, 28.0, 0.0), _ray(a), 5.0, 0.01) < (POCKET_R2 + RIB_TIP_R) / 2
         if inrib and not prev:
             starts.append(a)
         prev = inrib
     assert len(starts) == 3 and np.allclose(np.diff(starts), 120.0, atol=1.0)
     # lead-in at the mouth: the rib ramps down to the wall over its height (45 deg), so the magnet enters
-    assert pc2.boundary((0.0, 29.29, 0.0), _ray(60), 5.0, 0.005) > 3.0 + 0.1
-    assert pc2.boundary((0.0, 29.3 - 0.27 - 0.02, 0.0), _ray(60), 5.0, 0.005) == pytest.approx(2.88, abs=0.005)
+    assert pc2.boundary((0.0, 29.29, 0.0), _ray(60), 5.0, 0.005) > MAG_R + 0.1
+    assert pc2.boundary((0.0, 29.3 - 0.27 - 0.02, 0.0), _ray(60), 5.0, 0.005) == pytest.approx(RIB_TIP_R, abs=0.005)
 
 
 def test_cap2_magnet_crush_is_the_three_ribs_only(cap2, magnet):
@@ -481,8 +487,8 @@ def test_cap2_prints_without_supports_one_bridge(cap2):
     assert len(over) == 1
     o = over[0]
     assert o["print_z"] == pytest.approx(2.55, abs=0.06)
-    assert 28.0 < o["area"] < math.pi * 3.15 ** 2
-    assert o["bbox"][1][0] - o["bbox"][0][0] == pytest.approx(6.3, abs=0.06)           # bridge span: the Ø6.3 pocket floor (ribs lie on it)
+    assert 0.7 * math.pi * POCKET_R2 ** 2 < o["area"] < math.pi * POCKET_R2 ** 2
+    assert o["bbox"][1][0] - o["bbox"][0][0] == pytest.approx(2 * POCKET_R2, abs=0.06)  # bridge span: the pocket floor disc Ø4.3 (the ribs lie on it)
 
 
 def test_print_pose_bboxes_v2(cap2, cas2):
@@ -524,7 +530,7 @@ def test_stackup_inputs_are_the_measured_geometry(cas2, pk2, cap2, pc2):
         assert crush >= 2 * EPS - 1e-9, name
     # and the measured ones equal the design ones
     assert 11.5 - pk2.boundary((6.5, 33.0, 0.0), (0, 0, 1), 14.0, 0.005) == pytest.approx(0.10, abs=0.006)
-    assert 3.0 - pc2.boundary((0.0, 28.0, 0.0), _ray(60), 5.0, 0.005) == pytest.approx(0.12, abs=0.006)
+    assert MAG_R - pc2.boundary((0.0, 28.0, 0.0), _ray(60), 5.0, 0.005) == pytest.approx(0.12, abs=0.006)
 
 
 def test_pins_would_be_slightly_worse_and_cost_two_screws():
@@ -554,7 +560,9 @@ def test_v2_step_round_trip_and_stl(name, part, mk, tmp_path):
     step, stl = os.path.join(E.STEP_DIR, f"{name}.step"), os.path.join(E.STL_DIR, f"{name}.stl")
     assert os.path.exists(step) and os.path.exists(stl), "run /usr/bin/python3 -m cad.parts.encoder1021 v2"
     disk = cq.importers.importStep(step).val()
-    assert disk.Volume() == pytest.approx(fresh.Volume(), rel=1e-5) and fresh.cut(disk).Volume() < 0.01 and disk.cut(fresh).Volume() < 0.01
+    with (E.params_override(ENC1021_MAGNET_D=RECORD_MAGNET_D) if part == "cap" else E.params_override()):      # the v2 cap on disk is for the Ø6 magnet (superseded record)
+        fresh_disk = mk(v2=True).val()
+    assert disk.Volume() == pytest.approx(fresh_disk.Volume(), rel=1e-5) and fresh_disk.cut(disk).Volume() < 0.01 and disk.cut(fresh_disk).Volume() < 0.01
     tris = _stl_triangles(stl)
     key = np.round(tris.reshape(-1, 3) * 1e4).astype(np.int64)
     _, inv = np.unique(key, axis=0, return_inverse=True)
@@ -563,8 +571,8 @@ def test_v2_step_round_trip_and_stl(name, part, mk, tmp_path):
     _, counts = np.unique(edges, axis=0, return_counts=True)
     assert np.all(counts == 2), "STL not watertight"
     vol = abs(np.sum(np.einsum("ij,ij->i", tris[:, 0], np.cross(tris[:, 1], tris[:, 2]))) / 6.0)
-    assert vol == pytest.approx(fresh.Volume(), rel=0.01)
-    pp = E.to_print_pose(fresh, part).BoundingBox()
+    assert vol == pytest.approx(fresh_disk.Volume(), rel=0.01)
+    pp = E.to_print_pose(fresh_disk, part).BoundingBox()
     lo, hi = tris.reshape(-1, 3).min(axis=0), tris.reshape(-1, 3).max(axis=0)
     assert lo == pytest.approx([0, 0, 0], abs=0.02) and lo[2] == pytest.approx(0.0, abs=1e-4)
     assert hi == pytest.approx([pp.xlen, pp.ylen, pp.zlen], abs=0.02)

@@ -520,7 +520,7 @@ content("Thermal Verification", [
 "If the calculation, simulation and test disagree, I fit the convection coefficient and the coil resistance, not the physics.");
 
 // ================================================================================================ RESULTS AND LESSONS
-section("Results and Lessons");
+section("Results and Takeaways");
 {
   const sl = blank("Results Against Targets");
   const NOT = { text: "Not met", color: HEX.red, bold: true };
@@ -571,16 +571,23 @@ content("Thorough vs. Scrappy", [
 "circuit to an ESP32 dev board with nine jumpers and a compile-time pin map instead of redesigning the board. The floor board is paper because accuracy comes from " +
 "seeing several tags, not from the board. The prototype fin is the 0.019 in sheet I already had.");
 
-content("Lessons Learned", [
-  "Set the mass budget first, from the measured winch pull",
-  "Prove one station before building the rest",
-  "Print fit coupons before full parts",
-  "In half the time: freeze requirements in week 1 and order long-lead parts on day 1",
+content("Takeaways and Next Steps", [
+  "Takeaways",
+  "- Set the mass budget first, from the measured winch pull",
+  "- Prove one station before building the rest",
+  "- In half the time: freeze requirements in week 1, order long-lead parts on day 1",
+  "Next steps",
+  "- Pull test and weigh the claw, then choose a lighter claw or winch gears",
+  "- 90-minute hold test at 1.5 A with the 1/8 in fin",
+  "- Three-station test, then add the fourth station",
 ], (sl, x, y, w, h) => scheduleBars(sl, x, y + 1.5, w),
-"What I would do differently: weigh the claw and set its budget from the measured pull before designing it; one complete station tested end to end before building more; " +
+"Takeaways: weigh the claw and set its budget from the measured pull before designing it; one complete station tested end to end before building more; " +
 "coupons before every new fit; a meter on every rail before debugging code. Half the time: most lost time was the redesign and the generations a frozen requirement " +
-"and an early test would have avoided. Three stations are statically determinate and need fewer parts for the first test.",
-{ figW: 7.4 });
+"and an early test would have avoided; the chart compares the actual 15 weeks with a 7-week plan on the same scale. " +
+"Next steps, in order: the luggage-scale pull test turns the 0.7 running-torque assumption into a measurement, and with the weighed claw it decides between a lighter claw " +
+"and a 2:1 or 3:1 gear stage at each winch (which also lets the current drop back to about 1 A). Then machine the 1/8 in fin, widen the shell slot about 1 mm, " +
+"and run the SolidWorks study and the 90-minute hold test. Then the three-station test with 1 lb, one garment, and the fourth station.",
+{ figW: 7.4, space: 8 });
 
 {
   pres.addSection({ title: "Close" });

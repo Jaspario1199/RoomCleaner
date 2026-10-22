@@ -47,11 +47,13 @@ T_PROD, T_PROTO = 3.175, 0.483          # spec values typed here on purpose (ind
 RESULTS: list[dict] = []
 
 
-def chk(cid: str, item: str, expected, measured, tol, ok: bool | None = None, note: str = "") -> bool:
-    """Record one check. expected/measured are numbers (|m - e| <= tol decides) or strings (ok given explicitly)."""
+def chk(cid: str, item: str, expected, measured, tol, ok: bool | None = None, note: str = "", info: bool = False) -> bool:
+    """Record one check. expected/measured are numbers (|m - e| <= tol decides) or strings (ok given explicitly).
+    info=True records an OBSERVATION (status NOTE): a measured fact that is not a requirement, reported to the lead."""
     if ok is None:
         ok = abs(float(measured) - float(expected)) <= tol
-    RESULTS.append(dict(id=cid, item=item, expected=expected, measured=measured, tol=tol, status="PASS" if ok else "FAIL", note=note))
+    status = "NOTE" if info else ("PASS" if ok else "FAIL")
+    RESULTS.append(dict(id=cid, item=item, expected=expected, measured=measured, tol=tol, status=status, note=note))
     return ok
 
 
@@ -363,6 +365,11 @@ def section2():
                 worst, worst_pair = v, (na, nb)
             if sa.distance(sb) < 1e-6:
                 touching.append((na, nb))
+        worst2 = 0.0
+        for (na, sa), (nb, sb) in itertools.combinations(items, 2):
+            if bb_near(sa, sb):
+                worst2 = max(worst2, abs(sa.Volume() + sb.Volume() - sa.fuse(sb).Volume()))
+        chk("2.2b", f"{tag} second method: max |V_a + V_b - V(fuse)| over the bbox-near pairs (mm3, limit 0.01)", 0.0, worst2, 0.01)
         chk("2.2", f"{tag} max pairwise overlap volume over {len(items) * (len(items) - 1) // 2} pairs ({npairs} bbox-near) (mm3, limit 0.01)", 0.0, worst, 0.01, note=f"worst pair {worst_pair}")
         # ---- slip-in unchanged vs the reference
         chk("2.3a", f"{tag} slipin_mount == reference Slipin_mount_piecev3 (+O): volume and symmetric difference (mm3)", 0.0,
@@ -535,23 +542,31 @@ def section2b():
         b = station(key)
         mot = [n for n in b if n in ("motor_block", "front_cap", "stator", "winding", "rear_cap", "shaft", "connector")]
         dist = min(b[n].distance(shell) for n in mot if n != "shaft")
-        chk("2.11e", f"[{key}] motor bodies (excl. shaft) minimum distance to the shell (mm; builder: 1.9)", 1.9, round(dist, 4), 0.05)
+        chk("2.11e", f"[{key}] motor bodies (excl. shaft) minimum distance to the shell (mm; clears the shell; builder: 1.9 for the 1/8 in stack)", ">= 1.0 (1.915 for 1/8 in)", round(dist, 4), 0.0,
+            ok=dist >= 1.0 and (abs(dist - 1.915) < 0.05 if key != "fin0p019" else True))
         chk("2.11f", f"[{key}] overlap of slipin_mount / inserts / screws / motor bodies with the shell (mm3)", 0.0, max(overlap_vol(b[n], shell) for n in b if not n.startswith("fin")), 0.01)
     # shaft vs spool bore in the detailed station
     d = station("detailed_fin1p8")
-    chk("2.11g", "[detailed_fin1p8] shaft / spool overlap and shaft end y (design; expected 20.825) (mm3 / mm)", "0 / 20.825",
-        f"{overlap_vol(d['shaft'], spool):.5f} / {bbox6(d['shaft'])[3] - Y0:.4f}", 0.01, ok=overlap_vol(d["shaft"], spool) < 0.01 and abs(bbox6(d["shaft"])[3] - Y0 - 20.825) < 0.005)
+    ref_shaft = [x for x in load(REF / "Motor_Reference.step").Solids() if x.Volume() < 1000][0].translate(O)
+    chk("2.11g", "[detailed_fin1p8] shaft end y (design; expected 20.825) (mm); shaft vs Jasper's spool (not in the export): OBSERVATION, plain round Ø5 shaft (no D-flat) overlaps the spool bore profile; Jasper's own reference shaft (with its D-flat) overlaps the same spool too",
+        "20.825", f"end {bbox6(d['shaft'])[3] - Y0:.4f}; detailed shaft/spool overlap {overlap_vol(d['shaft'], spool):.3f} mm3; reference Motor_Reference shaft/spool overlap {overlap_vol(ref_shaft, spool):.3f} mm3; reference shaft volume {ref_shaft.Volume():.1f} vs round {math.pi * 6.25 * 24:.1f} mm3",
+        0.01, ok=abs(bbox6(d["shaft"])[3] - Y0 - 20.825) < 0.005, info=True)
     shaft_in_bore = bbox6(d["shaft"])[3] - Y0 - 7.0
     chk("2.11h", "[detailed_fin1p8] shaft engagement in the spool bore (y 7 .. shaft end) (mm; spec 13.8)", 13.8, round(shaft_in_bore, 3), 0.05)
     # contact CSV (builder) vs my fuse-area measurement
     for key in ("fin1p8", "fin0p019", "detailed_fin1p8"):
         rows = {}
+        gaps = {}
         with open(ROOT / "renders" / "thermal_station1021" / f"thermal_station1021_{key}_contacts.csv") as fh:
+            section = "contacts"
             for line in csv.reader(fh):
-                if not line or line[0].startswith("near gaps") or line[0] == "body A":
+                if not line or line[0] == "body A":
+                    continue
+                if line[0].startswith("near gaps"):
+                    section = "gaps"
                     continue
                 if len(line) >= 3 and line[2].replace(".", "", 1).isdigit():
-                    rows[tuple(sorted(line[:2]))] = float(line[2])
+                    (rows if section == "contacts" else gaps)[tuple(sorted(line[:2]))] = float(line[2])
         b = station(key)
         pairs = set(STATION_TOUCH.get(key, []))
         okc = pairs == set(rows)
@@ -564,12 +579,16 @@ def section2b():
                 worst, worst_pair = dd, pr
         chk("2.12", f"[{key}] touching pairs and contact areas: my {len(pairs)} touching pairs vs the builder's {len(rows)}-row contact CSV (set equality; worst area difference mm2)",
             "same pairs, areas within 0.01", f"same set={okc}; extra mine={sorted(pairs - set(rows))}; missing={sorted(set(rows) - pairs)}; worst |dA|={worst:.4f} {worst_pair}", 0.01, ok=okc and worst < 0.01)
+        gp = {pr: round(b[pr[0]].distance(b[pr[1]]), 4) for pr in gaps}
+        chk("2.12b", f"[{key}] builder's near-gap list (not touching) is true: measured distances (mm) vs the CSV", gaps, gp, 0.002, ok=all(abs(gp[k] - gaps[k]) < 0.002 for k in gaps) and all(k not in pairs for k in gaps))
     # body-table CSV volumes
     for key in ("fin1p8", "fin0p019", "detailed_fin1p8"):
         b = station(key)
         with open(ROOT / "renders" / "thermal_station1021" / f"thermal_station1021_{key}_bodies.csv") as fh:
             rd = [r for r in csv.reader(fh)]
         tab = {r[0]: float(r[4]) for r in rd[1:] if r and r[0] not in ("total", "") and r[4]}
+        massdev = max(abs(float(r[5]) - float(r[4]) * float(r[3]) / 1000.0) for r in rd[1:] if r and r[0] not in ("total", "") and r[4])
+        chk("2.13b", f"[{key}] body table mass = volume x density (max |dm| g)", 0.0, massdev, 0.01)
         dev = max(abs(tab[k] - b[k].Volume()) for k in tab if k in b)
         chk("2.13", f"[{key}] body table volumes vs measured (max |dV| mm3, over {len(tab)} rows; every body listed={set(tab) == set(b)})", 0.0, dev, 0.01, ok=dev < 0.01 and set(tab) == set(b))
     # engagement arithmetic of the claims (screw length - tab - fin)
@@ -768,10 +787,11 @@ def section4():
         chk("4.8b", f"[{k}] STL volume vs STEP (relative; tessellated, tol 1 %)", 0.0, abs(vol - caps[k].Volume()) / caps[k].Volume(), 0.01)
         chk("4.8c", f"[{k}] STL closed manifold (bad edges)", 0, bad, 0)
         # peg up: the highest vertices are the peg (radius <= 2.6 about the axis); pocket opens at z=0: vertices at r=2.15 exist at z in 0..2.55
+        cx, cy = (mb_[0] + mb_[1]) / 2, (mb_[2] + mb_[3]) / 2                       # print-frame axis = bbox centre (head is round, Ø14)
         top = tri[:, :, 2] > mb_[5] - 0.01
-        rr = np.hypot(tri[:, :, 0][top], tri[:, :, 1][top])
+        rr = np.hypot(tri[:, :, 0][top] - cx, tri[:, :, 1][top] - cy)
         pocket_v = tri.reshape(-1, 3)
-        pr = np.hypot(pocket_v[:, 0], pocket_v[:, 1])
+        pr = np.hypot(pocket_v[:, 0] - cx, pocket_v[:, 1] - cy)
         sel = (np.abs(pr - 2.15) < 0.02) & (pocket_v[:, 2] < 0.05)
         chk("4.8d", f"[{k}] STL orientation: peg end at top (z max, radius <= 2.6), pocket rim (r 2.15) on the bed (z 0)", True, bool(rr.max() < 2.6 and sel.sum() > 6), 0, ok=bool(rr.max() < 2.6 and sel.sum() > 6))
     # rebuild currency check
@@ -804,6 +824,9 @@ def section5():
             continue
         s = load(path)
         bb = bbox6(s)
+        txt = path.read_bytes()[:200000].decode("latin-1")
+        mm = "SI_UNIT(.MILLI.,.METRE.)" in txt.replace(" ", "")
+        chk("5.0b", f"{stem}: STEP length unit is millimetre", True, mm, 0, ok=mm)
         shapes_ok = is_valid(s) and all(is_valid(x) for x in s.Solids())
         shells_ok = all(len(x.Shells()) == 1 for x in s.Solids())
         out = tmp / f"{stem}_rt.step"
@@ -827,15 +850,17 @@ def section5():
 def controls():
     """Negative controls: the detectors used above must fire on a deliberately broken input (nothing on disk is touched)."""
     b = station("fin1p8")
-    sc = b["screw_1"].translate(cq.Vector(0, 0.1, 0))             # head pushed 0.1 mm into the tab
+    sc = b["screw_1"].translate(cq.Vector(0, -0.1, 0))            # head pushed 0.1 mm into the tab (the tab face is the head's underside at -y)
     v = overlap_vol(sc, b["slipin_mount"])
-    chk("9.1", "control: screw_1 moved +0.1 mm in y must show overlap with the slip-in (head annulus 14.137 x 0.1 = 1.41 mm3)", 1.414, round(v, 3), 0.05)
+    chk("9.1", "control: screw_1 moved -0.1 mm in y must show overlap with the slip-in (head annulus 14.137 x 0.1 = 1.41 mm3)", 1.414, round(v, 3), 0.05)
+    chk("9.1b", "control: same displaced screw also overlaps the motor hole bottom (pi x 1.5^2 x 0.1 = 0.71 mm3)", 0.707, round(overlap_vol(sc, b["motor_block"]), 3), 0.05)
     sc2 = b["screw_1"].translate(cq.Vector(0.15, 0, 0))           # shank off-axis by 0.15 mm toward the fin hole wall (gap 0.2 -> 0.05)
     chk("9.2", "control: screw_1 shifted 0.15 mm in x: shank-to-fin distance must drop to ~0.05", 0.05, round(sc2.distance(b["fin_in"]), 3), 0.01)
     cap = load(STEP / "encoder1021_magnet_cap_v2_m4.step")
     ideal = cq.Solid.makeCylinder(2.5, 60.0, cq.Vector(0, 23.517 - 60.0, 0), cq.Vector(0, 1, 0))
     chk("9.3", "control: standard cap (end 22.6) vs the 23.517 shaft must collide (>5 mm3)", "> 5", round(overlap_vol(cap, ideal), 2), 0, ok=overlap_vol(cap, ideal) > 5)
-    chk("9.4", "control: contact_area() of two bodies 1 mm apart is 0", 0.0, round(contact_area(b["fin_out"], b["motor_block"].translate(cq.Vector(0, 0, 100))), 6), 1e-6)
+    chk("9.4", "control: contact_area() of two bodies 300 mm apart is 0", 0.0, round(contact_area(b["fin_out"], b["motor_block"].translate(cq.Vector(300, 0, 0))), 6), 1e-6)
+    chk("9.5", "control: contact_area() of the real motor_block / fin_in pair = 1300.55 (the detector sees a true contact)", 1300.548, round(contact_area(b["fin_in"], b["motor_block"]), 3), 0.01)
     return {}
 
 

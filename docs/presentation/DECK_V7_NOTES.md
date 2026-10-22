@@ -57,7 +57,7 @@ The numbers are the same as v5 and v6 (1.5 A). v1 to v6 are kept unchanged.
 | 26 | Results Against Targets | table | closes the loop on slide 3 |
 | 27 | Good and Poor Decisions | two tables | panel brief |
 | 28 | Thorough vs. Scrappy | mill photo and ESP32 board | panel brief |
-| 29 | Lessons Learned | actual vs half-time schedule | panel brief |
+| 29 | Takeaways and Next Steps | actual vs half-time schedule | panel brief (lessons, half the time) plus the next steps; replaced Lessons Learned at Jasper's request |
 | 30 | Questions | | |
 
 **Appendix (31 to 38):**

@@ -1,0 +1,4199 @@
+[
+ {
+  "id": "1.0a",
+  "item": "Heat_horn y=0 outline vertices (x,z), design frame",
+  "expected": [
+   [
+    -20.0,
+    -18.36
+   ],
+   [
+    -20.0,
+    177.24
+   ],
+   [
+    22.0,
+    -18.36
+   ],
+   [
+    22.0,
+    210.24
+   ]
+  ],
+  "measured": [
+   [
+    -20.0,
+    -18.36
+   ],
+   [
+    -20.0,
+    177.24
+   ],
+   [
+    22.0,
+    -18.36
+   ],
+   [
+    22.0,
+    210.24
+   ]
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.0b",
+  "item": "reference outline edge: bottom (mm)",
+  "expected": 42.0,
+  "measured": 42.0,
+  "tol": 0.02,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.0b",
+  "item": "reference outline edge: left (mm)",
+  "expected": 195.6,
+  "measured": 195.6,
+  "tol": 0.02,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.0b",
+  "item": "reference outline edge: right (mm)",
+  "expected": 228.6,
+  "measured": 228.6,
+  "tol": 0.02,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.0b",
+  "item": "reference outline edge: top (slanted) (mm)",
+  "expected": 53.4,
+  "measured": 53.413,
+  "tol": 0.02,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.1",
+  "item": "flat 1p8: single valid solid",
+  "expected": "1 solid, valid",
+  "measured": "1 solid(s), valid=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.1",
+  "item": "asm 1p8: single valid solid",
+  "expected": "1 solid, valid",
+  "measured": "1 solid(s), valid=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.1",
+  "item": "asm 0p019: single valid solid",
+  "expected": "1 solid, valid",
+  "measured": "1 solid(s), valid=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.2a",
+  "item": "asm 1p8 thickness (y extent, mm)",
+  "expected": 3.175,
+  "measured": 3.175000000000068,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.2b",
+  "item": "asm 0p019 thickness (y extent, mm)",
+  "expected": 0.483,
+  "measured": 0.48300000000006094,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.2c",
+  "item": "flat 1p8 thickness (z extent, mm)",
+  "expected": 3.175,
+  "measured": 3.1750000000003906,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.3a",
+  "item": "flat bbox X extent",
+  "expected": 42.0,
+  "measured": 42.00000000000674,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.3b",
+  "item": "flat bbox Y extent",
+  "expected": 228.6,
+  "measured": 228.60000000001898,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.3c",
+  "item": "flat bbox Z extent",
+  "expected": 3.175,
+  "measured": 3.1750000000003906,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.3d",
+  "item": "flat bbox min corner (origin at bottom-left of the 42 mm edge)",
+  "expected": [
+   0,
+   0,
+   0
+  ],
+  "measured": [
+   -0.0,
+   -0.0,
+   -0.0
+  ],
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.3e",
+  "item": "flat orientation: material at (41,220), none at (1,220); material at (1,190)",
+  "expected": "True/False/True",
+  "measured": "True/False/True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.4",
+  "item": "flat fin holes: \u00d822.5 at (20.0, 21.0) and 4 x \u00d83.4 at (20+-15.5, 21+-15.5), all through 0..3.175 (tol 0.01)",
+  "expected": [
+   [
+    22.5,
+    20.0,
+    21.0
+   ],
+   [
+    3.4,
+    4.5,
+    5.5
+   ],
+   [
+    3.4,
+    4.5,
+    36.5
+   ],
+   [
+    3.4,
+    35.5,
+    5.5
+   ],
+   [
+    3.4,
+    35.5,
+    36.5
+   ]
+  ],
+  "measured": [
+   [
+    3.4,
+    4.5,
+    5.5,
+    -0.0,
+    3.175
+   ],
+   [
+    3.4,
+    4.5,
+    36.5,
+    -0.0,
+    3.175
+   ],
+   [
+    3.4,
+    35.5,
+    5.5,
+    -0.0,
+    3.175
+   ],
+   [
+    3.4,
+    35.5,
+    36.5,
+    -0.0,
+    3.175
+   ],
+   [
+    22.5,
+    20.0,
+    21.0,
+    -0.0,
+    3.175
+   ]
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.4b",
+  "item": "every Heat_horn reference hole has a matching hole (same \u00d8, centre within 0.01) in the flat fin",
+  "expected": "5/5",
+  "measured": "5/5",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.4c",
+  "item": "asm 1p8: hole centres in the station frame (\u00d822.5 on x 0 / z 2.64; \u00d83.4 on 31 mm square)",
+  "expected": "5 holes",
+  "measured": [
+   [
+    3.4,
+    -15.5,
+    -12.86
+   ],
+   [
+    3.4,
+    -15.5,
+    18.14
+   ],
+   [
+    3.4,
+    15.5,
+    -12.86
+   ],
+   [
+    3.4,
+    15.5,
+    18.14
+   ],
+   [
+    22.5,
+    -0.0,
+    2.64
+   ]
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.4c",
+  "item": "asm 0p019: hole centres in the station frame (\u00d822.5 on x 0 / z 2.64; \u00d83.4 on 31 mm square)",
+  "expected": "5 holes",
+  "measured": [
+   [
+    3.4,
+    -15.5,
+    -12.86
+   ],
+   [
+    3.4,
+    -15.5,
+    18.14
+   ],
+   [
+    3.4,
+    15.5,
+    -12.86
+   ],
+   [
+    3.4,
+    15.5,
+    18.14
+   ],
+   [
+    22.5,
+    -0.0,
+    2.64
+   ]
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.5a",
+  "item": "asm 1p8 y=0 face plane y vs original assembly Heat_horn y=0 face (mm)",
+  "expected": 738.7616451304033,
+  "measured": 738.7616451304,
+  "tol": 0.0001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.5b",
+  "item": "asm 1p8 y=0 face area (mm2) vs original face",
+  "expected": 8474.275368704546,
+  "measured": 8474.27536867929,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.5c",
+  "item": "common area of the two faces (mm2) = full original face",
+  "expected": 8474.275368704546,
+  "measured": 8474.27536867929,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.5d",
+  "item": "asm 0p019 y=0 face plane y vs original assembly Heat_horn y=0 face (mm)",
+  "expected": 738.7616451304033,
+  "measured": 738.7616451304,
+  "tol": 0.0001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.5e",
+  "item": "asm 0p019 common face area with original y=0 face (mm2)",
+  "expected": 8474.275368704546,
+  "measured": 8474.27536867929,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.5f",
+  "item": "asm 1p8: fin y=0 face minus original face, and original minus fin (mm2)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.6",
+  "item": "flat 1p8: volume = reference face area x t (mm3)",
+  "expected": 26905.824295633804,
+  "measured": 26905.82429563178,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.6",
+  "item": "asm 1p8: volume = reference face area x t (mm3)",
+  "expected": 26905.824295633804,
+  "measured": 26905.824295618633,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.6",
+  "item": "asm 0p019: volume = reference face area x t (mm3)",
+  "expected": 4093.0750030838194,
+  "measured": 4093.0750030811255,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.7a",
+  "item": "STL bbox == flat STEP bbox (max abs diff, mm)",
+  "expected": 0.0,
+  "measured": 6.195626667704346e-06,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.7b",
+  "item": "STL (mesh) volume vs STEP volume (relative; tessellated holes, tol 0.3 %)",
+  "expected": 0.0,
+  "measured": 2.1276170739521626e-05,
+  "tol": 0.003,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.7c",
+  "item": "STL closed manifold (edges not shared by exactly 2 triangles)",
+  "expected": 0,
+  "measured": 0,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.7d",
+  "item": "STL surface area vs STEP surface area (relative, tol 0.3 %)",
+  "expected": 0.0,
+  "measured": 1.7034011733638898e-05,
+  "tol": 0.003,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.7e",
+  "item": "STL vertices lie on the STEP surface (max distance of 250 sampled vertices, mm)",
+  "expected": 0.0,
+  "measured": 1.0092983970565814e-05,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.7f",
+  "item": "STL facet normals agree with the winding",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.8a",
+  "item": "DXF units ($INSUNITS 4 = mm)",
+  "expected": 4,
+  "measured": 4,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.8b",
+  "item": "DXF entities: 1 closed outline polyline + 5 circles",
+  "expected": "1 poly + 5 circles",
+  "measured": "1 poly + 5 circles {'LWPOLYLINE': 1, 'CIRCLE': 5, 'LINE': 10}",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.8c",
+  "item": "DXF outline vertices == flat-frame outline",
+  "expected": [
+   [
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    195.6
+   ],
+   [
+    42.0,
+    0.0
+   ],
+   [
+    42.0,
+    228.6
+   ]
+  ],
+  "measured": [
+   [
+    -0.0,
+    -0.0
+   ],
+   [
+    -0.0,
+    195.6
+   ],
+   [
+    42.0,
+    -0.0
+   ],
+   [
+    42.0,
+    228.6
+   ]
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.8d",
+  "item": "DXF circles (\u00d8, X, Y) == flat STEP holes (tol 0.005)",
+  "expected": [
+   [
+    3.4,
+    4.5,
+    5.5
+   ],
+   [
+    3.4,
+    4.5,
+    36.5
+   ],
+   [
+    3.4,
+    35.5,
+    5.5
+   ],
+   [
+    3.4,
+    35.5,
+    36.5
+   ],
+   [
+    22.5,
+    20.0,
+    21.0
+   ]
+  ],
+  "measured": [
+   [
+    3.4,
+    4.5,
+    5.5
+   ],
+   [
+    3.4,
+    4.5,
+    36.5
+   ],
+   [
+    3.4,
+    35.5,
+    5.5
+   ],
+   [
+    3.4,
+    35.5,
+    36.5
+   ],
+   [
+    22.5,
+    20.0,
+    21.0
+   ]
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "1.8e",
+  "item": "DXF net area (outline - holes) vs STEP face area (mm2)",
+  "expected": 8474.27536870356,
+  "measured": 8474.275368704542,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.1a",
+  "item": "[fin1p8] component names == spec list (13 bodies)",
+  "expected": [
+   "fin_in",
+   "fin_out",
+   "insert_deck",
+   "insert_enc_1",
+   "insert_enc_2",
+   "insert_enc_3",
+   "insert_enc_4",
+   "motor_block",
+   "screw_1",
+   "screw_2",
+   "screw_3",
+   "screw_4",
+   "slipin_mount"
+  ],
+  "measured": [
+   "fin_in",
+   "fin_out",
+   "insert_deck",
+   "insert_enc_1",
+   "insert_enc_2",
+   "insert_enc_3",
+   "insert_enc_4",
+   "motor_block",
+   "screw_1",
+   "screw_2",
+   "screw_3",
+   "screw_4",
+   "slipin_mount"
+  ],
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.1b",
+  "item": "[fin1p8] component count / duplicate names",
+  "expected": "13 / none",
+  "measured": "13 / none",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.1c",
+  "item": "[fin1p8] every component = one valid solid; whole file solid count = component count",
+  "expected": "13 solids, all valid",
+  "measured": "13 solids; valid=True; solids per component=[1]",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.2b",
+  "item": "[fin1p8] second method: max |V_a + V_b - V(fuse)| over the bbox-near pairs (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.00019628694280982018,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.2",
+  "item": "[fin1p8] max pairwise overlap volume over 78 pairs (22 bbox-near) (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": "worst pair None"
+ },
+ {
+  "id": "2.3a",
+  "item": "[fin1p8] slipin_mount == reference Slipin_mount_piecev3 (+O): volume and symmetric difference (mm3)",
+  "expected": 0.0,
+  "measured": 1.4599179849028587e-05,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4a",
+  "item": "[fin1p8] fin_in + fin_out volume == whole fin (mm3)",
+  "expected": 26905.824295618633,
+  "measured": 26905.824295620423,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4b",
+  "item": "[fin1p8] fin_in U fin_out == exported whole fin: symmetric difference (mm3)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4c",
+  "item": "[fin1p8] split plane z, from fin_in top (station frame, spec 31.16 +- 0.05)",
+  "expected": 31.16,
+  "measured": 31.160000000000082,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4d",
+  "item": "[fin1p8] fin_out bottom == fin_in top (mm)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.0001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4e",
+  "item": "[fin1p8] split contact area fin_in/fin_out = 42 x t (mm2)",
+  "expected": 133.35,
+  "measured": 133.34999999999854,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4f",
+  "item": "[fin1p8] fin_in holds all 5 holes, fin_out none",
+  "expected": "5 / 0",
+  "measured": "5 / 0",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.5a",
+  "item": "[fin1p8] motor_block shift along y vs Motor_Reference block (mm; expected 2.0 - t)",
+  "expected": -1.1749999999999998,
+  "measured": -1.1749999999998408,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.5b",
+  "item": "[fin1p8] motor_block shifts only in y (x, z extents and y length unchanged)",
+  "expected": 0.0,
+  "measured": 7.958078640513122e-13,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.5c",
+  "item": "[fin1p8] motor_block == shifted reference block minus 4 holes: reference-minus-built volume (mm3; 4 x pi x 1.5^2 x 4 = 113.097) and built-minus-reference (0)",
+  "expected": "113.097 / 0.000",
+  "measured": "113.097 / 0.000",
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.5d",
+  "item": "[fin1p8] motor_block: 4 x \u00d83.0 x 4.0 deep holes in the front face on the 31 mm square about the axis",
+  "expected": "4 holes \u00d83.0 depth 4.0",
+  "measured": [
+   [
+    3.0,
+    -15.5,
+    -15.5,
+    4.0
+   ],
+   [
+    3.0,
+    -15.5,
+    15.5,
+    4.0
+   ],
+   [
+    3.0,
+    15.5,
+    -15.5,
+    4.0
+   ],
+   [
+    3.0,
+    15.5,
+    15.5,
+    4.0
+   ]
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.5e",
+  "item": "[fin1p8] motor front face y == fin motor-side face (-t from the tab face) (mm)",
+  "expected": 735.5866450000001,
+  "measured": 735.5866451304,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6a",
+  "item": "[fin1p8] tab spool-side face y == 5.0 (design), from the 4 tab holes (\u00d83.5) (mm)",
+  "expected": 743.761645,
+  "measured": 743.7616451304,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6b",
+  "item": "[fin1p8] screws 1..4 at (+-15.5, 2.64+-15.5) in the order 1(-x,-z) 2(+x,-z) 3(-x,+z) 4(+x,+z); head \u00d85.5 + shank \u00d83.0",
+  "expected": "all 4",
+  "measured": [
+   [
+    1,
+    5.0,
+    8.0,
+    -7.175
+   ],
+   [
+    2,
+    5.0,
+    8.0,
+    -7.175
+   ],
+   [
+    3,
+    5.0,
+    8.0,
+    -7.175
+   ],
+   [
+    4,
+    5.0,
+    8.0,
+    -7.175
+   ]
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6c",
+  "item": "[fin1p8] screw heads on the tab spool-side face: head y 5.0 .. 8.0 and head underside == tab face (mm)",
+  "expected": "5.0..8.0",
+  "measured": [
+   [
+    1,
+    5.0,
+    8.0
+   ],
+   [
+    2,
+    5.0,
+    8.0
+   ],
+   [
+    3,
+    5.0,
+    8.0
+   ],
+   [
+    4,
+    5.0,
+    8.0
+   ]
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6d",
+  "item": "[fin1p8] shank tip y (design): block variant: shank 4.0 mm into the \u00d83.0 x 4.0 holes",
+  "expected": -7.175,
+  "measured": [
+   -7.175,
+   -7.175,
+   -7.175,
+   -7.175
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6e",
+  "item": "[fin1p8] shank and head coaxial (mm)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 1e-06,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.7a",
+  "item": "[fin1p8] thread/shank engagement behind the fin motor face = tip depth below -t (mm)",
+  "expected": 4.0,
+  "measured": [
+   4.0,
+   4.0,
+   4.0,
+   4.0
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8a",
+  "item": "[fin1p8] shank-to-fin-hole radial gap (\u00d83.4 vs \u00d83.0 -> 0.200) (mm)",
+  "expected": 0.2,
+  "measured": [
+   0.2,
+   0.2,
+   0.2,
+   0.2
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8b",
+  "item": "[fin1p8] shank-to-tab-hole radial gap (\u00d83.5 vs \u00d83.0 -> 0.250) (mm)",
+  "expected": 0.25,
+  "measured": [
+   0.25,
+   0.25,
+   0.25,
+   0.25
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8c",
+  "item": "[fin1p8] screw overlap with fin_in / fin_out / slipin_mount (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8d",
+  "item": "[fin1p8] screw to fin_in minimum distance (mm; 0.2 radial gap, no contact)",
+  "expected": 0.2,
+  "measured": [
+   0.2,
+   0.2,
+   0.2,
+   0.2
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8e",
+  "item": "[fin1p8] screw / motor-hole overlap volume (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8f",
+  "item": "[fin1p8] screw-to-motor contact area (mm2): cylinder \u00d83 x 4 + end face (shared)",
+  "expected": 44.76769531365455,
+  "measured": [
+   44.768,
+   44.768,
+   44.768,
+   44.768
+  ],
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9a",
+  "item": "[fin1p8] insert_deck: OD 4.1 / ID 2.5 / length 5.7 (mm)",
+  "expected": [
+   4.1,
+   2.5,
+   5.7
+  ],
+  "measured": [
+   4.1,
+   2.5,
+   5.7
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9b",
+  "item": "[fin1p8] insert_deck coaxial with the slip-in pocket \u00d84.1 (axis offset, mm)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9c",
+  "item": "[fin1p8] insert_deck top flush with the deck face (pocket opening) (mm); deck face is at the pocket top: air above, material beside",
+  "expected": 885.18498070175,
+  "measured": 885.18498070175,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9d",
+  "item": "[fin1p8] insert_deck inside the pocket depth (sleeve bottom above pocket floor by 7.0 - 5.7 = 1.3 mm)",
+  "expected": 1.3,
+  "measured": 1.3000000000000682,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9e",
+  "item": "[fin1p8] insert_deck / slipin contact = outer cylinder pi x 4.1 x 5.7 (mm2); distance 0",
+  "expected": 73.41902031439346,
+  "measured": 73.41902031439895,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9f",
+  "item": "[fin1p8] insert_deck overlap with slipin_mount (mm3)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9g",
+  "item": "[fin1p8] insert_enc_1..4: OD 3.45 / ID 2.1 / length 4.0, coaxial with the 4 divot holes (same x range, flush with the divot floor), no overlap",
+  "expected": "4 sleeves in 4 holes",
+  "measured": [
+   [
+    1,
+    3.45,
+    2.1,
+    4.0,
+    40.25,
+    -4.75
+   ],
+   [
+    2,
+    3.45,
+    2.1,
+    4.0,
+    40.25,
+    4.75
+   ],
+   [
+    3,
+    3.45,
+    2.1,
+    4.0,
+    49.75,
+    -4.75
+   ],
+   [
+    4,
+    3.45,
+    2.1,
+    4.0,
+    49.75,
+    4.75
+   ]
+  ],
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9h",
+  "item": "[fin1p8] divot hole open at the divot floor (air at +0.2, material beside the hole at -0.2)",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.10",
+  "item": "[fin1p8] touching pairs (distance < 1e-6) are listed",
+  "expected": "list",
+  "measured": [
+   [
+    "fin_in",
+    "fin_out"
+   ],
+   [
+    "fin_in",
+    "motor_block"
+   ],
+   [
+    "fin_in",
+    "slipin_mount"
+   ],
+   [
+    "insert_deck",
+    "slipin_mount"
+   ],
+   [
+    "insert_enc_1",
+    "slipin_mount"
+   ],
+   [
+    "insert_enc_2",
+    "slipin_mount"
+   ],
+   [
+    "insert_enc_3",
+    "slipin_mount"
+   ],
+   [
+    "insert_enc_4",
+    "slipin_mount"
+   ],
+   [
+    "motor_block",
+    "screw_1"
+   ],
+   [
+    "motor_block",
+    "screw_2"
+   ],
+   [
+    "motor_block",
+    "screw_3"
+   ],
+   [
+    "motor_block",
+    "screw_4"
+   ],
+   [
+    "motor_block",
+    "slipin_mount"
+   ],
+   [
+    "screw_1",
+    "slipin_mount"
+   ],
+   [
+    "screw_2",
+    "slipin_mount"
+   ],
+   [
+    "screw_3",
+    "slipin_mount"
+   ],
+   [
+    "screw_4",
+    "slipin_mount"
+   ]
+  ],
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.1a",
+  "item": "[fin0p019] component names == spec list (13 bodies)",
+  "expected": [
+   "fin_in",
+   "fin_out",
+   "insert_deck",
+   "insert_enc_1",
+   "insert_enc_2",
+   "insert_enc_3",
+   "insert_enc_4",
+   "motor_block",
+   "screw_1",
+   "screw_2",
+   "screw_3",
+   "screw_4",
+   "slipin_mount"
+  ],
+  "measured": [
+   "fin_in",
+   "fin_out",
+   "insert_deck",
+   "insert_enc_1",
+   "insert_enc_2",
+   "insert_enc_3",
+   "insert_enc_4",
+   "motor_block",
+   "screw_1",
+   "screw_2",
+   "screw_3",
+   "screw_4",
+   "slipin_mount"
+  ],
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.1b",
+  "item": "[fin0p019] component count / duplicate names",
+  "expected": "13 / none",
+  "measured": "13 / none",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.1c",
+  "item": "[fin0p019] every component = one valid solid; whole file solid count = component count",
+  "expected": "13 solids, all valid",
+  "measured": "13 solids; valid=True; solids per component=[1]",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.2b",
+  "item": "[fin0p019] second method: max |V_a + V_b - V(fuse)| over the bbox-near pairs (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.00019957931363023818,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.2",
+  "item": "[fin0p019] max pairwise overlap volume over 78 pairs (22 bbox-near) (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": "worst pair None"
+ },
+ {
+  "id": "2.3a",
+  "item": "[fin0p019] slipin_mount == reference Slipin_mount_piecev3 (+O): volume and symmetric difference (mm3)",
+  "expected": 0.0,
+  "measured": 1.4599179849028587e-05,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4a",
+  "item": "[fin0p019] fin_in + fin_out volume == whole fin (mm3)",
+  "expected": 4093.0750030811255,
+  "measured": 4093.075003081396,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4b",
+  "item": "[fin0p019] fin_in U fin_out == exported whole fin: symmetric difference (mm3)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4c",
+  "item": "[fin0p019] split plane z, from fin_in top (station frame, spec 31.16 +- 0.05)",
+  "expected": 31.16,
+  "measured": 31.160000000000082,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4d",
+  "item": "[fin0p019] fin_out bottom == fin_in top (mm)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.0001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4e",
+  "item": "[fin0p019] split contact area fin_in/fin_out = 42 x t (mm2)",
+  "expected": 20.285999999999998,
+  "measured": 20.28599999999824,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4f",
+  "item": "[fin0p019] fin_in holds all 5 holes, fin_out none",
+  "expected": "5 / 0",
+  "measured": "5 / 0",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.5a",
+  "item": "[fin0p019] motor_block shift along y vs Motor_Reference block (mm; expected 2.0 - t)",
+  "expected": 1.517,
+  "measured": 1.5170000000001664,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.5b",
+  "item": "[fin0p019] motor_block shifts only in y (x, z extents and y length unchanged)",
+  "expected": 0.0,
+  "measured": 7.958078640513122e-13,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.5c",
+  "item": "[fin0p019] motor_block == shifted reference block minus 4 holes: reference-minus-built volume (mm3; 4 x pi x 1.5^2 x 4 = 113.097) and built-minus-reference (0)",
+  "expected": "113.097 / 0.000",
+  "measured": "113.097 / 0.000",
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.5d",
+  "item": "[fin0p019] motor_block: 4 x \u00d83.0 x 4.0 deep holes in the front face on the 31 mm square about the axis",
+  "expected": "4 holes \u00d83.0 depth 4.0",
+  "measured": [
+   [
+    3.0,
+    -15.5,
+    -15.5,
+    4.0
+   ],
+   [
+    3.0,
+    -15.5,
+    15.5,
+    4.0
+   ],
+   [
+    3.0,
+    15.5,
+    -15.5,
+    4.0
+   ],
+   [
+    3.0,
+    15.5,
+    15.5,
+    4.0
+   ]
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.5e",
+  "item": "[fin0p019] motor front face y == fin motor-side face (-t from the tab face) (mm)",
+  "expected": 738.2786450000001,
+  "measured": 738.2786451304,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6a",
+  "item": "[fin0p019] tab spool-side face y == 5.0 (design), from the 4 tab holes (\u00d83.5) (mm)",
+  "expected": 743.761645,
+  "measured": 743.7616451304,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6b",
+  "item": "[fin0p019] screws 1..4 at (+-15.5, 2.64+-15.5) in the order 1(-x,-z) 2(+x,-z) 3(-x,+z) 4(+x,+z); head \u00d85.5 + shank \u00d83.0",
+  "expected": "all 4",
+  "measured": [
+   [
+    1,
+    5.0,
+    8.0,
+    -4.483
+   ],
+   [
+    2,
+    5.0,
+    8.0,
+    -4.483
+   ],
+   [
+    3,
+    5.0,
+    8.0,
+    -4.483
+   ],
+   [
+    4,
+    5.0,
+    8.0,
+    -4.483
+   ]
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6c",
+  "item": "[fin0p019] screw heads on the tab spool-side face: head y 5.0 .. 8.0 and head underside == tab face (mm)",
+  "expected": "5.0..8.0",
+  "measured": [
+   [
+    1,
+    5.0,
+    8.0
+   ],
+   [
+    2,
+    5.0,
+    8.0
+   ],
+   [
+    3,
+    5.0,
+    8.0
+   ],
+   [
+    4,
+    5.0,
+    8.0
+   ]
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6d",
+  "item": "[fin0p019] shank tip y (design): block variant: shank 4.0 mm into the \u00d83.0 x 4.0 holes",
+  "expected": -4.483,
+  "measured": [
+   -4.483,
+   -4.483,
+   -4.483,
+   -4.483
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6e",
+  "item": "[fin0p019] shank and head coaxial (mm)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 1e-06,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.7a",
+  "item": "[fin0p019] thread/shank engagement behind the fin motor face = tip depth below -t (mm)",
+  "expected": 4.0,
+  "measured": [
+   4.0,
+   4.0,
+   4.0,
+   4.0
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8a",
+  "item": "[fin0p019] shank-to-fin-hole radial gap (\u00d83.4 vs \u00d83.0 -> 0.200) (mm)",
+  "expected": 0.2,
+  "measured": [
+   0.2,
+   0.2,
+   0.2,
+   0.2
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8b",
+  "item": "[fin0p019] shank-to-tab-hole radial gap (\u00d83.5 vs \u00d83.0 -> 0.250) (mm)",
+  "expected": 0.25,
+  "measured": [
+   0.25,
+   0.25,
+   0.25,
+   0.25
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8c",
+  "item": "[fin0p019] screw overlap with fin_in / fin_out / slipin_mount (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8d",
+  "item": "[fin0p019] screw to fin_in minimum distance (mm; 0.2 radial gap, no contact)",
+  "expected": 0.2,
+  "measured": [
+   0.2,
+   0.2,
+   0.2,
+   0.2
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8e",
+  "item": "[fin0p019] screw / motor-hole overlap volume (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8f",
+  "item": "[fin0p019] screw-to-motor contact area (mm2): cylinder \u00d83 x 4 + end face (shared)",
+  "expected": 44.76769531365455,
+  "measured": [
+   44.768,
+   44.768,
+   44.768,
+   44.768
+  ],
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9a",
+  "item": "[fin0p019] insert_deck: OD 4.1 / ID 2.5 / length 5.7 (mm)",
+  "expected": [
+   4.1,
+   2.5,
+   5.7
+  ],
+  "measured": [
+   4.1,
+   2.5,
+   5.7
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9b",
+  "item": "[fin0p019] insert_deck coaxial with the slip-in pocket \u00d84.1 (axis offset, mm)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9c",
+  "item": "[fin0p019] insert_deck top flush with the deck face (pocket opening) (mm); deck face is at the pocket top: air above, material beside",
+  "expected": 885.18498070175,
+  "measured": 885.18498070175,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9d",
+  "item": "[fin0p019] insert_deck inside the pocket depth (sleeve bottom above pocket floor by 7.0 - 5.7 = 1.3 mm)",
+  "expected": 1.3,
+  "measured": 1.3000000000000682,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9e",
+  "item": "[fin0p019] insert_deck / slipin contact = outer cylinder pi x 4.1 x 5.7 (mm2); distance 0",
+  "expected": 73.41902031439346,
+  "measured": 73.41902031439895,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9f",
+  "item": "[fin0p019] insert_deck overlap with slipin_mount (mm3)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9g",
+  "item": "[fin0p019] insert_enc_1..4: OD 3.45 / ID 2.1 / length 4.0, coaxial with the 4 divot holes (same x range, flush with the divot floor), no overlap",
+  "expected": "4 sleeves in 4 holes",
+  "measured": [
+   [
+    1,
+    3.45,
+    2.1,
+    4.0,
+    40.25,
+    -4.75
+   ],
+   [
+    2,
+    3.45,
+    2.1,
+    4.0,
+    40.25,
+    4.75
+   ],
+   [
+    3,
+    3.45,
+    2.1,
+    4.0,
+    49.75,
+    -4.75
+   ],
+   [
+    4,
+    3.45,
+    2.1,
+    4.0,
+    49.75,
+    4.75
+   ]
+  ],
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9h",
+  "item": "[fin0p019] divot hole open at the divot floor (air at +0.2, material beside the hole at -0.2)",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.10",
+  "item": "[fin0p019] touching pairs (distance < 1e-6) are listed",
+  "expected": "list",
+  "measured": [
+   [
+    "fin_in",
+    "fin_out"
+   ],
+   [
+    "fin_in",
+    "motor_block"
+   ],
+   [
+    "fin_in",
+    "slipin_mount"
+   ],
+   [
+    "insert_deck",
+    "slipin_mount"
+   ],
+   [
+    "insert_enc_1",
+    "slipin_mount"
+   ],
+   [
+    "insert_enc_2",
+    "slipin_mount"
+   ],
+   [
+    "insert_enc_3",
+    "slipin_mount"
+   ],
+   [
+    "insert_enc_4",
+    "slipin_mount"
+   ],
+   [
+    "motor_block",
+    "screw_1"
+   ],
+   [
+    "motor_block",
+    "screw_2"
+   ],
+   [
+    "motor_block",
+    "screw_3"
+   ],
+   [
+    "motor_block",
+    "screw_4"
+   ],
+   [
+    "motor_block",
+    "slipin_mount"
+   ],
+   [
+    "screw_1",
+    "slipin_mount"
+   ],
+   [
+    "screw_2",
+    "slipin_mount"
+   ],
+   [
+    "screw_3",
+    "slipin_mount"
+   ],
+   [
+    "screw_4",
+    "slipin_mount"
+   ]
+  ],
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.1a",
+  "item": "[detailed_fin1p8] component names == spec list (18 bodies)",
+  "expected": [
+   "connector",
+   "fin_in",
+   "fin_out",
+   "front_cap",
+   "insert_deck",
+   "insert_enc_1",
+   "insert_enc_2",
+   "insert_enc_3",
+   "insert_enc_4",
+   "rear_cap",
+   "screw_1",
+   "screw_2",
+   "screw_3",
+   "screw_4",
+   "shaft",
+   "slipin_mount",
+   "stator",
+   "winding"
+  ],
+  "measured": [
+   "connector",
+   "fin_in",
+   "fin_out",
+   "front_cap",
+   "insert_deck",
+   "insert_enc_1",
+   "insert_enc_2",
+   "insert_enc_3",
+   "insert_enc_4",
+   "rear_cap",
+   "screw_1",
+   "screw_2",
+   "screw_3",
+   "screw_4",
+   "shaft",
+   "slipin_mount",
+   "stator",
+   "winding"
+  ],
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.1b",
+  "item": "[detailed_fin1p8] component count / duplicate names",
+  "expected": "18 / none",
+  "measured": "18 / none",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.1c",
+  "item": "[detailed_fin1p8] every component = one valid solid; whole file solid count = component count",
+  "expected": "18 solids, all valid",
+  "measured": "18 solids; valid=True; solids per component=[1]",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.2b",
+  "item": "[detailed_fin1p8] second method: max |V_a + V_b - V(fuse)| over the bbox-near pairs (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.00019628694280982018,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.2",
+  "item": "[detailed_fin1p8] max pairwise overlap volume over 153 pairs (38 bbox-near) (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": "worst pair None"
+ },
+ {
+  "id": "2.3a",
+  "item": "[detailed_fin1p8] slipin_mount == reference Slipin_mount_piecev3 (+O): volume and symmetric difference (mm3)",
+  "expected": 0.0,
+  "measured": 1.4599179849028587e-05,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4a",
+  "item": "[detailed_fin1p8] fin_in + fin_out volume == whole fin (mm3)",
+  "expected": 26905.824295618633,
+  "measured": 26905.824295620423,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4b",
+  "item": "[detailed_fin1p8] fin_in U fin_out == exported whole fin: symmetric difference (mm3)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4c",
+  "item": "[detailed_fin1p8] split plane z, from fin_in top (station frame, spec 31.16 +- 0.05)",
+  "expected": 31.16,
+  "measured": 31.160000000000082,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4d",
+  "item": "[detailed_fin1p8] fin_out bottom == fin_in top (mm)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.0001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4e",
+  "item": "[detailed_fin1p8] split contact area fin_in/fin_out = 42 x t (mm2)",
+  "expected": 133.35,
+  "measured": 133.34999999999854,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.4f",
+  "item": "[detailed_fin1p8] fin_in holds all 5 holes, fin_out none",
+  "expected": "5 / 0",
+  "measured": "5 / 0",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.5a",
+  "item": "[detailed_fin1p8] motor front face moves by 2.0 - t relative to Motor_Reference (mm)",
+  "expected": -1.1749999999999998,
+  "measured": -1.1749999999998408,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.5e",
+  "item": "[detailed_fin1p8] motor front face y == fin motor-side face (-t from the tab face) (mm)",
+  "expected": 735.5866450000001,
+  "measured": 735.5866451304,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6a",
+  "item": "[detailed_fin1p8] tab spool-side face y == 5.0 (design), from the 4 tab holes (\u00d83.5) (mm)",
+  "expected": 743.761645,
+  "measured": 743.7616451304,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6b",
+  "item": "[detailed_fin1p8] screws 1..4 at (+-15.5, 2.64+-15.5) in the order 1(-x,-z) 2(+x,-z) 3(-x,+z) 4(+x,+z); head \u00d85.5 + shank \u00d83.0",
+  "expected": "all 4",
+  "measured": [
+   [
+    1,
+    5.0,
+    8.0,
+    -7.0
+   ],
+   [
+    2,
+    5.0,
+    8.0,
+    -7.0
+   ],
+   [
+    3,
+    5.0,
+    8.0,
+    -7.0
+   ],
+   [
+    4,
+    5.0,
+    8.0,
+    -7.0
+   ]
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6c",
+  "item": "[detailed_fin1p8] screw heads on the tab spool-side face: head y 5.0 .. 8.0 and head underside == tab face (mm)",
+  "expected": "5.0..8.0",
+  "measured": [
+   [
+    1,
+    5.0,
+    8.0
+   ],
+   [
+    2,
+    5.0,
+    8.0
+   ],
+   [
+    3,
+    5.0,
+    8.0
+   ],
+   [
+    4,
+    5.0,
+    8.0
+   ]
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6d",
+  "item": "[detailed_fin1p8] shank tip y (design): detailed: M3 x 12, shank tip y = -7.0",
+  "expected": -7.0,
+  "measured": [
+   -7.0,
+   -7.0,
+   -7.0,
+   -7.0
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.6e",
+  "item": "[detailed_fin1p8] shank and head coaxial (mm)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 1e-06,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.7a",
+  "item": "[detailed_fin1p8] thread/shank engagement behind the fin motor face = tip depth below -t (mm)",
+  "expected": 3.825,
+  "measured": [
+   3.825,
+   3.825,
+   3.825,
+   3.825
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.7b",
+  "item": "[detailed_fin1p8] screw length under the head = M3 x 12 (mm) -> 5 (tab) + 3.175 (fin) + 3.825 (engagement)",
+  "expected": 12.0,
+  "measured": [
+   11.99999986960006,
+   11.99999986960006,
+   11.99999986960006,
+   11.99999986960006
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8a",
+  "item": "[detailed_fin1p8] shank-to-fin-hole radial gap (\u00d83.4 vs \u00d83.0 -> 0.200) (mm)",
+  "expected": 0.2,
+  "measured": [
+   0.2,
+   0.2,
+   0.2,
+   0.2
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8b",
+  "item": "[detailed_fin1p8] shank-to-tab-hole radial gap (\u00d83.5 vs \u00d83.0 -> 0.250) (mm)",
+  "expected": 0.25,
+  "measured": [
+   0.25,
+   0.25,
+   0.25,
+   0.25
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8c",
+  "item": "[detailed_fin1p8] screw overlap with fin_in / fin_out / slipin_mount (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8d",
+  "item": "[detailed_fin1p8] screw to fin_in minimum distance (mm; 0.2 radial gap, no contact)",
+  "expected": 0.2,
+  "measured": [
+   0.2,
+   0.2,
+   0.2,
+   0.2
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8e",
+  "item": "[detailed_fin1p8] screw / motor-hole overlap volume (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8f",
+  "item": "[detailed_fin1p8] screw-to-motor contact area (mm2): cylinder \u00d83 x 3.825, 0.675 air under the tip",
+  "expected": 36.04977569994288,
+  "measured": [
+   36.05,
+   36.05,
+   36.05,
+   36.05
+  ],
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.8g",
+  "item": "[detailed_fin1p8] front_cap tapped holes: 4 x \u00d83.0, depth 4.5 (so the M3 x 12 tip stops 0.675 short of the bottom)",
+  "expected": "4 x depth 4.5",
+  "measured": [
+   [
+    3.0,
+    4.5
+   ],
+   [
+    3.0,
+    4.5
+   ],
+   [
+    3.0,
+    4.5
+   ],
+   [
+    3.0,
+    4.5
+   ]
+  ],
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9a",
+  "item": "[detailed_fin1p8] insert_deck: OD 4.1 / ID 2.5 / length 5.7 (mm)",
+  "expected": [
+   4.1,
+   2.5,
+   5.7
+  ],
+  "measured": [
+   4.1,
+   2.5,
+   5.7
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9b",
+  "item": "[detailed_fin1p8] insert_deck coaxial with the slip-in pocket \u00d84.1 (axis offset, mm)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9c",
+  "item": "[detailed_fin1p8] insert_deck top flush with the deck face (pocket opening) (mm); deck face is at the pocket top: air above, material beside",
+  "expected": 885.18498070175,
+  "measured": 885.18498070175,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9d",
+  "item": "[detailed_fin1p8] insert_deck inside the pocket depth (sleeve bottom above pocket floor by 7.0 - 5.7 = 1.3 mm)",
+  "expected": 1.3,
+  "measured": 1.3000000000000682,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9e",
+  "item": "[detailed_fin1p8] insert_deck / slipin contact = outer cylinder pi x 4.1 x 5.7 (mm2); distance 0",
+  "expected": 73.41902031439346,
+  "measured": 73.41902031439895,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9f",
+  "item": "[detailed_fin1p8] insert_deck overlap with slipin_mount (mm3)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9g",
+  "item": "[detailed_fin1p8] insert_enc_1..4: OD 3.45 / ID 2.1 / length 4.0, coaxial with the 4 divot holes (same x range, flush with the divot floor), no overlap",
+  "expected": "4 sleeves in 4 holes",
+  "measured": [
+   [
+    1,
+    3.45,
+    2.1,
+    4.0,
+    40.25,
+    -4.75
+   ],
+   [
+    2,
+    3.45,
+    2.1,
+    4.0,
+    40.25,
+    4.75
+   ],
+   [
+    3,
+    3.45,
+    2.1,
+    4.0,
+    49.75,
+    -4.75
+   ],
+   [
+    4,
+    3.45,
+    2.1,
+    4.0,
+    49.75,
+    4.75
+   ]
+  ],
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.9h",
+  "item": "[detailed_fin1p8] divot hole open at the divot floor (air at +0.2, material beside the hole at -0.2)",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.10",
+  "item": "[detailed_fin1p8] touching pairs (distance < 1e-6) are listed",
+  "expected": "list",
+  "measured": [
+   [
+    "connector",
+    "rear_cap"
+   ],
+   [
+    "fin_in",
+    "fin_out"
+   ],
+   [
+    "fin_in",
+    "front_cap"
+   ],
+   [
+    "fin_in",
+    "slipin_mount"
+   ],
+   [
+    "front_cap",
+    "screw_1"
+   ],
+   [
+    "front_cap",
+    "screw_2"
+   ],
+   [
+    "front_cap",
+    "screw_3"
+   ],
+   [
+    "front_cap",
+    "screw_4"
+   ],
+   [
+    "front_cap",
+    "shaft"
+   ],
+   [
+    "front_cap",
+    "slipin_mount"
+   ],
+   [
+    "front_cap",
+    "stator"
+   ],
+   [
+    "front_cap",
+    "winding"
+   ],
+   [
+    "insert_deck",
+    "slipin_mount"
+   ],
+   [
+    "insert_enc_1",
+    "slipin_mount"
+   ],
+   [
+    "insert_enc_2",
+    "slipin_mount"
+   ],
+   [
+    "insert_enc_3",
+    "slipin_mount"
+   ],
+   [
+    "insert_enc_4",
+    "slipin_mount"
+   ],
+   [
+    "rear_cap",
+    "shaft"
+   ],
+   [
+    "rear_cap",
+    "slipin_mount"
+   ],
+   [
+    "rear_cap",
+    "stator"
+   ],
+   [
+    "rear_cap",
+    "winding"
+   ],
+   [
+    "screw_1",
+    "slipin_mount"
+   ],
+   [
+    "screw_2",
+    "slipin_mount"
+   ],
+   [
+    "screw_3",
+    "slipin_mount"
+   ],
+   [
+    "screw_4",
+    "slipin_mount"
+   ],
+   [
+    "slipin_mount",
+    "stator"
+   ],
+   [
+    "stator",
+    "winding"
+   ]
+  ],
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.11a",
+  "item": "shell fin-slot walls measured on Shell_Casing.step: y (file frame) and roof-plate top z",
+  "expected": "y -2.690 / +2.310; top z 31.16 +- 0.05 (design)",
+  "measured": "y -2.688 / 2.312; top z 31.152 (file 31.1558)",
+  "tol": 0.05,
+  "status": "PASS",
+  "note": "split plane z 31.16 agrees with the shell roof at the slot"
+ },
+ {
+  "id": "2.11b",
+  "item": "split plane (fin_in top, file frame) vs shell roof top at the slot (mm)",
+  "expected": 0.0,
+  "measured": 0.004201937139082901,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.11c",
+  "item": "1/8 in fin vs shell (finding F1: motor-side slot wall overlaps the fin) (mm3; builder 68.94)",
+  "expected": 68.94,
+  "measured": 68.94262985595074,
+  "tol": 1.0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.11d",
+  "item": "0.019 in fin vs shell (mm3)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.11e",
+  "item": "[fin1p8] motor bodies (excl. shaft) minimum distance to the shell (mm; clears the shell; builder: 1.9 for the 1/8 in stack)",
+  "expected": ">= 1.0 (1.915 for 1/8 in)",
+  "measured": 1.915,
+  "tol": 0.0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.11f",
+  "item": "[fin1p8] overlap of slipin_mount / inserts / screws / motor bodies with the shell (mm3)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.11e",
+  "item": "[fin0p019] motor bodies (excl. shaft) minimum distance to the shell (mm; clears the shell; builder: 1.9 for the 1/8 in stack)",
+  "expected": ">= 1.0 (1.915 for 1/8 in)",
+  "measured": 4.0444,
+  "tol": 0.0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.11f",
+  "item": "[fin0p019] overlap of slipin_mount / inserts / screws / motor bodies with the shell (mm3)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.11e",
+  "item": "[detailed_fin1p8] motor bodies (excl. shaft) minimum distance to the shell (mm; clears the shell; builder: 1.9 for the 1/8 in stack)",
+  "expected": ">= 1.0 (1.915 for 1/8 in)",
+  "measured": 1.915,
+  "tol": 0.0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.11f",
+  "item": "[detailed_fin1p8] overlap of slipin_mount / inserts / screws / motor bodies with the shell (mm3)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.11g",
+  "item": "[detailed_fin1p8] shaft end y (design; expected 20.825) (mm); shaft vs Jasper's spool (not in the export): OBSERVATION, plain round \u00d85 shaft (no D-flat) overlaps the spool bore profile; Jasper's own reference shaft (with its D-flat) overlaps the same spool too",
+  "expected": "20.825",
+  "measured": "end 20.8250; detailed shaft/spool overlap 8.353 mm3; reference Motor_Reference shaft/spool overlap 9.063 mm3; reference shaft volume 446.7 vs round 471.2 mm3",
+  "tol": 0.01,
+  "status": "NOTE",
+  "note": ""
+ },
+ {
+  "id": "2.11h",
+  "item": "[detailed_fin1p8] shaft engagement in the spool bore (y 7 .. shaft end) (mm; spec 13.8)",
+  "expected": 13.8,
+  "measured": 13.825,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.12",
+  "item": "[fin1p8] touching pairs and contact areas: my 17 touching pairs vs the builder's 17-row contact CSV (set equality; worst area difference mm2)",
+  "expected": "same pairs, areas within 0.01",
+  "measured": "same set=True; extra mine=[]; missing=[]; worst |dA|=0.0004 ('insert_enc_1', 'slipin_mount')",
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.12b",
+  "item": "[fin1p8] builder's near-gap list (not touching) is true: measured distances (mm) vs the CSV",
+  "expected": {
+   "('fin_in', 'screw_1')": 0.2,
+   "('fin_in', 'screw_4')": 0.2,
+   "('fin_in', 'screw_3')": 0.2,
+   "('fin_in', 'screw_2')": 0.2
+  },
+  "measured": {
+   "('fin_in', 'screw_1')": 0.2,
+   "('fin_in', 'screw_4')": 0.2,
+   "('fin_in', 'screw_3')": 0.2,
+   "('fin_in', 'screw_2')": 0.2
+  },
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.12",
+  "item": "[fin0p019] touching pairs and contact areas: my 17 touching pairs vs the builder's 17-row contact CSV (set equality; worst area difference mm2)",
+  "expected": "same pairs, areas within 0.01",
+  "measured": "same set=True; extra mine=[]; missing=[]; worst |dA|=0.0004 ('insert_enc_1', 'slipin_mount')",
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.12b",
+  "item": "[fin0p019] builder's near-gap list (not touching) is true: measured distances (mm) vs the CSV",
+  "expected": {
+   "('fin_in', 'screw_1')": 0.2,
+   "('fin_in', 'screw_2')": 0.2,
+   "('fin_in', 'screw_3')": 0.2,
+   "('fin_in', 'screw_4')": 0.2
+  },
+  "measured": {
+   "('fin_in', 'screw_1')": 0.2,
+   "('fin_in', 'screw_2')": 0.2,
+   "('fin_in', 'screw_3')": 0.2,
+   "('fin_in', 'screw_4')": 0.2
+  },
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.12",
+  "item": "[detailed_fin1p8] touching pairs and contact areas: my 27 touching pairs vs the builder's 27-row contact CSV (set equality; worst area difference mm2)",
+  "expected": "same pairs, areas within 0.01",
+  "measured": "same set=True; extra mine=[]; missing=[]; worst |dA|=0.0004 ('insert_enc_1', 'slipin_mount')",
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.12b",
+  "item": "[detailed_fin1p8] builder's near-gap list (not touching) is true: measured distances (mm) vs the CSV",
+  "expected": {
+   "('fin_in', 'screw_2')": 0.2,
+   "('fin_in', 'screw_4')": 0.2,
+   "('fin_in', 'screw_3')": 0.2,
+   "('fin_in', 'screw_1')": 0.2
+  },
+  "measured": {
+   "('fin_in', 'screw_2')": 0.2,
+   "('fin_in', 'screw_4')": 0.2,
+   "('fin_in', 'screw_3')": 0.2,
+   "('fin_in', 'screw_1')": 0.2
+  },
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.13b",
+  "item": "[fin1p8] body table mass = volume x density (max |dm| g)",
+  "expected": 0.0,
+  "measured": 0.004477085999951669,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.13",
+  "item": "[fin1p8] body table volumes vs measured (max |dV| mm3, over 13 rows; every body listed=True)",
+  "expected": 0.0,
+  "measured": 0.00046920080785639584,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.13b",
+  "item": "[fin0p019] body table mass = volume x density (max |dm| g)",
+  "expected": 0.0,
+  "measured": 0.004477085999951669,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.13",
+  "item": "[fin0p019] body table volumes vs measured (max |dV| mm3, over 13 rows; every body listed=True)",
+  "expected": 0.0,
+  "measured": 0.00046920080785639584,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.13b",
+  "item": "[detailed_fin1p8] body table mass = volume x density (max |dm| g)",
+  "expected": 0.0,
+  "measured": 0.0004960999999923388,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.13",
+  "item": "[detailed_fin1p8] body table volumes vs measured (max |dV| mm3, over 18 rows; every body listed=True)",
+  "expected": 0.0,
+  "measured": 0.00046920080785639584,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.14",
+  "item": "engagement arithmetic M3x12 + 1/8 in = L - 5 (tab) - t (mm)",
+  "expected": 3.825,
+  "measured": 3.825,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.14",
+  "item": "engagement arithmetic M3x8 + 0.019 in = L - 5 (tab) - t (mm)",
+  "expected": 2.517,
+  "measured": 2.517,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "2.14",
+  "item": "engagement arithmetic M3x10 + 0.019 in = L - 5 (tab) - t (mm)",
+  "expected": 4.517,
+  "measured": 4.517,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.1a",
+  "item": "nema17_thermal.step components",
+  "expected": [
+   "connector",
+   "front_cap",
+   "rear_cap",
+   "shaft",
+   "stator",
+   "winding"
+  ],
+  "measured": [
+   "connector",
+   "front_cap",
+   "rear_cap",
+   "shaft",
+   "stator",
+   "winding"
+  ],
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.1b",
+  "item": "each part: one valid solid, one shell",
+  "expected": "6 x (1 solid, 1 shell, valid)",
+  "measured": [
+   [
+    "front_cap",
+    1,
+    1,
+    true
+   ],
+   [
+    "stator",
+    1,
+    1,
+    true
+   ],
+   [
+    "winding",
+    1,
+    1,
+    true
+   ],
+   [
+    "rear_cap",
+    1,
+    1,
+    true
+   ],
+   [
+    "shaft",
+    1,
+    1,
+    true
+   ],
+   [
+    "connector",
+    1,
+    1,
+    true
+   ]
+  ],
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.2a",
+  "item": "front_cap: body 42.3 mm square (x and z extent) (mm)",
+  "expected": [
+   42.3,
+   42.3
+  ],
+  "measured": [
+   42.3,
+   42.3
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.2a",
+  "item": "stator: body 42.3 mm square (x and z extent) (mm)",
+  "expected": [
+   42.3,
+   42.3
+  ],
+  "measured": [
+   42.3,
+   42.3
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.2a",
+  "item": "rear_cap: body 42.3 mm square (x and z extent) (mm)",
+  "expected": [
+   42.3,
+   42.3
+  ],
+  "measured": [
+   42.3,
+   42.3
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.2b",
+  "item": "body length: rear cap back face y -38; front cap boss end y +2 (front face y 0) (mm)",
+  "expected": [
+   -38.0,
+   2.0
+  ],
+  "measured": [
+   -38.0,
+   2.0
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.2c",
+  "item": "front face is at y = 0 (one planar face, boss and 4 holes cut out of it)",
+  "expected": "1 face at y 0",
+  "measured": 1,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.2d",
+  "item": "stator long edges chamfered 3 mm (corner point (20.5,20.5) outside, (19,19) inside, all 4 corners)",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.2e",
+  "item": "stator chamfer faces: 4 x 3 sqrt2 x 22 (mm2)",
+  "expected": 93.33809511662429,
+  "measured": [
+   93.338,
+   93.338,
+   93.338,
+   93.338
+  ],
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.3a",
+  "item": "front_cap: 4 tapped holes \u00d83.0 x 4.5 deep on the 31 mm square (x, z, r, depth)",
+  "expected": [
+   [
+    -15.5,
+    -15.5,
+    1.5,
+    4.5
+   ],
+   [
+    -15.5,
+    15.5,
+    1.5,
+    4.5
+   ],
+   [
+    15.5,
+    -15.5,
+    1.5,
+    4.5
+   ],
+   [
+    15.5,
+    15.5,
+    1.5,
+    4.5
+   ]
+  ],
+  "measured": [
+   [
+    -15.5,
+    -15.5,
+    1.5,
+    4.5
+   ],
+   [
+    -15.5,
+    15.5,
+    1.5,
+    4.5
+   ],
+   [
+    15.5,
+    -15.5,
+    1.5,
+    4.5
+   ],
+   [
+    15.5,
+    15.5,
+    1.5,
+    4.5
+   ]
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.3b",
+  "item": "tap holes open at the front face (hole top y = 0, bottom y = -4.5)",
+  "expected": [
+   0.0,
+   -4.5
+  ],
+  "measured": [
+   [
+    0.0,
+    -4.5
+   ]
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.4",
+  "item": "front_cap pilot boss \u00d822 on the axis, y 0 .. +2",
+  "expected": "\u00d822, y 0..2",
+  "measured": [
+   [
+    22.0,
+    0.0,
+    0.0,
+    0.0,
+    2.0
+   ]
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.5",
+  "item": "shaft \u00d85.0, y -37 .. +24 (24 proud of the front face)",
+  "expected": "\u00d85, -37..24",
+  "measured": [
+   [
+    5.0,
+    -37.0,
+    24.0
+   ]
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.6",
+  "item": "bores that carry the shaft: front cap \u00d85.0 through (y -8..2), rear cap \u00d85.0 blind seat y -37..-30",
+  "expected": [
+   [
+    5.0,
+    -8.0,
+    2.0
+   ],
+   [
+    5.0,
+    -37.0,
+    -30.0
+   ]
+  ],
+  "measured": [
+   [
+    5.0,
+    -8.0,
+    2.0
+   ],
+   [
+    5.0,
+    -37.0,
+    -30.0
+   ]
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.7",
+  "item": "connector 16 (z) x 6 (y) x 6 (x), x 21.15..27.15, y -38..-32, flush with the back face",
+  "expected": [
+   [
+    21.15,
+    27.15
+   ],
+   [
+    -38,
+    -32
+   ],
+   [
+    -8,
+    8
+   ]
+  ],
+  "measured": [
+   [
+    21.15,
+    27.15
+   ],
+   [
+    -38.0,
+    -32.0
+   ],
+   [
+    -8.0,
+    8.0
+   ]
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.8",
+  "item": "stator bore \u00d834, winding annulus \u00d823..\u00d834 x 22 inside it",
+  "expected": "bore \u00d834; winding \u00d823/\u00d834, y -30..-8",
+  "measured": [
+   1,
+   [
+    [
+     23.0,
+     -30.0,
+     -8.0
+    ],
+    [
+     34.0,
+     -30.0,
+     -8.0
+    ]
+   ]
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.9a",
+  "item": "max pairwise overlap, 15 pairs, incl. the shaft-to-cap contact pairs (mm3, limit 0.01)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": "worst None"
+ },
+ {
+  "id": "3.9b",
+  "item": "shaft-to-cap contact is surface contact: front_cap-shaft pi x 5 x 10 = 157.08, rear_cap-shaft pi x 5 x 7 + pi x 2.5^2 = 129.59 (mm2)",
+  "expected": [
+   157.08,
+   129.59
+  ],
+  "measured": [
+   157.08,
+   129.59
+  ],
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.9c",
+  "item": "contact list (touching pairs, mm2)",
+  "expected": "list",
+  "measured": [
+   [
+    "connector",
+    "rear_cap",
+    96.0
+   ],
+   [
+    "front_cap",
+    "shaft",
+    157.08
+   ],
+   [
+    "front_cap",
+    "stator",
+    863.37
+   ],
+   [
+    "front_cap",
+    "winding",
+    492.44
+   ],
+   [
+    "rear_cap",
+    "shaft",
+    129.59
+   ],
+   [
+    "rear_cap",
+    "stator",
+    863.37
+   ],
+   [
+    "rear_cap",
+    "winding",
+    492.44
+   ],
+   [
+    "stator",
+    "winding",
+    2349.91
+   ]
+  ],
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.9d",
+  "item": "shaft to winding distance (air around the shaft inside the stator; 17 - ... = 11.5 - 2.5 = 9.0 mm)",
+  "expected": 9.0,
+  "measured": 9.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.10",
+  "item": "total mass with the table densities (g) vs 0.28 kg reference motor (builder: 288.15, +2.9 %)",
+  "expected": 288.15,
+  "measured": 288.16,
+  "tol": 0.1,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.11a",
+  "item": "[fin1p8] nema17 asm1021 file = motor-frame model translated by (X0, Y0 - t, Z0) = front face on the fin motor face, axis on x 0 / z 2.64 (max bbox deviation mm)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.11b",
+  "item": "[fin1p8] front face y (design) == -t; shaft end y (design) == 24 - t (mm)",
+  "expected": [
+   -3.175,
+   20.825
+  ],
+  "measured": [
+   -3.175,
+   20.825
+  ],
+  "tol": 0.003,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.11a",
+  "item": "[fin0p019] nema17 asm1021 file = motor-frame model translated by (X0, Y0 - t, Z0) = front face on the fin motor face, axis on x 0 / z 2.64 (max bbox deviation mm)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.11b",
+  "item": "[fin0p019] front face y (design) == -t; shaft end y (design) == 24 - t (mm)",
+  "expected": [
+   -0.483,
+   23.517
+  ],
+  "measured": [
+   -0.483,
+   23.517
+  ],
+  "tol": 0.003,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.11c",
+  "item": "nema17_thermal_fin1p8_asm1021 == the six motor bodies of thermal_station1021_detailed_fin1p8 (max bbox deviation, mm)",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.002,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.12",
+  "item": "[fin1p8] nema17 front cap boss in the fin pilot (\u00d822.5) / tab pilot (\u00d822.4): overlap with fin and slip-in (mm3); boss end y (design)",
+  "expected": "0 / 0",
+  "measured": "fin 0.00000 / slipin 0.00000; boss end y -1.175 (fin tab-side face at y 0, tab pilot r 11.2 vs boss r 11)",
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.12",
+  "item": "[fin0p019] nema17 front cap boss in the fin pilot (\u00d822.5) / tab pilot (\u00d822.4): overlap with fin and slip-in (mm3); boss end y (design)",
+  "expected": "0 / 0",
+  "measured": "fin 0.00000 / slipin 0.00000; boss end y 1.517 (fin tab-side face at y 0, tab pilot r 11.2 vs boss r 11)",
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "3.13",
+  "item": "nema17_thermal.step volumes == fresh build_bodies() (max |dV| mm3; the builder's own code, only a currency check)",
+  "expected": 0.0,
+  "measured": 7.785274647176266e-10,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.1",
+  "item": "[std] station-frame cap: one valid solid",
+  "expected": "1 solid, valid",
+  "measured": "1 solid, valid=True, shells=1",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.2",
+  "item": "[std] cap volume (mm3; build notes)",
+  "expected": 531.94,
+  "measured": 531.941,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.3a",
+  "item": "[std] peg end y (mm; station frame)",
+  "expected": 22.6,
+  "measured": 22.6,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.3b",
+  "item": "[std] head: \u00d814 x ... magnet face at y 29.3 (bbox x, z = +-7; y max 29.3)",
+  "expected": [
+   14.0,
+   14.0,
+   29.3
+  ],
+  "measured": [
+   14.0,
+   14.0,
+   29.3
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.4a",
+  "item": "[std] magnet pocket \u00d84.3 on the shaft axis, y 26.75 .. 29.3 (\u00d8, axis x/z, floor y, rim y)",
+  "expected": [
+   4.3,
+   0.0,
+   0.0,
+   26.75,
+   29.3
+  ],
+  "measured": [
+   [
+    4.3,
+    0.0,
+    0.0,
+    26.75,
+    29.3
+   ]
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.4b",
+  "item": "[std] pocket probe at y 28: air at r 2.1 and wall at r 2.2 at 0/30/90/270 deg (the \u00d84.0 magnet + 0.15 per side)",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.4c",
+  "item": "[std] \u00d84.0 x 2.5 magnet (y 26.8..29.3, flush with the face) vs the cap: only crush-rib overlap (mm3; builder 0.403, limit < 1)",
+  "expected": 0.403,
+  "measured": 0.403,
+  "tol": 0.15,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.5a",
+  "item": "[std] asm1021 copy = station copy translated by (O + RES + (0, 0, 2.64)) (max bbox deviation mm); volume equal",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.1",
+  "item": "[short] station-frame cap: one valid solid",
+  "expected": "1 solid, valid",
+  "measured": "1 solid, valid=True, shells=1",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.2",
+  "item": "[short] cap volume (mm3; build notes)",
+  "expected": 502.31,
+  "measured": 502.312,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.3a",
+  "item": "[short] peg end y (mm; station frame)",
+  "expected": 24.1,
+  "measured": 24.1,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.3b",
+  "item": "[short] head: \u00d814 x ... magnet face at y 29.3 (bbox x, z = +-7; y max 29.3)",
+  "expected": [
+   14.0,
+   14.0,
+   29.3
+  ],
+  "measured": [
+   14.0,
+   14.0,
+   29.3
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.4a",
+  "item": "[short] magnet pocket \u00d84.3 on the shaft axis, y 26.75 .. 29.3 (\u00d8, axis x/z, floor y, rim y)",
+  "expected": [
+   4.3,
+   0.0,
+   0.0,
+   26.75,
+   29.3
+  ],
+  "measured": [
+   [
+    4.3,
+    0.0,
+    0.0,
+    26.75,
+    29.3
+   ]
+  ],
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.4b",
+  "item": "[short] pocket probe at y 28: air at r 2.1 and wall at r 2.2 at 0/30/90/270 deg (the \u00d84.0 magnet + 0.15 per side)",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.4c",
+  "item": "[short] \u00d84.0 x 2.5 magnet (y 26.8..29.3, flush with the face) vs the cap: only crush-rib overlap (mm3; builder 0.403, limit < 1)",
+  "expected": 0.403,
+  "measured": 0.403,
+  "tol": 0.15,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.5a",
+  "item": "[short] asm1021 copy = station copy translated by (O + RES + (0, 0, 2.64)) (max bbox deviation mm); volume equal",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 0.001,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.5b",
+  "item": "[std] asm1021 peg end y (design, from the tab face y 0 of the assembly) (mm)",
+  "expected": 22.6,
+  "measured": 22.6,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.5b",
+  "item": "[short] asm1021 peg end y (design, from the tab face y 0 of the assembly) (mm)",
+  "expected": 24.1,
+  "measured": 24.1,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.6a",
+  "item": "0.019 in motor shaft end y (design) from nema17_thermal_fin0p019_asm1021 (mm; 22.0 + 1.517 = 23.517)",
+  "expected": 23.517,
+  "measured": 23.517,
+  "tol": 0.003,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.6b",
+  "item": "1/8 in motor shaft end y (design) from nema17_thermal_fin1p8_asm1021 (mm; 20.825)",
+  "expected": 20.825,
+  "measured": 20.825,
+  "tol": 0.003,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.6c",
+  "item": "[peg1p9] clearance to an ideal \u00d85 shaft ending at y 23.517 (mm; required >= 0.5; builder 0.583)",
+  "expected": ">= 0.5",
+  "measured": "0.5830 (overlap 0.00000)",
+  "tol": 0.0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.6d",
+  "item": "[standard] vs the same 23.517 shaft: INTERFERENCE expected (why the short peg exists): overlap (mm3; builder ~18)",
+  "expected": "> 0 (collides)",
+  "measured": "16.812 mm3, distance 0.0000",
+  "tol": 0.0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.6e",
+  "item": "[peg1p9 asm1021] clearance to the nema17 0.019 in asm shaft (mm; required >= 0.5)",
+  "expected": ">= 0.5",
+  "measured": 0.583,
+  "tol": 0.0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.6f",
+  "item": "[standard asm1021] clearance to the nema17 1/8 in asm shaft (mm; builder 1.775)",
+  "expected": 1.775,
+  "measured": 1.775,
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.6g",
+  "item": "[standard asm1021] vs the 0.019 in motor shaft: overlap (mm3, expected collision ~18, builder note)",
+  "expected": "> 0",
+  "measured": 16.812,
+  "tol": 0.0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.7",
+  "item": "[std asm1021] touches only Spool1011 in Jasper's assembly STEP (distance < 1e-6), contact volume (mm3; builder 0.477)",
+  "expected": {
+   "Spool1011": 0.477
+  },
+  "measured": {
+   "Spool1011": 0.4766
+  },
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.7b",
+  "item": "[std asm1021] nearest other solids in the original assembly (shaft ends at y 22.0 there)",
+  "expected": "info",
+  "measured": [
+   [
+    0.6,
+    "solid 5"
+   ],
+   [
+    14.15,
+    "Slipin_mount_piecev3"
+   ],
+   [
+    22.604,
+    "Shell_Casing"
+   ]
+  ],
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.7",
+  "item": "[short asm1021] touches only Spool1011 in Jasper's assembly STEP (distance < 1e-6), contact volume (mm3; builder 0.234)",
+  "expected": {
+   "Spool1011": 0.234
+  },
+  "measured": {
+   "Spool1011": 0.2343
+  },
+  "tol": 0.005,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.7b",
+  "item": "[short asm1021] nearest other solids in the original assembly (shaft ends at y 22.0 there)",
+  "expected": "info",
+  "measured": [
+   [
+    2.1,
+    "solid 5"
+   ],
+   [
+    14.15,
+    "Slipin_mount_piecev3"
+   ],
+   [
+    22.604,
+    "Shell_Casing"
+   ]
+  ],
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.8a",
+  "item": "[std] STL bbox 14 x 14 x 6.7 with the magnet face on the bed (z min 0)",
+  "expected": [
+   14.0,
+   14.0,
+   6.7,
+   0.0
+  ],
+  "measured": [
+   14.0,
+   13.996,
+   6.7,
+   -0.0
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.8b",
+  "item": "[std] STL volume vs STEP (relative; tessellated, tol 1 %)",
+  "expected": 0.0,
+  "measured": 0.00036707844003818076,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.8c",
+  "item": "[std] STL closed manifold (bad edges)",
+  "expected": 0,
+  "measured": 0,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.8d",
+  "item": "[std] STL orientation: peg end at top (z max, radius <= 2.6), pocket rim (r 2.15) on the bed (z 0)",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.8a",
+  "item": "[short] STL bbox 14 x 14 x 5.2 with the magnet face on the bed (z min 0)",
+  "expected": [
+   14.0,
+   14.0,
+   5.2,
+   0.0
+  ],
+  "measured": [
+   14.0,
+   13.996,
+   5.2,
+   -0.0
+  ],
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.8b",
+  "item": "[short] STL volume vs STEP (relative; tessellated, tol 1 %)",
+  "expected": 0.0,
+  "measured": 0.0003728507629211575,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.8c",
+  "item": "[short] STL closed manifold (bad edges)",
+  "expected": 0,
+  "measured": 0,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.8d",
+  "item": "[short] STL orientation: peg end at top (z max, radius <= 2.6), pocket rim (r 2.15) on the bed (z 0)",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.9",
+  "item": "[std] cap file == fresh builder output (volume difference mm3; currency check)",
+  "expected": 0.0,
+  "measured": 9.548989510221872e-08,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "4.9",
+  "item": "[short] cap file == fresh builder output (volume difference mm3; currency check)",
+  "expected": 0.0,
+  "measured": 7.73636088524654e-08,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "heat_fin1021_1p8: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "heat_fin1021_1p8: valid BREP, 1 solid(s), one shell each (no stray bodies)",
+  "expected": "1 solids, valid",
+  "measured": "1 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "heat_fin1021_1p8: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 0.00e+00, dbbox 0.00e+00, solids 1",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.3",
+  "item": "heat_fin1021_1p8: total volume vs build-notes value (mm3)",
+  "expected": 26905.824,
+  "measured": 26905.824,
+  "tol": 0.053811648,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "heat_fin1021_1p8_asm1021: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "heat_fin1021_1p8_asm1021: valid BREP, 1 solid(s), one shell each (no stray bodies)",
+  "expected": "1 solids, valid",
+  "measured": "1 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "heat_fin1021_1p8_asm1021: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 0.00e+00, dbbox 0.00e+00, solids 1",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.3",
+  "item": "heat_fin1021_1p8_asm1021: total volume vs build-notes value (mm3)",
+  "expected": 26905.824,
+  "measured": 26905.824,
+  "tol": 0.053811648,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "heat_fin1021_0p019_asm1021: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "heat_fin1021_0p019_asm1021: valid BREP, 1 solid(s), one shell each (no stray bodies)",
+  "expected": "1 solids, valid",
+  "measured": "1 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "heat_fin1021_0p019_asm1021: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 0.00e+00, dbbox 0.00e+00, solids 1",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.3",
+  "item": "heat_fin1021_0p019_asm1021: total volume vs build-notes value (mm3)",
+  "expected": 4093.075,
+  "measured": 4093.075,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "thermal_station1021_fin1p8: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "thermal_station1021_fin1p8: valid BREP, 13 solid(s), one shell each (no stray bodies)",
+  "expected": "13 solids, valid",
+  "measured": "13 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "thermal_station1021_fin1p8: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 0.00e+00, dbbox 0.00e+00, solids 13",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.3",
+  "item": "thermal_station1021_fin1p8: total volume vs build-notes value (mm3)",
+  "expected": 313249.667,
+  "measured": 313249.668,
+  "tol": 0.626499334,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.4",
+  "item": "thermal_station1021_fin1p8: every component named (none empty/None), volumes sum to file total",
+  "expected": "all named",
+  "measured": "13 names, none None=True, sum V 313249.667",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "thermal_station1021_fin0p019: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "thermal_station1021_fin0p019: valid BREP, 13 solid(s), one shell each (no stray bodies)",
+  "expected": "13 solids, valid",
+  "measured": "13 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "thermal_station1021_fin0p019: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 0.00e+00, dbbox 0.00e+00, solids 13",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.4",
+  "item": "thermal_station1021_fin0p019: every component named (none empty/None), volumes sum to file total",
+  "expected": "all named",
+  "measured": "13 names, none None=True, sum V 290360.803",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "thermal_station1021_detailed_fin1p8: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "thermal_station1021_detailed_fin1p8: valid BREP, 18 solid(s), one shell each (no stray bodies)",
+  "expected": "18 solids, valid",
+  "measured": "18 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "thermal_station1021_detailed_fin1p8: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 0.00e+00, dbbox 0.00e+00, solids 18",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.4",
+  "item": "thermal_station1021_detailed_fin1p8: every component named (none empty/None), volumes sum to file total",
+  "expected": "all named",
+  "measured": "18 names, none None=True, sum V 305606.322",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "nema17_thermal: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "nema17_thermal: valid BREP, 6 solid(s), one shell each (no stray bodies)",
+  "expected": "6 solids, valid",
+  "measured": "6 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "nema17_thermal: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 0.00e+00, dbbox 0.00e+00, solids 6",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.3",
+  "item": "nema17_thermal: total volume vs build-notes value (mm3)",
+  "expected": 60241.53,
+  "measured": 60241.525,
+  "tol": 0.12048305999999999,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.4",
+  "item": "nema17_thermal: every component named (none empty/None), volumes sum to file total",
+  "expected": "all named",
+  "measured": "6 names, none None=True, sum V 60241.525",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "nema17_thermal_fin1p8_asm1021: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "nema17_thermal_fin1p8_asm1021: valid BREP, 6 solid(s), one shell each (no stray bodies)",
+  "expected": "6 solids, valid",
+  "measured": "6 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "nema17_thermal_fin1p8_asm1021: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 0.00e+00, dbbox 0.00e+00, solids 6",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.3",
+  "item": "nema17_thermal_fin1p8_asm1021: total volume vs build-notes value (mm3)",
+  "expected": 60241.53,
+  "measured": 60241.525,
+  "tol": 0.12048305999999999,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.4",
+  "item": "nema17_thermal_fin1p8_asm1021: every component named (none empty/None), volumes sum to file total",
+  "expected": "all named",
+  "measured": "6 names, none None=True, sum V 60241.525",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "nema17_thermal_fin0p019_asm1021: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "nema17_thermal_fin0p019_asm1021: valid BREP, 6 solid(s), one shell each (no stray bodies)",
+  "expected": "6 solids, valid",
+  "measured": "6 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "nema17_thermal_fin0p019_asm1021: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 0.00e+00, dbbox 0.00e+00, solids 6",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.3",
+  "item": "nema17_thermal_fin0p019_asm1021: total volume vs build-notes value (mm3)",
+  "expected": 60241.53,
+  "measured": 60241.525,
+  "tol": 0.12048305999999999,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.4",
+  "item": "nema17_thermal_fin0p019_asm1021: every component named (none empty/None), volumes sum to file total",
+  "expected": "all named",
+  "measured": "6 names, none None=True, sum V 60241.525",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "encoder1021_magnet_cap_v2_m4: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "encoder1021_magnet_cap_v2_m4: valid BREP, 1 solid(s), one shell each (no stray bodies)",
+  "expected": "1 solids, valid",
+  "measured": "1 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "encoder1021_magnet_cap_v2_m4: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 1.50e-15, dbbox 0.00e+00, solids 1",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.3",
+  "item": "encoder1021_magnet_cap_v2_m4: total volume vs build-notes value (mm3)",
+  "expected": 531.941,
+  "measured": 531.941,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "encoder1021_magnet_cap_v2_m4_asm1021: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "encoder1021_magnet_cap_v2_m4_asm1021: valid BREP, 1 solid(s), one shell each (no stray bodies)",
+  "expected": "1 solids, valid",
+  "measured": "1 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "encoder1021_magnet_cap_v2_m4_asm1021: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 0.00e+00, dbbox 0.00e+00, solids 1",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.3",
+  "item": "encoder1021_magnet_cap_v2_m4_asm1021: total volume vs build-notes value (mm3)",
+  "expected": 531.941,
+  "measured": 531.941,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "encoder1021_magnet_cap_v2_m4_peg1p9: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "encoder1021_magnet_cap_v2_m4_peg1p9: valid BREP, 1 solid(s), one shell each (no stray bodies)",
+  "expected": "1 solids, valid",
+  "measured": "1 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "encoder1021_magnet_cap_v2_m4_peg1p9: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 1.24e-15, dbbox 0.00e+00, solids 1",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.3",
+  "item": "encoder1021_magnet_cap_v2_m4_peg1p9: total volume vs build-notes value (mm3)",
+  "expected": 502.312,
+  "measured": 502.312,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.0b",
+  "item": "encoder1021_magnet_cap_v2_m4_peg1p9_asm1021: STEP length unit is millimetre",
+  "expected": true,
+  "measured": true,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.1",
+  "item": "encoder1021_magnet_cap_v2_m4_peg1p9_asm1021: valid BREP, 1 solid(s), one shell each (no stray bodies)",
+  "expected": "1 solids, valid",
+  "measured": "1 solids, valid=True, 1 shell each=True",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.2",
+  "item": "encoder1021_magnet_cap_v2_m4_peg1p9_asm1021: re-export + reimport: volume (relative) and bbox (mm), solid count",
+  "expected": "dV/V <= 1e-6, dbbox <= 1e-4",
+  "measured": "dV/V 1.13e-16, dbbox 0.00e+00, solids 1",
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "5.3",
+  "item": "encoder1021_magnet_cap_v2_m4_peg1p9_asm1021: total volume vs build-notes value (mm3)",
+  "expected": 502.312,
+  "measured": 502.312,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "9.1",
+  "item": "control: screw_1 moved -0.1 mm in y must show overlap with the slip-in (head annulus 14.137 x 0.1 = 1.41 mm3)",
+  "expected": 1.414,
+  "measured": 1.414,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "9.1b",
+  "item": "control: same displaced screw also overlaps the motor hole bottom (pi x 1.5^2 x 0.1 = 0.71 mm3)",
+  "expected": 0.707,
+  "measured": 0.707,
+  "tol": 0.05,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "9.2",
+  "item": "control: screw_1 shifted 0.15 mm in x: shank-to-fin distance must drop to ~0.05",
+  "expected": 0.05,
+  "measured": 0.05,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "9.3",
+  "item": "control: standard cap (end 22.6) vs the 23.517 shaft must collide (>5 mm3)",
+  "expected": "> 5",
+  "measured": 16.81,
+  "tol": 0,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "9.4",
+  "item": "control: contact_area() of two bodies 300 mm apart is 0",
+  "expected": 0.0,
+  "measured": 0.0,
+  "tol": 1e-06,
+  "status": "PASS",
+  "note": ""
+ },
+ {
+  "id": "9.5",
+  "item": "control: contact_area() of the real motor_block / fin_in pair = 1300.55 (the detector sees a true contact)",
+  "expected": 1300.548,
+  "measured": 1300.548,
+  "tol": 0.01,
+  "status": "PASS",
+  "note": ""
+ }
+]

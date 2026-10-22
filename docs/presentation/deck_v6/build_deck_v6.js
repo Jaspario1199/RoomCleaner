@@ -610,7 +610,7 @@ content("Thermal Verification", [
 ], (sl, x, y, w, h) => {
   placeholderBox(sl, "[[SolidWorks temperature plot: motor, fin, screws and mount]]", x, y, w, 2.4);
   table(sl, ["Method", "0.019 in fin", "1/8 in fin", "PETG mount"], [
-    ["Hand calculation", "56–59 °C", "45–49 °C", "2 K below motor"],
+    ["Hand calculation", "56–59 °C", "45–49 °C", "About motor temperature"],
     ["SolidWorks", "[[]]", "[[]]", "[[]]"],
     ["Hold test", "[[]]", "[[]]", "[[]]"],
   ], x, y + 2.55, w, [0.28, 0.24, 0.24, 0.24], { size: 14, rowH: 0.5, name: "thermal methods" });
@@ -619,6 +619,7 @@ content("Thermal Verification", [
 "The SolidWorks thermal study uses my 10/21 assembly with a detailed NEMA 17 (aluminum end caps, black steel stator, copper windings as the 4.05 W source, " +
 "plastic connector), the fin, the four M3 screws into the motor, and the PETG slip-in mount; inside the shell 26 to 27 °C, outside 23 °C. " +
 "Hand calculation: 56 to 59 °C with the prototype fin, 45 to 49 °C with the 1/8 in fin (the range is the simple and the refined model). " +
+"An independent 3-D check of the hand calculation showed the PETG next to the motor runs at about the motor temperature, within 1 K, so the motor number is the PETG number. " +
 "Then the hold test measures it. If they disagree, I fit h and the coil resistance, not the physics.",
 { split: 0.44 });
 

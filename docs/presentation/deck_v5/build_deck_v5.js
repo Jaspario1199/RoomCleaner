@@ -75,24 +75,30 @@ function bullets(sl, items, x, y, w, h, size = 20, o = {}) {
   });
   sl.addText(arr, { x, y, w, h, valign: "top", align: "left", margin: [2, 4, 2, 0], isTextBox: true, objectName: o.name || "bullets" });
 }
-// Equation box: boxed, under the bullets; the bullets tell the story, the box holds the maths.
-const EQ_LINE = 0.34;
-const eqHeight = eq => 0.44 + EQ_LINE * eq.lines.length + (eq.note ? 0.26 : 0);
+// Equation box: the equation, our numbers substituted (results in bold), then a "where" line with every input.
+const EQ_LINE = 0.36;
+const whereLines = (eq, w) => (eq.where ? Math.ceil(eq.where.length / ((w - 0.36) * 13.0)) : 0);
+const eqHeight = (eq, w = 5.4) => 0.42 + EQ_LINE * eq.lines.length + (eq.where ? 0.1 + 0.21 * whereLines(eq, w) : 0) + (eq.note ? 0.26 : 0);
 function eqBox(sl, eq, x, y, w) {
-  const h = eqHeight(eq);
-  sl.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: HEX.eq }, line: { color: HEX.eq, width: 0.5 }, objectName: "equation box" });
-  sl.addText("Key equations", { x: x + 0.18, y: y + 0.09, w: w - 0.36, h: 0.24, fontSize: 11, bold: true, color: HEX.mid,
-                                fontFace: "Arial", margin: 0, isTextBox: true, objectName: "equation label" });
+  const h = eqHeight(eq, w);
+  sl.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: "F7F8FA" }, line: { color: HEX.navy, width: 1.25 }, objectName: "equation box" });
+  sl.addText(eq.title || "Equation", { x: x + 0.18, y: y + 0.08, w: w - 0.36, h: 0.24, fontSize: 11, bold: true, color: HEX.navy,
+                                       fontFace: "Arial", margin: 0, isTextBox: true, objectName: "equation label" });
   const arr = [];
   eq.lines.forEach((ln, i) => {
-    const rs = runs(ln, { fontSize: 15, color: HEX.ink, fontFace: "Cambria", paraSpaceAfter: 4, align: "left" })
+    const rs = runs(ln, { fontSize: 15.5, color: HEX.ink, fontFace: "Cambria", paraSpaceAfter: 4, align: "left" })
       .flatMap(r => r.text.split(/(→)/).filter(Boolean).map(t => ({ text: t, options: t === "→" ? { ...r.options, fontFace: "Arial" } : { ...r.options } })));
     rs.forEach((r, j) => { r.options.breakLine = j === rs.length - 1 && i < eq.lines.length - 1; });
     arr.push(...rs);
   });
-  sl.addText(arr, { x: x + 0.18, y: y + 0.36, w: w - 0.36, h: EQ_LINE * eq.lines.length + 0.02, valign: "top", align: "left", margin: 0,
+  sl.addText(arr, { x: x + 0.18, y: y + 0.34, w: w - 0.36, h: EQ_LINE * eq.lines.length + 0.02, valign: "top", align: "left", margin: 0,
                     isTextBox: true, objectName: "equations" });
-  if (eq.note) sl.addText(eq.note, { x: x + 0.18, y: y + h - 0.33, w: w - 0.36, h: 0.24, fontSize: 10.5, color: HEX.grey,
+  if (eq.where) {
+    const wy = y + 0.36 + EQ_LINE * eq.lines.length + 0.04;
+    sl.addText(runs("**where**   " + eq.where, { fontSize: 11, color: HEX.mid, fontFace: "Arial" }),
+               { x: x + 0.18, y: wy, w: w - 0.36, h: 0.21 * whereLines(eq, w) + 0.04, valign: "top", margin: 0, isTextBox: true, objectName: "equation inputs" });
+  }
+  if (eq.note) sl.addText(eq.note, { x: x + 0.18, y: y + h - 0.31, w: w - 0.36, h: 0.24, fontSize: 10.5, color: HEX.grey,
                                      fontFace: "Arial", margin: 0, isTextBox: true, objectName: "equation source" });
 }
 function fitImage(sl, file, x, y, w, h, alt, opts = {}) {
@@ -163,7 +169,7 @@ function content(title, items, visual, notes, opts = {}) {
   const sl = blank(title, opts.status);
   const split = opts.split || 0.46;
   const bw = (W - 2 * M) * split - 0.2;
-  const eqH = opts.eq ? eqHeight(opts.eq) : 0;
+  const eqH = opts.eq ? eqHeight(opts.eq, bw) : 0;
   bullets(sl, items, M, 1.6, bw, opts.eq ? 5.25 - eqH - 0.2 : 5.2, opts.size || 20);
   if (opts.eq) eqBox(sl, opts.eq, M, 6.85 - eqH, bw);
   const vx = M + bw + 0.45, vw = W - M - vx, vy = 1.6, vh = 5.25;
@@ -309,20 +315,20 @@ part("Intro");
 }
 
 content("About Me", [
-  "**Education:** Mechanical Engineering, Texas A&M University · [[graduation: Month 20XX]]",
-  "**EcoFil:** a filament recycler: shredder, dehydrator and extruder",
-  "**Sculpture:** pieces for the Austin Creek Show; fiber-laser cutting and welding",
-  "**Outside of class:** [[hobbies and interests]]",
-  "**Why this project:** [[one line: why a laundry robot]]",
+  "**Education:** Mechanical Engineering, Texas A&M · [[graduation: Month 20XX]]",
+  "**EcoFil:** filament recycler (shredder, dryer, extruder)",
+  "**Sculpture:** Austin Creek Show · fiber laser, welding",
+  "**Outside class:** [[hobbies, interests]]",
+  "**Why this project:** [[one line]]",
 ], (sl, x, y, w, h) => placeholderBox(sl, "[[Photo of you building: EcoFil, a sculpture, or the workshop]]", x, y, w, h - 0.3),
 "One minute. Degree and graduation date, EcoFil (what each stage does, what you learned), the sculptures (fiber laser and welding: real " +
 "fabrication), one hobby. Close with why a laundry robot: a problem you have, and a machine you could build end to end yourself.");
 
 content("The Goal", [
-  "**Task:** laundry off the floor and into a hamper, anywhere in an 11 × 9 ft room",
-  "**How:** four winches near the ceiling corners hold one claw on cables",
-  "**Load:** jeans (0.9 kg) at 2 m/s²; first test: 1 lb",
-  "**Limits:** 3D-printed PETG (polyethylene terephthalate glycol) plastic, hobby budget, safe in a home",
+  "**Task:** floor → hamper, 11 × 9 ft room",
+  "**How:** 4 ceiling winches, 1 claw on cables",
+  "**Load:** jeans 0.9 kg at 2 m/s² · test 1 lb",
+  "**Build:** printed PETG (polyethylene terephthalate glycol), hobby budget",
 ], (sl, x, y, w, h) => {
   const files = [R("station_1021_final.png"), R("gripper1021_asbuilt.png")];
   const gap = 0.15, each = (w - gap) / 2;
@@ -331,7 +337,7 @@ content("The Goal", [
 }, "Why a cable robot: it covers the whole floor, nothing stands on the floor, and the moving mass is small. " +
 "Safety rules: stations anchor into studs, the switched power strip is the one hard stop, nobody stands under the robot. " +
 "0.9 kg is a screening figure for jeans; the first physical test is 1 lb. The claw tube is 10.5 in.",
-{ split: 0.5, size: 19 });
+{ split: 0.5, size: 20 });
 {
   // gate strip under the goal bullets (drawn on the slide just made)
   const sl = pres._slides[pres._slides.length - 1];
@@ -366,10 +372,10 @@ content("The Goal", [
 }
 
 content("How It Works", [
-  "**Four wall stations:** winch, spool, encoder, heat fin, their own controller",
-  "**One claw** on four lines: gripper, camera, battery",
-  "**Laptop** plans every move and checks cable tension and obstacles",
-  "**Phone:** start, PAUSE, and a “yes” before every move",
+  "**4 wall stations:** winch, encoder, fin, controller",
+  "**1 claw:** gripper, camera, battery",
+  "**Laptop:** plans + checks every move",
+  "**Phone:** start · PAUSE · approve",
 ], (sl, x, y, w, h) => layerStack(sl, x, y, w, h),
 "Zoomed out: only the bottom layer turns a motor. The phone asks the supervisor; the supervisor holds one robot state; the planner checks " +
 "every point of a path before anything moves; the stations run the motion on their own clocks and hold if the laptop goes quiet. " +
@@ -383,14 +389,14 @@ part("Design");
   const sl = blank("What I’m Optimizing");
   const st = { no: ["NOT MET", HEX.red], tight: ["TIGHT", HEX.navy2], met: ["MET IN DESIGN", HEX.navy], test: ["TEST PENDING", HEX.grey] };
   const tiles = [
-    ["Lift capacity", "Maximize", "Claw + jeans anywhere: 1.76 kg", "1.56 kg at 1.5 A (calculated)", "no"],
-    ["Claw mass", "Minimize", "0.45 kg budget", "≈ 0.86 kg with battery (CAD); [[weighed: ___ g]]", "no"],
-    ["Motor temperature", "Limit", "Under 60 °C (PETG creep)", "≈ 58 °C prototype fin; ≈ 45 °C with the 1/8 in fin (calculated)", "tight"],
-    ["Working area", "Maximize", "The whole 11 × 9 ft floor", "All but 0.2 m at the walls (simulated)", "met"],
-    ["Wiring", "Minimize", "One plug per station", "One 12 V pair; 0.51 V drop on the longest run", "met"],
-    ["Accuracy", "Maximize", "≤ 2 mm per cable over 300 mm", "Floor board 0.7 mm (calculated)", "test"],
-    ["Speed", "Maximize", "50 mm/s, 2 m/s²", "In every tension check; not yet run", "test"],
-    ["Cost", "Minimize", "Hobby budget; parts I can buy and fix", "[[total spent: $___]]", "test"],
+    ["Lift capacity", "Maximize", "Claw + jeans: 1.76 kg", "1.56 kg (calculated)", "no"],
+    ["Claw mass", "Minimize", "0.45 kg budget", "≈ 0.86 kg (CAD) · [[weighed]]", "no"],
+    ["Motor temperature", "Limit", "Under 60 °C (PETG)", "58 °C prototype · 45–49 °C 1/8 in fin", "tight"],
+    ["Working area", "Maximize", "Whole 11 × 9 ft floor", "All but 0.2 m at walls (simulated)", "met"],
+    ["Wiring", "Minimize", "One plug per station", "One 12 V pair · 0.51 V drop", "met"],
+    ["Accuracy", "Maximize", "≤ 2 mm per cable", "0.7 mm floor board (calculated)", "test"],
+    ["Speed", "Maximize", "50 mm/s · 2 m/s²", "Designed for; not yet run", "test"],
+    ["Cost", "Minimize", "Hobby budget", "[[total: $___]]", "test"],
   ];
   const g = 0.18, tw = (W - 2 * M - 3 * g) / 4, th = 2.22, y0 = 1.6;
   tiles.forEach(([name, dir, target, now, s], i) => {
@@ -453,10 +459,10 @@ part("Design");
 }
 
 content("Cable Tension", [
-  "**Cables only pull:** every tension must stay above zero",
-  "**Near the ceiling** the cables flatten and tension climbs",
-  "32 N per cable at 0.15 m below the anchors; 8.3 N at 0.6 m",
-  "**Decision:** keep 0.4 m below the anchors; at 1.5 A that holds even while accelerating (14.7 N vs 16.8 N)",
+  "**Cables only pull:** T > 0",
+  "Tension climbs near the ceiling",
+  "32 N at 0.15 m · 8.3 N at 0.6 m",
+  "**Decision:** stay 0.4 m below anchors",
 ], { sheet: "cable_tension", tab: "Cable tension" },
 "Force balance on the claw: the cable pulls and the weight sum to zero. Centred claw, equal shares. D_h = 2.17 m from the room centre to a " +
 "corner. The tension doubles each time the depth halves near the ceiling, so the ceiling margin is set by tension, not by collision. " +
@@ -464,94 +470,117 @@ content("Cable Tension", [
 "2 m/s² acceleration case (14.7 N). 0.3 m would now hold standing still (16.2 N) but not while accelerating (19.5 N), so I keep 0.4 m. " +
 "If asked about a corner pick: the far cables go near-horizontal and carry little; the planner checks every cable stays inside its tension limits.",
 { status: "Calculated", eq: { lines: [
-  "Σ T_i **u**_i + m(**g** + **a**) = **0**,   T_i > 0",
   "T = W / (4 sin φ),   sin φ = d / √(d² + D_h²)",
-] } });
+  "sin φ = 0.4 / √(0.4² + 2.17²) = 0.181",
+  "T = 8.87 N / (4 × 0.181) = **12.2 N**",
+  "× (1 + a/g) = 12.2 × 1.20 = **14.7 N** < 16.8 N",
+], where: "W = (0.45 + 0.454) kg × 9.81 m/s² = 8.87 N  ·  d = 0.4 m below the anchors  ·  D_h = 2.17 m centre to corner  ·  a = 2 m/s²  ·  16.8 N = winch design force" } });
 
 content("Winch Pull", [
-  "NEMA 17 stepper (standard 1.7 in frame), printed spool",
-  "**Driver current raised to 1.5 A,** the motor's rating (was 1.06 A)",
-  "Pull: 34 N empty spool, 25 N full",
-  "**Design force 16.8 N** (was 11.9 N): full-spool pull ÷ 1.5 margin",
-  "**Next:** a luggage-scale pull test replaces my torque assumption",
+  "NEMA 17 stepper (1.7 in frame)",
+  "Current: 1.06 → **1.5 A**",
+  "Pull: 34 N empty · 25 N full spool",
+  "**Next:** luggage-scale pull test",
 ], { sheet: "winch_pull", tab: "Winch pull" },
 "Current limit from the driver's reference voltage (A4988 datasheet): the first boards topped out at 0.85 V, which is 1.06 A. I got the " +
 "drivers to 1.5 A, the motor's rated current, so every pull goes up 41 % (1.5 / 1.06). [Fill in: how, and the Vref you read.] " +
 "The cost is heat: the motor makes twice the heat (next slides). Running torque is lower than holding torque; I assumed 0.7, and the pull " +
 "test measures it. A smaller spool gives more pull per amp but more turns per metre. The 1.5 margin covers skipped steps.",
 { status: "1.5 A set · pull calculated", eq: { lines: [
-  "I = V_{ref} / (8 R_s) = 1.2 V / (8 × 0.1 Ω) = 1.5 A",
-  "T = τ_{run} / r:   33.6 N at r = 7.5 mm,   25.2 N at r = 10 mm",
-] } });
+  "I = V_{ref} / (8 R_s) = 1.2 V / (8 × 0.1 Ω) = **1.5 A**",
+  "τ_{run} = 0.7 × 0.36 N·m × 1.5 / 1.5 = 0.252 N·m",
+  "T = τ / r = 0.252 / 0.010 m = **25.2 N**",
+  "F_{design} = 25.2 N / 1.5 = **16.8 N**",
+], where: "V_ref = driver reference voltage  ·  R_s = 0.1 Ω sense resistor  ·  0.36 N·m holding torque at 1.5 A rated  ·  0.7 = running / holding (assumed)  ·  r = 10 mm full spool  ·  1.5 = skip margin" } });
 
 content("One Controller per Winch", [
-  "**Gen 1:** one board stepped all four motors; sync was free",
-  "**Problem:** a switch and encoder per winch → 10 wires per corner",
-  "- 820 ft of conductor; the sensor bus (I²C, Inter-Integrated Circuit) is meant for centimetres",
-  "**Decision:** a controller in every station; only 12 V travels",
-  "**Result:** 5× less wire; each station is built and tested alone",
+  "**Gen 1:** one board, four motors",
+  "Sensors per winch: 10 wires per corner",
+  "**Decision:** controller in every station",
+  "**Result:** 5× less wire",
 ], { sheet: "wiring", tab: "Wiring" },
 "Real cable routes are 6, 21, 23 and 32 ft (82 ft). 10 conductors × 82 ft = 820 ft against 2 × 82 ft = 164 ft for one power pair. " +
 "The cost: sync moved into software. Each station runs time-stamped segments on its own clock; any lost link means hold. " +
 "Timing skew becomes cable mismatch: 50 mm/s × 50 ms = 2.5 mm, which is why segments are time-stamped.",
 { status: "Built", eq: { lines: [
-  "Conductor = n · ΣL:   10 × 82 ft = 820 ft   vs   2 × 82 ft = 164 ft",
-  "Δx = v · Δt = 50 mm/s × 50 ms = 2.5 mm",
-] } });
+  "Wire = n × ΣL",
+  "Central box: 10 × 82 ft = **820 ft**",
+  "Controller per station: 2 × 82 ft = **164 ft**",
+  "Sync error: Δx = v Δt = 50 mm/s × 50 ms = **2.5 mm**",
+], where: "n = conductors per corner (motor 4, switch 2, encoder 4)  ·  ΣL = 6 + 21 + 23 + 32 ft of routes  ·  v = line speed  ·  Δt = clock skew between stations" } });
 
 content("Cooling the Motor", [
-  "**Problem:** a sealed printed shell traps motor heat; PETG creeps above 60 °C",
-  "**Decision:** an aluminium fin up through the shell, shaped like an antelope horn",
-  "**At 1.5 A:** twice the heat (4.1 W); prototype 0.019 in fin ≈ 58 °C, 1/8 in design fin ≈ 45 °C",
-  "**Next:** 90-minute hold test at 1.5 A; back to 1.35 A if it runs hot",
+  "Sealed PETG shell traps motor heat",
+  "**Limit:** PETG creeps above 60 °C",
+  "**Decision:** aluminium fin through the shell",
+  "**Next:** 90-min hold test at 1.5 A",
 ], { sheet: "motor_temperature", tab: "Motor temperature" },
-"Model: motor to shell air to room, with the fin as a second path out. At 1.5 A, P = I²R = 4.1 W in the motor, double the 2.0 W at 1.06 A. " +
-"Results at 1.5 A: vented 77 °C without the fin, 58 °C with it; sealed 99 °C without, 66 °C with, so the shell must stay vented. At 1.06 A " +
-"the sealed shell with the fin was 46 °C. The driver chip also heats more (it holds current all the time, even standing still); if it " +
-"overheats it shuts off and the winch loses torque, so the hold test watches the driver too. At 1.35 A the vented case is 51 °C. Length: a long thin fin gives 95 % of its heat by 136 mm for the 0.019 in sheet I built; I built 200 mm, sized earlier for 1/8 in " +
-"plate (backup slide). A horn is a heat exchanger: warm blood into the core, heat out through the surface; the fin is one tall thin blade from the heat source.",
+"Model: motor to shell air to room, with the fin as a second path out. At 1.5 A the motor makes 4.05 W, double the 2.0 W at 1.06 A. " +
+"Sheet results, vented shell: no fin 77 °C, 0.019 in fin 57.6 °C, 1/8 in fin 48.9 °C; sealed: 99, 66 and 54 °C, so the shell stays vented. " +
+"With radiation from the black paint included (refined model) the 1/8 in fin gives about 45 °C. The driver chip also heats more; if it overheats it " +
+"shuts off and the winch loses torque, so the hold test watches it too. Fallback: 1.35 A. Shape: one tall blade from the heat source, like an antelope horn.",
 { status: "Fin built · temperature calculated", eq: { lines: [
-  "P_m = I² R = (1.5 A)² × 1.8 Ω = 4.1 W",
-  "1/R = 1/R_{shell} + 1/R_{fin},   ΔT = P · R",
-] } });
+  "P = I² R_{coil} = (1.5 A)² × 1.8 Ω = **4.05 W**",
+  "1/R_{th} = 1/R_{shell} + 1/R_{fin},   ΔT = P × R_{th}",
+  "0.019 in fin: R_{fin} = 23.1 K/W → **57.6 °C**",
+  "1/8 in fin: R_{fin} = 11.9 K/W → **48.9 °C**",
+], where: "R_coil = 1.8 Ω per phase (assumed)  ·  R_shell = 12 + 1 K/W (motor → shell air → room)  ·  room 23 °C  ·  1.5 W of electronics in the shell  ·  limit 60 °C" } });
+
+content("Heat Fin Sizing", [
+  "**Prototype 0.019 in:** done by 136 mm",
+  "**Design 1/8 in:** 74 % efficient at 200 mm",
+  "**Built length:** 200 mm",
+], { sheet: "heat_fin", tab: "Heat fin" },
+"Target length: L95, where a fin gets 95 % of the heat an infinitely long one would. The thin sheet reaches it at 136 mm, so most of its 200 mm " +
+"does little; the 1/8 in plate keeps gaining to 349 mm, so 200 mm is a compromise with the ceiling (the fin top is 229 mm above the shaft). " +
+"At 200 mm: sheet 37 % efficient and 22.1 K/W; 1/8 in plate 74 % and 10.9 K/W. Fin equations: Incropera, Fundamentals of Heat and Mass Transfer, ch. 3.",
+{ status: "Calculated", eq: { lines: [
+  "m = √(2h / (k t)),   L_{95} = 1.83 / m",
+  "0.019 in: m = √(2 × 7 / (160 × 0.00048)) = 13.5 /m",
+  "→ L_{95} = 1.83 / 13.5 = **136 mm**",
+  "1/8 in: m = 5.25 /m → L_{95} = **349 mm**",
+  "η = tanh(mL) / (mL) = tanh(1.05) / 1.05 = **0.74**",
+  "R_{fin} = 1 / (7 × 0.74 × 0.0176) = **10.9 K/W**",
+], where: "R_fin = 1 / (h η A)  ·  h = 7 W/m²·K still air  ·  k = 160 W/m·K aluminium  ·  t = thickness  ·  L = 200 mm  ·  A = 2 × 44 mm × 200 mm = 0.0176 m²  ·  L_95 = 95 % of a long fin's heat" } });
 
 content("Homing", [
-  "**Plan A:** a bead on each cable trips a switch → known length",
-  "**Found:** a bead cannot pass the outlet, so cables can never be shorter",
-  "- homing 1 m up leaves 5 % of the room reachable; 2 m up, 29 %",
-  "**Decision:** the claw camera reads a printed floor board; fit the geometry from several poses",
-  "**Result:** whole room reachable; the beads became end stops",
+  "**Plan A:** bead trips a switch at the outlet",
+  "Cables can't get shorter than at home",
+  "**Decision:** camera + floor board calibration",
+  "**Result:** whole room · beads = end stops",
 ], { sheet: "bead_homing", tab: "Bead homing" },
 "This was a poor first plan, caught on paper before it was built. The trade-off is physical, so software cannot remove it. " +
 "Replacement: take up slack one cable at a time, lift, look at the floor board from several poses, least-squares fit of anchors and zero lengths, " +
 "check on held-out poses. Safety comes from margins (0.4 m below the anchors, 0.2 m inside the walls), not precision. Four tags in view: 0.7 mm " +
 "vs 6.6 mm with one (backup slide). Simulated so far; tonight is the first hardware run.",
 { status: "Calculated · simulated", eq: { lines: [
-  "L_i(**p**) ≥ L_{i,home} = ‖**a**_i − **p**_{home}‖   for every cable i",
-] } });
+  "L_i(**p**) ≥ L_{i,home} = ‖**a**_i − **p**_{home}‖",
+  "Home 1 m up (room centre) → **5 %** reachable",
+  "Home 2 m up → **29 %** reachable",
+], where: "a_i = anchor i  ·  p = claw position  ·  reachable = every cable at or above its home length, inside 0.2 m wall and 0.4 m ceiling margins" } });
 
 content("The Claw", [
-  "**Gen 1:** five tendon-driven fingers in TPU (flexible thermoplastic polyurethane)",
-  "**Problems:** could not pinch thin fabric; one clamp was 4.6× over its mass budget",
-  "**Final:** a geared four-bar, parallel jaws, 53 mm opening",
-  "**Gears:** module 1 failed the stall check → module 1.5, safety factor ≈ 2",
+  "**Gen 1:** 5 TPU (thermoplastic polyurethane) fingers",
+  "Couldn't pinch fabric · 4.6× over mass",
+  "**Final:** geared four-bar, 53 mm opening",
 ], { grid: [R("gen1_tentacle_claw.png"), R("claw_v6.png"), R("gripper1021_head.png"), PH("22_gear_train_printed_servo.jpg")],
      alt: "Claw generations and the printed gear train", caption: "Fingers → v6 clamp → final geared four-bar (CAD) → printed gear train with the servo" },
 "Each generation fixed a problem found in the one before. Mass drove most changes: every gram of claw is a gram of laundry the winches cannot lift. " +
 "Four-bar: ground 36.5, crank 53, rocker 50, coupler 34.7 mm; jaws parallel within about 1 degree; closing drops the tips about 38 mm, a scoop. " +
 "Gear train: servo, 18T pinion, 36T/24T compound, 24T sync gear. Lewis check at servo stall: module 1 safety factor 0.35 to 0.41, so the module went up. " +
 "The camera also moved from the ceiling into the claw: it sees the grasp and reads the floor board.",
-{ split: 0.44, status: "Body built · hands in CAD", eq: { lines: [
-  "Grip: 2 μ N ≥ m g  →  N ≥ 7.4 N per jaw   (1 lb, μ = 0.3)",
-  "Lewis: σ = F_t / (b m Y),   F_t = 2τ / d",
-] } });
+{ split: 0.46, status: "Body built · hands in CAD", eq: { lines: [
+  "N ≥ m g / 2μ = 0.454 × 9.81 / 0.6 = **7.4 N**",
+  "F_t = 2τ / d = 2 × 1.078 / 0.027 = 79.9 N",
+  "σ = F_t / (b m Y) = 79.9 / (15.7 × 1.5 × 0.309)",
+  "σ = 11.0 MPa → SF = 22.5 / 11.0 = **2.05**",
+], where: "N = grip per jaw  ·  μ = 0.3  ·  τ = 1.078 N·m stall  ·  d = 27 mm  ·  b = 15.7 mm  ·  m = 1.5 mm  ·  Y = 0.309  ·  allowable 22.5 MPa  ·  module 1: SF 0.4" } });
 
 content("Weight: the Open Problem", [
-  "**Capacity at 1.5 A:** about 1.56 kg at the worst point (was 1.10)",
-  "**Claw:** about 0.76 kg printed (CAD) + 0.1 kg battery; [[weighed: ___ g]]",
-  "**1 lb test now fits** (1.32 kg); jeans are still 0.2 kg over",
-  "**Options:** lighter claw · 3:1 winch reduction · lighter demo load",
-  "**Next:** the pull test decides",
+  "**Capacity at 1.5 A:** 1.56 kg",
+  "**Claw:** ≈ 0.86 kg · [[weighed: ___ g]]",
+  "1 lb test fits · jeans 0.2 kg over",
+  "**Fix:** lighter claw or 3:1 winch",
 ], { sheet: "lift_budget", tab: "Lift budget" },
 "Be upfront: even at 1.5 A the current claw plus jeans is too heavy, by about 0.2 kg instead of 0.66 kg. Root cause: I set the mass budget " +
 "late, after the claw grew. Capacity = design force / (worst tension per unit weight × g) = 16.8 / (1.101 × 9.81) = 1.56 kg; the worst point " +
@@ -559,32 +588,34 @@ content("Weight: the Open Problem", [
 "Claw mass estimate: 0.55 infill fraction × 927 g solid + 198 g tube + 55 g servo ≈ 0.76 kg. The pull test turns the 0.7 running-torque " +
 "assumption into a measurement, and that number picks the fix.",
 { status: "Open problem", eq: { lines: [
-  "Σ T_i u_{iz} = m (g + a),   0 < T_i ≤ 16.8 N",
-] } });
+  "m_{max} = F_{design} / (k g)",
+  "= 16.8 N / (1.101 × 9.81 m/s²) = **1.56 kg**",
+  "m_{claw} = 0.55 × 0.927 + 0.198 + 0.055 = **0.76 kg**",
+  "Need: 0.76 + 0.10 + 0.90 = **1.76 kg** > 1.56 kg",
+], where: "k = worst cable tension per unit weight (+2 m/s²), linear program over the room  ·  0.55 = print fill  ·  0.927 kg solid PETG (CAD)  ·  tube 0.198  ·  servo 0.055  ·  battery 0.10  ·  jeans 0.90 kg" } });
 
 // ================================================================================================ BUILD
 part("Build");
 content("Printed Fits", [
-  "PETG on a Creality K1, 0.2 mm layers",
-  "Printed holes come out undersize, so every fit gets an allowance",
-  "**Spool:** v1 too long · v2 bore too tight · v3 Ø5.45 with a flat",
-  "Torque goes through a set screw on the shaft flat, not the press fit",
-  "**Lesson:** print a fit coupon before the part",
+  "PETG · Creality K1 · 0.2 mm layers",
+  "Printed holes come out small",
+  "**Spool:** 3 prints to fit the shaft",
+  "**Lesson:** fit coupon first",
 ], { file: [R("spool_v1.png"), R("spool_v2.png"), R("spool_v3.png")], alt: "Spool v1, v2, v3", caption: "Spool v1, v2, v3 (CAD)" },
 "Orientation: flat face on the bed, loads along the layers, no supports on mating faces. Bearing pocket Ø14.075 with a Ø14.000 lead-in lip. " +
 "Heat-set M3 inserts where screws are reused. Spool v1 was longer than the motor shaft could engage; v2's Ø5.2 bore printed too tight on the 5 mm " +
 "shaft, so the printer undersize is at least 0.2 mm; v3 opened it to Ø5.45 (about 0.25 mm clearance) with a D-flat. Ø15 core, 16 mm drum: 20 ft of line in 5 layers.",
 { split: 0.44, status: "Built", eq: { lines: [
-  "Clearance c = (D_{hole} − u) − D_{shaft},   u = printer undersize",
-  "Ø5.2 too tight → u ≥ 0.2 mm, so Ø5.45 gives c ≈ 0.25 mm",
-] } });
+  "c = (D_{hole} − u) − D_{shaft}",
+  "Ø5.2 too tight → u ≥ 0.2 mm",
+  "c = (5.45 − 0.2) − 5.00 = **0.25 mm**",
+], where: "c = clearance  ·  u = printer undersize  ·  D_shaft = 5.00 mm motor shaft  ·  v3 bore Ø5.45 with a D-flat; the set screw on the flat carries the torque" } });
 
 content("Machining the Fin", [
-  "**Shop drawing first:** 1:1 print with a hole template",
-  "Prototype: sheared 0.019 in sheet I had on hand; the design fin is 1/8 in",
-  "**Manual mill, one setup:** five holes from the same two edges, ±0.1 mm",
-  "Matte black paint; thermal paste on the motor face",
-  "**Result:** bolted onto the motor with no reaming",
+  "**Shop drawing first:** 1:1 template",
+  "**Prototype:** 0.019 in sheet on hand",
+  "**One mill setup:** 5 holes, ±0.1 mm",
+  "Bolted on, no reaming",
 ], { grid: [PH("06_shear_with_drawings_and_blanks.jpg"), PH("03_mill_setup_with_shop_drawing.jpg"), PH("02_mill_drilling_fin.jpg"), PH("15_heat_fin_finished_part.jpg")],
      alt: "Fin manufacturing photos", caption: "Shear and blanks · mill setup with the drawing · drilling · the finished fin" },
 "One setup from the same two edges means hole-to-hole errors do not stack. Holes: a 7/8 in pilot for the motor boss and 4 × Ø3.4 on the 31 mm " +
@@ -592,11 +623,10 @@ content("Machining the Fin", [
 { status: "Built" });
 
 content("Electronics Bring-Up", [
-  "**Station board:** the driver boots off, so a reset never moves the motor",
-  "Schematic built from the soldered board: 16 nets, 55 pins match",
-  "**Failure:** the log said stepping; the shaft did not turn",
-  "**Cause:** logic rail at 1.14 V, not 3.3 V: a bad connection",
-  "**Now:** a meter checklist before any code",
+  "**Boots safe:** driver off until armed",
+  "**Schematic = soldered board:** 16 nets",
+  "**Failure:** logic rail 1.14 V, not 3.3 V",
+  "**Now:** meter before code",
 ], { file: [PH("19_station_perfboard_soldered.jpg"), PH("12_bench_bringup_laptop.jpg")], alt: "Soldered station board and bench bring-up",
      caption: "Soldered station board (left); bench bring-up (right)" },
 "Boot-safe: a 10k pull-up holds the driver's enable pin off until the firmware arms it. USB and the 5 V buck cannot back-feed each other (link jumper " +
@@ -608,10 +638,10 @@ content("Electronics Bring-Up", [
 // ================================================================================================ TEST
 part("Test");
 content("First Test", [
-  "**Three stations first:** the fewest cables that hold a point, so every tension is solved exactly",
-  "**Sequence:** self-check → slack take-up → lift → calibrate → short move → pickup",
-  "**Load:** 1 lb test weight, then one garment",
-  "**Pass limits** written before the run",
+  "**3 stations:** fewest cables that hold a point",
+  "Self-check → calibrate → move → pickup",
+  "**Load:** 1 lb, then one garment",
+  "Pass limits written first",
 ], (sl, x, y, w, h) => {
   placeholderBox(sl, "[[Photo or video from the three-station test]]", x, y, w, 2.45);
   table(sl, ["Check", "Pass limit", "Result"], [
@@ -626,24 +656,23 @@ content("First Test", [
 { split: 0.42, status: "Planned · this week" });
 
 content("Thermal Check", [
-  "**Question:** does the PETG mount stay under 60 °C at 1.5 A?",
-  "**Hand calc:** motor 56–59 °C (prototype fin), ≈ 45 °C (1/8 in fin)",
-  "**ANSYS:** motor, fin, motor screws, inserts and PETG mount from my assembly; 4.05 W",
-  "**Hold test:** 90 minutes at 1.5 A; thermocouples on the motor and the fin",
-  "**If too hot:** the 1/8 in fin, or drop to 1.35 A (≈ 51 °C)",
+  "**Limit:** PETG mount < 60 °C",
+  "**Hand calc:** 56–59 °C (0.019 in) · 45–49 °C (1/8 in)",
+  "**SolidWorks:** motor, fin, screws, mount",
+  "**Hold test:** 90 min at 1.5 A",
 ], (sl, x, y, w, h) => {
-  placeholderBox(sl, "[[ANSYS temperature plot: motor, fin, screws and inserts]]", x, y, w, 2.4);
-  table(sl, ["Method", "Motor", "PETG mount", "Fin carries"], [
-    ["Hand calc", "56–59 °C", "≈ 53–58 °C", "1.4–1.6 W"],
-    ["ANSYS", "[[]]", "[[]]", "[[]]"],
-    ["Hold test", "[[]]", "[[]]", "n/a"],
-  ], x, y + 2.55, w, [0.28, 0.24, 0.26, 0.22], { size: 14, rowH: 0.5, name: "thermal methods" });
+  placeholderBox(sl, "[[SolidWorks temperature plot: motor, fin, screws and mount]]", x, y, w, 2.4);
+  table(sl, ["Method", "0.019 in fin", "1/8 in fin", "PETG mount"], [
+    ["Hand calc", "56–59 °C", "45–49 °C", "≈ motor − 2 K"],
+    ["SolidWorks", "[[]]", "[[]]", "[[]]"],
+    ["Hold test", "[[]]", "[[]]", "[[]]"],
+  ], x, y + 2.55, w, [0.28, 0.24, 0.24, 0.24], { size: 14, rowH: 0.5, name: "thermal methods" });
   caption(sl, "Three ways to know one temperature: calculate it, simulate it, measure it", x, y + 2.55 + 4 * 0.5 + 0.12, w);
 }, "The 60 °C limit is for the loaded PETG, and that is the one temperature the hand calculation cannot give: it only knows the motor node. " +
-"The FEA (ANSYS, or the SolidWorks version) puts my own 10/21 assembly in: motor block with 4.05 W (1.5 A squared times 1.8 ohm), the fin with an equivalent " +
-"conductivity because my CAD fin is 2 mm and the real one is 0.483 mm (k times t is what conducts), the PETG slip-in mount, convection inside " +
-"the shell at 27 °C and outside at 23 °C. The answer sheet says the motor should land at 56 to 59 °C, with the fin carrying about 40 % of the heat. " +
-"Then the hold test measures it. If they disagree, I fit h and the coil resistance, not the physics. Walkthrough: docs/simulation/SW_THERMAL_MOTOR_ASSEMBLY.md.",
+"The SolidWorks thermal study uses my 10/21 assembly with a detailed NEMA 17 (aluminium end caps, black steel stator, copper windings as the 4.05 W source, " +
+"plastic connector), the fin, the four M3 screws into the motor, and the PETG slip-in mount; inside the shell 26 to 27 °C, outside 23 °C. " +
+"Hand calc: 56 to 59 °C with the prototype fin, 45 to 49 °C with the 1/8 in fin (the range is the simple and the refined model). " +
+"Then the hold test measures it. If they disagree, I fit h and the coil resistance, not the physics.",
 { split: 0.42, status: "Calculated · simulation next" });
 
 // ================================================================================================ LESSONS
@@ -718,18 +747,18 @@ part("Lessons");
   const cw = (W - 2 * M - 0.4) / 2, y0 = 1.55;
   label(sl, "Do differently", M, y0, cw, 0.4, { size: 18, bold: true, color: HEX.navy });
   bullets(sl, [
-    "**Weigh early:** set the claw mass budget from the winch pull in week 1",
-    "**Coupons first:** print the fit before the part",
-    "**One station first:** prove it fully, then copy it",
-    "**Meter before code:** check every supply rail first",
+    "**Weigh early:** budget from winch pull",
+    "**Coupons first:** fit before part",
+    "**One station first:** prove, then copy",
+    "**Meter before code**",
   ], M, y0 + 0.45, cw, 2.7, 17, { space: 8, name: "do differently" });
   const rx = M + cw + 0.4;
   label(sl, "In half the time", rx, y0, cw, 0.4, { size: 18, bold: true, color: HEX.navy });
   bullets(sl, [
-    "**Freeze** requirements, mass budget and pass limits in week 1",
-    "**Order long-lead parts** at once: pulleys, couplers, spare boards",
-    "**Start with three stations:** fewest cables that hold a point",
-    "**One generation per part,** each closed by a test",
+    "**Freeze** requirements in week 1",
+    "**Order** long-lead parts on day 1",
+    "**Start** with 3 stations",
+    "**One generation** per part, test-gated",
   ], rx, y0 + 0.45, cw, 2.7, 17, { space: 8, name: "half the time" });
   // actual vs half-time schedule, same scale (inches per day)
   const lx = M, lw = 1.45, bx = M + lw, bw = W - M - bx, days = 104, s = bw / days, by = 4.85, bh = 0.62;
@@ -757,7 +786,7 @@ part("Lessons");
   const sl = pres.addSlide({ masterName: "SECTION", sectionTitle: "Close" });
   sl.addText("Questions", { x: M, y: 2.8, w: 11, h: 1.0, fontSize: 48, bold: true, color: "FFFFFF", fontFace: "Arial", margin: 0, isTextBox: true });
   sl.addText("Jasper Buntinx  ·  jasper_buntinx@tamu.edu", { x: M, y: 3.9, w: 11, h: 0.6, fontSize: 20, color: "D9DEE5", fontFace: "Arial", margin: 0, isTextBox: true });
-  sl.addNotes("Backups follow: status by part, fin length, floor board, calibration, control logic, one run, phone app, obstacles, claw electrical, " +
+  sl.addNotes("Backups follow: status by part, fin sizing for 4 W, floor board, calibration, control logic, one run, phone app, obstacles, claw electrical, " +
               "gear strength, safety, acronyms, calculations and sources.");
 }
 
@@ -769,7 +798,7 @@ part("Backup");
     ["Wall stations", "Built; bench-commissioned [[how many]]", "Three-station test, then the fourth"],
     ["Station electronics", "Built; drivers at 1.5 A [[how: Vref reading]]", "90-minute hold test at 1.5 A"],
     ["Heat fin", "Prototype 0.019 in built; 1/8 in designed (D38)", "Machine the 1/8 in fin; hold test"],
-    ["Thermal model of the station", "Hand calc at 1.5 A; ANSYS model with screws set up", "Run it; then the hold test"],
+    ["Thermal model of the station", "Hand calc at 1.5 A; SolidWorks model set up", "Run it; then the hold test"],
     ["Claw body: tube, mount, servo, gears", "Built", "Weigh it"],
     ["Claw hands, camera housing, encoder casing", "Checked in CAD; printing", "Fit checks on the first print"],
     ["Calibration and control software", "Simulated end to end", "First hardware run"],
@@ -778,24 +807,11 @@ part("Backup");
   sl.addNotes("Everything calculated or simulated is called that; the next-test column is what turns it into measurements.");
 }
 
-content("Fin Length", [
-  "The far end runs cooler, so each extra millimetre does less",
-  "**0.019 in sheet (built):** 95 % of the heat by 136 mm",
-  "**1/8 in plate (first drawing):** 95 % by 349 mm",
-  "Built 200 mm: past 136 mm the sheet adds under 5 %",
-], { sheet: "heat_fin", tab: "Heat fin" },
-"Efficiency at the built length: 37 % (sheet) vs 74 % (plate); fin resistance 22.1 vs 10.9 K/W. The 200 mm length was sized for the 1/8 in plate; " +
-"the thin sheet would do the same job at about 140 mm.",
-{ status: "Calculated", eq: { lines: [
-  "m = √(2h / (k t)),   η = tanh(mL) / (mL)",
-  "k = 160 W/m·K, h = 7 W/m²·K, t = 0.48 mm → L_{95} = 136 mm",
-], note: "Incropera et al., Fundamentals of Heat and Mass Transfer, ch. 3" } });
-
 content("Fin Sizing for 4 W", [
-  "**Question:** what fin carries all 4.05 W alone, with the motor ≤ 60 °C?",
-  "**Built 0.019 in sheet:** never; even infinitely long it carries ≈ 2 W",
-  "**1/8 in (now the design), 200 mm:** 56–59 °C alone; ≈ 45 °C in the station",
-  "**Thickness is the lever,** not length; bare needs 1/4 in × ≈ 300 mm",
+  "Fin alone carries all 4.05 W",
+  "**0.019 in:** never (max ≈ 2 W)",
+  "**1/8 in:** 145–185 mm",
+  "Thickness beats length",
 ], (sl, x, y, w, h) => {
   table(sl, ["Painted 6061, 44 mm wide", "Mass", "Motor, 200 mm, fin alone", "Shortest for ≤ 60 °C"], [
     ["0.019 in (prototype)", "14 g", "100–120 °C", "never (max ≈ 2.0 W)"],
@@ -812,31 +828,32 @@ content("Fin Sizing for 4 W", [
 "of my first drawing, painted, would carry all of it at the same 200 mm, and with the vented shell the motor would run at about 45 °C. Mass is no " +
 "problem on a wall station. 1/8 in may be beyond a hand shear: bandsaw and square it on the mill. Details: calculations/fin_sizing_4w.md.",
 { split: 0.4, status: "Calculated", eq: { lines: [
-  "q_{∞} = w √(2 h k t) · θ_b",
-  "m = √(2h / (k t)),   η = tanh(mL) / (mL)",
-] } });
+  "q_{∞} = w √(2 h k t) × θ_b",
+  "0.019 in: 0.044 √(2 · 9.3 · 167 · 0.000483) × 37",
+  "= **2.0 W** < 4.05 W",
+], where: "q_{∞} = most heat any length can carry  ·  w = 0.044 m  ·  h ≈ 9.3 W/m²·K painted  ·  k = 167 W/m·K (6061)  ·  t = 0.000483 m  ·  θ_b = 60 − 23 = 37 K" } });
 
 content("Floor Board Accuracy", [
-  "Angle error becomes position error through the lever arm",
-  "One tag: 12.9 mrad × 0.51 m ≈ 6.6 mm",
-  "Four tags in view: about 0.7 mm",
-  "Averaging frames removes noise, not a fixed bias",
+  "Angle error × lever arm",
+  "1 tag: 6.6 mm · 4 tags: 0.7 mm",
+  "Averaging removes noise, not bias",
 ], { sheet: "floor_board", tab: "Floor board" },
 "Two tags: 4.85 mrad, 2.5 mm. Noise model: 0.3 px corner noise, 520 px focal length (camera not yet calibrated).",
-{ status: "Calculated", eq: { lines: ["δx = σ_θ · L = 12.9 mrad × 0.51 m = 6.6 mm"] } });
+{ status: "Calculated", eq: { lines: ["δx = σ_{θ} × L = 12.9 mrad × 0.51 m = **6.6 mm**"],
+  where: "σ_{θ} = pose-angle noise with one tag in view  ·  L = 0.51 m camera height above the board" } });
 
 content("Startup Calibration", [
-  "No tape measure; nothing typed in",
-  "Least-squares fit of anchor positions and cable zero lengths",
+  "No tape measure",
+  "Fit: anchors + cable zero lengths",
   "Held-out poses check the fit",
-  "Full room only if the error bars fit inside the margin",
+  "Full room only inside error bars",
 ], (sl, x, y, w, h) => calFlow(sl, x, y + 0.3, w, 3.4),
 "Safety comes from margins, not precision: 0.4 m below the anchors and 0.2 m inside the walls unless the error bars allow more. " +
 "If the fit is not good enough: more poses, then fit again.",
 { status: "Simulated", eq: { lines: [
   "min Σ_k Σ_i ( L_{i0} + d_{ik} − ‖**a**_i − **p**_k‖ )²",
   "Full room only if k · σ ≤ margin",
-] } });
+], where: "a_i = anchor  ·  p_k = claw pose k (camera)  ·  d_ik = cable paid out (encoder)  ·  L_i0 = cable zero length  ·  σ = fit error" } });
 
 {
   const sl = blank("Logic: Gen 1 vs Final", "Simulated");
@@ -894,11 +911,10 @@ content("Phone App", [
 
 {
   const sl = content("Obstacles", [
-    "Known obstacles are keep-out cylinders",
-    "Every path point is checked: each cable against each cylinder",
-    "A path that fails is refused before anything moves",
-    "While moving: a stalled cable (encoder) or a failed grip (camera)",
-    "Cannot yet see a person or a pet: nobody under the robot",
+    "Known obstacles = keep-out cylinders",
+    "Every cable checked at every path point",
+    "Fails → refused before moving",
+    "Can't see people yet: nobody underneath",
   ], (sl2, x, y, w, h) => {
     const Ld = 4.19, Hc = 2.74, za = 2.59, s = Math.min((w - 0.2) / Ld, (h - 1.0) / Hc);
     const ox = x + (w - Ld * s) / 2, oy = y + 0.15 + Hc * s;
@@ -921,26 +937,30 @@ content("Phone App", [
 }
 
 content("Claw Electrical", [
-  "One protected 2-cell lithium-polymer pack (7.4 V, 2200 mAh), 5 A fuse, main switch",
-  "6 V regulator for the servo only; separate 5 V for the controller",
-  "Peak ≈ 2.8–3.1 A against a ≈ 3 A pack rating: stalls stay short",
-  "Charged with the switch off, attended, 8.4 V at ≤ 1 A",
-], { file: R("kicad_claw_revB.png"), alt: "Claw schematic" }, "Rules check 0 errors; 9 nets match the specification.", { split: 0.42 });
+  "2-cell lithium-ion pack: 7.4 V, 5 A fuse",
+  "6 V servo rail · separate 5 V logic",
+  "Peak 2.8–3.1 A vs 3 A pack",
+  "Charge: switch off, attended, ≤ 1 A",
+], { file: R("kicad_claw_revB.png"), alt: "Claw schematic" }, "Rules check 0 errors; 9 nets match the specification. Charger: 8.4 V constant current, constant voltage.", { split: 0.42 });
 
 content("Gear Strength", [
-  "Module 1.5, PETG allowable 22.5 MPa",
-  "At servo stall: pinion safety factor 2.05, 36-tooth gear 2.50, sync gear 2.00",
-  "Module 1 screened first: 0.35–0.41, so the module went up",
-], { file: [R("v6r_compound.png"), R("v6r_follower.png")], alt: "Compound and follower gears" }, "Stall torque 1.08 N·m at 6 V (servo rating, not measured).",
-{ status: "Calculated", eq: { lines: ["σ = F_t / (b m Y),   F_t = 2τ / d,   SF = σ_{allow} / σ"], note: "SF: safety factor; Y: Lewis form factor" } });
+  "Module 1.5 · PETG allowable 22.5 MPa",
+  "6 V stall: SF 2.05 / 2.50 / 2.00",
+  "Module 1: SF 0.35–0.41 → rejected",
+], { file: [R("v6r_compound.png"), R("v6r_follower.png")], alt: "Compound and follower gears" },
+"Safety factors at the 6 V servo stall: pinion 2.05, 36-tooth gear 2.50, sync gear 2.00 with one jaw taking all the load. Stall torque 1.078 N·m is the servo rating, not measured.",
+{ status: "Calculated", eq: { lines: [
+  "F_t = 2τ / d = 2 × 1.078 / 0.027 = 79.9 N",
+  "σ = F_t / (b m Y) = 79.9 / (15.7 × 1.5 × 0.309) = 11.0 MPa",
+  "SF = σ_{allow} / σ = 22.5 / 11.0 = **2.05**",
+], where: "SF = safety factor  ·  τ = servo stall torque  ·  d = pitch diameter (18 teeth × 1.5 mm)  ·  b = face width  ·  m = module  ·  Y = Lewis form factor" } });
 
 content("Safety", [
-  "One hard stop: the switched power strip; faults and PAUSE hold torque",
-  "Stations anchor into studs",
-  "Nobody stands under the robot",
-  "Never plug or unplug a motor under power",
-  "No safety-rated function is claimed",
-], { file: R("station_1021_final.png"), alt: "Wall station" }, "", { split: 0.55 });
+  "One hard stop: switched power strip",
+  "Faults and PAUSE hold torque",
+  "Anchors in studs · nobody underneath",
+  "Never unplug a motor under power",
+], { file: R("station_1021_final.png"), alt: "Wall station" }, "No safety-rated function is claimed.", { split: 0.55 });
 
 {
   const sl = blank("Acronyms");
@@ -960,8 +980,8 @@ content("Safety", [
 
 {
   const sl = content("Calculations and Sources", [
-    "Every chart comes from my calculation sheet, one tab per topic",
-    "Every result is a formula on marked inputs",
+    "Every chart: my calculation sheet",
+    "Every result: a formula on marked inputs",
     "**Sources:**",
     "- Incropera et al., Fundamentals of Heat and Mass Transfer, ch. 3",
     "- Allegro MicroSystems, A4988 datasheet",

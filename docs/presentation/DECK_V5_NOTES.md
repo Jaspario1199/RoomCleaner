@@ -51,6 +51,19 @@ What changed from v4 (52 slides):
 | 23 | Questions | | |
 | B | Where It Stands, Fin Length, Floor Board Accuracy, Startup Calibration, Logic: Gen 1 vs Final, One Run, Phone App, Obstacles, Claw Electrical, Gear Strength, Safety, Acronyms, Calculations and Sources | | |
 
+## Update, Oct 22: terse slides and worked equations
+
+Jasper: "each slide should only have a few bullet points ... not full sentences ... equation boxed ... with our inputted values".
+- **Bullets:** every slide has 3 or 4 fragments; the full sentences moved to the speaker notes.
+- **Equation box:** shows the equation, then our numbers substituted with each result in bold, then a "where" line giving every
+  input and its value.
+- **New main slide "Heat Fin Sizing"** (after Cooling the Motor), with the target-length calculation:
+  - m = √(2h / (k t)), L95 = 1.83 / m;
+  - 0.019 in: 136 mm; 1/8 in: 349 mm;
+  - η = 0.74 and R_fin = 10.9 K/W at 200 mm.
+- **Backups:** the old "Fin Length" backup is removed (its content is now the new main slide); Thermal Check is back to
+  SolidWorks.
+
 ## Update, Oct 22: fin sizing for 4 W
 
 Backup slide **Fin Sizing for 4 W** (after Fin Length): which aluminium thickness and length would carry all 4.05 W alone with

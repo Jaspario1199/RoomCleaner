@@ -681,6 +681,39 @@ def export_variants() -> dict:
     return {k: export_variant(k) for k in VARIANTS}
 
 
+# v2 magnet-cap FILE variants for the measured Ø4.0 magnet (ENC1021_MAGNET_D, Jasper 10/22; the Ø6 v2 files are kept as the superseded record).
+# Built with v2=True through the parameters (the master values are untouched):
+#   m4         the v2 cap with the standard peg (3.4, end at y 22.6): stations with the 1/8 in fin (shaft end y 20.83, 1.77 mm clear)
+#   m4_peg1p9  short peg 1.9 (FIN1021_PROTO_CAP_PEG_LEN, end at y 24.1): stations with the 0.019 in prototype fin (shaft end y 23.52, 0.58 mm clear)
+V2_VARIANTS = {
+    "m4": ("cap", {}, "encoder1021_magnet_cap_v2_m4"),
+    "m4_peg1p9": ("cap", {"ENC1021_CAP_PEG_LEN": P.FIN1021_PROTO_CAP_PEG_LEN}, "encoder1021_magnet_cap_v2_m4_peg1p9"),
+}
+
+
+def build_v2_variant(key: str) -> cq.Workplane:
+    """One v2 file variant (v2 cap built through the parameters; the master values are restored afterwards)."""
+    _, overrides, _ = V2_VARIANTS[key]
+    with params_override(**overrides):
+        return make_magnet_cap(v2=True)
+
+
+def export_v2_variant(key: str, step_dir: str = STEP_DIR, stl_dir: str = STL_DIR) -> dict:
+    """STEP (station frame) + STL (print orientation, same as the v2 cap) of one v2 file variant; the v1, v2 and fit-test exports are not touched."""
+    part, _, stem = V2_VARIANTS[key]
+    os.makedirs(step_dir, exist_ok=True)
+    os.makedirs(stl_dir, exist_ok=True)
+    wp = build_v2_variant(key)
+    step, stl = os.path.join(step_dir, f"{stem}.step"), os.path.join(stl_dir, f"{stem}.stl")
+    cq.exporters.export(wp, step)
+    cq.exporters.export(cq.Workplane("XY").add(to_print_pose(wp.val(), part)), stl, tolerance=0.02, angularTolerance=0.1)
+    return {"step": step, "stl": stl}
+
+
+def export_v2_variants() -> dict:
+    return {k: export_v2_variant(k) for k in V2_VARIANTS}
+
+
 # standard views: name -> (direction from the part TO the camera, screen-up hint), station frame (x room, y toward spool, z up)
 VIEWS = {
     "front": ((0, -1, 0), (0, 0, 1)),     # camera at -y: the chip / magnet side; +x right
@@ -985,6 +1018,12 @@ if __name__ == "__main__" and sys.argv[1:] == ["v2"]:
     for ver in (1, 2):
         r = stackup(ver)
         print(f"stack-up v{ver}: worst radial {r['worst_radial']:.3f} mm (x {r['worst_x']:.3f}, z {r['worst_z']:.3f}), RSS radial {r['rss_radial']:.3f} mm")
+elif __name__ == "__main__" and sys.argv[1:] == ["m4"]:
+    for k, d in export_v2_variants().items():               # Ø4.0 magnet v2 caps only; every other export is untouched
+        v = build_v2_variant(k).val()
+        bb = v.BoundingBox()
+        print(f"{k}: valid={v.isValid()} solids={len(v.Solids())} vol={v.Volume():.2f} mm3 bbox x[{bb.xmin:.3f},{bb.xmax:.3f}] y[{bb.ymin:.3f},{bb.ymax:.3f}] "
+              f"z[{bb.zmin:.3f},{bb.zmax:.3f}]  {d['step']}  {d['stl']}")
 elif __name__ == "__main__" and sys.argv[1:] == ["variants"]:
     for k, d in export_variants().items():                  # fit-test variants only; the nominal exports are not rewritten
         v = build_variant(k).val()

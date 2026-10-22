@@ -547,7 +547,7 @@ CAMBAY1021_TRI_YAW_RANGE_DEG = 15.0   # claw yaw range of the cable-line analysi
 # below, so one edit here regenerates both parts.
 # =============================================================================
 # --- purchased parts: NOMINAL until Jasper measures them (spec section 6) ----------------------------------------------------
-ENC1021_MAGNET_D = 6.0                # diametric magnet shipped with the board
+ENC1021_MAGNET_D = 4.0                # diametric magnet; Jasper measured 10/22; was 6.0 (supplied-magnet assumption)
 ENC1021_MAGNET_T = 2.5
 ENC1021_PCB_SIZE = 23.0               # UMLIFE AS5600 module, square
 ENC1021_PCB_THICK = 1.6
@@ -695,3 +695,110 @@ LID1021_KEEPOUT = 5.0                 # required distance to the cable holes (an
 LID1021_PETG_G_CM3 = 1.27             # cad/materials.py
 LID1021_PETG_E_MPA = 2100.0
 LID1021_FRICTION = 0.4                # PETG on PETG, for the retention estimate
+
+
+# =============================================================================
+# HEAT FIN 1021 (FIN1021_*): aluminium heat-spreader fin of the 10/21 station, made from Jasper's Heat_horn      cad/HEAT_FIN_1021_SPEC.md
+# cad/parts/heat_fin1021.py.  The outline and the five holes are NOT redrawn: the fin is the y = 0 face of Heat_horn.step extruded toward -y
+# by the thickness (the numbers below are the measured record, checked against the file by tests/test_heat_fin1021.py).  Units mm.
+# Frame "station_1021" = cad/reference/station_1021/*.step: motor axis at x = 0, z = +2.64, +y along the shaft toward the spool, +x out of
+# the wall, +z up; the PETG motor tab face is y = 0 and the fin sits at y = -t .. 0.  Assembly coordinates = station_1021 + O, O from
+# cad/reference/station_1021/extract.py.  The files carry the common extraction residual ENC1021_REF_RESIDUAL (+0.004243, +0.001645,
+# +0.003854): the asm1021 copy keeps it (it coincides with the Heat_horn), the flat part frame removes it.
+# =============================================================================
+FIN1021_SOURCE = "cad/reference/station_1021/Heat_horn.step (Jasper, Assem_laundry_v3_step_1021.STEP, 10/21)"
+FIN1021_T_PRODUCTION_IN = 0.125       # production: 1/8 in plate
+FIN1021_T_PRODUCTION_MM = 3.175       # 0.125 * 25.4
+FIN1021_T_PROTOTYPE_IN = 0.019        # prototype ONLY: sheet Jasper already had; it cannot carry 4.05 W alone (calculations/fin_sizing_4w.md)
+FIN1021_T_PROTOTYPE_MM = 0.483        # 0.019 in (0.4826), rounded as in the spec
+FIN1021_REF_T = 2.0                   # Heat_horn thickness in the assembly (y -2.0 .. 0.0)
+FIN1021_ALLOY = "6061-T6 (or 5052-H32), 1/8 in plate"
+FIN1021_ALLOY_PROTOTYPE = "aluminium sheet 0.019 in (existing stock), prototype only"
+FIN1021_FINISH = "matte black paint except the motor contact square"
+FIN1021_AL_G_CM3 = 2.70               # 6061 (5052: 2.68); same value as cad/parts/motor_heat_plate.py
+FIN1021_MM_PER_IN = 25.4
+# --- measured outline of the Heat_horn (station_1021 frame, residual removed) ---
+FIN1021_X_MIN, FIN1021_X_MAX = -20.0, 22.0          # 42.0 bottom edge
+FIN1021_Z_MIN = -18.36                              # bottom edge (axis z 2.64 -> 21.0 above the bottom edge)
+FIN1021_H_LEFT = 195.6                              # left (x = -20) side edge, 7.7 in
+FIN1021_H_RIGHT = 228.6                             # right (x = +22) side edge = the long side, 9.0 in
+FIN1021_Z_MAX = FIN1021_Z_MIN + FIN1021_H_RIGHT     # 210.24
+FIN1021_TOP_EDGE_MM = 53.4                          # slanted top edge: hypot(42.0, 228.6 - 195.6) = 53.413
+FIN1021_AXIS_XZ = (0.0, 2.64)                       # motor axis
+FIN1021_PILOT_D = 22.5                              # centre hole (motor boss Ø22 + clearance)
+FIN1021_HOLE_D = 3.4                                # 4 x M3 clearance
+FIN1021_HOLE_SQ = 31.0                              # NEMA 17 square about the axis
+FIN1021_CONTACT_SQ = 42.3                           # motor flange square (left bare, thermal paste)
+# --- prototype short-peg magnet cap (cad/parts/encoder1021.py, V2_VARIANTS["peg1p9"]) ---
+# the 0.019 in fin puts the shaft end at 22.0 + (FIN1021_REF_T - t) = 23.517; the standard peg (end 22.6) would hit it by 0.92 mm
+FIN1021_PROTO_CAP_PEG_LEN = 1.9                     # peg end at ENC1021_SPOOL_FACE_Y - 1.9 = 24.1, 0.58 mm clear of the shaft
+FIN1021_PROTO_PEG_MIN_CLEAR = 0.5                   # required clearance peg end to shaft end
+
+
+# =============================================================================
+# THERMAL STATION 1021 (THERMAL_*): simulation-ready named bodies for ANSYS / SOLIDWORKS    cad/thermal_station1021.py
+# One STEP per fin variant, assembly coordinates, every solid named.  Units mm.  Densities are vendor-typical, not certified.
+# =============================================================================
+THERMAL_VARIANTS = (("fin1p8", FIN1021_T_PRODUCTION_MM), ("fin0p019", FIN1021_T_PROTOTYPE_MM))   # (export key, fin thickness)
+THERMAL_INSERTS = ("deck", "enc")     # which candidate brass insert sleeves exist ("deck": 1 in the deck under the spool, "enc": 4 in the encoder divot)
+THERMAL_SCREW_HEAD_D = 5.5            # M3 socket head, simplified
+THERMAL_SCREW_HEAD_H = 3.0            # head seated on the tab's spool-side face (y 5 .. 8)
+THERMAL_SCREW_D = 3.0                 # shank = the motor's tapped-hole bore (shared cylindrical face, no overlap)
+THERMAL_MOTOR_HOLE_D = 3.0            # 4 holes in the motor block front face
+THERMAL_MOTOR_HOLE_DEPTH = 4.0        # SPEC value; the motor's real tapped-hole depth is "about 4.5": check with a depth gauge
+THERMAL_TAB_T = 5.0                   # PETG motor tab (slip-in), y 0 .. 5
+THERMAL_TAB_HOLE_D = 3.5              # tab clearance holes, measured
+THERMAL_DECK_INSERT_OD, THERMAL_DECK_INSERT_LEN, THERMAL_DECK_INSERT_ID = 4.1, 5.7, 2.5    # pocket Ø4.1 x 7 deep (Ø3.4 x 3 below), sleeve flush with the deck face
+THERMAL_ENC_INSERT_OD, THERMAL_ENC_INSERT_LEN, THERMAL_ENC_INSERT_ID = 3.45, 4.0, 2.1      # divot holes Ø3.45 x 4 deep along x (M2.5)
+THERMAL_ENC_HOLE_PITCH = 9.5          # divot holes: 9.5 mm square about (y 45, z 0) in the encoder frame
+THERMAL_FIN_SPLIT_Z = 34.6            # station_1021 frame: shell top where the fin leaves the shell (re-measured by the builder, tolerance below)
+THERMAL_FIN_SPLIT_TOL = 0.05
+THERMAL_FIN_SPLIT_MARGIN = 6.0        # the shell top is measured inside the Heat_horn x/y footprint widened by this
+THERMAL_OVERLAP_LIMIT_MM3 = 0.01      # no pair of bodies may overlap by more than this
+THERMAL_CONTACT_TOL_MM = 1.0e-4       # two faces closer than this, parallel / coaxial, count as touching
+THERMAL_SLOT_CLEAR = 0.5              # clearance asked on the motor side of the shell's fin slot beyond the fin's motor face
+THERMAL_MOTOR_MASS_G = 280.0          # calculations/simulation_loads.py M_MOTOR (REPO guide 0.28 kg): effective density of the block
+THERMAL_DENSITY_G_CM3 = (("aluminium", FIN1021_AL_G_CM3), ("petg", 1.27), ("steel", 7.85), ("brass", 8.5))   # petg: cad/materials.py
+THERMAL_SCREW_LEN_DETAILED = 12.0     # detailed variant: real M3 x 12 under the head (3.825 mm into the front cap behind the 1/8 in fin and the 5 mm tab)
+THERMAL_MATERIALS = (                  # body-name prefix -> (material to assign, density key of THERMAL_DENSITY_G_CM3, k W/m.K, note); typical values, not certified
+    ("motor_block", "Structural steel (motor proxy; effective density so the block = THERMAL_MOTOR_MASS_G)", "motor", 50.0, "isothermal-ish steel block, as in the FEA of calculations/thermal_assembly_1p5a.py"),
+    ("fin", "Aluminium 6061-T6", "aluminium", 167.0, "5052-H32 is similar (k 138): the fin is built in either"),
+    ("slipin_mount", "PETG", "petg", 0.20, "print orientation matters (k across layers is lower); cad/materials.py density"),
+    ("screw", "Steel (M3 socket head, 12.9 alloy / A2 equivalent)", "steel", 50.0, "A2 stainless would be about 16"),
+    ("insert", "Brass (CuZn heat-set insert)", "brass", 115.0, "candidate inserts; Jasper has not confirmed which ones are used"),
+)
+
+
+# =============================================================================
+# NEMA 17 FOR THERMAL SIMULATION (NEMA17T_*): multi-body stepper (front cap, stator, winding, rear cap, shaft, connector)   cad/parts/nema17_thermal.py
+# Motor frame: front face at y = 0, axis along +y (the station orientation), body toward -y, shaft and pilot boss toward +y.  Units mm.
+# Class SIMAX 42-38 (42.3 square x 38): matches Motor_Reference (y -40 .. -2) of the 10/21 station.  No rotor: the cavity inside the winding is air.
+# Material numbers are vendor-typical, NOT certified: the stator / winding values are the least certain and set the heat path (assumptions).
+# =============================================================================
+NEMA17T_SIZE = NEMA17_FACE            # 42.3 square
+NEMA17T_LEN = 38.0                    # body length, front face to back face
+NEMA17T_CORNER_CHAMFER = 3.0          # 45 deg, leg length, on the four long edges
+NEMA17T_CAP_LEN = 8.0                 # front cap and rear cap each
+NEMA17T_STATOR_LEN = 22.0             # NEMA17T_LEN - 2 * NEMA17T_CAP_LEN
+NEMA17T_PILOT_D = NEMA17_BOSS_DIA     # 22.0 boss on the front face
+NEMA17T_PILOT_H = 2.0
+NEMA17T_HOLE_SQ = NEMA17_HOLES        # 31.0 square of the M3 holes
+NEMA17T_TAP_D = 3.0                   # tapped holes modelled as plain Ø3.0
+NEMA17T_TAP_DEPTH = 4.5
+NEMA17T_BORE_D_SPEC = 5.2             # the brief's bore; built as NEMA17T_CAP_BORE_D so the shaft surface touches the bore (lead's instruction)
+NEMA17T_CAP_BORE_D = 5.0
+NEMA17T_STATOR_BORE_D = 34.0
+NEMA17T_WINDING_ID = 23.0             # winding annulus Ø23 .. Ø34 (outer face = the stator bore)
+NEMA17T_SHAFT_D = 5.0
+NEMA17T_SHAFT_PROUD = 24.0            # shaft end beyond the front face (station: y 22.0 when the front face is at y -2.0)
+NEMA17T_SHAFT_REAR_INSET = 1.0        # shaft back end 1.0 mm inside the rear cap's back face (the rear bore is blind, bottom = shaft end face)
+NEMA17T_CONNECTOR = (16.0, 6.0, 6.0)  # PBT housing: along z, along y, along x (protrusion from the rear cap's +x side face); flush with the back face
+NEMA17T_BODIES = ("front_cap", "stator", "winding", "rear_cap", "shaft", "connector")
+NEMA17T_MATERIALS = (                  # body -> (suggested material, k W/m.K, density g/cm3, exposed surface type, note)
+    ("front_cap", "Aluminium die-cast (A380)", 96.0, 2.74, "aluminium end cap", "carries the 4 tapped holes and the pilot boss: the heat path into the fin"),
+    ("stator", "Silicon-steel laminations", 25.0, 7.65, "black painted steel", "k is IN-PLANE; across the stack (along y) about 1 to 2 W/m.K because of the lamination insulation (orthotropic if the study allows)"),
+    ("winding", "Copper winding + slot insulation, homogenised", 1.0, 5.0, "internal (no exposed surface)", "the heat source: assign the 4.05 W here; effective k 0.5 to 2 (fill and varnish), density ~50 % copper fill"),
+    ("rear_cap", "Aluminium die-cast (A380)", 96.0, 2.74, "aluminium end cap", "blind Ø5.0 shaft seat 7 mm deep"),
+    ("shaft", "Carbon steel", 50.0, 7.85, "bare steel shaft", "Ø5, no D-flat in this model; exposed 24 mm beyond the front face"),
+    ("connector", "PBT", 0.25, 1.40, "plastic connector", "housing only, no pins"),
+)

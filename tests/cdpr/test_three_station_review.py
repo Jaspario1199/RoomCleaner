@@ -402,24 +402,25 @@ def test_the_margins_are_031_from_the_two_diagonal_sides_and_030_from_the_ab_wal
         assert ws.triangle_violation(np.array([1.6764, 0.05 + wall - 0.01, 1.0])) is not None
 
 
-def test_l1_pin_the_guide_and_the_results_attribute_the_two_margins_to_the_wrong_sides():
+def test_l1_fixed_the_guide_attributes_the_two_margins_to_the_right_sides():
     """PIN F-L1 (Low, documentation): ``docs/THREE_STATION_MODE.md`` section 5 says "0.31 m from the A-B wall side and 0.30 m from each
     diagonal side (0.235 m / 0.225 m ...)". The code (and ``workspace_summary``) give the A-B wall side the SMALLER margin: 0.30 m
     (0.225 m for 0.6 kg) and each diagonal 0.31 m (0.235 m). Fixed when the guide says 0.30 m for the wall side."""
-    text = GUIDE.read_text()
-    assert "0.31 m from the A-B wall side and 0.30 m from each diagonal side" in text, \
-        "DEFECT L1 fixed? the guide no longer says that: flip this test to assert the corrected sentence"
-    assert "(0.235 m / 0.225 m for the simulator's 0.6 kg claw)" in text
+    # FIXED 10/22 (lead, guide commit f55acc3): the wall side has the smaller margin, as in the code.
+    text = " ".join(GUIDE.read_text().split())
+    assert "0.31 m from the A-B wall side and 0.30 m from each diagonal side" not in text
+    assert "0.30 m (0.299) from the A-B wall side and 0.31 m (0.314) from each diagonal side" in text
+    assert "(0.225 m / 0.235 m for the simulator's 0.6 kg claw; L1)" in text
 
 
-def test_l2_pin_the_guide_says_the_room_centre_is_2_ft_closer_to_c_but_it_is_44_cm():
+def test_l2_fixed_the_guide_says_the_room_centre_is_44_cm_closer_to_c():
     """PIN F-L2 (Low, documentation): section 4 says the room centre is "2 ft closer to C" than the start point. It is 0.440 m =
     1 ft 5 in (room centre y 1.372 m, centroid y 0.931 m); the safety section says 0.44 m. Fixed when the guide says about 1 ft 5 in."""
     cfg = load_config(EX3)
     d = cfg.room_m[1] / 2 - cfg.start_point_xy()[1]
     assert d == pytest.approx(0.4405, abs=1e-3) and d / 0.3048 == pytest.approx(1.445, abs=0.01)
-    assert "the room centre is\n  2 ft closer to C" in GUIDE.read_text() or "2 ft closer to C" in GUIDE.read_text(), \
-        "DEFECT L2 fixed? the guide no longer says '2 ft closer to C': flip this test"
+    text = " ".join(GUIDE.read_text().split())                      # FIXED 10/22 (lead)
+    assert "2 ft closer to C" not in text and "0.44 m (1 ft 5 in) closer to C" in text
 
 
 def test_the_guides_start_point_and_heading_prior_agree_with_the_code():
@@ -677,13 +678,13 @@ def test_m4_pin_the_calibration_box_sends_most_poses_far_outside_the_40_degree_o
     assert np.all(over / tot > 0.80), over / tot
 
 
-def test_m5_l4_pin_the_guide_is_silent_on_the_floor_board_and_on_weighing_the_claw():
+def test_m5_l4_fixed_the_guide_covers_the_floor_board_and_weighing_the_claw():
     """PIN F-M5 / F-L4 (documentation): the guide never mentions the printed floor board (``marker.board_layout_file``) although every
     simulated three-station startup of the results uses it, says the single-tag LOCAL_ONLY reason is "slack probe was off", and gives
     "the budget is 0.45 kg" for ``claw.mass_kg`` without saying to enter the weighed mass. Fixed when the guide says so: flip."""
-    text = GUIDE.read_text().lower()
-    assert "board" not in text and "board_layout_file" not in text
-    assert "weigh" not in text and "the budget is 0.45 kg" in text
+    text = " ".join(GUIDE.read_text().lower().split())               # FIXED 10/22 (lead): section 4.1 and section 3
+    assert "board_layout_file" in text and "print_floor_board" in text
+    assert "weighed mass" in text and "the budget is 0.45 kg" not in text
 
 
 def test_l5_pin_the_start_point_check_is_skipped_when_the_workspace_is_missing(tmp_path):
@@ -697,7 +698,7 @@ def test_l5_pin_the_start_point_check_is_skipped_when_the_workspace_is_missing(t
     assert isinstance(r.ctx, RobotContext)
 
 
-def test_d1_pin_a_simulator_rehearsal_leaves_state_that_makes_the_real_service_start_in_recovery_required(tmp_path):
+def test_d1_guide_fixed_a_shared_data_directory_still_starts_in_recovery_required(tmp_path):
     """PIN F-M3 (Medium, operator guide): steps 3 and 4 of the guide run the simulator and then the real service with the SAME default
     ``--data`` directory (``data/cdpr``): the guide never mentions ``--data``. A rehearsal that ends READY (or any aborted
     start) leaves ``claw_supported = false`` in ``state.json``; the next launch then enters RECOVERY_REQUIRED ("host restarted while the claw
@@ -712,7 +713,10 @@ def test_d1_pin_a_simulator_rehearsal_leaves_state_that_makes_the_real_service_s
     assert sup2.state == "RECOVERY_REQUIRED", f"DEFECT M3 fixed? the new run starts {sup2.state}: flip this test"
     with pytest.raises(CommandRefused, match="'start' not allowed in RECOVERY_REQUIRED"):
         sup2._require("start")
-    assert "--data" not in GUIDE.read_text()
+    # FIXED in the guide 10/22 (lead): rehearsal and real run get separate --data directories. The mechanism above is unchanged on
+    # purpose (the code was not changed), so it stays asserted: it is why the guide's rule matters.
+    text = GUIDE.read_text()
+    assert "--data data/sim3" in text and "--data data/hw3" in text
 
 
 def test_four_station_startup_still_reaches_ready_and_the_default_config_is_unchanged():

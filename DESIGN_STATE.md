@@ -593,3 +593,15 @@ slack_probe default (keep false until probe H1/M2 are closed).
   drawing view); once drilled, that hole is the mill's zero and the other four holes are positioned from it ((31, 0), (0, 31),
   (31, 31), pilot (15.5, 15.5)), so the ±0.5 mm sheared edges do not move the pattern. The shop drawing in
   `cad/parts/heat_fin1021.py` still dimensions every hole from the edges (datums A and B); it can be redrawn from hole 2.
+
+## Overload report for tracking faults (10/22, implementer; reviewed by the lead)
+- A TRACKING fault (spool encoder vs commanded steps) is now reported in words with its size, from the station's latest
+  tracking error: toward payout = "overload: spool turned N deg (M mm of line) toward payout beyond the command; the line
+  pulled harder than the motor holds (motor skipped or spool slipped on the shaft)"; the other sign = "jam, or spool slipping
+  on the shaft". Without telemetry the old wording stays. Message text only: detection, thresholds, reactions, trust
+  transitions, protocol and firmware unchanged (`roomcleaner/cdpr/trust.py` `tracking_fault_detail`, coordinator, supervisor;
+  `tests/test_overload_message.py`).
+- Lead change on review: the supervisor's radius lookup falls back to the core radius on any error, so the message can never
+  break the monitoring loop.
+- Still to do at the bench stage (D39): set `faults.tracking_tol_counts` on the hardware configs below one 82-count skip
+  (60 proposed); they are null today.

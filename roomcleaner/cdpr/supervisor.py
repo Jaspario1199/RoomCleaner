@@ -150,8 +150,8 @@ class Supervisor:
         radius = st.spool.core_radius_m
         try:
             r = ctx.ppu(ctx.ids.index(sid)) * st.drive.usteps_per_rev / (2 * math.pi)
-        except (ValueError, RuntimeError):         # SpoolRangeError, no length reference, no position yet
-            r = float("nan")
+        except Exception:                          # SpoolRangeError, no length reference, no position yet: message text must
+            r = float("nan")                       # never break the monitoring loop, so any failure falls back to the core radius
         if math.isfinite(r) and r > 0:
             radius = r
         return tracking_fault_detail(ctx.co.links[sid].tel, st.encoder.counts_per_rev, radius)

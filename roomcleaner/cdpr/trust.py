@@ -49,12 +49,34 @@ below VERIFIED.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from .protocol import Fault
 
 LEVELS = ("NONE", "LOCAL_ONLY", "VERIFIED")
+
+
+def tracking_fault_detail(tel, counts_per_rev, radius_m):
+    """What a station's tracking error says about its TRACKING fault, in words (message text only; no decision uses it).
+
+    ``tel`` is the station's latest telemetry (``terr`` = measured - expected spool angle in encoder counts, + = payout,
+    see ``station_core._check_tracking``); ``radius_m`` is the radius the line leaves the spool at. The encoder is on the
+    SPOOL, so a spool that turned toward payout beyond the command means the line pulled harder than the motor holds
+    (design intent of calculations/lift_chain_weakest_link.py: the motor is the weakest link); the other sign is a jam
+    or a slipping spool. Returns None when there is no usable ``terr`` (no telemetry, missing, not finite, or exactly 0,
+    which has no direction): the caller then keeps its plain wording."""
+    terr = (tel or {}).get("terr")
+    if isinstance(terr, bool) or not isinstance(terr, (int, float)) or not math.isfinite(terr) or terr == 0:
+        return None
+    turns = abs(terr) / counts_per_rev
+    deg, mm = 360.0 * turns, 2e3 * math.pi * radius_m * turns
+    if terr > 0:
+        return (f"overload: spool turned {deg:.0f} deg ({mm:.1f} mm of line) toward payout beyond the command; "
+                "the line pulled harder than the motor holds (motor skipped or spool slipped on the shaft)")
+    return (f"spool turned {deg:.0f} deg ({mm:.1f} mm of line) less than commanded toward payout "
+            "(jam, or spool slipping on the shaft)")
 
 
 def atomic_write(path, text: str) -> None:
@@ -146,8 +168,12 @@ class TrustLedger:
         self._note(f"{sid}: reference invalid ({why})")
         self._update_level()
 
-    def on_fault(self, sid, code):
-        if code in (Fault.TRACKING, Fault.ENCODER, Fault.TIMING):
+    def on_fault(self, sid, code, detail=None):
+        """``detail``: plain-language reading of the fault (``tracking_fault_detail``), used for a TRACKING fault only;
+        without it the note keeps its old wording."""
+        if code == Fault.TRACKING and detail:
+            self.invalidate(sid, f"{Fault.NAMES[code]} fault: {detail}")
+        elif code in (Fault.TRACKING, Fault.ENCODER, Fault.TIMING):
             self.invalidate(sid, f"{Fault.NAMES[code]} fault: steps may be lost")
         elif code == Fault.SWITCH:
             self.invalidate(sid, "bead switch opened unexpectedly (or wire broken)")

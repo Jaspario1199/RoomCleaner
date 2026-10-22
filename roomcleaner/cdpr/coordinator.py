@@ -32,6 +32,7 @@ import numpy as np
 from .protocol import Fault, State
 from .station_link import StationLink
 from .trajectory import Plan
+from .trust import tracking_fault_detail
 
 
 class RealRuntime:
@@ -375,9 +376,9 @@ class Coordinator:
                         if e.get("k") == "hold":
                             res.stopped_tau_us = e.get("tau")
                     elif e.get("k") == "fault":
-                        self._log(f"{s} fault event {Fault.NAMES.get(e.get('f'))}")
+                        self._log(f"{s} fault event {self._fault_name(s, e.get('f'))}")
                         if holding_reason is None:
-                            holding_reason = f"station {s} fault {Fault.NAMES.get(e.get('f'))}"
+                            holding_reason = f"station {s} fault {self._fault_name(s, e.get('f'))}"
                             self._abort(mid, max(tau, 0) + 20000, holding_reason)
                         done.add(s)
                         res.final_pos[s] = e.get("pos")
@@ -418,6 +419,8 @@ class Coordinator:
             res.reason += " | stations did not report stopped"
         for s in self.ids:
             res.final_pos.setdefault(s, self.links[s].pos)
+        if res.held_by in self.ids:
+            res.reason += self._held_by_tracking_text(res.held_by)
         self._log(f"motion {mid} -> {'OK' if res.ok else 'STOPPED'}: {res.reason}")
         return res
 
@@ -428,13 +431,35 @@ class Coordinator:
         for _ in range(2):                     # redundancy against a lost datagram (+ resend loop)
             self._send("*", {"t": "hold", "m": mid, "tau": int(tau_us)})
 
+    def _fault_name(self, sid, code):
+        """Fault name for a log line or stop reason. A TRACKING fault is followed by what the station's latest tracking
+        error says (``trust.tracking_fault_detail``; the spool is taken at its core radius, so the line length is the
+        minimum) when its telemetry carries one. Message text only."""
+        name = Fault.NAMES.get(code)
+        if code == Fault.TRACKING:
+            st = self.cfg.station(sid)
+            detail = tracking_fault_detail(self.links[sid].tel, st.encoder.counts_per_rev, st.spool.core_radius_m)
+            if detail:
+                return f"{name}: {detail}"
+        return name
+
+    def _held_by_tracking_text(self, sid):
+        """`` (fault TRACKING: ...)`` when the station that originated a hold now reports a latched TRACKING fault, so the
+        stop reason says why that station held (its fault event can arrive after its hold, so this is read once the
+        stations have settled). Otherwise empty. Message text only."""
+        if (self.links[sid].tel or {}).get("flt") == Fault.TRACKING:
+            return f" (fault {self._fault_name(sid, Fault.TRACKING)})"
+        return ""
+
     def _check_running(self, now):
         """(reason, lost_station) — lost_station set when only telemetry stopped."""
+        tracking = f"fault {Fault.NAMES[Fault.TRACKING]}"
         for s in self.ids:
             h = self.links[s].health(now, self.tel_max_age, float("inf"))
             if h:
                 lost = s if h == ["telemetry stale"] else None
-                return f"station {s}: {', '.join(h)}", lost
+                text = [f"fault {self._fault_name(s, Fault.TRACKING)}" if x == tracking else x for x in h]
+                return f"station {s}: {', '.join(text)}", lost
         return None, None
 
     def _peer_holds(self, mid):

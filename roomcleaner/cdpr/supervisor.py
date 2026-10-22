@@ -50,7 +50,7 @@ from .perception import cam_displacement, to_marker, to_room
 from .protocol import Fault, State
 from .startup import StartupAbort, StartupSequencer
 from .trajectory import PlanError, plan_cable_move, plan_line_from
-from .trust import TrustLedger, atomic_write
+from .trust import TrustLedger, atomic_write, tracking_fault_detail
 
 STATES = ("DISARMED", "STARTUP", "READY", "TASK", "PAUSED", "FAULT", "RECOVERY_REQUIRED", "PARKED")
 COORDINATED_STOPS = (Fault.LEASE, Fault.UNDERRUN)
@@ -140,6 +140,22 @@ class Supervisor:
                 "reasons": self.reasons[-5:], "events": self.events[-20:]}
 
     # ------------------------------------------------------------ monitoring
+    def _tracking_detail(self, sid):
+        """The reading of a TRACKING fault from the station's latest tracking error (``trust.tracking_fault_detail``), or
+        None without one. The line length uses the radius the line leaves the spool at now (``ctx.ppu``: the model's
+        payout per microstep, the core radius when there is no length reference or the position is off the spool).
+        Message text only."""
+        ctx = self.ctx
+        st = ctx.cfg.station(sid)
+        radius = st.spool.core_radius_m
+        try:
+            r = ctx.ppu(ctx.ids.index(sid)) * st.drive.usteps_per_rev / (2 * math.pi)
+        except (ValueError, RuntimeError):         # SpoolRangeError, no length reference, no position yet
+            r = float("nan")
+        if math.isfinite(r) and r > 0:
+            radius = r
+        return tracking_fault_detail(ctx.co.links[sid].tel, st.encoder.counts_per_rev, radius)
+
     def poll(self):
         """Run continuously (service idle loop) and after every command: turns
         station reboots and latched faults into trust events and states."""
@@ -160,7 +176,7 @@ class Supervisor:
             if f in COORDINATED_STOPS:
                 stopped.append(f"{s}: {Fault.NAMES[f]}")
             elif self.ctx.ledger.stations[s].valid:
-                self.ctx.ledger.on_fault(s, f)
+                self.ctx.ledger.on_fault(s, f, self._tracking_detail(s) if f == Fault.TRACKING else None)
                 invalidated = True
         if self.state in ("READY", "PAUSED", "TASK", "PARKED"):
             if invalidated:

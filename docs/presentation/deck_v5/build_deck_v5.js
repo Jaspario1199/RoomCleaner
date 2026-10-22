@@ -385,7 +385,7 @@ part("Design");
   const tiles = [
     ["Lift capacity", "Maximize", "Claw + jeans anywhere: 1.76 kg", "1.56 kg at 1.5 A (calculated)", "no"],
     ["Claw mass", "Minimize", "0.45 kg budget", "≈ 0.86 kg with battery (CAD); [[weighed: ___ g]]", "no"],
-    ["Motor temperature", "Limit", "Under 60 °C (PETG creep)", "≈ 58 °C, vented shell + fin (calculated)", "tight"],
+    ["Motor temperature", "Limit", "Under 60 °C (PETG creep)", "≈ 58 °C prototype fin; ≈ 45 °C with the 1/8 in fin (calculated)", "tight"],
     ["Working area", "Maximize", "The whole 11 × 9 ft floor", "All but 0.2 m at the walls (simulated)", "met"],
     ["Wiring", "Minimize", "One plug per station", "One 12 V pair; 0.51 V drop on the longest run", "met"],
     ["Accuracy", "Maximize", "≤ 2 mm per cable over 300 mm", "Floor board 0.7 mm (calculated)", "test"],
@@ -502,7 +502,7 @@ content("One Controller per Winch", [
 content("Cooling the Motor", [
   "**Problem:** a sealed printed shell traps motor heat; PETG creeps above 60 °C",
   "**Decision:** an aluminium fin up through the shell, shaped like an antelope horn",
-  "**At 1.5 A:** twice the heat (4.1 W); vented + fin ≈ 58 °C, without the fin 77 °C",
+  "**At 1.5 A:** twice the heat (4.1 W); prototype 0.019 in fin ≈ 58 °C, 1/8 in design fin ≈ 45 °C",
   "**Next:** 90-minute hold test at 1.5 A; back to 1.35 A if it runs hot",
 ], { sheet: "motor_temperature", tab: "Motor temperature" },
 "Model: motor to shell air to room, with the fin as a second path out. At 1.5 A, P = I²R = 4.1 W in the motor, double the 2.0 W at 1.06 A. " +
@@ -581,7 +581,7 @@ content("Printed Fits", [
 
 content("Machining the Fin", [
   "**Shop drawing first:** 1:1 print with a hole template",
-  "Sheared 0.019 in aluminium sheet to 44 × 250 mm",
+  "Prototype: sheared 0.019 in sheet I had on hand; the design fin is 1/8 in",
   "**Manual mill, one setup:** five holes from the same two edges, ±0.1 mm",
   "Matte black paint; thermal paste on the motor face",
   "**Result:** bolted onto the motor with no reaming",
@@ -627,20 +627,20 @@ content("First Test", [
 
 content("Thermal Check", [
   "**Question:** does the PETG mount stay under 60 °C at 1.5 A?",
-  "**Hand calc:** motor 56–59 °C (vented shell, painted fin)",
-  "**SolidWorks:** motor, fin and PETG mount in my assembly; 4.05 W in the motor",
+  "**Hand calc:** motor 56–59 °C (prototype fin), ≈ 45 °C (1/8 in fin)",
+  "**ANSYS:** motor, fin, motor screws, inserts and PETG mount from my assembly; 4.05 W",
   "**Hold test:** 90 minutes at 1.5 A; thermocouples on the motor and the fin",
-  "**If too hot:** drop to 1.35 A (≈ 51 °C) and keep the fin painted",
+  "**If too hot:** the 1/8 in fin, or drop to 1.35 A (≈ 51 °C)",
 ], (sl, x, y, w, h) => {
-  placeholderBox(sl, "[[SolidWorks temperature plot: motor, fin and slip-in mount]]", x, y, w, 2.4);
+  placeholderBox(sl, "[[ANSYS temperature plot: motor, fin, screws and inserts]]", x, y, w, 2.4);
   table(sl, ["Method", "Motor", "PETG mount", "Fin carries"], [
     ["Hand calc", "56–59 °C", "≈ 53–58 °C", "1.4–1.6 W"],
-    ["SolidWorks", "[[]]", "[[]]", "[[]]"],
+    ["ANSYS", "[[]]", "[[]]", "[[]]"],
     ["Hold test", "[[]]", "[[]]", "n/a"],
   ], x, y + 2.55, w, [0.28, 0.24, 0.26, 0.22], { size: 14, rowH: 0.5, name: "thermal methods" });
   caption(sl, "Three ways to know one temperature: calculate it, simulate it, measure it", x, y + 2.55 + 4 * 0.5 + 0.12, w);
 }, "The 60 °C limit is for the loaded PETG, and that is the one temperature the hand calculation cannot give: it only knows the motor node. " +
-"The SolidWorks study puts my own 10/21 assembly in: motor block with 4.05 W (1.5 A squared times 1.8 ohm), the fin with an equivalent " +
+"The FEA (ANSYS, or the SolidWorks version) puts my own 10/21 assembly in: motor block with 4.05 W (1.5 A squared times 1.8 ohm), the fin with an equivalent " +
 "conductivity because my CAD fin is 2 mm and the real one is 0.483 mm (k times t is what conducts), the PETG slip-in mount, convection inside " +
 "the shell at 27 °C and outside at 23 °C. The answer sheet says the motor should land at 56 to 59 °C, with the fin carrying about 40 % of the heat. " +
 "Then the hold test measures it. If they disagree, I fit h and the coil resistance, not the physics. Walkthrough: docs/simulation/SW_THERMAL_MOTOR_ASSEMBLY.md.",
@@ -692,8 +692,9 @@ part("Lessons");
       "**Gears:** strength checked at servo stall before printing",
     ]],
     ["Scrappy", HEX.navy2, P("docs/electrical/station_revD_20261021/breadboard_layout_esp32.png"), "ESP32 DevKit jumpered onto the station breadboard", [
-      "**Fried a controller:** ESP32 dev board on nine jumpers, same breadboard, same firmware",
-      "**Floor board:** printed tags on paper, 250 mm grid",
+      "**Fried a controller:** ESP32 on nine jumpers, same firmware",
+      "**Floor board:** paper tags, 250 mm grid",
+      "**Prototype fin:** 0.019 in sheet on hand; design is 1/8 in",
       "**Three stations** tested while the fourth is built",
     ]],
   ];
@@ -767,8 +768,8 @@ part("Backup");
   table(sl, ["Part", "Status", "Next test"], [
     ["Wall stations", "Built; bench-commissioned [[how many]]", "Three-station test, then the fourth"],
     ["Station electronics", "Built; drivers at 1.5 A [[how: Vref reading]]", "90-minute hold test at 1.5 A"],
-    ["Heat fin", "Built (sheared and milled)", "Hold test with and without the fin"],
-    ["Thermal model of the station", "Hand calc at 1.5 A; SolidWorks study set up", "Run it; then the hold test"],
+    ["Heat fin", "Prototype 0.019 in built; 1/8 in designed (D38)", "Machine the 1/8 in fin; hold test"],
+    ["Thermal model of the station", "Hand calc at 1.5 A; ANSYS model with screws set up", "Run it; then the hold test"],
     ["Claw body: tube, mount, servo, gears", "Built", "Weigh it"],
     ["Claw hands, camera housing, encoder casing", "Checked in CAD; printing", "Fit checks on the first print"],
     ["Calibration and control software", "Simulated end to end", "First hardware run"],
@@ -793,14 +794,14 @@ content("Fin Length", [
 content("Fin Sizing for 4 W", [
   "**Question:** what fin carries all 4.05 W alone, with the motor ≤ 60 °C?",
   "**Built 0.019 in sheet:** never; even infinitely long it carries ≈ 2 W",
-  "**1/8 in, painted, 200 mm:** 56–59 °C alone; ≈ 45 °C with the vented shell",
+  "**1/8 in (now the design), 200 mm:** 56–59 °C alone; ≈ 45 °C in the station",
   "**Thickness is the lever,** not length; bare needs 1/4 in × ≈ 300 mm",
 ], (sl, x, y, w, h) => {
   table(sl, ["Painted 6061, 44 mm wide", "Mass", "Motor, 200 mm, fin alone", "Shortest for ≤ 60 °C"], [
-    ["0.019 in (built)", "14 g", "100–120 °C", "never (max ≈ 2.0 W)"],
+    ["0.019 in (prototype)", "14 g", "100–120 °C", "never (max ≈ 2.0 W)"],
     ["1/16 in", "47 g", "66–72 °C", "never (max ≈ 3.6 W)"],
     ["0.090 in", "68 g", "60–65 °C", "210 mm or never"],
-    ["1/8 in (first drawing)", "94 g", "56–59 °C", "145–185 mm"],
+    ["1/8 in (design, D38)", "94 g", "56–59 °C", "145–185 mm"],
     ["3/16 in", "141 g", "53–55 °C", "125–140 mm"],
     ["1/4 in", "189 g", "51–52 °C", "115–125 mm"],
   ], x, y + 0.1, w, [0.32, 0.12, 0.28, 0.28], { size: 13, rowH: 0.5, name: "fin sizing" });

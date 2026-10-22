@@ -471,6 +471,12 @@ Adafruit 3886 MPU-6050 as selected, "not recorded ordered").
   1.56 kg; the 1 lb test fits, jeans are still 0.21 kg over. Motor heat doubles to 4.05 W: vented shell + fin 57.6 °C
   against the 60 °C limit, sealed 66.3 °C, so the shells stay vented. Next: a 90-minute hold test at 1.5 A (motor and
   driver temperatures; fall back to 1.35 A), and record how 1.5 A was reached (Vref, VDD).
+- Update (10/22, later): **D38: the 1/8 in fin is the design; the 0.019 in fin is the prototype only.** CAD in progress
+  (`cad/HEAT_FIN_1021_SPEC.md`). Open items:
+  - widen the shell's fin slot by about 1.2 mm on the motor side;
+  - M3 × 12 motor screws with the 1/8 in fin;
+  - prototype stations need the short-peg magnet cap.
+  Thermal walkthroughs: Study C (SOLIDWORKS) and Study D (ANSYS, with screws and inserts); insert locations to confirm.
 
 ## Session milestone (10/21 night, lead, while Jasper slept)
 Done (all committed):

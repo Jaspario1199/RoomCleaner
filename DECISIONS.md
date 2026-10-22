@@ -346,3 +346,23 @@ carrier, which gives 1.5 A. D29's 1.35 A and D30's 1.06 A entries stay as histor
      The simulation configs keep 15.0 N.
 - The deck v5 charts are re-exported at 1.5 A to `docs/presentation/deck_v5/fig/`; the 1.06 A charts stay in
   `docs/presentation/deck_v3/fig/` (decks v3 and v4).
+
+D38. **Heat fin: 1/8 in (3.175 mm) aluminium is the design; the 0.019 in sheet is the prototype only** (Jasper, 10/22: "make
+the CAD for a 1/8 in fin and then note that only prototype is using .019 in. For now as I already had extra material").
+- **Why:** at 1.5 A (D37) the motor makes 4.05 W.
+  - The 0.019 in sheet cannot carry that alone at any length: about 2 W at most for a 60 °C base.
+  - A painted 1/8 in plate with the same outline carries all of it at 56 to 59 °C on its own, and about 45 °C with the vented
+    shell (`calculations/fin_sizing_4w.md`).
+- **Prototype stations** keep the 0.019 in fins that were cut from material already on hand.
+- **CAD:** `cad/parts/heat_fin1021.py`. Jasper's 10/21 Heat_horn outline is extruded to 3.175 mm toward the motor (spec
+  `cad/HEAT_FIN_1021_SPEC.md`).
+- **Interface consequences** (from the 10/21 reference parts):
+  - **The shell's fin slot must open about 1.2 mm on the motor side.** It is open from y −2.6 to +2.2; the 1/8 in fin
+    occupies y −3.175 to 0.
+  - The motor sits 1.175 mm further back than in the CAD (shaft engagement in the spool 13.8 mm; check the set screw lands on
+    the flat). Motor screws: **M3 × 12** (3.8 mm of thread).
+  - **Prototype stations (0.019 in)** put the motor 1.5 mm further forward than the CAD. The shaft end (y 23.52) then reaches
+    the v2 magnet cap's peg (from y 22.6), so prototype stations need the **short-peg cap** (peg 1.9 mm,
+    `encoder1021_magnet_cap_v2_peg1p9`).
+- **Simulation:** the ANSYS study with the motor screws and the heat-set inserts is
+  `docs/simulation/ANSYS_THERMAL_MOTOR_SCREWS.md` (Study D). The insert locations are still to be confirmed by Jasper.

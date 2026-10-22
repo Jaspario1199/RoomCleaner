@@ -33,12 +33,16 @@ Reach (refused before any motion, never discovered half-way through an item):
   * the hamper's transport / release pose must be in the trusted volume, else the task is refused with the hamper's position
     and the trusted extents;
   * an item whose approach or grip pose is outside the trusted volume or not plannable (workspace, tension) is recorded as
-    failed ("unreachable: ...") and skipped; planning refusals AFTER the grip has closed, motion faults and pauses still abort.
+    failed ("unreachable: ...") and skipped; so is an item whose CARRY to the hamper (lift, verify shift, raise, transport, with the
+    payload mass) is refused when dry-run planned before the claw moves towards it. Motion faults and pauses still abort, and so does
+    a planning refusal after the grip closed (it can no longer happen for the poses the dry run covers).
 
 Keep-alive: while a task owns the robot the idle host loop does not pump the stations (``Service.idle_tick``), so anything
 slower than a fraction of ``faults.lease_s`` on the command thread would latch Fault.LEASE. The path check of a planned move
 (a tension solve at every path point, both ways) runs through ``startup.run_pumped``; the garment detector does too
-(garments.py). Image grabs and settle waits go through ``ctx.wait``, which pumps.
+(garments.py), and so do the claw's blocking HTTP calls (grip, frame grab) when the claw link says it does blocking I/O
+(``claw.blocking_io``, claw_link.HttpClawClient; the simulator's claw is called directly). Settle waits go through ``ctx.wait``,
+which pumps.
 """
 from __future__ import annotations
 
@@ -49,7 +53,7 @@ import numpy as np
 
 from .attitude import estimate_attitude, predicted_tilt_rad, wait_until_still
 from .startup import StartupAbort, run_pumped
-from .trajectory import PlanError, plan_line_from
+from .trajectory import PlanError, plan_line, plan_line_from
 
 TASK_STATES = ("SCAN", "APPROACH", "GRIP", "PICKUP_VERIFICATION", "TRANSPORT", "RELEASE",
                "DELIVERY_VERIFICATION")
@@ -165,8 +169,7 @@ class TaskRunner:
         why = self._outside(q, label, below_ok)
         if why:
             raise TaskUnreachable("TASK", why)
-        lim = replace(ctx.lim, mass_kg=self.cfg.claw.mass_kg + payload, cart_v=ctx.lim.cart_v * slow,
-                      cable_v=ctx.lim.cable_v * slow)
+        lim = self._limits(payload, slow)
         try:
             # The path check solves the cable tensions at every path point (both ways, with payload and dynamics): tens to
             # hundreds of ms for a task move. It runs on the pumped worker; the stations' positions are read here, on the
@@ -179,6 +182,58 @@ class TaskRunner:
         if not r.ok:
             raise StartupAbort("TASK", f"{label}: {r.reason}", paused=r.reason.startswith("paused"))
         return r
+
+    def _limits(self, payload=0.0, slow=1.0):
+        ctx = self.ctx
+        return replace(ctx.lim, mass_kg=self.cfg.claw.mass_kg + payload, cart_v=ctx.lim.cart_v * slow,
+                       cable_v=ctx.lim.cable_v * slow)
+
+    def _grip(self, close):
+        """Open / close the claw. The real claw link does blocking HTTP (POST, 1 s timeout) that would outlast ``faults.lease_s`` on
+        the command thread, so it runs through ``run_pumped`` when the link says so (``claw.blocking_io``); the simulator's claw
+        (a call into the shared world) is called directly. The call touches only the claw link, never the coordinator."""
+        claw = self.ctx.claw
+        if getattr(claw, "blocking_io", False):
+            return run_pumped(self.ctx, claw.grip, close)
+        return claw.grip(close)
+
+    def _carry_poses(self, above, hamper):
+        """(shift, z_t): where the claw goes first with the garment (a short way toward the hamper, to confirm it moved WITH the claw)
+        and the height it is carried and released at."""
+        d = hamper - above[:2]
+        shift = above.copy()
+        if np.linalg.norm(d) > 1e-6:
+            shift[:2] += d / np.linalg.norm(d) * min(self.tc.verify_shift_m, float(np.linalg.norm(d)))
+        return shift, self._transport_z(above[2])
+
+    def _dry_run_carry(self, item_id, above, grip_pose, hamper):
+        """None, or why the garment at ``grip_pose`` cannot be carried to the hamper: lift, verify shift, raise and transport are
+        PLANNED (not executed) with the payload mass through the same checks ``_move`` applies (task height limit, trusted volume,
+        workspace and tension along the path). Done before the claw moves towards the item, so a refusal costs nothing and nothing
+        is in the jaws. The planning runs on the pumped worker (it is a pure function of the model and the poses)."""
+        ctx, tc = self.ctx, self.tc
+        shift, z_t = self._carry_poses(above, hamper)
+        raise_to = np.array([shift[0], shift[1], z_t])
+        legs = ((f"lift {item_id}", grip_pose, above, True), (f"verify shift {item_id}", above, shift, False),
+                (f"raise {item_id}", shift, raise_to, False),
+                (f"transport {item_id}", raise_to, np.array([hamper[0], hamper[1], z_t]), False))
+        zmax = self.cfg.motion.task_max_height_m
+        for label, _a, b, below in legs:
+            if zmax is not None and b[2] > zmax + 1e-9:
+                return f"{label}: target height {b[2]:.3f} m is above motion.task_max_height_m ({zmax:.2f} m)"
+            why = self._outside(b, label, below)
+            if why:
+                return why
+        lim, model, ws = self._limits(tc.max_payload_kg), ctx.model, ctx.ws
+
+        def plan_legs():
+            for label, a, b, below in legs:
+                try:
+                    plan_line(model, a, b, lim, ws=ws, allow_low=below, label=label)
+                except PlanError as e:
+                    return f"{label}: {e}"
+            return None
+        return run_pumped(ctx, plan_legs)
 
     def _outside(self, q, label, below_ok=False):
         """None if the task layer may plan to ``q``, else the refusal text of ``_move`` (so that a pre-check and the move say the same)."""
@@ -315,12 +370,18 @@ class TaskRunner:
                 why = self._outside(q, label, below)
                 if why:
                     return False, f"unreachable: {why}"
+            # ... and so is an item that could be gripped but not carried to the hamper (the planning refusal would otherwise come
+            # after the jaws have closed, with the garment in the air): the carry legs are dry-run planned with the payload mass
+            why = self._dry_run_carry(item.id, above, grip_pose, hamper)
+            if why:
+                self.log.append(f"{item.id}: carry not plannable: {why}")
+                return False, f"unreachable: {why}"
             try:
                 self._move(above, label=f"approach {item.id}")
             except TaskUnreachable as e:
                 return False, f"unreachable: {e.reason}"
             on_state("GRIP", item.id)
-            ctx.claw.grip(False)
+            self._grip(False)
             ok, why = self._settle_and_approve(f"grip {item.id}", grip_pose)
             if not ok:
                 return False, f"grip not approved: {why}"
@@ -331,21 +392,18 @@ class TaskRunner:
                            label=f"descend {item.id}", slow=0.3)    # slow near the object
             except TaskUnreachable as e:                            # the jaws are still open and empty: skip the item
                 return False, f"unreachable: {e.reason}"
-            ctx.claw.grip(True)
+            self._grip(True)
             ctx.wait(tc.grip_settle_s)
             self._move(above, label=f"lift {item.id}", payload=tc.max_payload_kg, below_ok=True)
             # handoff: move a short way toward the destination, then confirm the
             # garment moved WITH the claw (its old spot is no longer under the jaws)
-            d = hamper - above[:2]
-            shift = above.copy()
-            if np.linalg.norm(d) > 1e-6:
-                shift[:2] += d / np.linalg.norm(d) * min(tc.verify_shift_m, float(np.linalg.norm(d)))
+            shift, _z_t = self._carry_poses(above, hamper)
             self._move(shift, label=f"verify shift {item.id}", payload=tc.max_payload_kg)
             on_state("PICKUP_VERIFICATION", item.id)
             held, conf = self.per.holding(ctx)
             if held:
                 break
-            ctx.claw.grip(False)
+            self._grip(False)
             ctx.wait(tc.grip_settle_s)
             self._move(above, label=f"back over {item.id}")
             # re-locate the item before the next attempt (it may have been nudged)
@@ -365,7 +423,7 @@ class TaskRunner:
         ok, why = self._settle_and_approve(f"release {item.id}", payload_kg=tc.max_payload_kg)
         if not ok:
             return False, f"release not approved: {why}"
-        ctx.claw.grip(False)
+        self._grip(False)
         ctx.wait(tc.grip_settle_s)
         on_state("DELIVERY_VERIFICATION", item.id)
         held, _ = self.per.holding(ctx)

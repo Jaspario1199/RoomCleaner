@@ -103,7 +103,14 @@ def carry_plannable(r, xy, height=0.05, margin=0.8):
 def item_offsets(r, n=2, pool=14):
     """Offsets (from the claw, as ``item_offsets_with_small_statics_tilt``) of ``n`` items that can be served AND carried."""
     c = claw_xyz(r)[:2]
-    out = [o for o in _tilt_offsets(r.ctx, None, n=pool) if carry_plannable(r, c + o)]
+    served = []
+    for k in range(pool, 0, -1):                      # the helper wants exactly k offsets: take as many as it finds (a prefix, nearest first)
+        try:
+            served = _tilt_offsets(r.ctx, None, n=k)
+            break
+        except AssertionError:
+            continue
+    out = [o for o in served if carry_plannable(r, c + o)]
     if len(out) < (n or 1):
         pytest.skip(f"fewer than {n or 1} items that can be carried with the full payload from here for this startup")
     return out if n is None else out[:n]

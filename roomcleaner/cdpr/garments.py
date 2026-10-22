@@ -126,6 +126,14 @@ class ClawGarmentPerception(ItemPerception):
         self.pose_source = None
 
     # -- geometry ----------------------------------------------------------
+    def _frame(self, ctx):
+        """The colour frame. On hardware ``frame_fn`` is an HTTP GET to the claw (claw_link.frame_bgr, 1 s timeout) that would outlast
+        ``faults.lease_s`` on the command thread: when the claw link says it does blocking I/O (``claw.blocking_io``) the grab runs
+        through ``run_pumped`` (it touches only the claw link). The simulator's frame function reads the shared world and is called directly."""
+        if getattr(ctx.claw, "blocking_io", False):
+            return run_pumped(ctx, self.frame_fn)
+        return self.frame_fn()
+
     def _view(self, ctx):
         """(image, mapper, T_R_B) at the current still pose.
 
@@ -146,7 +154,7 @@ class ClawGarmentPerception(ItemPerception):
         else:
             raise RuntimeError(f"no camera pose: {why}")
         self.pose_source = src
-        img = self.frame_fn()
+        img = self._frame(ctx)
         return img, ClawFloorMapper(self.cam, T_R_B @ ctx.T_B_C), T_R_B
 
     def jaw_roi(self, ctx, T_R_B, mapper):

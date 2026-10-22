@@ -199,13 +199,14 @@ def test_an_exception_of_the_detector_reaches_the_caller_unchanged_and_no_worker
 
 def test_every_detector_call_of_the_garment_perception_is_the_argument_of_run_pumped():
     """Static guard: no ``<detector>.detect(...)`` call is left in garments.py; its one use is ``run_pumped(ctx, self.det.detect, img)``
-    and scan / holding / item_at pass their ``ctx`` on to ``_detections``."""
+    (the other ``run_pumped`` is the claw's frame grab, gated on ``claw.blocking_io``) and scan / holding / item_at pass their ``ctx``
+    on to ``_detections``."""
     tree = ast.parse(inspect.getsource(G))
     direct = [ast.unparse(n) for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "detect"]
     assert direct == []
     pumped = [[ast.unparse(a) for a in n.args[:3]] for n in ast.walk(tree)
               if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "run_pumped"]
-    assert pumped == [["ctx", "self.det.detect", "img"]]
+    assert sorted(pumped) == [["ctx", "self.det.detect", "img"], ["ctx", "self.frame_fn"]]       # the detector, and the claw's frame grab
     users = {}
     for fn in [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]:
         for n in ast.walk(fn):
@@ -308,3 +309,158 @@ def test_run_pumped_keeps_the_rules_of_pumped_results_exceptions_abort_switch_in
     while _pump_threads() and time.monotonic() < deadline:
         time.sleep(0.01)
     assert _pump_threads() == []
+
+
+# ===================================================================== (f) the claw's blocking HTTP calls
+class BlockingClaw:
+    """A claw link like claw_link.HttpClawClient (``blocking_io``): grip() and the frame grab take 0.8 s of wall time (a 1 s urlopen
+    timeout against a 0.3 s lease). Records the thread of every call."""
+    blocking_io = True
+
+    def __init__(self, delay_s=0.8):
+        self.delay_s = delay_s
+        self.calls = []
+
+    def grip(self, close):
+        time.sleep(self.delay_s)
+        self.calls.append(("grip", bool(close), threading.current_thread().name))
+        return True
+
+    def frame(self):
+        time.sleep(self.delay_s)
+        self.calls.append(("frame", None, threading.current_thread().name))
+        return IMG
+
+
+class DirectClaw(BlockingClaw):
+    """The simulator's kind of claw: no ``blocking_io`` attribute, so it is called directly on the command thread."""
+    blocking_io = False
+
+
+def test_the_real_http_claw_link_declares_blocking_io_and_the_simulators_claw_does_not():
+    from roomcleaner.cdpr.claw_link import HttpClawClient
+    from roomcleaner.cdpr.sim.world import SimClaw
+    assert HttpClawClient.blocking_io is True and not hasattr(SimClaw, "blocking_io")
+
+
+def test_the_grip_and_the_frame_grab_of_a_blocking_claw_are_pumped_and_no_station_latches_the_lease():
+    """grip (HTTP POST) and the colour frame grab (HTTP GET) of the real claw link take up to their 1 s timeout; here 0.8 s each, with
+    the clock-coupled meter attached. Unpumped each is a gap of 0.8 s (2.7x the lease)."""
+    r, cfg = _armed_model_robot()
+    claw = BlockingClaw()
+    r.ctx.claw = claw
+    runner = _verified_runner(r)
+    per = _perception(r, SlowDetector(delay_s=0.0))
+    per.frame_fn = claw.frame
+
+    def work():
+        ok = runner._grip(True)
+        img = per._frame(r.ctx)
+        runner._grip(False)
+        return ok, img
+    (ok, img), m = _run_metered(r, work)
+    print(f"\n[claw I/O, grip + frame + grip at 0.8 s each] {m.n_pumps} pumps, largest gap between pumps {m.max_stall_s * 1e3:.0f} ms, "
+          f"lease {cfg.faults.lease_s * 1e3:.0f} ms; stations {_stations(r.co)}")
+    assert ok is True and img is IMG                                                # results pass through
+    assert [c[:2] for c in claw.calls] == [("grip", True), ("frame", None), ("grip", False)]
+    assert all(c[2].startswith("startup-pumped") for c in claw.calls)
+    assert all(f != Fault.LEASE for _st, f in _stations(r.co)) and _alive(r.co), _stations(r.co)
+    assert m.max_stall_s < cfg.faults.lease_s / 3, m.worst_text()
+    assert m.violations == [] and _pump_threads() == []
+
+
+def test_a_claw_without_blocking_io_is_called_directly_on_the_command_thread():
+    """The simulator's claw stays unpumped (its calls go into the shared world that ctx.wait steps on this thread)."""
+    r, cfg = _armed_model_robot()
+    claw = DirectClaw(delay_s=0.0)
+    r.ctx.claw = claw
+    runner = _verified_runner(r)
+    per = _perception(r, SlowDetector(delay_s=0.0))
+    per.frame_fn = claw.frame
+    runner._grip(True)
+    per._frame(r.ctx)
+    assert [c[2] for c in claw.calls] == ["MainThread", "MainThread"] and _pump_threads() == []
+
+
+# ===================================================================== (g) the pre-grip dry run of the carry
+def _item(r, dx=0.0, dy=0.0):
+    c = np.array(r.cfg.room_m[:2], float) / 2 + [dx, dy]
+    return T.ItemSighting("sock", c, 0.05, 0.9)
+
+
+def test_the_dry_run_plans_lift_shift_raise_and_transport_with_the_payload_on_the_pumped_worker(monkeypatch):
+    r, cfg = _armed_model_robot()
+    runner = _verified_runner(r)
+    runner.tc = __import__("dataclasses").replace(cfg.tasks, hamper_room_m=[cfg.room_m[0] * 0.8, cfg.room_m[1] * 0.5])
+    hamper = np.asarray(runner.tc.hamper_room_m, float)
+    item = _item(r, -0.3, 0.0)
+    above = np.array([item.xy[0], item.xy[1], runner.zf + 0.05 + cfg.tasks.approach_clearance_m])
+    grip = np.array([item.xy[0], item.xy[1], runner.zf + cfg.tasks.grip_clearance_m])
+    seen = []
+    real = T.plan_line
+
+    def spy_plan(model, a, b, lim, **kw):
+        seen.append((kw["label"], np.array(a), np.array(b), lim.mass_kg, kw.get("allow_low"), threading.current_thread().name))
+        return real(model, a, b, lim, **kw)
+    monkeypatch.setattr(T, "plan_line", spy_plan)
+    assert runner._dry_run_carry("sock", above, grip, hamper) is None
+    assert [s[0] for s in seen] == ["lift sock", "verify shift sock", "raise sock", "transport sock"]
+    assert all(s[3] == pytest.approx(cfg.claw.mass_kg + cfg.tasks.max_payload_kg) for s in seen)
+    assert [s[4] for s in seen] == [True, False, False, False] and all(s[5].startswith("startup-pumped") for s in seen)
+    shift, z_t = runner._carry_poses(above, hamper)
+    assert np.allclose(seen[0][1], grip) and np.allclose(seen[0][2], above) and np.allclose(seen[1][2], shift)
+    assert np.allclose(seen[2][2], [shift[0], shift[1], z_t]) and np.allclose(seen[3][2], [hamper[0], hamper[1], z_t])
+    assert np.linalg.norm(shift[:2] - above[:2]) == pytest.approx(cfg.tasks.verify_shift_m)
+
+
+def test_a_carry_that_cannot_be_planned_fails_the_item_as_unreachable_before_the_claw_moves_or_grips(monkeypatch):
+    r, cfg = _armed_model_robot()
+    runner = _verified_runner(r)
+    runner.tc = __import__("dataclasses").replace(cfg.tasks, hamper_room_m=[cfg.room_m[0] * 0.8, cfg.room_m[1] * 0.5])
+    hamper = np.asarray(runner.tc.hamper_room_m, float)
+    real = T.plan_line
+
+    def plan(model, a, b, lim, **kw):
+        if kw["label"].startswith("raise"):
+            raise PlanError("tension infeasible at [1.9 1.0 1.36] (max 12.1 N > 12.0 N incl. dynamics)")
+        return real(model, a, b, lim, **kw)
+    monkeypatch.setattr(T, "plan_line", plan)
+    moved, gripped = [], []
+    runner._move = lambda *a, **k: moved.append(k.get("label"))
+    r.ctx.claw = SimpleNamespace(grip=lambda close: gripped.append(close))
+    ok, why = runner._handle(_item(r, -0.3, 0.0), hamper, lambda *a, **k: None)
+    assert ok is False and why.startswith("unreachable: raise sock: tension infeasible at") and "12.1 N" in why
+    assert moved == [] and gripped == []                                              # nothing moved, nothing gripped
+    assert runner.log and "carry not plannable" in runner.log[0]
+
+
+def test_a_carry_leg_outside_the_trusted_volume_or_above_the_task_height_fails_the_item_too():
+    r, cfg = _armed_model_robot()
+    runner = _verified_runner(r)
+    W, D, _H = cfg.room_m
+    above = np.array([W / 2, D / 2, 0.7])
+    grip = np.array([W / 2, D / 2, 0.42])
+    # the hamper beyond the room: the transport leg's target is outside the workspace
+    why = runner._dry_run_carry("sock", above, grip, np.array([W + 2.0, D / 2]))
+    assert why.startswith("verify shift sock: target") and "outside the trusted volume" in why or why.startswith(("raise", "transport"))
+    # a carry height above motion.task_max_height_m
+    runner.tc = __import__("dataclasses").replace(cfg.tasks, hamper_height_m=cfg.motion.task_max_height_m + 0.1)
+    why = runner._dry_run_carry("sock", above, grip, np.array([W / 2 + 0.3, D / 2]))
+    assert "above motion.task_max_height_m" in why
+
+
+def test_the_dry_run_planning_is_pumped_while_it_takes_seconds(monkeypatch):
+    """Four legs of 0.8 s each (a slow host planning a long carry): the stations stay alive, the coordinator is never touched."""
+    r, cfg = _armed_model_robot()
+    runner = _verified_runner(r)
+    runner.tc = __import__("dataclasses").replace(cfg.tasks, hamper_room_m=[cfg.room_m[0] * 0.8, cfg.room_m[1] * 0.5])
+    hamper = np.asarray(runner.tc.hamper_room_m, float)
+    monkeypatch.setattr(T, "plan_line", lambda *a, **k: time.sleep(0.8))
+    item = _item(r, -0.3, 0.0)
+    above = np.array([item.xy[0], item.xy[1], 0.7])
+    grip = np.array([item.xy[0], item.xy[1], 0.42])
+    why, m = _run_metered(r, lambda: runner._dry_run_carry("sock", above, grip, hamper))
+    assert why is None
+    assert all(f != Fault.LEASE for _st, f in _stations(r.co)) and _alive(r.co), _stations(r.co)
+    assert m.max_stall_s < cfg.faults.lease_s / 3, m.worst_text()
+    assert m.violations == [] and _pump_threads() == []

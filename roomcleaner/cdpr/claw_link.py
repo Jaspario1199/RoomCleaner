@@ -39,6 +39,11 @@ class CachedFrame:
 
 
 class HttpClawClient:
+    # Every call is blocking HTTP (``timeout_s``, 1 s) -- longer than faults.lease_s. The task layer (tasks.TaskRunner._grip,
+    # garments.ClawGarmentPerception._frame) therefore runs the grip and the colour-frame grab on the pumped worker while this
+    # link is in use; a claw object without this attribute (the simulator's) is called directly on the command thread.
+    blocking_io = True
+
     def __init__(self, base_url: str, *, timeout_s=1.0, now_us=None, status_ttl_s=0.1):
         self.base = base_url.rstrip("/")
         self.timeout = timeout_s

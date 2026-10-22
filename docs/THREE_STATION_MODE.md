@@ -330,3 +330,55 @@ outlets (`z <= 2.19 m`), the claw's own height above the floor (`z >= 0.59 m`, o
 | `claw rose ... mm for ... mm commanded: a cable is slack/unattached or the model is badly wrong` | a line is not attached or not over its pulley, or (with one tag instead of the board) a poor floor reference. **Lower**, check the three lines, use the board |
 | READY / `LOCAL_ONLY`, `calibration not accepted: prior-dominated ...` | the calibration ran on a single tag (no board): usable for moving tonight; use the board next time (section 4.1) |
 | a station shows a LEASE fault during calibration | the keep-alive stalled, usually a busy laptop (L7). The stations stop together and keep holding (a fault never removes holding torque), so the claw stays where it is. Stay clear and **Lower**. Close other programs before the next start. The power strip is only for an emergency: it drops the claw |
+
+## 9. Pickup (added 10/22)
+
+**Status:** the task-layer changes are in (`verification/task_pumping_results.md`). Their **independent check is pending**:
+`verification/task_layer_verification.md`. Use this section only after it says PASS.
+
+**What changed for a pickup:**
+- **Keep-alive.** The garment detector, move planning, the claw's camera fetch and the grip command run on a worker while the
+  stations are kept alive. Before the change, a 1 s detection or a slow plan could let the station lease expire mid-task.
+- **First scan.** It starts from a point inside the calibrated (trusted) volume: the start point, else the volume's centre.
+  Before, it started wherever calibration left the claw, which could be outside the volume and was then refused.
+- **Hamper check.** The hamper position is checked before anything moves. If it is outside, the task pauses with the hamper
+  position and the volume's extents.
+- **Unreachable items.** An item it cannot reach, or cannot carry to the hamper, is skipped before the grip, with the reason.
+  A refusal after the jaws close still stops the task: it never skips with an item in the jaws.
+
+**Config before the run:**
+
+| key | value |
+|---|---|
+| `tasks.hamper_room_m` | the hamper centre (x, y) in metres; **near the room centre, about (1.68, 1.37)** |
+| `tasks.hamper_height_m` | the hamper's rim height |
+| `tasks.max_payload_kg` | **the item's weight, about 0.2-0.3 kg.** At the default 0.9 kg (jeans), the simulated three-cable profile could carry nothing anywhere in the trusted volume, so every item is skipped as "unreachable: ... tension infeasible". |
+| `claw.grip_tilt_max_rad` | keep 0.0873 (5 degrees) for the three-cable housing (about 0.8 degrees of tilt); raise to 0.1396 (8 degrees) only if grips near the edge are refused for tilt |
+
+**Detector:** run `pip install -r requirements-vision.txt`, then run the detector once while online so it downloads its model
+(YOLO-World):
+
+```
+python -c "from roomcleaner.perception.vision_detector import YoloWorldDetector as D; d = D(mapper=None); d._ensure_model(); print('ok')"
+```
+
+**Placing things:**
+- **Hamper:** near the room centre.
+- **Laundry:** one bright item at a time, within about 0.3 m of the start point toward C, on plain floor, not on a tag.
+- **Why:** after the first-run calibration the trusted volume reached about x 0.9-2.4 m and y 0.8-2.0 m in simulation. It reaches
+  toward C, not toward the A-B wall.
+
+**Run:** READY → start a task from the app. The claw:
+1. scans from about 1.2 m;
+2. hovers over the item and waits until it is still;
+3. descends straight down and closes;
+4. lifts, and the camera checks that it holds the item;
+5. carries it to the hamper and releases;
+6. the camera checks the item landed.
+
+Each miss is retried. After 3 failures in a row the task pauses for you.
+
+**Expect:**
+- Item positions from the camera are about 1 cm off in simulation (the item's own height), well inside the jaw opening.
+- Detection is untuned on real frames, so a missed item or a false "not held" is possible: it retries, then pauses.
+- PAUSE stops everything at once. Nobody reaches in while the claw descends or lifts.

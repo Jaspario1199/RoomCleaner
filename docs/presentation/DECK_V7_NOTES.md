@@ -30,7 +30,7 @@ The numbers are the same as v5 and v6 (1.5 A). v1 to v6 are kept unchanged.
 | # | Slide | Figure | Why it is here |
 |---|---|---|---|
 | 1 | Title | station and claw photos | |
-| 2 | About Me | photo placeholder | panel brief |
+| 2 | About Me | Jasper's collage in three columns: outdoors and endurance, engineering projects, community | panel brief |
 | 3 | Project Goal | Jasper's SolidWorks station screenshot and claw CAD | the problem and the targets; safety rules in the notes |
 | 4 | Timeline and Scope | Gantt chart of the 5 phases | the roadmap the talk follows; what is mine and what is bought |
 | 5 | Phase 1: Concept | divider | Jul 16 – Aug 5 |
@@ -84,7 +84,7 @@ The numbers are the same as v5 and v6 (1.5 A). v1 to v6 are kept unchanged.
 ## Still to fill in
 
 The red brackets on the slides mark these:
-- graduation year, hobbies and a photo;
+- graduation year, and your role in the Gladiator Dash (the photos are in);
 - the software parts Jasper wrote;
 - the generation 1 test weight;
 - the weighed claw mass and the total cost;

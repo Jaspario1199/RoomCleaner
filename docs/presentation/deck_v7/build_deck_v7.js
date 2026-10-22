@@ -250,12 +250,29 @@ section("Introduction");
 
 content("About Me", [
   "Mechanical Engineering, Texas A&M University, [[graduation year]]",
-  "Built EcoFil, a filament recycler: shredder, dryer and extruder",
-  "Metal sculpture with fiber laser cutting and welding",
-  "[[hobbies]]",
-], (sl, x, y, w, h) => placeholderBox(sl, "[[Photo of you building: EcoFil, a sculpture, or the workshop]]", x, y, w, h - 0.4),
-"One minute. Degree and graduation date, EcoFil (what each stage does, what you learned), the sculptures for the Austin Creek Show (fiber laser and welding: real " +
-"fabrication), one hobby. Close with why a laundry robot: a problem you have, and a machine you could build end to end yourself.");
+  "Built EcoFil, a filament recycler with a shredder, dryer and extruder",
+  "Finished an Ironman 70.3 in 6:53 and a marathon in 2025",
+  "Hiking, canyons and cliff jumping",
+  "Gladiator Dash fundraiser: $185K raised for Still Creek Ranch [[your role]]",
+], (sl, x, y, w, h) => {
+  // three photo columns from Jasper's collage, at one height, each with a short caption
+  const cols = [["about_outdoors.png", "Outdoors and endurance"], ["about_engineering.png", "Engineering projects"], ["about_community.png", "Community"]];
+  const g = 0.15, ar = cols.map(([f]) => { const d = imgSize(PH(`about_me/${f}`)); return d.w / d.h; });
+  const ih = Math.min(h - 0.45, (w - 2 * g) / ar.reduce((a, b) => a + b, 0));
+  let cx = x + (w - 2 * g - ih * ar.reduce((a, b) => a + b, 0)) / 2;
+  cols.forEach(([f, cap], i) => {
+    const iw = ih * ar[i];
+    sl.addImage({ path: PH(`about_me/${f}`), x: cx, y, w: iw, h: ih, altText: cap, objectName: cap });
+    caption(sl, cap, cx, y + ih + 0.08, iw);
+    cx += iw + g;
+  });
+},
+"One minute. Degree and graduation date. EcoFil: what each stage does and what you learned building it (the middle photos). " +
+"Also mention the metal sculptures for the Austin Creek Show (fiber laser cutting and welding: real fabrication). " +
+"Endurance: the 70.3 (2,105 yd swim, 56 mi bike, 13.1 mi run) and the marathon say you finish long things. " +
+"Community: [your organization and your role in the Gladiator Dash]. " +
+"Close with why a laundry robot: a problem you have, and a machine you could build end to end yourself.",
+{ figW: 7.8, size: 17, space: 10 });
 
 content("Project Goal", [
   "Pick up laundry anywhere in an 11 × 9 ft room and drop it in a hamper",

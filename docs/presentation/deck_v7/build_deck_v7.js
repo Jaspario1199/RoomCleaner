@@ -232,6 +232,7 @@ function scheduleBars(sl, x, y, w) {
 const R = f => P("docs/presentation/deck_assets/renders", f);
 const PH = f => P("docs/presentation/photos", f);
 const FG = f => path.join(FIGDIR, f);
+const SC = f => P("docs/presentation/deck_assets/screens", f);   // Jasper's SolidWorks screenshots (Oct 22)
 
 // ================================================================================================ INTRODUCTION
 section("Introduction");
@@ -261,7 +262,11 @@ content("Project Goal", [
   "Design load: jeans, 0.9 kg, at 2 m/s²; first test with 1 lb",
   "3D-printed PETG (polyethylene terephthalate glycol) on a hobby budget",
   "Success: one garment to the hamper with no human input",
-], { file: [R("station_1021_final.png"), R("gripper1021_asbuilt.png")], alt: "Final wall station and claw", caption: "Final design (CAD): wall station and claw" },
+], (sl, x, y, w, h) => {
+  fitImage(sl, SC("station_shell_1022.png"), x, y, w * 0.66, h - 0.4, "Final wall station");
+  fitImage(sl, R("gripper1021_asbuilt.png"), x + w * 0.68, y, w * 0.32, h - 0.4, "Final claw");
+  caption(sl, "Final design (SolidWorks): wall station and claw", x, y + h - 0.3, w);
+},
 "Why: a real problem in my own room, and a machine I could design, build and program end to end. " +
 "0.9 kg is a screening figure for jeans; the first physical test is 1 lb. " +
 "Safety rules from day one: stations anchor into studs, a switched power strip is the one hard stop, nobody stands under the robot, and any fault holds position. " +
@@ -404,6 +409,17 @@ content("Geared Four-Bar Claw", [
 // ================================================================================================ PHASE 4: FINAL DESIGN
 divider(4, "Final Design", "October 7 – October 21", "Size the winch, the cooling and the weight in SolidWorks",
         "Three station versions and three spool versions in SolidWorks, ending with the final design on October 21.");
+
+content("Final Wall Station", [
+  "Slide-in wall mount: the station lifts off while the anchor stays in the wall",
+  "Vented shell around the motor, spool, encoder and controller",
+  "Aluminum fin leaves through a slot in the shell top",
+  "Three station and three spool versions in SolidWorks",
+], { file: SC("station_shell_transparent_1022.png"), alt: "Final wall station with a transparent shell", caption: "Final wall station (SolidWorks), shell shown transparent" },
+"Walk through the station from the wall out: the slide-in mount anchors into a stud and the station slides onto it, so a station can come off for rework without " +
+"moving the anchor. The motor sits on a 5 mm PETG tab with the fin clamped between them; the spool is on the motor shaft and the encoder reads a magnet on the spool's end. " +
+"The shell carries the vents, and the fin exits through the slot in its top into room air. The 1/8 in production fin needs that slot about 1 mm wider on the motor side, " +
+"and M3 × 12 screws. Each version fixed a fit or assembly problem from the one before.");
 
 content("Winch Pull at 1.5 A", [
   "NEMA 17 (National Electrical Manufacturers Association) stepper on a printed spool",

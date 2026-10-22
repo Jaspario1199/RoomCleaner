@@ -25,13 +25,13 @@ The numbers are the same as v5 and v6 (1.5 A). v1 to v6 are kept unchanged.
 - **Phase dividers:** five plain slides (phase number, name, dates, goal). They match the five rows of the Gantt chart.
 - **Removed:** the system block diagram, the calibration flow boxes, the operating-sequence column boxes, the column headings with rules, and the image panels.
 
-## Story (37 slides; 29 in the main deck)
+## Story (38 slides; 30 in the main deck)
 
 | # | Slide | Figure | Why it is here |
 |---|---|---|---|
 | 1 | Title | station and claw photos | |
 | 2 | About Me | photo placeholder | panel brief |
-| 3 | Project Goal | final station and claw CAD | the problem and the targets; safety rules in the notes |
+| 3 | Project Goal | Jasper's SolidWorks station screenshot and claw CAD | the problem and the targets; safety rules in the notes |
 | 4 | Timeline and Scope | Gantt chart of the 5 phases | the roadmap the talk follows; what is mine and what is bought |
 | 5 | Phase 1: Concept | divider | Jul 16 – Aug 5 |
 | 6 | Why a Cable Robot | cable geometry figure | architecture choice; system overview and phone app folded in |
@@ -45,21 +45,22 @@ The numbers are the same as v5 and v6 (1.5 A). v1 to v6 are kept unchanged.
 | 14 | Camera Calibration Replaces Homing | floor-board chart | finding 1; calibration and accuracy merged |
 | 15 | Geared Four-Bar Claw | claw CAD and photos, gear equation | finding 3; gear strength and claw electrical folded in |
 | 16 | Phase 4: Final Design | divider | Oct 7 – Oct 21 |
-| 17 | Winch Pull at 1.5 A | Sheet chart and equation | the current decision |
-| 18 | Motor Cooling | Sheet chart and equation | the cost of 1.5 A; fin sizing folded in |
-| 19 | Weight Budget: Open Issue | Sheet chart and equation | the failure, shown upfront; the gear-reduction option |
-| 20 | Phase 5: Build and Test | divider | Oct 22 – Oct 27 |
-| 21 | Printing and Machining | spool CAD and fin photos | printed fits and fin machining merged |
-| 22 | Electronics Bring-Up | board and bench photos | the 1.14 V failure |
-| 23 | First System Test | placeholder and pass-limit table | |
-| 24 | Thermal Verification | placeholder and method table | |
-| 25 | Results Against Targets | table | closes the loop on slide 3 |
-| 26 | Good and Poor Decisions | two tables | panel brief |
-| 27 | Thorough vs. Scrappy | mill photo and ESP32 board | panel brief |
-| 28 | Lessons Learned | actual vs half-time schedule | panel brief |
-| 29 | Questions | | |
+| 17 | Final Wall Station | Jasper's SolidWorks screenshot, shell transparent | the final design itself: slide-in mount, vented shell, fin slot |
+| 18 | Winch Pull at 1.5 A | Sheet chart and equation | the current decision |
+| 19 | Motor Cooling | Sheet chart and equation | the cost of 1.5 A; fin sizing folded in |
+| 20 | Weight Budget: Open Issue | Sheet chart and equation | the failure, shown upfront; the gear-reduction option |
+| 21 | Phase 5: Build and Test | divider | Oct 22 – Oct 27 |
+| 22 | Printing and Machining | spool CAD and fin photos | printed fits and fin machining merged |
+| 23 | Electronics Bring-Up | board and bench photos | the 1.14 V failure |
+| 24 | First System Test | placeholder and pass-limit table | |
+| 25 | Thermal Verification | placeholder and method table | |
+| 26 | Results Against Targets | table | closes the loop on slide 3 |
+| 27 | Good and Poor Decisions | two tables | panel brief |
+| 28 | Thorough vs. Scrappy | mill photo and ESP32 board | panel brief |
+| 29 | Lessons Learned | actual vs half-time schedule | panel brief |
+| 30 | Questions | | |
 
-**Appendix (30 to 37):**
+**Appendix (31 to 38):**
 - Heat Fin Length
 - Fin Sizing for 4 W
 - Operating Sequence (now covers the phone app, obstacles and safety)

@@ -296,7 +296,220 @@ def section1():
     return dict(area_ref=area_ref)
 
 
+
+# ================================================================ shared pieces for the station checks
+Y0 = O.y + RES.y                 # tab face (design y = 0) in assembly coordinates, incl. the extraction residual
+X0 = O.x + RES.x                 # motor axis x
+Z0 = O.z + P.ENC1021_REF_SHIFT_Z + RES.z   # motor axis z (design 2.64)
+BLOCK_NAMES = ["motor_block", "fin_in", "fin_out", "slipin_mount", "screw_1", "screw_2", "screw_3", "screw_4",
+               "insert_deck", "insert_enc_1", "insert_enc_2", "insert_enc_3", "insert_enc_4"]
+DETAIL_NAMES = ["front_cap", "stator", "winding", "rear_cap", "shaft", "connector"] + BLOCK_NAMES[1:]
+VARIANTS = (("fin1p8", T_PROD, BLOCK_NAMES), ("fin0p019", T_PROTO, BLOCK_NAMES), ("detailed_fin1p8", T_PROD, DETAIL_NAMES))
+
+
+def contact_area(a: cq.Shape, b: cq.Shape) -> float:
+    """Face-to-face contact area from the surface-area bookkeeping of a fuse: (A_a + A_b - A_fused) / 2 (valid for touching, non-overlapping solids)."""
+    fa = lambda s: sum(f.Area() for f in s.Faces())  # noqa: E731
+    return (fa(a) + fa(b) - fa(a.fuse(b))) / 2.0
+
+
+def overlap_vol(a: cq.Shape, b: cq.Shape) -> float:
+    return a.intersect(b).Volume()
+
+
+def bb_near(a: cq.Shape, b: cq.Shape, tol=0.01) -> bool:
+    A, B = bbox6(a), bbox6(b)
+    return all(A[2 * i] <= B[2 * i + 1] + tol and B[2 * i] <= A[2 * i + 1] + tol for i in range(3))
+
+
+_STATION_CACHE: dict = {}
+
+
+def station(key: str) -> dict:
+    if key not in _STATION_CACHE:
+        n = named(STEP / f"thermal_station1021_{key}.step")
+        n.pop("__duplicates__", None)
+        _STATION_CACHE[key] = n
+    return _STATION_CACHE[key]
+
+
+def section2():
+    ref_motor = [s for s in load(REF / "Motor_Reference.step").Solids() if s.Volume() > 60000][0].translate(O)
+    ref_slip = load(REF / "Slipin_mount_piecev3.step").translate(O)
+    fin_asm = {"fin1p8": load(STEP / "heat_fin1021_1p8_asm1021.step"), "fin0p019": load(STEP / "heat_fin1021_0p019_asm1021.step")}
+    fin_asm["detailed_fin1p8"] = fin_asm["fin1p8"]
+    area_ref = fin_asm["fin1p8"].Volume() / T_PROD
+    for key, t, names in VARIANTS:
+        tag = f"[{key}]"
+        path = STEP / f"thermal_station1021_{key}.step"
+        raw = named(path)
+        dup = raw.pop("__duplicates__")
+        b = raw
+        chk("2.1a", f"{tag} component names == spec list ({len(names)} bodies)", sorted(names), sorted(b), 0, ok=sorted(b) == sorted(names) and not dup)
+        chk("2.1b", f"{tag} component count / duplicate names", f"{len(names)} / none", f"{len(b)} / {dup or 'none'}", 0, ok=len(b) == len(names) and not dup)
+        whole = load(path)
+        chk("2.1c", f"{tag} every component = one valid solid; whole file solid count = component count", f"{len(names)} solids, all valid",
+            f"{len(whole.Solids())} solids; valid={all(is_valid(s) for s in b.values())}; solids per component={sorted({len(s.Solids()) for s in b.values()})}", 0,
+            ok=len(whole.Solids()) == len(names) and all(len(s.Solids()) == 1 and is_valid(s) for s in b.values()))
+        # ---- overlaps (all pairs)
+        worst, worst_pair, npairs, touching = 0.0, None, 0, []
+        items = sorted(b.items())
+        for (na, sa), (nb, sb) in itertools.combinations(items, 2):
+            if not bb_near(sa, sb):
+                continue
+            npairs += 1
+            v = overlap_vol(sa, sb)
+            if v > worst:
+                worst, worst_pair = v, (na, nb)
+            if sa.distance(sb) < 1e-6:
+                touching.append((na, nb))
+        chk("2.2", f"{tag} max pairwise overlap volume over {len(items) * (len(items) - 1) // 2} pairs ({npairs} bbox-near) (mm3, limit 0.01)", 0.0, worst, 0.01, note=f"worst pair {worst_pair}")
+        # ---- slip-in unchanged vs the reference
+        chk("2.3a", f"{tag} slipin_mount == reference Slipin_mount_piecev3 (+O): volume and symmetric difference (mm3)", 0.0,
+            abs(b["slipin_mount"].Volume() - ref_slip.Volume()) + b["slipin_mount"].cut(ref_slip).Volume() + ref_slip.cut(b["slipin_mount"]).Volume(), 0.01)
+        # ---- fin halves
+        fi, fo = b["fin_in"], b["fin_out"]
+        whole_fin = fin_asm[key]
+        chk("2.4a", f"{tag} fin_in + fin_out volume == whole fin (mm3)", whole_fin.Volume(), fi.Volume() + fo.Volume(), 0.01)
+        chk("2.4b", f"{tag} fin_in U fin_out == exported whole fin: symmetric difference (mm3)", 0.0, fi.fuse(fo).cut(whole_fin).Volume() + whole_fin.cut(fi.fuse(fo)).Volume(), 0.01)
+        zsplit = bbox6(fi)[5] - O.z
+        chk("2.4c", f"{tag} split plane z, from fin_in top (station frame, spec 31.16 +- 0.05)", 31.16, zsplit, 0.05)
+        chk("2.4d", f"{tag} fin_out bottom == fin_in top (mm)", 0.0, abs(bbox6(fo)[4] - bbox6(fi)[5]), 1e-4)
+        chk("2.4e", f"{tag} split contact area fin_in/fin_out = 42 x t (mm2)", 42.0 * t, contact_area(fi, fo), 0.01)
+        cyfi = merged_cyl(fi, 1)
+        chk("2.4f", f"{tag} fin_in holds all 5 holes, fin_out none", "5 / 0", f"{len(cyfi)} / {len(merged_cyl(fo, 1))}", 0, ok=len(cyfi) == 5 and len(merged_cyl(fo, 1)) == 0)
+        # ---- motor placement
+        if key != "detailed_fin1p8":
+            mb = b["motor_block"]
+            shift = bbox6(mb)[3] - bbox6(ref_motor)[3]
+            chk("2.5a", f"{tag} motor_block shift along y vs Motor_Reference block (mm; expected 2.0 - t)", 2.0 - t, shift, 0.002)
+            chk("2.5b", f"{tag} motor_block shifts only in y (x, z extents and y length unchanged)", 0.0,
+                max(abs(bbox6(mb)[i] - bbox6(ref_motor)[i]) for i in (0, 1, 4, 5)) + abs((bbox6(mb)[3] - bbox6(mb)[2]) - (bbox6(ref_motor)[3] - bbox6(ref_motor)[2])), 0.002)
+            moved = ref_motor.translate(cq.Vector(0, shift, 0))
+            chk("2.5c", f"{tag} motor_block == shifted reference block minus 4 holes: reference-minus-built volume (mm3; 4 x pi x 1.5^2 x 4 = 113.097) and built-minus-reference (0)",
+                "113.097 / 0.000", f"{moved.cut(mb).Volume():.3f} / {mb.cut(moved).Volume():.3f}", 0.01, ok=abs(moved.cut(mb).Volume() - 113.097) < 0.01 and mb.cut(moved).Volume() < 0.01)
+            mh = [c for c in merged_cyl(mb, 1)]
+            exp = sorted((1.5, X0 + sx * 15.5, Z0 + sz * 15.5) for sx in (-1, 1) for sz in (-1, 1))
+            okm = len(mh) == 4 and all(abs(r - 1.5) < 0.005 and abs(hi - lo - 4.0) < 1e-3 and abs(hi - bbox6(mb)[3]) < 1e-3 for r, a, bz, lo, hi, _ in mh) \
+                and all(abs(m[1] - e[1]) < 0.01 and abs(m[2] - e[2]) < 0.01 for m, e in zip(sorted((r, a, bz) for r, a, bz, *_ in mh), exp))
+            chk("2.5d", f"{tag} motor_block: 4 x Ø3.0 x 4.0 deep holes in the front face on the 31 mm square about the axis", "4 holes Ø3.0 depth 4.0", [(round(2 * r, 3), round(a - X0, 3), round(bz - Z0, 3), round(hi - lo, 3)) for r, a, bz, lo, hi, _ in mh], 0.01, ok=okm)
+            front_y = bbox6(mb)[3]
+        else:
+            front_y = bbox6(b["front_cap"])[3] - 2.0     # boss is 2.0 proud of the front face
+            ref_front = bbox6(ref_motor)[3]
+            chk("2.5a", f"{tag} motor front face moves by 2.0 - t relative to Motor_Reference (mm)", 2.0 - t, front_y - ref_front, 0.002)
+        chk("2.5e", f"{tag} motor front face y == fin motor-side face (-t from the tab face) (mm)", Y0 - t, front_y, 0.002)
+        # ---- screws
+        tab_hole = {(round(a - X0, 1), round(bz - Z0, 1)): (r, lo, hi) for r, a, bz, lo, hi, _ in merged_cyl(b["slipin_mount"], 1) if abs(r - 1.75) < 0.01}
+        fin_hole = {(round(a - X0, 1), round(bz - Z0, 1)): r for r, a, bz, lo, hi, _ in cyfi if abs(r - 1.7) < 0.01}
+        tab_face_y = max(v[2] for v in tab_hole.values())
+        chk("2.6a", f"{tag} tab spool-side face y == 5.0 (design), from the 4 tab holes (Ø3.5) (mm)", Y0 + 5.0, tab_face_y, 0.002, ok=None)
+        order = {1: (-1, -1), 2: (1, -1), 3: (-1, 1), 4: (1, 1)}
+        okpos = okhead = oktip = okcoax = okshare = True
+        info = []
+        eng = []
+        for n in (1, 2, 3, 4):
+            s = b[f"screw_{n}"]
+            sx, sz = order[n]
+            cs = merged_cyl(s, 1)
+            head = [c for c in cs if abs(c[0] - 2.75) < 0.005]
+            shank = [c for c in cs if abs(c[0] - 1.5) < 0.005]
+            okpos &= len(head) == 1 and len(shank) == 1
+            h, k = head[0], shank[0]
+            ex, ez = X0 + sx * 15.5, Z0 + sz * 15.5
+            okpos &= abs(h[1] - ex) < 0.01 and abs(h[2] - ez) < 0.01 and abs(k[1] - ex) < 0.01 and abs(k[2] - ez) < 0.01
+            okhead &= abs(h[3] - (Y0 + 5.0)) < 2e-3 and abs(h[4] - (Y0 + 8.0)) < 2e-3 and abs(h[3] - tab_face_y) < 1e-4
+            tip_exp = (Y0 - t - 4.0) if key != "detailed_fin1p8" else (Y0 - 7.0)
+            oktip &= abs(k[3] - tip_exp) < 2e-3 and abs(k[4] - (Y0 + 5.0)) < 2e-3
+            okcoax &= max(abs(h[1] - k[1]), abs(h[2] - k[2])) < 1e-6
+            eng.append(round((Y0 - t) - k[3], 4))
+            info.append((n, round(h[3] - Y0, 4), round(h[4] - Y0, 4), round(k[3] - Y0, 4)))
+        chk("2.6b", f"{tag} screws 1..4 at (+-15.5, 2.64+-15.5) in the order 1(-x,-z) 2(+x,-z) 3(-x,+z) 4(+x,+z); head Ø5.5 + shank Ø3.0", "all 4", info, 0.01, ok=okpos)
+        chk("2.6c", f"{tag} screw heads on the tab spool-side face: head y 5.0 .. 8.0 and head underside == tab face (mm)", "5.0..8.0", [(i[0], i[1], i[2]) for i in info], 0.002, ok=okhead)
+        tip_note = "block variant: shank 4.0 mm into the Ø3.0 x 4.0 holes" if key != "detailed_fin1p8" else "detailed: M3 x 12, shank tip y = -7.0"
+        chk("2.6d", f"{tag} shank tip y (design): {tip_note}", (-t - 4.0) if key != "detailed_fin1p8" else -7.0, [i[3] for i in info], 0.002, ok=oktip)
+        chk("2.6e", f"{tag} shank and head coaxial (mm)", 0.0, 0.0, 1e-6, ok=okcoax)
+        chk("2.7a", f"{tag} thread/shank engagement behind the fin motor face = tip depth below -t (mm)", 3.825 if key == "detailed_fin1p8" else 4.0, eng, 0.002, ok=all(abs(e - (3.825 if key == "detailed_fin1p8" else 4.0)) < 0.002 for e in eng))
+        if key == "detailed_fin1p8":
+            under_head = [(Y0 + 5.0) - merged_cyl(b[f"screw_{n}"], 1)[0][3] for n in (1, 2, 3, 4)] if False else [(Y0 + 5.0) - min(c[3] for c in merged_cyl(b[f"screw_{n}"], 1) if abs(c[0] - 1.5) < 0.005) for n in (1, 2, 3, 4)]
+            chk("2.7b", f"{tag} screw length under the head = M3 x 12 (mm) -> 5 (tab) + 3.175 (fin) + 3.825 (engagement)", 12.0, under_head, 0.002, ok=all(abs(u - 12.0) < 0.002 for u in under_head))
+        # screw/hole radial relations and no overlap with fin/tab/motor
+        gaps_fin, gaps_tab, ovl, share = [], [], [], []
+        for n in (1, 2, 3, 4):
+            s = b[f"screw_{n}"]
+            sx, sz = order[n]
+            key_xz = (sx * 15.5, sz * 15.5)
+            kk = (round(key_xz[0], 1), round(key_xz[1], 1))
+            shank_faces = [c["face"] for c in cylinders(s) if abs(c["r"] - 1.5) < 0.005]
+            tab_f = [c["face"] for c in cylinders(b["slipin_mount"]) if abs(c["r"] - 1.75) < 0.01 and abs(c["p"][0] - (X0 + sx * 15.5)) < 0.01 and abs(c["p"][2] - (Z0 + sz * 15.5)) < 0.01]
+            fin_f = [c["face"] for c in cylinders(fi) if abs(c["r"] - 1.7) < 0.01 and abs(c["p"][0] - (X0 + sx * 15.5)) < 0.01 and abs(c["p"][2] - (Z0 + sz * 15.5)) < 0.01]
+            gaps_tab.append(round(min(sf.distance(tf) for sf in shank_faces for tf in tab_f), 4))
+            gaps_fin.append(round(min(sf.distance(ff) for sf in shank_faces for ff in fin_f), 4))
+            ovl.append(max(overlap_vol(s, fi), overlap_vol(s, b["slipin_mount"]), overlap_vol(s, b["fin_out"])))
+        chk("2.8a", f"{tag} shank-to-fin-hole radial gap (Ø3.4 vs Ø3.0 -> 0.200) (mm)", 0.2, gaps_fin, 0.002, ok=all(abs(g - 0.2) < 0.002 for g in gaps_fin))
+        chk("2.8b", f"{tag} shank-to-tab-hole radial gap (Ø3.5 vs Ø3.0 -> 0.250) (mm)", 0.25, gaps_tab, 0.002, ok=all(abs(g - 0.25) < 0.002 for g in gaps_tab))
+        chk("2.8c", f"{tag} screw overlap with fin_in / fin_out / slipin_mount (mm3, limit 0.01)", 0.0, max(ovl), 0.01)
+        chk("2.8d", f"{tag} screw to fin_in minimum distance (mm; 0.2 radial gap, no contact)", 0.2, [round(b[f'screw_{n}'].distance(fi), 4) for n in (1, 2, 3, 4)], 0.002,
+            ok=all(abs(b[f"screw_{n}"].distance(fi) - 0.2) < 0.002 for n in (1, 2, 3, 4)))
+        # shank vs motor holes
+        mot = b["motor_block"] if key != "detailed_fin1p8" else b["front_cap"]
+        mo = [overlap_vol(b[f"screw_{n}"], mot) for n in (1, 2, 3, 4)]
+        chk("2.8e", f"{tag} screw / motor-hole overlap volume (mm3, limit 0.01)", 0.0, max(mo), 0.01)
+        ca = [contact_area(b[f"screw_{n}"], mot) for n in (1, 2, 3, 4)]
+        cexp = (math.pi * 3.0 * 4.0 + math.pi * 1.5 ** 2) if key != "detailed_fin1p8" else (math.pi * 3.0 * 3.825)
+        chk("2.8f", f"{tag} screw-to-motor contact area (mm2): " + ("cylinder Ø3 x 4 + end face (shared)" if key != "detailed_fin1p8" else "cylinder Ø3 x 3.825, 0.675 air under the tip"), cexp, [round(c, 3) for c in ca], 0.05, ok=all(abs(c - cexp) < 0.05 for c in ca))
+        if key == "detailed_fin1p8":
+            hs = [(r, lo, hi) for r, a, bz, lo, hi, _ in merged_cyl(b["front_cap"], 1) if abs(r - 1.5) < 0.005]
+            chk("2.8g", f"{tag} front_cap tapped holes: 4 x Ø3.0, depth 4.5 (so the M3 x 12 tip stops 0.675 short of the bottom)", "4 x depth 4.5", [(round(2 * r, 3), round(hi - lo, 3)) for r, lo, hi in hs], 0.002,
+                ok=len(hs) == 4 and all(abs(hi - lo - 4.5) < 0.002 for r, lo, hi in hs))
+        # ---- inserts
+        sl = b["slipin_mount"]
+        dk = b["insert_deck"]
+        pk = [c for c in merged_cyl(sl, 2) if abs(c[0] - 2.05) < 0.005]
+        sk = merged_cyl(dk, 2)
+        okd = len(pk) == 1 and len(sk) == 2
+        top_probe_out = not probe_inside(sl, (pk[0][1], pk[0][2] + 2.9, pk[0][4] + 0.2))      # air above the deck face next to the pocket ... (point 2.9 mm off-axis in +y)
+        deck_in = probe_inside(sl, (pk[0][1], pk[0][2] + 2.9, pk[0][4] - 0.3))                 # material below the deck face next to the pocket
+        osl = [c for c in sk if abs(c[0] - 2.05) < 0.005][0]
+        bor = [c for c in sk if abs(c[0] - 1.25) < 0.005][0]
+        okd &= abs(osl[1] - pk[0][1]) < 1e-3 and abs(osl[2] - pk[0][2]) < 1e-3
+        chk("2.9a", f"{tag} insert_deck: OD 4.1 / ID 2.5 / length 5.7 (mm)", (4.1, 2.5, 5.7), (round(2 * osl[0], 3), round(2 * bor[0], 3), round(osl[4] - osl[3], 3)), 0.005, ok=okd and abs(osl[4] - osl[3] - 5.7) < 0.005 and abs(bor[4] - bor[3] - 5.7) < 0.005)
+        chk("2.9b", f"{tag} insert_deck coaxial with the slip-in pocket Ø4.1 (axis offset, mm)", 0.0, round(max(abs(osl[1] - pk[0][1]), abs(osl[2] - pk[0][2])), 5), 1e-3)
+        chk("2.9c", f"{tag} insert_deck top flush with the deck face (pocket opening) (mm); deck face is at the pocket top: air above, material beside", pk[0][4], osl[4], 1e-3, ok=abs(osl[4] - pk[0][4]) < 1e-3 and top_probe_out and deck_in)
+        chk("2.9d", f"{tag} insert_deck inside the pocket depth (sleeve bottom above pocket floor by 7.0 - 5.7 = 1.3 mm)", 1.3, osl[3] - pk[0][3], 1e-3)
+        ca = contact_area(dk, sl)
+        chk("2.9e", f"{tag} insert_deck / slipin contact = outer cylinder pi x 4.1 x 5.7 (mm2); distance 0", math.pi * 4.1 * 5.7, ca, 0.05, ok=abs(ca - math.pi * 4.1 * 5.7) < 0.05 and dk.distance(sl) < 1e-6)
+        chk("2.9f", f"{tag} insert_deck overlap with slipin_mount (mm3)", 0.0, overlap_vol(dk, sl), 0.01)
+        divots = sorted((a, bz, lo, hi) for r, a, bz, lo, hi, _ in merged_cyl(sl, 0) if abs(r - 1.725) < 0.005)
+        okE, listE = len(divots) == 4, []
+        for i in (1, 2, 3, 4):
+            ins = b[f"insert_enc_{i}"]
+            mc = merged_cyl(ins, 0)
+            o1 = [c for c in mc if abs(c[0] - 1.725) < 0.005]
+            o2 = [c for c in mc if abs(c[0] - 1.05) < 0.005]
+            okE &= len(o1) == 1 and len(o2) == 1
+            m = [d for d in divots if abs(d[0] - o1[0][1]) < 1e-3 and abs(d[1] - o1[0][2]) < 1e-3]
+            okE &= len(m) == 1 and abs(m[0][2] - o1[0][3]) < 1e-3 and abs(m[0][3] - o1[0][4]) < 1e-3 and abs(o1[0][4] - o1[0][3] - 4.0) < 1e-3
+            listE.append((i, round(2 * o1[0][0], 3), round(2 * o2[0][0], 3), round(o1[0][4] - o1[0][3], 3), round(o1[0][1] - Y0, 3), round(o1[0][2] - Z0, 3)))
+            okE &= overlap_vol(ins, sl) < 0.01 and ins.distance(sl) < 1e-6
+        chk("2.9g", f"{tag} insert_enc_1..4: OD 3.45 / ID 2.1 / length 4.0, coaxial with the 4 divot holes (same x range, flush with the divot floor), no overlap", "4 sleeves in 4 holes", listE, 0.001, ok=okE)
+        # probe: divot floor is the open end
+        d0 = divots[0]
+        floor_air = not probe_inside(sl, (d0[3] + 0.2, d0[0], d0[1]))
+        floor_mat = probe_inside(sl, (d0[3] - 0.2, d0[0] + 2.4, d0[1]))
+        chk("2.9h", f"{tag} divot hole open at the divot floor (air at +0.2, material beside the hole at -0.2)", True, floor_air and floor_mat, 0, ok=floor_air and floor_mat)
+        # ---- touching pairs vs builder CSV (informational comparison)
+        out_pairs = sorted({tuple(sorted(p)) for p in touching})
+        chk("2.10", f"{tag} touching pairs (distance < 1e-6) are listed", "list", out_pairs, 0, ok=True)
+        STATION_TOUCH[key] = out_pairs
+    return {}
+
+
+STATION_TOUCH: dict = {}
+
+
 if __name__ == "__main__":
     section1()
+    section2()
     for r in RESULTS:
         print(r["status"], r["id"], r["item"], "| exp", r["expected"], "| meas", r["measured"], "| tol", r["tol"])

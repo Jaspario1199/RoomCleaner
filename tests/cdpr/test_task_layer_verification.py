@@ -248,8 +248,7 @@ def _release_refused(h):
     h.runner._settle_and_approve = lambda what, *a, **k: (False, "predicted tilt 6.0 deg (cable model) > 5.0 deg") if what.startswith("release") else (True, "")
 
 
-@pytest.mark.xfail(strict=True, reason="PRE-EXISTING, not in the diff (verifier finding F2): a refused RELEASE approval returns (False, ...) with the garment "
-                   "still in the closed jaws, and run() goes on to the next scan with it")
+# F2 FIXED 10/22 (lead): a refused RELEASE approval pauses the task over the hamper with the garment held (tasks.py _handle).
 def test_a8_a_refused_release_approval_does_not_carry_the_garment_on_to_the_next_scan(monkeypatch):
     h = Harness(monkeypatch, scan=lambda hh: [hh.item()] if not hh.of("grip") else [])
     _release_refused(h)
@@ -263,13 +262,14 @@ def test_a8_a_refused_release_approval_does_not_carry_the_garment_on_to_the_next
     assert not (h.grips()[-1] is True and moved_after), evs[-6:]
 
 
-def test_a8b_the_current_behaviour_of_a_refused_release_approval_is_recorded(monkeypatch):
+def test_a8b_a_refused_release_approval_pauses_over_the_hamper_with_the_garment_held(monkeypatch):
     h = Harness(monkeypatch, scan=lambda hh: [hh.item()] if not hh.of("grip") else [])
     _release_refused(h)
-    out = h.runner.run(on_state=lambda s, m="": None)
-    assert out["failed"] == [("sock", "release not approved: predicted tilt 6.0 deg (cable model) > 5.0 deg")]
-    assert h.grips() == [False, True]                                   # closed on the garment and never opened
-    assert h.labels("exec")[-1] == "scan"                               # ... and the claw then moved on to the next scan
+    with pytest.raises(StartupAbort) as e:
+        h.runner.run(on_state=lambda s, m="": None)
+    assert e.value.paused and "release sock not approved" in e.value.reason and "still in the jaws" in e.value.reason
+    assert h.grips() == [False, True]                                   # closed on the garment, not opened by the refusal
+    assert h.labels("exec")[-1] == "transport"                          # ... and it stopped over the hamper, no next scan
 
 
 # ===================================================================== part B: the sim3_34 profile (one simulated startup)

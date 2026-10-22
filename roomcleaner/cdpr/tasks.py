@@ -421,8 +421,9 @@ class TaskRunner:
         self._move(np.array([hamper[0], hamper[1], z_t]), label="transport", payload=tc.max_payload_kg)
         on_state("RELEASE", item.id)
         ok, why = self._settle_and_approve(f"release {item.id}", payload_kg=tc.max_payload_kg)
-        if not ok:
-            return False, f"release not approved: {why}"
+        if not ok:       # the garment is still in the closed jaws: stop over the hamper, never carry it on (task verification F2)
+            raise StartupAbort("TASK", f"release {item.id} not approved: {why}; the item is still in the jaws over the hamper",
+                               paused=True)
         self._grip(False)
         ctx.wait(tc.grip_settle_s)
         on_state("DELIVERY_VERIFICATION", item.id)

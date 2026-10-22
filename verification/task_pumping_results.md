@@ -72,8 +72,8 @@ all four stations at (FAULT, LEASE); a 0.6 s CPU-burning detector 608 ms; the 3 
 | `tests/cdpr/test_keepalive_fix_review.py` + `test_task_pumping.py` | 22 passed (4 + 18) in 28.6 s |
 | `tests/cdpr/test_keepalive_pumping.py` | 19 passed, 1 failed in 99.9 s; the failure `test_a_full_simulated_startup_never_leaves_the_armed_stations_unpumped_for_a_third_of_the_lease` ended FAULT at the "expanded" stage ("motion not ready: clock uncertainty 5604 us"), with the largest pump gap 42 ms and no LEASE. Re-run alone: passed (READY, 171 s, largest gap 48 ms stall, limit 100 ms). Not reproduced; not investigated on HEAD (the startup is not bit-reproducible, `phone_app_review.md` F17). |
 | `tests/cdpr/test_garments.py` | 8 passed in 284 s (210 s before my changes) |
-| `tests/cdpr/test_system.py` | SEE_SYSTEM |
-| `tests/cdpr/test_three_station.py -k "task or move"` | SEE_THREE |
+| `tests/cdpr/test_system.py` | 11 passed |
+| `tests/cdpr/test_three_station.py -k "task or move"` | 6 passed (31 deselected) |
 
 Geometry used by each reported result: measurements in section 3 and reach runs 1-4 used the old lowest point (z -0.5173); reach runs 5-6, the
 garments run and everything after commit 3f2ece7 used -0.4854. `test_three_station.py` uses `robot.sim3.json` (corner holes), not `_34`.

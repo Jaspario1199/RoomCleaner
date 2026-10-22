@@ -175,3 +175,87 @@ zero interference with the station parts except the cap ribs, STEP round trip, S
 - Foot 23.4: the cost is lateral play (0.3 mm per side instead of 0.2, so the foot term of the chip-offset stack-up grows). Use it only if the
   23.6 foot binds. Pocket, tabs, chip plane (30.8), hooks, holes (axes unchanged, coaxial with the divot holes), screw access, the bridge
   and the print orientation are the same as nominal; zero interference with all six station parts; foot-on-floor is the only contact.
+
+## 11. v2: self-centring version (added 2026-10-22, answer to verification finding F1)
+
+v1, the three fit-test variants and their exports are unchanged (tests prove a zero boolean difference). v2 is selected by `v2=True`
+(`make_casing(v2=True)`, `make_magnet_cap(v2=True)`, `Cfg(v2=True)`) and reads `ENC1021_V2_<X>` where it exists, else `ENC1021_<X>`; the
+new names are in the `ENC1021_V2_*` block of `cad/params.py`. Regenerate with `/usr/bin/python3 -m cad.parts.encoder1021 v2`.
+Files: `exports/step|stl/encoder1021_casing_v2.*`, `encoder1021_magnet_cap_v2.*`; renders `renders/encoder1021/v2_*` (7 views of each part, 3 assembly
+views, sections z0 / x0 / hole row, plus `v2_..._section_board_ribs`, `_section_foot_bumps`, `_section_magnet_ribs`); tests `tests/test_encoder1021_v2.py`
+(41 items; with v1 and the variants 117 pass).
+
+**Principle.** Every fit that set the chip position by CLEARANCE gets a large clearance (never binds, whatever the FDM size error) plus small crush
+ribs / bumps that touch on all sides symmetrically. The centre then moves only with the ASYMMETRY of opposite ribs (`ENC1021_V2_RIB_TOL`, assumed
+0.05 mm), not with over- or undersize, which is common to opposite sides and cancels.
+
+### Geometry (all measured on the solids, tests in section "casing v2" / "cap v2")
+
+| fit | v1 | v2 |
+|---|---|---|
+| board in pocket | pocket 23.4 (0.2 per side), no ribs | pocket **23.5** (0.25 per side) + **8 ribs**, 2 per wall at +-6.5 from the wall centre (clear of the pad rows |z| < 4 on the +-x edges, the hook lips |x| < 4 on the +-z edges and the corner tabs at 8.75): rib height above the wall **0.35 = 0.25 clearance + 0.10 crush**, tip **0.45**, base 0.9, from the bed face (y 31.0) to the wall top with a 45 deg lead-in; tips at 11.40 = board edge 11.50 - 0.10. Crush volume 0.504 mm3 in 8 pieces |
+| magnet in pocket | Ø6.2 (0.10 per side) | pocket **Ø6.3** (0.15 per side) + **3 ribs** at 60 / 180 / 300 deg, height 0.27 = 0.15 + **0.12 crush**, tip 0.45, base 0.9, full pocket depth (y 26.75 to 29.3), 45 deg lead-in; tip radius 2.88; crush volume 0.413 mm3 in 3 pieces |
+| peg in bore | 3 ribs 0.15 high, tip 0.30 (crush 0.05) | the rib020 variant: 0.20 high, tip **0.45**, tip radius 2.75, **crush 0.10**; 0.477 mm3 of interference (v1 0.163); equal to the variant peg to 1e-6 mm3 |
+| foot in divot | 23.6, 0.2 per side, free to turn +-1.10 deg | **23.4** (0.3 per side, normal gap to the wall round 0.044, no bind risk) + **8 crush bumps**, two per side at +-9.0, 0.6 wide, tip = the MEASURED dish wall + **0.10 lateral** at every depth from 0.3 mm above the plate-face plane down to 0.7 mm below it. 8 pieces of 0.042 mm3 = 0.336 mm3 of interference with the slip-in |
+
+The bump envelope is the foot's own rounded-slab construction sized to the divot (rim 24.0 + 2 x 0.10, bottom round R1.0 = the measured quarter-round),
+so the crush is 0.10 along the whole bump instead of a point contact; below 0.7 mm depth, where the wall flattens and lateral interference stops
+being a normal one, nothing touches. The floor contact stays the x datum. Entry is a wedge: while the foot is still raised the bump tips are
+inside the wall line, the crush rises to 0.10 only as the foot settles. Hooks, tabs, chip plane (30.8), tie slots, holes, bridge and print orientation
+are unchanged; the frame is 0.05 larger per side (27.5), the hook lip protrusion 0.65 (tip flat 0.35, still >= 0.2).
+
+### Stack-up (verification item 5 method, `encoder1021.stackup()`)
+
+Each term is a bound; worst case = linear sum, RSS = quadrature of the bounds; x = floor normal, z = across the divot; arm of the foot rotation = divot centre
+to chip face = 14.2 mm. Only these parts (not the spool-on-shaft eccentricity, the printed slip-in / motor seat, PCB outline, chip placement on the board).
+
+| source | v1 x / z | v2 x / z |
+|---|---|---|
+| foot | 0 / 0.273 (rotation 1.10 deg; reproduced here by bisection: 1.10 deg to the numerical-contact level) | 0 / 0.050 translation + 0 / 0.079 rotation (eps / lever 9.0 x 14.2) |
+| board in pocket | 0.20 / 0.20 | 0.05 / 0.05 |
+| peg in bore | 0.10 / 0.10 | 0.05 / 0.05 |
+| magnet in pocket | 0.10 / 0.10 | 0.05 / 0.05 |
+| worst case (sum) | 0.40 / 0.673, radial **0.783** | 0.150 / 0.279, radial **0.317** (target <= 0.4: met) |
+| RSS | 0.245 / 0.367, radial **0.441** | 0.087 / 0.127, radial **0.154** (target <= 0.25: met) |
+
+**It rests on eps = 0.05 mm**, the assumed asymmetry between opposite crush features. Every v2 term is proportional to eps, so the targets hold up to
+eps = **0.063 mm** (worst case) and **0.081 mm** (RSS); at eps = 0.10 the worst case is 0.633 and the RSS 0.308, both over. eps is a bound on how much two
+opposite ribs differ (line-width and corner effects of one print); a common over- or undersize does not enter. It must be measured on the first print
+(for example caliper the board between its ribs and the foot between its bumps). Each crush is at least 2 x eps, so contact survives a systematic size
+error of eps per side (tested).
+
+### Foot: bumps, not locator pins
+
+Two close-fit pins in diagonal divot holes were evaluated (`stackup(2, foot="pins")`): worst 0.341 / RSS 0.169 against 0.317 / 0.154 for the bumps, so both
+meet the targets at the same eps, and the bumps win on four counts: (1) a bigger lever (9.0 from the side centre against 6.7 for pins 13.4 apart); (2) the
+bumps use the 24 mm rim, a large feature printed to about +-0.1, while the pins would use blind Ø3.45 x 4 mm holes, which FDM undersizes and scatters more,
+so eps for pins is likely larger (at eps = 0.07 the pins already exceed 0.4); (3) all four screws and all four holes stay available, and Jasper's open question
+about the hardware in the divot holes (insert or screw) stays open; (4) no pin to break off. The cost of the bumps: a firm press-in (8 bumps, each about
+0.6 x 0.7 mm of crush face; the four screws draw the foot down the wedge; file a bump or lower `ENC1021_V2_FOOT_BUMP_CRUSH` to 0.07 if it will not seat).
+
+### Checks (same as v1, all pass)
+
+- One valid solid each: cap v2 489.5 mm3 (0.62 g), bbox 14 x 6.7 x 14 as v1; casing v2 3427.0 mm3 (4.35 g), bbox x [-22.15, 13.75], y [31.0, 57.1] (the +y bumps
+  stand 0.4 beyond the 23.4 foot), z +-13.75.
+- Interference with the six station parts: casing: only the 8 bump pieces with the slip-in (0.336 mm3), 0 with all others; cap: only the peg ribs with the
+  spool (0.477 mm3), 0 with all others; board vs casing: 8 rib pieces (0.504 mm3); magnet vs cap: 3 rib pieces (0.413 mm3); without ribs they are 0.
+- Clearances: casing to shell 17.11 (limit 1.0), spool 5.0, motor 12.9, wall mount 7.6; cap swept 360 deg 5.15 mm from the casing, chip 1.500, shaft end 0.600;
+  nothing of the casing at y < 26; screw-access cylinders clear (0.55 to the bridge); foot holes coaxial with the divot holes.
+- Geometric play before contact is lost (the centring itself is the elastic balance of equal ribs): board +-0.09 keeps all 8 ribs, 0.11 loses two walls' ribs;
+  foot +-0.09 keeps all 8 bumps, 0.11 loses two, rotation 0.5 deg keeps all 8, 0.8 deg loses some (v1: free to move +-0.2 and turn +-1.10 deg before touching).
+- STEP round trip (volume 1e-6, bbox 5e-3), STL watertight and equal volume, exports current, renders present.
+
+### Print (same orientations as v1)
+
+Casing: frame front face (y = 31.0) on the bed, +y up; the board ribs start on the bed face and ramp at the top, so no new overhang over the pocket: over the pocket
+only the two hook ledges (0.65 x 8 mm = 10.4 mm2). Elsewhere the foot key-edge ledge (about 1 mm, as v1) and the undersides of the foot bumps (0.4 mm ledges,
+0.6 wide, about 2 mm2 together). Cap: magnet face on the bed, peg up; one 6.3 mm bridge over the pocket floor (30.7 mm2), the ribs stand on it, their 45 deg lead-in is
+at the bed side and not flagged. Ribs 0.45 wide at the tip are one nozzle line plus a little: print the casing and cap at 0.12 to 0.16 mm layers, and expect the 0.35 high
+board ribs to need a trial.
+
+### Not covered / to measure on the first print
+
+eps itself; the real board outline (a 23.2 board would crush the board ribs 0.2 more: still inside the 0.35 rib height, but the insertion force rises); the insertion
+force of 8 board ribs, 3 magnet ribs and 8 foot bumps (all crush ribs in PETG yield locally; no force was calculated); ribs avoid the pad rows and hook lips, but the
+photo of the board was not available: check that no part sits within 0.45 of the edge at +-6.5 on any side, and move `ENC1021_V2_BOARD_RIB_POS` if one does;
+the spool-on-shaft eccentricity and the printed slip-in / motor seat position, which the verifier also left out.

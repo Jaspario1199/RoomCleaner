@@ -162,3 +162,6 @@ appendix's Calculations and Sources slide are gone. Chart captions still name th
 
 **Oct 22, Jasper:** the Takeaways and Next Steps slide has no diagram (two columns of statements); the floor-board
 "tags in view" chart is off the Camera Calibration slide (kept in the appendix file and the Sheet).
+
+**Opening (Oct 22, Jasper):** slide 1 is a text-only "SpaceX Onsite" title with name and school, no date; About Me second;
+the project picture (RoomCleaner, the built station and claw body) third, then Project Goal. Main deck: 22 slides.

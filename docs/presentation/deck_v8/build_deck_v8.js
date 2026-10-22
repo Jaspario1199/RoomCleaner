@@ -282,16 +282,12 @@ if (PART === "main") {
 // ================================================================================================ INTRODUCTION
 section("Introduction");
 {
-  const sl = pres.addSlide({ masterName: "TITLE", sectionTitle: SECTION });
-  sl.addShape(pres.shapes.RECTANGLE, { x: 0, y: 0, w: 5.6, h: 7.5, fill: { color: HEX.navy }, line: { color: HEX.navy } });
-  sl.addText("RoomCleaner", { x: M, y: 2.3, w: 4.8, h: 1.0, fontSize: 44, bold: true, color: "FFFFFF", fontFace: "Arial", margin: 0, isTextBox: true });
-  sl.addText("A four-cable ceiling robot designed to pick laundry off the floor", { x: M, y: 3.35, w: 4.6, h: 1.2, fontSize: 22, color: HEX.pale, fontFace: "Arial", margin: 0, isTextBox: true });
-  sl.addText("Jasper Buntinx\nMechanical Engineering, Texas A&M University\nOctober 27, 2026", { x: M, y: 5.7, w: 4.8, h: 1.1, fontSize: 14, color: HEX.pale, fontFace: "Arial", margin: 0, isTextBox: true });
-  fitImage(sl, PH("11_gen2_station_assembled.jpg"), 6.0, 0.6, 3.3, 6.0, "Wall station, assembled");
-  fitImage(sl, PH("21_claw_printed_tube_servo.jpg"), 9.45, 0.6, 3.3, 6.0, "Printed claw body with its servo");
-  label(sl, "Wall station (built)", 6.0, 6.7, 3.3, 0.3, { size: 11, color: HEX.grey, align: "center" });
-  label(sl, "Claw body and servo (built)", 9.45, 6.7, 3.3, 0.3, { size: 11, color: HEX.grey, align: "center" });
-  sl.addNotes("One sentence: four winches near the ceiling corners hold one claw on cables; it is designed to pick clothes off the floor and drop them in a hamper. Then who I am.");
+  // Title page (Jasper, 10/22): "SpaceX Onsite", name and school, no date; text only, no logos.
+  const sl = pres.addSlide({ masterName: "SECTION", sectionTitle: SECTION });
+  sl.addText("SpaceX Onsite", { x: M, y: 2.45, w: W - 2 * M, h: 1.1, fontSize: 48, bold: true, color: "FFFFFF", fontFace: "Arial", margin: 0, isTextBox: true });
+  sl.addText("Jasper Buntinx", { x: M, y: 3.75, w: W - 2 * M, h: 0.6, fontSize: 26, color: HEX.pale, fontFace: "Arial", margin: 0, isTextBox: true });
+  sl.addText("Mechanical Engineering, Texas A&M University", { x: M, y: 4.35, w: W - 2 * M, h: 0.5, fontSize: 18, color: HEX.pale, fontFace: "Arial", margin: 0, isTextBox: true });
+  sl.addNotes("Thank them for the day. One line: I'm Jasper, mechanical engineering at Texas A&M; first a minute about me, then the project.");
 }
 
 {
@@ -313,6 +309,19 @@ section("Introduction");
               "the event raised $185K for Still Creek Ranch. If asked: metal sculpture for the Austin Creek Show, with fiber laser cutting and welding.");
 }
 
+
+{
+  // The project picture, after About Me (Jasper, 10/22): the former title layout without the name and date.
+  const sl = pres.addSlide({ masterName: "TITLE", sectionTitle: SECTION });
+  sl.addShape(pres.shapes.RECTANGLE, { x: 0, y: 0, w: 5.6, h: 7.5, fill: { color: HEX.navy }, line: { color: HEX.navy } });
+  sl.addText("RoomCleaner", { x: M, y: 2.6, w: 4.8, h: 1.0, fontSize: 44, bold: true, color: "FFFFFF", fontFace: "Arial", margin: 0, isTextBox: true });
+  sl.addText("A four-cable ceiling robot designed to pick laundry off the floor", { x: M, y: 3.65, w: 4.6, h: 1.2, fontSize: 22, color: HEX.pale, fontFace: "Arial", margin: 0, isTextBox: true });
+  const r1 = fitImage(sl, PH("11_gen2_station_assembled.jpg"), 6.0, 0.6, 3.3, 6.0, "Wall station, assembled");
+  const r2 = fitImage(sl, PH("21_claw_printed_tube_servo.jpg"), 9.45, 0.6, 3.3, 6.0, "Printed claw body with its servo");
+  label(sl, "Wall station (built)", 6.0, r1.y + r1.h + 0.1, 3.3, 0.3, { size: 11, color: HEX.grey, align: "center" });
+  label(sl, "Claw body and servo (built)", 9.45, r2.y + r2.h + 0.1, 3.3, 0.3, { size: 11, color: HEX.grey, align: "center" });
+  sl.addNotes("One sentence: four winches near the ceiling corners hold one claw on cables; it is designed to pick clothes off the floor and drop them in a hamper.");
+}
 
 content("Project Goal", [
   "Pick up laundry in a 3.35 × 2.74 m (11 × 9 ft) room under a 2.74 m (9 ft) ceiling, and drop it in a hamper",

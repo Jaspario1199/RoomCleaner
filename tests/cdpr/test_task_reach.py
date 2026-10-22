@@ -507,3 +507,109 @@ def test_a_whole_task_never_leaves_the_armed_stations_unpumped_for_a_third_of_th
     assert m.violations == []
     assert m.max_stall_s < lease / 3, m.worst_text()
     reset(r)
+
+
+# ============================================================ 6. the garment perception on the three-station profile
+# The "item lost after a failed grip" x3 of the first rehearsal with ClawGarmentPerception + BlobDetector on this profile was NOT a
+# perception defect: the garment image was rendered with the NOMINAL camera mount (cfg.claw.T_body_cam, as tests/cdpr/test_garments.py
+# does) while the simulated marker vision, and the mount correction the startup measured, belong to the TRUE mount (SimCamera.T_B_C,
+# rotated from the nominal by a random 0.02 rad per axis). Image and pose then disagree by the mount tilt (2.6 degrees on this seed, 54 mm
+# at the 1.2 m scan height; 1.0 degrees on test_garments' four-station rig, 24 mm), more than the 60 mm reach of the simulated gripper
+# leaves for everything else. With the true-mount render the item is found to 8-12 mm (the rest is the parallax of the item's top face
+# 5 cm above the floor plane the pixel is mapped onto). verification/task_pumping_results.md has the table.
+import math
+
+from roomcleaner.cdpr.frames import inv_T
+from roomcleaner.cdpr.garments import BlobDetector, ClawGarmentPerception
+from roomcleaner.cdpr.sim.render import render_claw_view
+
+
+def garment_perception(r, *, true_mount=True, detector=None, seed=7):
+    rng = np.random.default_rng(seed)
+    T_B_C = r.simcam.T_B_C if true_mount else r.cfg.claw.T_body_cam
+    return ClawGarmentPerception(detector or BlobDetector(), r.camera, lambda: render_claw_view(r.world, r.camera, T_B_C, rng=rng))
+
+
+def exact_model_xy(r, xy_truth):
+    """Where the planner's (model) frame puts a floor point whose TRUE room position is ``xy_truth``: through the marker frame, with the
+    estimated registration."""
+    p_M = inv_T(r.world.T_R_M) @ np.r_[xy_truth, 0.0, 1.0]
+    return (r.ctx.T_R_M @ p_M)[:2]
+
+
+def test_the_item_is_located_to_a_few_mm_when_the_image_is_rendered_with_the_true_camera_mount_and_not_otherwise(rig):
+    r, sup = rig
+    scan_xy = home(r)[:2]
+    item = r.world.p[:2] + [0.12, 0.10]
+    r.world.add_item("sock", item)
+    goto(r, np.r_[scan_xy, r.cfg.tasks.scan_height_m])
+    r.ctx.wait(1.0)
+    errs = {}
+    for true_mount in (True, False):
+        per = garment_perception(r, true_mount=true_mount)
+        (s,) = per.scan(r.ctx)
+        assert per.pose_source == "marker"
+        errs[true_mount] = float(np.linalg.norm(s.xy - exact_model_xy(r, item)))
+    mount_err = math.degrees(math.acos(np.clip((np.trace(r.ctx.T_B_C[:3, :3].T @ r.cfg.claw.T_body_cam[:3, :3]) - 1) / 2, -1, 1)))
+    print(f"\n[item localisation at the {r.cfg.tasks.scan_height_m} m scan] true-mount render {errs[True] * 1e3:.1f} mm, nominal-mount render "
+          f"{errs[False] * 1e3:.1f} mm; mount correction {mount_err:.2f} deg")
+    assert errs[True] < 0.02                                             # (10 mm measured; 60 mm is the simulated gripper's reach)
+    assert errs[False] > 2 * errs[True] and errs[False] > 0.03          # the harness artifact: the tilt of the mount x the scan height
+    reset(r)
+
+
+def test_garment_perception_delivers_two_items_on_the_three_station_profile(rig):
+    r, sup = rig
+    home(r)
+    c = r.world.p[:2].copy()
+    for name, off in zip(("sock", "tee"), item_offsets(r)):
+        r.world.add_item(name, c + off)
+    per = garment_perception(r)
+    out = sup.run_task(make_runner(r, per))
+    assert out is not None and len(out["done"]) == 2, (out, per.log, sup.reasons[-2:])
+    assert not out["failed"] and sup.state == "READY"
+    assert all(it["state"] == "hamper" for it in r.world.items)
+    assert_no_eq_failures(r, "garment task on the three-station profile")
+    reset(r)
+
+
+class SlowBlob(BlobDetector):
+    """The blob detector made to take real time per call, like a CPU inference of YOLO-World."""
+
+    def __init__(self, delay_s):
+        super().__init__()
+        self.delay_s, self.threads = delay_s, []
+
+    def detect(self, frame=None):
+        time.sleep(self.delay_s)
+        self.threads.append(threading.current_thread().name)
+        return super().detect(frame)
+
+
+def test_a_whole_task_with_a_one_second_detector_stays_pumped_and_still_delivers(rig):
+    """The real chain on this profile: scan -> approach -> grip -> holding -> transport -> release -> holding / item_at, with a detector that
+    takes 1.0 s per call (a first scan, two holding checks and an item_at: five calls), the clock-coupled gap meter attached. Before the
+    pumped detector every one of those calls was a 1.0 s gap (3.3x the lease) and latched Fault.LEASE on all three stations."""
+    from roomcleaner.cdpr.protocol import Fault
+
+    from .test_keepalive_pumping import PumpGapMeter
+    r, sup = rig
+    home(r)
+    c = r.world.p[:2].copy()
+    r.world.add_item("sock", c + item_offsets(r, n=1)[0])
+    det = SlowBlob(1.0)
+    per = garment_perception(r, detector=det)
+    lease = r.cfg.faults.lease_s
+    m = PumpGapMeter(r.co, couple=True, armed=True)
+    try:
+        out = sup.run_task(make_runner(r, per))
+    finally:
+        m.close()
+    r.co.wait(200000)
+    print(f"\n[task with a 1.0 s detector] {len(det.threads)} detector calls, {m.n_pumps} pumps, largest gap between pumps "
+          f"{m.max_stall_s * 1e3:.0f} ms, lease {lease * 1e3:.0f} ms; {m.worst_text()}")
+    assert out is not None and len(out["done"]) == 1 and not out["failed"], (out, per.log, sup.reasons[-2:])
+    assert len(det.threads) >= 4 and all(t.startswith("startup-pumped") for t in det.threads)
+    assert all(r.co.links[s].tel["flt"] != Fault.LEASE for s in r.co.ids)
+    assert m.violations == [] and m.max_stall_s < lease / 3, m.worst_text()
+    reset(r)

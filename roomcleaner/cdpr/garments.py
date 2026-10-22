@@ -38,6 +38,7 @@ from ..perception.localization import FloorMapper
 from ..perception.moving_camera import pixel_to_world_plane
 from .frames import make_T, rot_z
 from .perception import to_room
+from .startup import run_pumped
 from .tasks import ItemPerception, ItemSighting
 
 
@@ -194,12 +195,18 @@ class ClawGarmentPerception(ItemPerception):
         ring = st(~inner) if (~inner).any() else np.zeros(3)
         return st(inner) - ring
 
-    def _detections(self, img, mapper, core=None):
+    def _detections(self, ctx, img, mapper, core=None):
         """Floor detections (room xy). ``core`` = ``jaw_core`` output: boxes
-        centred on it are the garment in the jaws, not on the floor."""
-        self.det.mapper = mapper
+        centred on it are the garment in the jaws, not on the floor.
+
+        The detector call runs through ``startup.run_pumped``: while the task owns the robot the idle host loop does not pump the
+        stations (``Service.idle_tick``), and a YOLO-World inference (a fraction of a second to seconds on a CPU) or its lazy model
+        load on the first call (seconds, possibly a weights download) would outlast ``faults.lease_s`` and latch Fault.LEASE on every
+        armed station. The detector therefore runs on a worker thread while this (the command) thread keeps the keep-alive going.
+        The worker touches only the detector and the image, never the coordinator; its result (and any exception) is the detector's."""
+        self.det.mapper = mapper                    # set here, on the command thread; the worker only reads it
         out = []
-        for d in self.det.detect(img):
+        for d in run_pumped(ctx, self.det.detect, img):
             if d.confidence < self.min_conf or d.bbox is None:
                 continue
             x1, y1, x2, y2 = d.bbox
@@ -225,7 +232,7 @@ class ClawGarmentPerception(ItemPerception):
         found = []
         tc = ctx.cfg.tasks
         hamper = None if tc.hamper_room_m is None else np.asarray(tc.hamper_room_m, float)
-        for xy, label, conf in self._detections(img, mapper):      # scan starts with the claw empty
+        for xy, label, conf in self._detections(ctx, img, mapper):      # scan starts with the claw empty
             if hamper is not None and np.linalg.norm(xy - hamper) <= tc.hamper_radius_m + 0.05:
                 continue                                           # already delivered, not laundry to fetch
             tr = min(self.tracks, key=lambda t: np.linalg.norm(t.xy - xy), default=None)
@@ -250,7 +257,7 @@ class ClawGarmentPerception(ItemPerception):
         spot_clear = True
         if self.target is not None:
             spot_clear = not any(np.linalg.norm(xy - self.target.xy) <= self.spot_r
-                                 for xy, _, _ in self._detections(img, mapper, self.jaw_core(ctx, T, mapper)))
+                                 for xy, _, _ in self._detections(ctx, img, mapper, self.jaw_core(ctx, T, mapper)))
         held = in_claw and spot_clear
         self.log.append(f"holding: roi change {change:.1f}, spot clear {spot_clear} -> {held}")
         return held, (0.9 if held else 0.1)
@@ -263,7 +270,7 @@ class ClawGarmentPerception(ItemPerception):
             self.log.append(f"delivery: claw region still occupied ({change:.1f})")
             return False
         # the claw is empty here, so a garment under the jaws IS the delivered one (no ROI exclusion)
-        dets = self._detections(img, mapper)
+        dets = self._detections(ctx, img, mapper)
         inside = any(np.linalg.norm(d - np.asarray(xy)) <= radius for d, _, _ in dets)
         outside = [d for d, _, _ in dets if np.linalg.norm(d - np.asarray(xy)) <= radius + 0.3
                    and np.linalg.norm(d - np.asarray(xy)) > radius]

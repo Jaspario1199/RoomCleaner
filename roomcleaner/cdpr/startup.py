@@ -418,6 +418,38 @@ class RobotContext:
 MOUNT_FRAMES = 30            # frames averaged for the camera-mount tilt offset (standard error = scatter / sqrt(30))
 
 
+def run_pumped(ctx, fn, *args, **kwargs):
+    """Run the long computation ``fn(*args, **kwargs)`` (a ``Calibrator.fit``, the survey top-up's ``flush``, the excitation-candidate
+    filter, a planned move's path check, a detector inference, ...) on a one-worker thread while this (the command) thread keeps the
+    station keep-alive going with ``ctx.wait`` on the 20 ms grid. While a command owns the robot the idle host loop does not pump
+    (``Service.idle_tick``), so a computation of more than a fraction of ``faults.lease_s`` on this thread would outlast the
+    lease and latch Fault.LEASE on all the armed stations (reviews H1, N1). ``fn`` must touch only its own inputs (the
+    calibrator, the survey and its layout, the cable model, the workspace, the camera, the detector), never the coordinator: whatever
+    it needs from the coordinator (``co.positions()``) is read on the command thread and passed in. Its result is returned and an
+    exception it raises is re-raised unchanged. An exception of ``ctx.wait`` (abort, e-stop) propagates at once: the worker
+    is not waited for (it cannot be interrupted and its result is dropped).
+
+    The interpreter's switch interval is lowered to ``StartupSequencer.PUMP_SWITCH_INTERVAL_S`` while the worker runs, so that the
+    command thread wins the GIL back within ~1 ms after each of its own GIL releases instead of ~5 ms (review N2); restored in
+    ``finally``. The step, yield and switch-interval constants are those of ``StartupSequencer`` (read at call time).
+
+    Module-level so that the task layer (``garments``, ``tasks``) pumps the same way as the startup (``StartupSequencer._pumped``)."""
+    S = StartupSequencer
+    pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="startup-pumped")
+    fut = None
+    old_switch = sys.getswitchinterval()
+    try:
+        sys.setswitchinterval(min(old_switch, S.PUMP_SWITCH_INTERVAL_S))
+        fut = pool.submit(fn, *args, **kwargs)
+        while not fut.done():
+            ctx.wait(S.PUMP_STEP_S)
+            futures_wait((fut,), timeout=S.PUMP_YIELD_S)     # sleeps on the worker (wakes the moment it is done), not on the clock
+        return fut.result()
+    finally:
+        sys.setswitchinterval(old_switch)
+        pool.shutdown(wait=fut is not None and fut.done(), cancel_futures=True)
+
+
 class StartupSequencer:
     # STUDY HOOK (floor-reference study; None = off, behaviour unchanged): an
     # object with visible(camera, T_B_C, T_M_B, min_side_px=, margin_px=) -> bool
@@ -478,30 +510,9 @@ class StartupSequencer:
 
     def _pumped(self, fn, *args, **kwargs):
         """Run the long computation ``fn(*args, **kwargs)`` (a ``Calibrator.fit``, the survey top-up's ``flush``, the excitation-candidate
-        filter, a planned move's path check, ...) on a one-worker thread while this (the command) thread keeps the station keep-alive
-        going with ``ctx.wait`` on the 20 ms grid. While a command owns the robot the idle host loop does not pump
-        (``Service.idle_tick``), so a computation of more than a fraction of ``faults.lease_s`` on this thread would outlast the
-        lease and latch Fault.LEASE on all four armed stations (reviews H1, N1). ``fn`` must touch only its own inputs (the
-        calibrator, the survey and its layout, the cable model, the workspace, the camera), never the coordinator: whatever it needs
-        from the coordinator (``co.positions()``) is read on the command thread and passed in. Its result is returned and an
-        exception it raises is re-raised unchanged. An exception of ``ctx.wait`` (abort, e-stop) propagates at once: the worker
-        is not waited for (it cannot be interrupted and its result is dropped).
-
-        The interpreter's switch interval is lowered to ``PUMP_SWITCH_INTERVAL_S`` while the worker runs, so that the command thread
-        wins the GIL back within ~1 ms after each of its own GIL releases instead of ~5 ms (review N2); restored in ``finally``."""
-        pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="startup-pumped")
-        fut = None
-        old_switch = sys.getswitchinterval()
-        try:
-            sys.setswitchinterval(min(old_switch, self.PUMP_SWITCH_INTERVAL_S))
-            fut = pool.submit(fn, *args, **kwargs)
-            while not fut.done():
-                self.ctx.wait(self.PUMP_STEP_S)
-                futures_wait((fut,), timeout=self.PUMP_YIELD_S)     # sleeps on the worker (wakes the moment it is done), not on the clock
-            return fut.result()
-        finally:
-            sys.setswitchinterval(old_switch)
-            pool.shutdown(wait=fut is not None and fut.done(), cancel_futures=True)
+        filter, a planned move's path check, ...) on a worker thread while this (the command) thread keeps the station keep-alive
+        going: ``run_pumped(self.ctx, fn, ...)``, see there for the rules (``fn`` touches only its own inputs, never the coordinator)."""
+        return run_pumped(self.ctx, fn, *args, **kwargs)
 
     def _enter(self, state, msg=""):
         self.rep.state = state

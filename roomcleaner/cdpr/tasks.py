@@ -26,6 +26,19 @@ DELIVERY_VERIFICATION perception must confirm the claw is empty and the item
 Trusted volume: VERIFIED -> the configured workspace; LOCAL_ONLY -> the
 validated calibration volume (convex hull), plus straight vertical descents
 below it to the floor for gripping.
+
+Reach (refused before any motion, never discovered half-way through an item):
+  * the first scan is planned above the claw if that point is in the trusted volume, else above the claw's start point
+    (``SystemConfig.start_point_xy``), else above the centroid of the trusted volume; none allowed -> the task is refused;
+  * the hamper's transport / release pose must be in the trusted volume, else the task is refused with the hamper's position
+    and the trusted extents;
+  * an item whose approach or grip pose is outside the trusted volume or not plannable (workspace, tension) is recorded as
+    failed ("unreachable: ...") and skipped; planning refusals AFTER the grip has closed, motion faults and pauses still abort.
+
+Keep-alive: while a task owns the robot the idle host loop does not pump the stations (``Service.idle_tick``), so anything
+slower than a fraction of ``faults.lease_s`` on the command thread would latch Fault.LEASE. The path check of a planned move
+(a tension solve at every path point, both ways) runs through ``startup.run_pumped``; the garment detector does too
+(garments.py). Image grabs and settle waits go through ``ctx.wait``, which pumps.
 """
 from __future__ import annotations
 
@@ -35,11 +48,23 @@ from dataclasses import dataclass, replace
 import numpy as np
 
 from .attitude import estimate_attitude, predicted_tilt_rad, wait_until_still
-from .startup import StartupAbort
+from .startup import StartupAbort, run_pumped
 from .trajectory import PlanError, plan_line_from
 
 TASK_STATES = ("SCAN", "APPROACH", "GRIP", "PICKUP_VERIFICATION", "TRANSPORT", "RELEASE",
                "DELIVERY_VERIFICATION")
+
+
+class TaskUnreachable(StartupAbort):
+    """A planning refusal that belongs to ONE target: it is outside the trusted volume, or its path leaves the workspace or needs
+    more tension than the cables can give. ``TaskRunner.run`` records an item whose approach or grip raised this as failed
+    ("unreachable") and goes on to the next; everywhere else (after the grip closed, hamper, scan) it aborts like any StartupAbort.
+    Motion faults, pauses and a model that disagrees with the cables are plain ``StartupAbort`` and never skipped."""
+
+
+# PlanError texts (trajectory._check_path) that mean "this target cannot be planned": the other PlanErrors (model and cables
+# disagree, zero cable move, ...) say something about the system, not about the target.
+_UNREACHABLE_PLAN = ("workspace:", "tension infeasible")
 
 
 @dataclass
@@ -78,6 +103,30 @@ class TrustedVolume:
             except QhullError:                       # flat/degenerate validated set: no trusted volume
                 self.hull = None
 
+    def extents(self):
+        """(lo, hi) xyz bounds of the validated points of the hull, or None (VERIFIED: the workspace; no usable hull)."""
+        if self.hull is None:
+            return None
+        pts = np.asarray(self.hull.points, float)
+        return pts.min(axis=0), pts.max(axis=0)
+
+    def extent_text(self) -> str:
+        ext = self.extents()
+        if ext is None:
+            return "no validated volume"
+        lo, hi = ext
+        return f"x {lo[0]:.2f}-{hi[0]:.2f}, y {lo[1]:.2f}-{hi[1]:.2f}, z {lo[2]:.2f}-{hi[2]:.2f} m"
+
+    def centroid_xy(self):
+        """xy of the centroid of the hull (volume-weighted over its tetrahedra), or None without a hull."""
+        if self.hull is None:
+            return None
+        pts = np.asarray(self.hull.points, float)
+        tets = pts[self.hull.simplices]                              # (n, 4, 3)
+        vol = np.abs(np.linalg.det(tets[:, 1:] - tets[:, :1])) / 6.0
+        c = (tets.mean(axis=1) * vol[:, None]).sum(axis=0) / vol.sum() if vol.sum() > 1e-12 else pts.mean(axis=0)
+        return c[:2]
+
     def allows(self, q, *, below_ok=False) -> bool:
         ctx = self.ctx
         if ctx.ws.violations(ctx.model.geometry, q, allow_low=below_ok):
@@ -113,22 +162,84 @@ class TaskRunner:
             raise StartupAbort("TASK", f"{label}: target height {q[2]:.3f} m is above motion.task_max_height_m "
                                        f"({zmax:.2f} m): the task layer never plans above it (the claw's yaw is only "
                                        f"weakly held by the {'three' if len(self.cfg.ids) == 3 else 'four'} lines near the ceiling)")
-        if not self.vol.allows(q, below_ok=below_ok):
-            raise StartupAbort("TASK", f"{label}: target {np.round(q, 3).tolist()} outside the trusted volume")
+        why = self._outside(q, label, below_ok)
+        if why:
+            raise TaskUnreachable("TASK", why)
         lim = replace(ctx.lim, mass_kg=self.cfg.claw.mass_kg + payload, cart_v=ctx.lim.cart_v * slow,
                       cable_v=ctx.lim.cable_v * slow)
         try:
-            plan = plan_line_from(ctx.model, ctx.co.positions(), q, lim, ws=ctx.ws, allow_low=below_ok,
-                                  label=label)
+            # The path check solves the cable tensions at every path point (both ways, with payload and dynamics): tens to
+            # hundreds of ms for a task move. It runs on the pumped worker; the stations' positions are read here, on the
+            # command thread, and passed in (the worker never touches the coordinator).
+            plan = run_pumped(ctx, plan_line_from, ctx.model, ctx.co.positions(), q, lim, ws=ctx.ws, allow_low=below_ok,
+                              label=label)
         except PlanError as e:
-            raise StartupAbort("TASK", f"{label}: {e}")
+            raise (TaskUnreachable if str(e).startswith(_UNREACHABLE_PLAN) else StartupAbort)("TASK", f"{label}: {e}")
         r = ctx.co.execute(plan)
         if not r.ok:
             raise StartupAbort("TASK", f"{label}: {r.reason}", paused=r.reason.startswith("paused"))
         return r
 
+    def _outside(self, q, label, below_ok=False):
+        """None if the task layer may plan to ``q``, else the refusal text of ``_move`` (so that a pre-check and the move say the same)."""
+        if self.vol.allows(q, below_ok=below_ok):
+            return None
+        return f"{label}: target {np.round(q, 3).tolist()} outside the trusted volume"
+
     def _here(self):
         return self.ctx.model.pose_from_positions(self.ctx.co.positions())[0]
+
+    def _transport_z(self, above_z):
+        """Height at which an item is carried to the hamper and released: over the rim with the release clearance, but not below
+        the approach height of the item."""
+        return max(above_z, self.zf + self.tc.hamper_height_m + self.tc.release_clearance_m)
+
+    def _scan_point(self, here):
+        """(point, note): where the next scan is planned. Above the claw if that is in the trusted volume (note ""); else above the
+        claw's start point (``cfg.start_point_xy``), else above the centroid of the trusted volume. The startup ends wherever its
+        last calibration pose left the claw, and that can be outside the volume it validated. None allowed: the task is refused
+        before any motion (paused: nothing was moved, the operator can resume)."""
+        z = self.tc.scan_height_m
+        cands = [("above the claw", np.asarray(here[:2], float)),
+                 ("above the claw's start point", np.asarray(self.cfg.start_point_xy(), float))]
+        cen = self.vol.centroid_xy()
+        if cen is not None:
+            cands.append(("above the centre of the calibrated volume", cen))
+        tried = []
+        for k, (what, xy) in enumerate(cands):
+            q = np.array([xy[0], xy[1], z])
+            if self.vol.allows(q):
+                note = "" if k == 0 else (f"scan from {what} ({xy[0]:.2f}, {xy[1]:.2f}): the claw's own position "
+                                          f"({here[0]:.2f}, {here[1]:.2f}) is outside the trusted volume at {z:.2f} m")
+                return q, note
+            tried.append(f"{what} ({xy[0]:.2f}, {xy[1]:.2f})")
+        raise StartupAbort("TASK", f"scan: no point at the scan height {z:.2f} m is inside the trusted volume ({'; '.join(tried)}; "
+                                   f"{self.vol.extent_text()}): nothing was moved", paused=True)
+
+    def _check_hamper(self, hamper):
+        """Refuse the task before any motion if the hamper's transport pose (``_handle`` also releases there) is not allowed:
+        outside the trusted volume or above ``motion.task_max_height_m``. Otherwise the claw would pick an item up and fail at
+        TRANSPORT with the garment in its jaws."""
+        z = self._transport_z(0.0)                     # the lowest height an item is carried at (taller items only go higher)
+        q = np.array([hamper[0], hamper[1], z])
+        zmax = self.cfg.motion.task_max_height_m
+        sx, sy = np.asarray(self.cfg.start_point_xy(), float)[:2]
+        where = f"hamper at ({hamper[0]:.2f}, {hamper[1]:.2f})"
+        if zmax is not None and z > zmax + 1e-9:
+            raise StartupAbort("TASK", f"{where}: the transport height {z:.2f} m is above motion.task_max_height_m ({zmax:.2f} m): "
+                                       "nothing was moved", paused=True)
+        if self.vol.allows(q):
+            return
+        if self.ctx.ledger.level == "VERIFIED":
+            v = self.ctx.ws.violations(self.ctx.model.geometry, q, allow_low=False)
+            what = f"outside the workspace ({'; '.join(v)})"
+        elif self.vol.hull is None:
+            what = "outside the calibrated volume (there are no validated points)"
+        else:
+            what = f"outside the calibrated volume ({self.vol.extent_text()})"
+        raise StartupAbort("TASK", f"{where} is {what} at the transport height {z:.2f} m: move it toward the middle of the "
+                                   f"calibrated area (the claw's start point is ({sx:.2f}, {sy:.2f})); nothing was moved",
+                           paused=True)
 
     def _settle_and_approve(self, what, target=None, payload_kg=0.0):
         """Wait until the claw is still, then approve on the host. Returns (ok, why). ``target``: the pose the claw
@@ -162,12 +273,16 @@ class TaskRunner:
         if tc.hamper_room_m is None:
             raise StartupAbort("TASK", "tasks.hamper_room_m not configured")
         hamper = np.asarray(tc.hamper_room_m, float)
+        self._check_hamper(hamper)                 # before any motion: not after the grip, at TRANSPORT
         done, failed, consecutive = [], [], 0
         skip = set()
         for _ in range(max_items):
             on_state("SCAN")
             here = self._here()
-            scan = np.array([here[0], here[1], tc.scan_height_m])
+            scan, note = self._scan_point(here)
+            if note:
+                self.log.append(note)
+                on_state("SCAN", note)
             self._move(scan, label="scan")
             ctx.wait(self.cfg.startup.settle_s)
             items = [it for it in self.per.scan(ctx) if it.id not in skip]
@@ -193,17 +308,29 @@ class TaskRunner:
         above = np.array([item.xy[0], item.xy[1], self.zf + item.height_m + tc.approach_clearance_m])
         for attempt in range(1, tc.max_grip_attempts + 1):
             on_state("APPROACH", f"{item.id} attempt {attempt}")
-            self._move(above, label=f"approach {item.id}")
+            grip_pose = np.array([item.xy[0], item.xy[1], self.zf + tc.grip_clearance_m])
+            # An item whose approach or grip pose is outside the trusted volume, or that cannot be planned to, is failed as
+            # unreachable (nothing is in the jaws yet) and the run goes on; checked before the claw moves at all.
+            for q, label, below in ((above, f"approach {item.id}", False), (grip_pose, f"descend {item.id}", True)):
+                why = self._outside(q, label, below)
+                if why:
+                    return False, f"unreachable: {why}"
+            try:
+                self._move(above, label=f"approach {item.id}")
+            except TaskUnreachable as e:
+                return False, f"unreachable: {e.reason}"
             on_state("GRIP", item.id)
             ctx.claw.grip(False)
-            grip_pose = np.array([item.xy[0], item.xy[1], self.zf + tc.grip_clearance_m])
             ok, why = self._settle_and_approve(f"grip {item.id}", grip_pose)
             if not ok:
                 return False, f"grip not approved: {why}"
             if hasattr(self.per, "note_target"):
                 self.per.note_target(item)
-            self._move(grip_pose, below_ok=True,
-                       label=f"descend {item.id}", slow=0.3)        # slow near the object
+            try:
+                self._move(grip_pose, below_ok=True,
+                           label=f"descend {item.id}", slow=0.3)    # slow near the object
+            except TaskUnreachable as e:                            # the jaws are still open and empty: skip the item
+                return False, f"unreachable: {e.reason}"
             ctx.claw.grip(True)
             ctx.wait(tc.grip_settle_s)
             self._move(above, label=f"lift {item.id}", payload=tc.max_payload_kg, below_ok=True)
@@ -231,7 +358,7 @@ class TaskRunner:
             return False, f"not held after {tc.max_grip_attempts} attempts"
         on_state("TRANSPORT", item.id)
         here = self._here()
-        z_t = max(above[2], self.zf + tc.hamper_height_m + tc.release_clearance_m)
+        z_t = self._transport_z(above[2])
         self._move(np.array([here[0], here[1], z_t]), label="raise", payload=tc.max_payload_kg)
         self._move(np.array([hamper[0], hamper[1], z_t]), label="transport", payload=tc.max_payload_kg)
         on_state("RELEASE", item.id)

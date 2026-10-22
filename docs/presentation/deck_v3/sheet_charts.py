@@ -20,7 +20,7 @@ PDF = HERE / "sheet_export.pdf"
 OUT = HERE / "fig"
 DPI = 900
 TABS = {"Cable tension": "sheet_cable_tension", "Winch pull": "sheet_winch_pull", "Heat fin": "sheet_heat_fin",
-        "Motor case temperature": "sheet_motor_temperature", "Wiring": "sheet_wiring", "Bead homing": "sheet_bead_homing",
+        "Motor case temperature": "sheet_motor_temperature", "Motor temperature": "sheet_motor_temperature", "Wiring": "sheet_wiring", "Bead homing": "sheet_bead_homing",
         "Floor board": "sheet_floor_board", "Lift budget": "sheet_lift_budget"}
 
 
@@ -45,8 +45,8 @@ def main(PDF=PDF, OUT=OUT):
                             "-png", "-singlefile", str(PDF), str(OUT / name)], check=True, stderr=subprocess.DEVNULL)
             done.append(f"{name}.png {w}x{h}")
     print("\n".join(done))
-    if len(done) != len(TABS):
-        sys.exit(f"expected {len(TABS)} charts, cropped {len(done)}")
+    if len(done) != len(set(TABS.values())):
+        sys.exit(f"expected {len(set(TABS.values()))} charts, cropped {len(done)}")
 
 
 if __name__ == "__main__":

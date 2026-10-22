@@ -437,15 +437,17 @@ content("Camera Calibration Replaces Bead Homing", [
   "Bead homing fixes each cable's shortest length, so most of the room is out of reach",
   "Instead the claw camera reads a printed floor board, and a fit finds the anchors and cable lengths",
   "Camera pose per frame, best case: 6.6 mm with one tag in view, 0.7 mm with four",
-  "Simulated: cable lengths known to about 12–16 mm after the fit, well inside the 0.2 m and 0.4 m margins",
-  "The whole room opens only when the fit's error bars allow it",
+  "Simulated: cable lengths known to about 12–16 mm after the fit; the whole room opens only when the error bars allow it",
+  "Beads stay on the cables as end stops: a bead reaching its switch stops that station",
 ], (sl, x, y, w, h) => {
   figure(sl, { sheet: "bead_homing", tab: "Bead homing" }, x, y, w, h / 2 - 0.05);
   figure(sl, { sheet: "floor_board", tab: "Floor board" }, x, y + h / 2 + 0.05, w, h / 2 - 0.05);
 },
 "Top: why bead homing died; with home 1 m up, 5 % of the room is reachable, 2 m up, 29 %. Bottom: the floor board, per camera frame. " +
 "If asked why not home each cable at its own shortest length: that drags the claw into the high-tension zone next to an anchor. " +
-"The number that matters is the cable length after the fit, not the per-frame camera error; averaging tags removes noise but not bias. Simulated so far.",
+"The number that matters is the cable length after the fit, not the per-frame camera error; averaging tags removes noise but not bias. Simulated so far. " +
+"Beads now: the startup self-check requires every switch closed; until a bead is verified the planner keeps each cable a margin longer than its bead trip length; " +
+"a bead search one station at a time is optional, as a cross-check of the calibration.",
 { size: 16, space: 10 });
 
 content("Claw: Four Versions to a Parallel Grip", [

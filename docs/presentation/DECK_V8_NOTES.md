@@ -118,3 +118,19 @@ The main deck has no appendix: 20 slides, ending on "Takeaways and Next Steps". 
 | Operating Sequence (phone app screens) and Safe State and Failure Modes (table) | First System Test |
 | Calculations and Sources | Results Against Targets: link to the calculation sheet; the chart captions name the sources |
 | Acronyms | On file only (each acronym is written out on first use) |
+
+## Calculation sheet simplified (Oct 22, Jasper)
+
+The Google Sheet keeps every formula, input and chart in place; only text changed:
+- The "Read me" tab (colour key, tab index, change log) was deleted.
+- Each tab now opens with a short title and the governing equation on one line.
+- Labels carry their symbols ("Claw mass m_c", "Holding torque τ_h"); the "Source" column became a short "Note".
+- Results have a "Formula" column; chart-data headers are short, so the chart legends read "Static (N)", "0.019 in sheet", "PETG limit".
+- Lift budget row 19 now shows the CAD estimate with battery (0.86 kg) as a formula.
+
+Charts re-exported to `deck_v8/fig`; `deck_v3/sheet_charts.py` also accepts the new "Motor temperature" tab title.
+
+**Beads (Jasper asked):** the camera calibration does the homing; the beads stay on the cables as end-of-travel switches.
+The startup self-check needs every switch closed; until a bead is verified, the planner keeps each cable a margin longer than
+its bead trip length; a bead search is optional, as a cross-check (D24, D26; `roomcleaner/cdpr/startup.py`). The calibration
+slide now says so.

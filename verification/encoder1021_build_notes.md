@@ -277,3 +277,45 @@ Check, run in assembly coordinates against the original assembly STEP: the casin
 the eight foot bumps) and the cap touches only the spool (0.477 mm³: the three crush ribs); the peg ends 0.6 mm short of the
 motor shaft. These equal the corrected-frame values in `encoder1021_v2_verification.md`. Volumes unchanged by the round trip: PASS.
 SOLIDWORKS will report these intended press-fit overlaps in an interference check.
+
+## Magnet Ø4.0 (Jasper measured 10/22): new v2 caps, the Ø6 files are the superseded record (implementer, 2026-10-22)
+
+`ENC1021_MAGNET_D` is now **4.0** (was 6.0, the supplied-magnet assumption); thickness stays 2.5. No other `ENC1021_*` value changed. Everything that scales with the
+magnet is derived in `Cfg` from that one parameter, so no builder code changed.
+
+| item (v2 cap) | Ø6 record | Ø4.0 magnet | check |
+|---|---|---|---|
+| magnet pocket Ø (magnet + `ENC1021_V2_CAP_POCKET_CLEAR_D` 0.30) | 6.3 | **4.3** (r 2.15, probed at 0 / 120 / 240 deg) | measured 2.150 |
+| rib height from the pocket wall (0.15 clearance + 0.12 crush) | 0.27 | 0.27 | 0.27 |
+| rib tip radius (magnet r - 0.12 crush) | 2.88 | **1.88** | probed 1.88 at y 26.9, 27.5, 28.2, 29.0 |
+| rib angles (deg from +x toward +z) | 60 / 180 / 300 | 60 / 180 / 300, exactly 3, 120 deg apart | angular scan |
+| rib tip / base width | 0.45 / 0.9 | 0.45 / 0.9 (still >= 0.45: one 0.4 mm nozzle line; the 3 bases take 2.7 of the 13.5 mm pocket circumference) | tip half-width >= 0.222 at every probe |
+| pocket floor above the spool face | 0.75 | 0.75 (>= `ENC1021_CAP_FLOOR_MIN` 0.75), floor y 26.75, depth 2.55 | probed 26.75 |
+| magnet face (flush) | 29.3 | 29.3 (head 3.3 unchanged: pocket depth 2.55 + 0.75) | probed 29.300 |
+| head / notch | Ø14, 3 x 2 x 0.8 | unchanged | probed |
+| crush of the magnet by the ribs (cap ∩ magnet) | 0.403 mm3 | 0.403 mm3, 3 separate pieces | boolean |
+| print: the one overhang (pocket floor ceiling), bridge span | 6.3 | **4.3** (shorter bridge: easier) | `overhang_faces`: 1 face, print z 2.55 |
+| volume / mass (PETG) | 489.50 mm3 / 0.62 g | **531.94 mm3 / 0.68 g** (standard peg), 502.31 mm3 (peg 1.9) | build |
+
+New files (the Ø6 `encoder1021_magnet_cap*.step|stl`, `..._v2.*`, `..._v2_asm1021.step`, `..._rib020|rib025.*` and their renders are **superseded and untouched**; do not
+use them for the Ø4.0 magnet). Also do NOT run `python -m cad.parts.encoder1021 v2`: it would overwrite the Ø6 v2 files with Ø4.0 geometry under the same names.
+
+| file (`exports/step`, `exports/stl`) | peg | for |
+|---|---|---|
+| `encoder1021_magnet_cap_v2_m4.step`, `.stl` | standard 3.4, end y 22.6 | stations with the 1/8 in fin (shaft end y 20.825, 1.775 mm clear) |
+| `encoder1021_magnet_cap_v2_m4_peg1p9.step`, `.stl` | short 1.9 (`FIN1021_PROTO_CAP_PEG_LEN`), end y 24.1 | stations with the 0.019 in prototype fin (shaft end 23.517, 0.583 mm clear) |
+| `encoder1021_magnet_cap_v2_m4_asm1021.step`, `..._m4_peg1p9_asm1021.step` | same | the 10/21 assembly's own coordinates |
+
+STL orientation = the v2 cap (magnet face on the bed, peg up; bbox 14 x 14 x 6.7 and 14 x 14 x 5.2). Renders: `renders/encoder1021/encoder1021_magnet_cap_v2_m4[_peg1p9]_*.png`
+(7 standard views and the magnet-rib section). Built by `/usr/bin/python3 -m cad.parts.encoder1021 m4` (`V2_VARIANTS`, `build_v2_variant`, `export_v2_variant`; the master
+values are overridden only inside `params_override`).
+
+Assembly-frame copies: `tools/export_encoder1021_asm.py` now exports any stem (`... asm.py [stem ...]`; with no argument the two Ø4.0 caps). Contact check against
+`Assem_laundry_v3_step_1021.STEP` in assembly coordinates, PASS for both: the cap touches the **spool only** (crush ribs), volume 0.477 mm3 (standard peg) and 0.234 mm3 (peg 1.9,
+half the rib length; the expected value is computed on the station-frame file against the corrected reference spool, so it also proves the offset). Nothing touches the motor shaft, the
+slip-in, the shell or the heat fin. Note for the print: the short peg has half the rib engagement of the standard peg, so about half the press-fit retention.
+
+Tests that hard-coded the Ø6 numbers now read the parameters (`POCKET_D`, `MAG_R`, `POCKET_R2`, `RIB_TIP_R` in `tests/test_encoder1021.py` / `_v2.py`); the checks that compare a build with
+an export on disk build the cap at `RECORD_MAGNET_D = 6.0` (the files on disk are the Ø6 record). The independent verification tests (`test_encoder1021_verification.py`,
+`..._v2_verification.py`) read the Ø6 exports from disk, so their Ø6 numbers still describe those files and are unchanged. New: `tests/test_encoder1021_m4.py`,
+`tests/test_encoder1021_peg1p9.py`. The stack-up terms are unchanged (the pocket clearance per side is the same 0.10 / 0.15).

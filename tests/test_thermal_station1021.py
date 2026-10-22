@@ -281,13 +281,17 @@ def test_motor_block_is_the_block_without_the_shaft(stations):
 # ---------------------------------------------------------------------------------------------------------------------
 # fin split
 # ---------------------------------------------------------------------------------------------------------------------
-def test_shell_top_is_re_measured():
+def test_split_plane_is_the_roof_plate_top_at_the_slot():
+    """z = 31.16: the roof plate (z 27.84 .. 31.16) of the Shell_Casing at the fin slot, re-measured on the slot walls (F6 of verification/thermal_assembly_1p5a_check.md)."""
+    assert P.THERMAL_FIN_SPLIT_Z == 31.16
     z = T.measure_shell_top_z()
-    assert z == pytest.approx(P.THERMAL_FIN_SPLIT_Z, abs=P.THERMAL_FIN_SPLIT_TOL)                         # about 34.6
+    assert z == pytest.approx(P.THERMAL_FIN_SPLIT_Z, abs=P.THERMAL_FIN_SPLIT_TOL)
     slot = T.measure_shell_slot()
-    assert slot["z_lo"] < z and slot["z_hi"] < z                                                          # the slot walls are below the shell top
-    horn = H.reference_horn().BoundingBox()
-    assert (horn.ymax - horn.ymin) == pytest.approx(P.FIN1021_REF_T, abs=1e-3)                            # footprint of the reference fin
+    assert slot["z_lo"] == pytest.approx(27.84, abs=0.01) and slot["z_hi"] == pytest.approx(31.16, abs=0.01)    # roof plate 3.32 thick
+    assert slot["z_hi"] - slot["z_lo"] == pytest.approx(3.32, abs=0.01)
+    assert z == pytest.approx(slot["z_hi"], abs=1e-12)
+    # the funnel above the roof plate (z 33 .. 37) is outside air: the split is below it
+    assert z < 33.0
 
 
 @pytest.mark.parametrize("key", KEYS)
@@ -302,7 +306,7 @@ def test_fin_split_in_two_named_solids(stations, key):
     assert len([f for f in fi.Faces() if f.geomType() == "CYLINDER"]) >= 5 and not [f for f in fo.Faces() if f.geomType() == "CYLINDER"]
     assert fi.intersect(fo).Volume() < 1e-9
     height = P.THERMAL_FIN_SPLIT_Z - _bb(fin)[4]
-    assert height == pytest.approx(53.0, abs=0.1)                                                          # split height above the fin's bottom edge: 52.96 mm
+    assert height == pytest.approx(49.5, abs=0.1)                                                           # split height above the fin's bottom edge: 49.52 mm
 
 
 @pytest.mark.parametrize("key", KEYS)

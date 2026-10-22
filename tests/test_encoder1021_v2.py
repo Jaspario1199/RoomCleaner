@@ -133,7 +133,7 @@ def test_cap2_is_one_valid_solid_with_the_v1_envelope(cap2, cap1):
     assert _bb(cap2) == pytest.approx(_bb(cap1), abs=1e-6)                 # 14 x 6.7 x 14, y 22.6 .. 29.3
     v = cap2.Volume()
     print("cap v2 volume %.1f mm3, %.2f g" % (v, v * P.ENC1021_PETG_G_CM3 / 1000))
-    assert 480.0 < v < 560.0                                               # 531.9 for the Ø4.0 magnet (487 for the Ø6 record)
+    assert 480.0 < v < 560.0                                               # 531.9 for the Ø4.0 magnet (489.5 for the Ø6 record)
 
 
 def test_cap2_magnet_pocket_and_levels_unchanged(pc2):

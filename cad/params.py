@@ -752,9 +752,9 @@ THERMAL_TAB_HOLE_D = 3.5              # tab clearance holes, measured
 THERMAL_DECK_INSERT_OD, THERMAL_DECK_INSERT_LEN, THERMAL_DECK_INSERT_ID = 4.1, 5.7, 2.5    # pocket Ø4.1 x 7 deep (Ø3.4 x 3 below), sleeve flush with the deck face
 THERMAL_ENC_INSERT_OD, THERMAL_ENC_INSERT_LEN, THERMAL_ENC_INSERT_ID = 3.45, 4.0, 2.1      # divot holes Ø3.45 x 4 deep along x (M2.5)
 THERMAL_ENC_HOLE_PITCH = 9.5          # divot holes: 9.5 mm square about (y 45, z 0) in the encoder frame
-THERMAL_FIN_SPLIT_Z = 34.6            # station_1021 frame: shell top where the fin leaves the shell (re-measured by the builder, tolerance below)
+THERMAL_FIN_SPLIT_Z = 31.16           # station_1021 frame: the roof plate top at the fin slot (roof plate z 27.84 .. 31.16, Shell_Casing STEP; F6 of verification/thermal_assembly_1p5a_check.md);
+                                      # the funnel that rises around the slot above it (z 33 at 6 mm off the fin, 36 to 37 at 9 mm) is outside air.  Re-measured by the builder (tolerance below)
 THERMAL_FIN_SPLIT_TOL = 0.05
-THERMAL_FIN_SPLIT_MARGIN = 6.0        # the shell top is measured inside the Heat_horn x/y footprint widened by this
 THERMAL_OVERLAP_LIMIT_MM3 = 0.01      # no pair of bodies may overlap by more than this
 THERMAL_CONTACT_TOL_MM = 1.0e-4       # two faces closer than this, parallel / coaxial, count as touching
 THERMAL_NEAR_GAP_MM = 0.5              # non-touching pairs closer than this are listed as near gaps (screw shank to fin / tab hole wall, ...)

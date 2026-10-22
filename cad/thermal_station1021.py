@@ -14,7 +14,8 @@ Variants (cad/params.py THERMAL_VARIANTS):
                      connector); real M3 x 12 screws reach 3.825 mm into the front cap's Ø3.0 x 4.5 holes
 
 Bodies (names are the STEP component names):  motor_block | front_cap stator winding rear_cap shaft connector;  fin_in, fin_out (the fin split
-by the horizontal plane z = THERMAL_FIN_SPLIT_Z where it leaves the shell, so each side can carry its own convection zone);  slipin_mount;
+by the horizontal plane z = THERMAL_FIN_SPLIT_Z = 31.16, the roof plate top at the shell's fin slot, where it leaves the shell enclosure, so each side can
+carry its own convection zone);  slipin_mount;
 screw_1..4;  insert_deck (candidate: the Ø4.1 x 7 pocket in the deck under the spool);  insert_enc_1..4 (candidate: the four Ø3.45 x 4 divot holes).
 THERMAL_INSERTS selects which candidate inserts exist.  Which inserts Jasper means is NOT confirmed.
 
@@ -118,25 +119,25 @@ def motor_front_face_y(t_mm: float) -> float:
 
 
 @functools.lru_cache(maxsize=None)
-def measure_shell_top_z() -> float:
-    """z of the shell top where the fin leaves it: max z of shell material inside the Heat_horn's x / y footprint widened by THERMAL_FIN_SPLIT_MARGIN
-    (the reference 2.0 mm fin's footprint, so the answer does not depend on the thickness being built)."""
-    horn = H.reference_horn().BoundingBox()
-    m = P.THERMAL_FIN_SPLIT_MARGIN
-    probe = cq.Workplane("XY").box(horn.xlen + 2 * m, horn.ylen + 2 * m, 1000.0, centered=False).translate((horn.xmin - m, horn.ymin - m, -500.0)).val()
-    return reference("Shell_Casing").intersect(probe).BoundingBox().zmax
-
-
-@functools.lru_cache(maxsize=None)
 def measure_shell_slot() -> dict:
-    """The shell's fin slot: the two walls normal to y (station_1021 frame, residual included) and their z span."""
+    """The shell's fin slot: the two walls normal to y (station_1021 frame, residual included), their y positions and z span (the roof plate)."""
+    horn = H.reference_horn().BoundingBox()
     faces = [f for f in reference("Shell_Casing").Faces() if f.geomType() == "PLANE" and abs(f.normalAt().y) > 0.999
-             and f.BoundingBox().xmin < H.reference_horn().BoundingBox().xmax and f.BoundingBox().xmax > H.reference_horn().BoundingBox().xmin
+             and f.BoundingBox().xmin < horn.xmax and f.BoundingBox().xmax > horn.xmin
              and 20.0 < f.BoundingBox().zmin < 40.0 and -10.0 < f.BoundingBox().ymin < 10.0 and f.BoundingBox().zlen < 10.0]
     assert len(faces) == 2, f"expected the two slot walls, found {len(faces)}"
-    ys = sorted(f.BoundingBox().ymin for f in faces)
-    z_lo, z_hi = min(f.BoundingBox().zmin for f in faces), max(f.BoundingBox().zmax for f in faces)
-    return {"y_motor_side": ys[0], "y_spool_side": ys[1], "z_lo": z_lo, "z_hi": z_hi}
+    faces.sort(key=lambda f: f.BoundingBox().ymin)
+    z_hi = [f.BoundingBox().zmax for f in faces]
+    assert abs(z_hi[0] - z_hi[1]) < 1e-3, f"the two slot walls end at different heights: {z_hi}"
+    return {"y_motor_side": faces[0].BoundingBox().ymin, "y_spool_side": faces[1].BoundingBox().ymin,
+            "z_lo": min(f.BoundingBox().zmin for f in faces), "z_hi": z_hi[0]}
+
+
+def measure_shell_top_z() -> float:
+    """z of the roof plate top at the fin slot = where the fin leaves the shell enclosure: the top of the two slot walls of the Shell_Casing
+    (31.16 in the station_1021 frame; roof plate z 27.84 .. 31.16).  The funnel that rises around the slot above it (z 33 at 6 mm off the fin, 36 to 37
+    at 9 mm) is outside air and is NOT the split."""
+    return measure_shell_slot()["z_hi"]
 
 
 # =============================================================================================================================

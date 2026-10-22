@@ -333,8 +333,11 @@ outlets (`z <= 2.19 m`), the claw's own height above the floor (`z >= 0.59 m`, o
 
 ## 9. Pickup (added 10/22)
 
-**Status:** the task-layer changes are in (`verification/task_pumping_results.md`). Their **independent check is pending**:
-`verification/task_layer_verification.md`. Use this section only after it says PASS.
+**Status:** the task-layer changes passed their independent check **with conditions**, in simulation only
+(`verification/task_layer_verification.md`). The conditions are:
+1. `tasks.max_payload_kg` = the item's weight, and the hamper inside the calibrated area (below);
+2. a quiet laptop during the startup;
+3. you at the first deliveries with PAUSE ready. The real detector and claw timings are only measured on hardware.
 
 **What changed for a pickup:**
 - **Keep-alive.** The garment detector, move planning, the claw's camera fetch and the grip command run on a worker while the
@@ -381,4 +384,6 @@ Each miss is retried. After 3 failures in a row the task pauses for you.
 **Expect:**
 - Item positions from the camera are about 1 cm off in simulation (the item's own height), well inside the jaw opening.
 - Detection is untuned on real frames, so a missed item or a false "not held" is possible: it retries, then pauses.
+- If the release over the hamper is refused (the claw is not still, or tilted), the task **pauses over the hamper with the item
+  in the jaws**. Wait until it is still, then Resume and start the task again, or Lower.
 - PAUSE stops everything at once. Nobody reaches in while the claw descends or lifts.

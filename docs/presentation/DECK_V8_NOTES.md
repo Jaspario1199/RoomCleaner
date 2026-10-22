@@ -12,10 +12,10 @@ checked each factual claim against `DECISION_STORIES.md`, `FUNDAMENTALS.md`, `ve
 
 v1 to v7 are kept unchanged.
 
-**Slide count:** 21 main slides (v7 had 30), then an appendix of 9 slides behind a divider.
+**Slide count:** 20 main slides (v7 had 30), then an appendix of 9 slides behind a divider. "Where It Stands Today" was added from the critique and then removed at Jasper's request (Oct 22); its status line is in the Project Goal speaker notes.
 
 **Phases:** the phase is now plain text in the footer ("Phase 2 of 5: Generation 1") instead of five divider slides. The Gantt
-chart on slide 5 sets up the five phases.
+chart on slide 4 sets up the five phases.
 
 ## Numbers changed in the Sheet (Oct 22)
 
@@ -27,7 +27,7 @@ chart on slide 5 sets up the five phases.
 ## Critique items: applied
 
 **Status and story**
-- **Status upfront:** new slide 4, "Where It Stands Today": built, measured, open risks, this week's tests.
+- **Status upfront:** a "Where It Stands Today" slide was tried and removed at Jasper's request; the status is in the Project Goal speaker notes, and the open risks appear in their phases and in the results table.
 - **Five phase dividers and the Questions slide cut:** "Takeaways and Next Steps" stays up during questions.
 - **Slides merged:**
   - Gen 1 build with Gen 1 findings;
@@ -68,7 +68,7 @@ chart on slide 5 sets up the five phases.
 
 ## Authorship (to confirm)
 
-**Slide 5 now reads:**
+**Slide 4 now reads:**
 - "Mine: requirements, design decisions, the SolidWorks station and claw, printing, machining, wiring and bring-up"
 - "With Claude Code, under my direction: the control software, calculation scripts and CAD checks"
 
@@ -88,10 +88,14 @@ those also came through the Claude Code workflow (`verification/deck_factcheck.m
 
 ## Still to fill in
 
-- Number of stations built
-- Generation 1 test weight
-- Cost: the budget and the total
-- The calibration pass limit (suggested ≤ 20 mm, to confirm)
-- Test results
-- One EcoFil result number
-- How 1.5 A was reached, and the Vref reading
+The slides no longer carry red placeholders: the version sent on Oct 22 uses neutral wording ("a test weight", "Planned",
+"Not yet totaled"). Jasper fills these in on his own copy before Tuesday:
+
+- Generation 1 test weight (slide 8)
+- First-test results (slide 17; "Planned" today) and the calibration pass limit (≤ 20 mm proposed)
+- Cost: the budget and the total (slide 18)
+- One EcoFil result number (About Me notes)
+- How 1.5 A was reached, and the Vref reading (Winch Pull notes)
+- Number of stations built (Project Goal notes)
+
+Send the PDF to the recruiters: the PPTX speaker notes are a coaching track ("Pause and ask", "If asked") meant for Jasper only.

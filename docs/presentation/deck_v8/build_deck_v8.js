@@ -1,5 +1,5 @@
 // RoomCleaner interview deck v8 (Oct 22): v7 with the panel-chair critique applied (docs/presentation/deck_v7/CRITIQUE_EXEC.md).
-// Status upfront, numbers reconciled with the weighed claw (0.60 kg with battery), the finger-claw and gear stories corrected against
+// Numbers reconciled with the weighed claw (0.60 kg with battery), the finger-claw and gear stories corrected against
 // DECISION_STORIES.md, grip force and the safe state added, authorship stated, 21 main slides (phase dividers replaced by a phase
 // label in the footer). Figure on the left, short statements on the right, slim equation boxes; notes are a short talk track plus
 // "If asked" material. Content contract: docs/presentation/DECK_V8_NOTES.md.  v1-v7 are kept unchanged.
@@ -324,18 +324,9 @@ content("Project Goal", [
 ], (sl, x, y, w, h) => roomSketch(sl, x, y, w, h),
 "The problem in one picture: four anchors 0.15 m below the ceiling, one claw, a hamper. The shaded bands are the 0.2 m wall and 0.4 m ceiling margins the planner keeps. " +
 "If asked: 0.9 kg is a screening value for a pair of jeans, not weighed. The 2 m/s² is a 1.2 times dynamic allowance for stops and snags, not the motion " +
-"profile; top speed is 50 mm/s, so a diagonal move takes about a minute and a half.",
+"profile; top speed is 50 mm/s, so a diagonal move takes about a minute and a half. Where it stands: the stations, their electronics and the claw body are built; " +
+"the claw is weighed (0.60 kg with battery); most other numbers in this talk are calculated or simulated, and labeled; nothing has picked up a garment yet.",
 { size: 17, space: 12 });
-
-content("Where It Stands Today", [
-  "Built: [[how many]] wall stations, station electronics, the claw body and gear train",
-  "Measured: claw 0.60 kg with battery; most other numbers in this talk are calculated or simulated, and labeled",
-  "Open risks: lift margin rests on an unmeasured torque, jeans grip is short at narrow grabs, the prototype fin has 1–4 K of thermal margin",
-  "This week: pull test, 90-minute hold test, three-station test",
-], { file: [PH("04_gen2_station_shells.jpg"), PH("16_heat_fin_on_motor_straight.jpg")], alt: "Built hardware", caption: "Built: station shells, and the prototype fin on its motor" },
-"Bottom line first. Nothing has picked up a garment yet; the software runs end to end in simulation. I will come back to each open risk in the phase where it came from.",
-{ size: 17, space: 12 });
-
 {
   const sl = blank("Timeline and Scope");
   const gy = gantt(sl, [
@@ -410,7 +401,7 @@ content("Cable Tension Sets the Ceiling Margin", [
 // ================================================================================================ PHASE 2: GENERATION 1
 section("Generation 1"); PHASE = "Phase 2 of 5: Generation 1";
 content("Generation 1: Bench Build and Findings", [
-  "A bench station lifted [[weight]]; the cable math held",
+  "A bench station lifted a test weight; the cable math held",
   "Bead homing would leave only 5–29 % of the room reachable, caught on paper before it was built",
   "One central board would need 10 wires to every corner once each winch had sensors",
   "Finger claw: designed in CAD (419 g of a 450 g budget), never built",
@@ -530,13 +521,14 @@ content("First System Test", [
   "Self-check, calibration, short move, then pickup",
   "1 lb first, then one garment; pass limits set before the run",
 ], (sl, x, y, w, h) => {
-  placeholderBox(sl, "[[Photo or video from the three-station test]]", x, y, w, 2.5);
+  fitImage(sl, PH("04_gen2_station_shells.jpg"), x, y, w, 2.5, "Stations being built for the test");
+  caption(sl, "Stations being built for the test", x, y + 2.53, w);
   table(sl, ["Check", "Pass limit", "Result"], [
-    ["Self-check", "All stations answer; slack taken up", "[[]]"],
-    ["Calibration", "Held-out poses: cable residual ≤ [[20 mm?]]", "[[]]"],
-    ["Short move, 1 lb", "300 mm at 50 mm/s; cable mismatch ≤ 2 mm", "[[]]"],
-    ["Pickup", "One garment into the hamper", "[[]]"],
-  ], x, y + 2.7, w, [0.25, 0.57, 0.18], { size: 13, rowH: 0.48, name: "pass limits" });
+    ["Self-check", "All stations answer; slack taken up", "Planned"],
+    ["Calibration", "Held-out poses: cable residual ≤ 20 mm", "Planned"],
+    ["Short move, 1 lb", "300 mm at 50 mm/s; cable mismatch ≤ 2 mm", "Planned"],
+    ["Pickup", "One garment into the hamper", "Planned"],
+  ], x, y + 2.95, w, [0.25, 0.57, 0.18], { size: 13, rowH: 0.46, name: "pass limits" });
 }, "Pause and ask: which pass limit would you tighten? If the test has not run by Monday, show the rig as built and the dated plan, not empty cells. " +
 "Logged: cable lengths, encoder counts, motor temperatures, the fit's error bars.",
 { size: 17, space: 12 });
@@ -555,7 +547,7 @@ section("Results and Takeaways"); PHASE = "";
     ["Wiring", "One cable per station", "One 12 V pair; 0.51 V drop", "Built", "Met"],
     ["Accuracy", "≤ 2 mm cable mismatch", "40 ms skew budget gives 2 mm", "Not measured", "To be tested"],
     ["Speed", "50 mm/s", "Not yet run", "None", "To be tested"],
-    ["Cost", "[[budget]]", "[[total]]", "Receipts", "[[]]"],
+    ["Cost", "Hobby budget", "Not yet totaled", "Receipts", "Open"],
   ], M, 1.3, W - 2 * M, [0.17, 0.2, 0.3, 0.13, 0.2], { size: 14, rowH: 0.55 });
   sl.addNotes("Back to the targets, with the evidence for each. Two are not met: grip for jeans at narrow grabs and claw mass. Two are marginal and this week's tests decide them: " +
               "lift capacity and the prototype fin's temperature. Only the claw mass is measured so far.");

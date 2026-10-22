@@ -20,7 +20,7 @@ const OUT = path.join(__dirname, PART === "main" ? "RoomCleaner_Buntinx_Oct27_v8
 const FIGDIR = path.join(__dirname, "..", "deck_v3", "fig");
 const SHEETFIG = path.join(__dirname, "fig");      // Sheet charts with the weighed claw (0.60 kg with battery) in Cable tension and Lift budget, Oct 22
 const { size: imgSize } = require("../deck_v2/img_size.js");
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/1UGFnkL1v305WnDYj5aj5zBtgxnxmGP7_TVRN0afZTGs/edit";
+// No links to the calculation Sheet in either deck: the audience cannot open it (Jasper, 10/22).
 
 const THEME = {
   name: "RoomCleaner v7", headFontFace: "Arial", bodyFontFace: "Arial",
@@ -654,8 +654,6 @@ section("Results and Takeaways"); PHASE = "";
     ["Speed", "50 mm/s", "Not yet run", "None", "To be tested"],
     ["Cost", "Hobby budget", "Not yet totaled", "Receipts", "Open"],
   ], M, 1.3, W - 2 * M, [0.17, 0.2, 0.3, 0.13, 0.2], { size: 14, rowH: 0.45 });
-  sl.addText([{ text: "Calculations: RoomCleaner engineering calculations (Google Sheets)", options: { hyperlink: { url: SHEET_URL, tooltip: "Open the calculation sheet" } } }],
-             { x: M, y: 6.5, w: 8, h: 0.32, fontSize: 13, color: HEX.navy, fontFace: "Arial", margin: 0, isTextBox: true, objectName: "sheet link" });
   sl.addNotes("Back to the targets, with the evidence for each. Three are not met: grip for jeans at narrow grabs, claw mass, and the weakest link (two cheap fixes). Two are marginal and this week's tests decide them: " +
               "lift capacity and the prototype fin's temperature. Only the claw mass is measured so far.");
 }
@@ -819,8 +817,6 @@ content("Claw Electrical", [
     "Incropera et al., Fundamentals of Heat and Mass Transfer, ch. 3",
     "Allegro MicroSystems, A4988 datasheet",
   ], { sheet: "cable_tension", tab: "Cable tension" }, "");
-  sl.addText([{ text: "RoomCleaner engineering calculations (Google Sheets)", options: { hyperlink: { url: SHEET_URL, tooltip: "Open the calculation sheet" } } }],
-             { x: 8.05, y: 4.6, w: 4.7, h: 0.4, fontSize: 15, color: HEX.navy, fontFace: "Arial", margin: 0, isTextBox: true, objectName: "sheet link" });
 }
 
 }

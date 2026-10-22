@@ -156,3 +156,6 @@ The manufacturing slide shows shaded snapshots of Jasper's parts (`deck_v8/make_
 dimensions) instead of the drawn detail figure (`make_mfg_figure.py`, kept on file). Takeaways gain "size every part to a load
 number"; next steps gain the lighter redesign (`docs/decisions/WEIGHT_REDESIGN_PROPOSAL_20261022.md`) and continuous testing;
 Poor decisions gain "parts built far stronger than any load needed". Main deck: 21 slides.
+
+**Links removed (Oct 22, Jasper):** the audience cannot open the calculation Sheet, so the links on Results Against Targets and on the
+appendix's Calculations and Sources slide are gone. Chart captions still name the Sheet tab as the source.

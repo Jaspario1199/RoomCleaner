@@ -134,3 +134,17 @@ Charts re-exported to `deck_v8/fig`; `deck_v3/sheet_charts.py` also accepts the 
 The startup self-check needs every switch closed; until a bead is verified, the planner keeps each cable a margin longer than
 its bead trip length; a bead search is optional, as a cross-check (D24, D26; `roomcleaner/cdpr/startup.py`). The calibration
 slide now says so.
+
+## Weakest link and manufacturing slides (Oct 22, Jasper)
+
+**Which Part Gives First** (Phase 4, after Winch Pull): the Sheet's "Weakest link" chart, five statements and the fuse
+equation. Numbers come from `calculations/lift_chain_weakest_link.json`, so a corrected calculation flows into the slide on the
+next build. Final Wall Station now gives the full load path and points to it; Results Against Targets gains a "Weakest link"
+row; next steps gain the two fixes.
+
+**Manufacturing: Fits and Datums** (Phase 5, after Build): a four-panel detail figure cut from Jasper's STEP files (gear
+bearing pocket and its T-slotted entry lip, the slide-in dovetail with its gaps, the fin's mill datums) and a fits table.
+To confirm before Tuesday: which spool bore is printed (Ø5.30 in the 10/21 CAD, Ø5.45 in v3), which holes get heat-set
+inserts, and the insert part number.
+
+Main deck: 22 slides.

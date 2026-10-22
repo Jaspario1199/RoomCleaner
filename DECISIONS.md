@@ -366,3 +366,18 @@ the CAD for a 1/8 in fin and then note that only prototype is using .019 in. For
     `encoder1021_magnet_cap_v2_peg1p9`).
 - **Simulation:** the ANSYS study with the motor screws and the heat-set inserts is
   `docs/simulation/ANSYS_THERMAL_MOTOR_SCREWS.md` (Study D). The insert locations are still to be confirmed by Jasper.
+
+D39. **The motor's holding torque is the lifting chain's fuse** (Jasper, 10/22: "the goal is to make the torque of the motor
+the smallest force that gives first, so slipping of motors happens before damage to the system, which the encoder can then pick
+up and report an overload").
+- **Rule (lead, proposed numbers):** every other part from the claw to the stud must give at no less than 1.5 times the most
+  the motor can pull before it skips: 59.4 N at the cable (0.36 N·m at 1.5 A × 40/36 motor sensitivity, empty 7.5 mm core,
+  fully fleeted cable). Torque links (the spool on the shaft) are rated against the motor's 0.40 N·m. Printed PETG near the
+  motor is rated warm (× 0.85 with the 1/8 in fin).
+- **Detection:** the AS5600 is on the spool, so a motor skip and a spool slipping on the shaft both raise the station's
+  TRACKING fault. One skip is 82 counts; the hardware tolerance must be set below that (60 proposed).
+- **Result as drawn** (`calculations/lift_chain_weakest_link.md`, independently checked): the set screw in its printed thread
+  may slip first, and the 5 mm tab's sharp back corner is 1.17 times the motor. Everything else passes.
+- **Proposed changes, not yet approved:** spool set screw into metal plus a bench pull test; a 6 mm tab with fillets on both
+  roots; wall screws into the stud only; 3 dead wraps; hardware tracking tolerance 60 counts; the host reports a payout-side
+  tracking fault as an overload.

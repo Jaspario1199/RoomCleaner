@@ -564,3 +564,24 @@ slack_probe default (keep false until probe H1/M2 are closed).
   margin row 18; the jeans bar is no longer red); deck v7 updated ("Weight Budget", results table, decisions, next steps).
 - The 4 % margin rests on the assumed 0.7 running/holding torque ratio: the luggage-scale pull test confirms it. If it falls
   short, a 2:1 gear stage at each winch restores the margin and allows about 1 A (half the motor heat).
+
+## Weakest link of the lifting chain and the manufacturing slide (10/22, lead)
+- Jasper asked for the weakest link of each station's lifting chain, with the motor torque as the part that gives first (D39).
+  Calculation: `calculations/lift_chain_weakest_link.py` and `.md` (stud research: NDS withdrawal W = 2850 G² D L; drywall
+  ratings). Independent check: `verification/lift_chain_weakest_link_check.md`; arithmetic agreed, findings F1 to F9 applied.
+- Result at 1.5 A (cable tension at which each part gives; fuse 34 to 59 N): set screw in the printed thread 22 to 64 N
+  (**may give first**); short insert or nut 53 to 118 N (marginal, test); tab as drawn 70 N warm (1.17 ×); 6 mm tab with fillets
+  125 N (2.11 ×); shaft 149 N; knot 267 N; wall screws in a stud 531 N; drywall only 46 N (gives first).
+- Proposed, Jasper to approve: set screw into metal and pull-test the joint (paint mark shows motor skip vs spool slip); 6 mm
+  tab with fillets on both roots (7 mm for the static manual's SF 3, then M3 × 14); screws into the stud only; 3 dead wraps;
+  hardware `faults.tracking_tol_counts` 60.
+- Open facts: which spool is printed (10/21 CAD bore Ø5.30, v3 Ø5.45); how 1.5 A was reached (the whole table scales with I).
+- Calculation Sheet: new tab "Weakest link" (formulas for the fuse, NDS withdrawal and knot; chart of the ranking).
+- Deck v8: new slides "Which Part Gives First" (Phase 4) and "Manufacturing: Fits and Datums" (Phase 5, figure cut from
+  Jasper's STEP files by `docs/presentation/deck_v8/make_mfg_figure.py`); Final Wall Station load path, results row and next
+  steps updated. 22 main slides.
+- Manufacturing facts measured from Jasper's parts: gear bearing pockets Ø14.075 behind a Ø14.000 × 1.95 mm entry lip cut by
+  8 T-slots (0.4 mm gap backed by a 0.5 mm slot), 687 bearings on printed Ø7.000 pins into Ø7.05 sockets; slide-in 0.175 mm
+  per side, 30° dovetail flanks 0.14 to 0.21 mm; insert holes M3 Ø4.1 × 7 (slide-in), Ø4.0 × 5 (gear housing), M2.5 Ø3.45 × 4
+  (encoder divot); wall screw holes Ø3.97 with Ø7.94 counterbores; fin datums A (bottom edge) and B (long side), 5 holes in
+  one setup ±0.1.

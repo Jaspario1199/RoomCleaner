@@ -497,20 +497,24 @@ content("Winch Pull at 1.5 A", [
   // Numbers from calculations/lift_chain_weakest_link.py (its JSON); the chart is the Sheet's "Weakest link" tab.
   const WL = require(P("calculations", "lift_chain_weakest_link.json"));
   const n0 = v => String(Math.round(v));
-  const worstDrywall = Math.min(...Object.values(WL.wall.per_case).map(c => c.f_bare_drywall));
+  const drywall = WL.drywall.lower;
+  const rk = name => WL.ranking.find(r => r.link.startsWith(name));
+  const tabNow = rk("Motor tab, 5 mm, sharp"), tab6 = rk("Motor tab, 6 mm");
   content("Which Part Gives First", [
     `Goal: the motor slips before any part breaks. It slips at ${n0(WL.fuse.slip_low)}–${n0(WL.fuse.upper)} N of cable pull; jeans need ${n0(WL.jeans_peak)} N`,
     `A slip of ${WL.detection.tol_line_mm.toFixed(1)} mm of cable trips the spool encoder; the station stops and reports an overload`,
-    "As drawn, two parts give near or below the motor: the set screw in printed plastic and the tab's sharp corner",
-    "Fixes: a brass insert for the set screw, a 2 mm fillet on the tab; then every part is at least 1.5 times the motor",
-    `Studs only: one #6 screw holds ${n0(WL.wall.withdrawal_6_spf.design)} N (code design value); in drywall the mount lets go at ${n0(worstDrywall)} N`,
+    `As drawn, the spool's set screw in printed plastic may slip first, and the warm tab's sharp corner gives at ${n0(tabNow.lower)} N, ${tabNow.ratio.toFixed(1)} times the motor`,
+    `Fixes: a 6 mm tab with fillets on both roots (${tab6.ratio.toFixed(1)} times); the set screw into metal, and the pull test decides it`,
+    `Studs only: one #6 screw holds ${n0(WL.wall.withdrawal_6_spf.design)} N (code design value); in drywall the mount lets go at ${n0(drywall)} N`,
   ], { sheet: "weakest_link", tab: "Weakest link" },
   "The question for every part between the cable and the stud: does it outlast the motor? The motor is the fuse: above its holding torque it skips, " +
   "the spool's encoder sees the spool fall behind the command, and the station stops. That only works if everything else is stronger. " +
-  "As drawn, two parts are not: the set screw that holds the spool on the shaft is threaded into printed plastic, so it can slip first, and the motor tab's " +
-  "sharp back corner is about level with the motor. Both fixes are cheap. If asked: wood-screw withdrawal from the NDS, W = 2850 G² D per inch of thread, " +
-  "G 0.42 for spruce-pine-fir; the average test failure is about 5.5 times that. The pull test settles the set screw: paint a line across the shaft and the spool; " +
-  "if it breaks, the spool slipped. If a 2:1 gear stage is added, the motor's pull doubles and this ranking has to be redone.",
+  "As drawn, two parts are too close: the set screw that holds the spool on the shaft is threaded into printed plastic, so it may slip first, and the motor tab " +
+  "runs warm next to the motor, so its sharp back corner gives at about 1.2 times the motor. A 6 mm tab with fillets fixes the tab. The set screw goes into metal " +
+  "(a short insert or a captive nut: a standard 5.7 mm insert does not fit the 5.35 mm hub wall), and the pull test settles it: paint a line across the shaft " +
+  "and the spool; if it breaks, the spool slipped. If asked: wood-screw withdrawal from the NDS, W = 2850 G² D per inch of thread, G 0.42 for spruce-pine-fir; " +
+  "the average test failure is about 5.5 times that. If a 2:1 gear stage is added, the motor's pull doubles and this ranking has to be redone. " +
+  "Independent check: verification/lift_chain_weakest_link_check.md.",
   { size: 15, space: 8, eq: { title: "Motor slip force (the fuse)", lines: [
     "F = τ_h / r = 0.36 N·m / 0.0075 m = **48 N**",
     "F_{max} = 48 N × 1.11 (motor) × 1.11 (cable angle) = **59 N**",
@@ -571,6 +575,35 @@ content("Build: Printing, Machining, Bring-Up", [
 { size: 17, space: 12 });
 
 {
+  // Every number is measured from Jasper's STEP files (cad/reference/gripper_1021, cad/reference/station_1021) or his fin drawing
+  // (cad/parts/heat_fin1021.py); figure: docs/presentation/deck_v8/make_mfg_figure.py.
+  const sl = blank("Manufacturing: Fits and Datums");
+  const fx = M, fw = 6.2, bx = fx + fw + 0.3, bw = W - M - bx;
+  fitImage(sl, path.join(__dirname, "fig", "mfg_details.png"), fx, 1.2, fw, 5.25, "Fit details from the CAD: gear bearing pocket, entry lip, slide-in dovetail, fin datums", { alignTop: true });
+  caption(sl, "From my SolidWorks parts: claw gear, wall station, heat fin (mm)", fx, 6.5, fw);
+  table(sl, ["Feature", "As drawn", "Fit"], [
+    ["Gear bearings (687)", "Ø14.075 pocket behind a Ø14.000 lip, 1.95 long, 8 T-slots", "Snaps past the lip, +0.075 behind it"],
+    ["Gear pins", "Printed Ø7.000 pin into a Ø7.05 socket", "Line-to-line in the bearing; +0.05"],
+    ["Slide-in mount", "0.175 per side; 30° dovetail flanks", "Slip fit, 0.14–0.21 on the flanks"],
+    ["Spool on Ø5 D-shaft", "Ø5.30 bore (10/21), Ø5.45 in v3; 0.5 mm flat", "+0.30 to +0.45: Ø5.2 printed too tight"],
+    ["Heat-set inserts", "M3: Ø4.1 × 7 deck, Ø4.0 × 5 gear housing; M2.5: Ø3.45 × 4", "Melt-in; hole deeper than the insert"],
+    ["Screw clearance", "M3 Ø3.5 printed, Ø3.4 drilled; wall Ø3.97 (5/32 in)", "+0.5 printed, +0.4 drilled"],
+    ["Motor pilot, Ø22 boss", "Ø22.4 printed tab, Ø22.5 drilled fin", "+0.4 / +0.5"],
+    ["Fin datums", "A bottom edge, B long side; 5 holes in one setup", "±0.1 hole to hole, ±0.5 outline"],
+  ], bx, 1.25, bw, [0.25, 0.44, 0.31], { size: 10.5, rowH: 0.5, name: "fits" });
+  bullets(sl, [
+    "Printed holes come out small, so every printed fit carries an allowance; the drilled fin needs none",
+    "PETG on a Creality K1, 0.4 mm nozzle, 0.2 mm layers; loads along the layers, mating faces off supports",
+  ], bx, 5.85, bw, 0.95, 12, { space: 4, name: "printing rules" });
+  sl.addNotes("This is what I designed into the parts so they assemble without filing. The gear pockets are the one I am proudest of: the bearing presses past a lip, " +
+              "the T-slots let the lip ends flex, and it then sits free in a pocket 0.075 mm larger, so the lip holds it in without squeezing the race. " +
+              "The slide-in runs on 0.175 mm a side, enough to lift out by hand after printing shrinkage. The fin is the one metal part: both datums are " +
+              "sheared edges, and all five holes go in one setup, so hole-to-hole errors do not stack and it bolts on without reaming. " +
+              "If asked: the spool bore taught me the allowance (Ø5.2 would not go on a 5 mm shaft; v3 opened it to Ø5.45 and the 10/21 CAD has Ø5.30; the set screw " +
+              "carries the torque). [Confirm which spool bore is printed, which holes get heat-set inserts, and the insert part number.]");
+}
+
+{
   const sl = blank("First System Test");
   const fx = M, fw = 6.9, bx = fx + fw + 0.4, bw = W - M - bx;
   figure(sl, { file: [P("docs/app_screenshots/01_home.png"), P("docs/app_screenshots/02_camera.png"), P("docs/app_screenshots/04_chat.png")],
@@ -610,7 +643,7 @@ section("Results and Takeaways"); PHASE = "";
     ["Grip for jeans", "17.7 N per jaw", "13.3–25 N", "Calculated", RED("Short at narrow grabs")],
     ["Claw mass", "0.45 kg", "0.60 kg with battery", "Weighed", RED("Not met")],
     ["Motor temperature", "Below 60 °C", "56–59 °C prototype fin", "Calculated", "Marginal; hold test"],
-    ["Weakest link", "Motor slips first", "Set screw and tab corner give first", "Calculated", RED("Two fixes")],
+    ["Weakest link", "Motor slips first", "Set screw may slip first; tab at 1.2 ×", "Calculated", RED("Two fixes")],
     ["Working area", "Floor, 0.2 m wall margin", "All but 0.2 m at the walls", "Calculated", "Met in design"],
     ["Wiring", "One cable per station", "One 12 V pair; 0.51 V drop", "Built", "Met"],
     ["Accuracy", "≤ 2 mm cable mismatch", "40 ms skew budget gives 2 mm", "Not measured", "To be tested"],
@@ -654,7 +687,7 @@ content("Takeaways and Next Steps", [
   "Next steps",
   "- Pull test, then enter the measured limit in the planner",
   "- Hold test at 1.5 A, three-station test, grip pads",
-  "- Brass insert for the spool set screw, 2 mm fillet on the motor tab",
+  "- Spool set screw into metal; 6 mm motor tab with fillets on both roots",
   "- A brake or non-backdrivable stage, so a power loss cannot drop the claw",
 ], (sl, x, y, w, h) => scheduleBars(sl, x, y + 1.3, w,
     [["Plan", 7, HEX.pale], ["One station", 14, HEX.navy2], ["Copy", 7, HEX.pale], ["Clamp", 14, HEX.navy2], ["Test", 7, HEX.navy]],

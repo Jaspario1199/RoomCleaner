@@ -16,15 +16,22 @@ station's TRACKING fault (encoder on the spool vs commanded steps) stops it. Eve
 tension than the HIGHEST force the motor can put on the line before it skips.
 
     fuse_upper = hold(1.5 A) x 40/36 (motor sensitivity) / r_empty / cos(fleet limit)      (the most the motor can pull)
-    ratio      = link_lower / fuse_upper
-    PASS >= 1.5   MARGINAL 1.0 to 1.5   GIVES FIRST < 1.0
+    ratio      = link_lower / fuse_upper                (torque links: joint torque / the motor's 0.40 N.m)
+    PASS >= 1.5   MARGINAL 1.0 to 1.5   GIVES FIRST < 1.0 ; a range that straddles 1.0 is "MAY GIVE FIRST"
 
 1.5 covers the rotor-inertia and cogging overshoot while the motor skips, and scatter in printed parts. The structural
 allowable of the static-study manual (SF >= 3 on 25 MPa derated PETG at the slip load) stays the design criterion for the
 printed station; this script asks a different question: the ORDER in which things give.
 
-Tags: [REPO] recorded in the repo (file named), [SRC] published reference (listed in the .md), [ASSUMED] engineering
-assumption to be replaced by a measurement, [CALC] derived here. Units: N, mm, MPa, N.m unless stated.
+Printed-PETG links are rated warm: the PETG next to the motor runs at about the motor temperature (thermal check 10/22).
+Design (1/8 in fin, 45 to 49 C): x0.85 [ASSUMED]; prototype (0.019 in fin, 56 to 59 C): x0.70 (simulation_loads.HOT_DERATE).
+
+Corrected 10/22 after the independent check (verification/lift_chain_weakest_link_check.md, F1 to F9): tab faces paired
+with their own root detail and a direction scan; warm-PETG derate; insert fit and pull-out; spool bore from cad/params.py
+(the 10/21 reference); fin offset in the shaft and motor-screw levers; torque links shown as unfleeted cable tension.
+
+Tags: [REPO] recorded in the repo (file named), [USER] stated by Jasper, unverified, [SRC] published reference (listed in the
+.md), [ASSUMED] engineering assumption to be replaced by a measurement. Units: N, mm, MPa, N.m unless stated.
 
     PYTHONPATH=. /usr/bin/python3 -m calculations.lift_chain_weakest_link
 Writes calculations/lift_chain_weakest_link.json (read by the deck build).
@@ -37,6 +44,7 @@ from pathlib import Path
 
 import numpy as np
 
+from cad import params as P
 from calculations import simulation_loads as S
 
 OUT_JSON = Path(__file__).with_suffix(".json")
@@ -47,15 +55,17 @@ INCH = 25.4             # mm per inch
 # ===========================================================================
 # 0. BASIS
 # ===========================================================================
-I_SET = 1.5                                  # A [REPO D37]
+I_SET = 1.5                                  # A [REPO D37; how 1.5 A was reached is not recorded: every load scales with I]
 T15 = S.tension_cases(I_SET)                 # hold 0.36 N.m, slip 48.0 N, run 33.6 / 25.2 N  [REPO simulation_loads.py]
 HOLD = T15["hold"]                           # N.m, 36 N.cm at the rated 1.5 A [REPO SHOPPING_LIST, R10]
-MOTOR_SENS = S.HOLD_40 / S.HOLD_36           # x1.111: a 40 N.cm motor (17HS4401 nameplate, unverified) [REPO]
+MOTOR_SENS = S.HOLD_40 / S.HOLD_36           # x1.111: a 40 N.cm motor [USER: 17HS4401 nameplate, unverified]
 VECTOR_LOW = 1.0 / math.sqrt(2.0)            # x0.707: A4988 current vector at a full step (manual section 0, item 1)
 FLEET_DEG = S.fleet_limit_deg()              # 26.1 deg: largest fleet angle before the line scrubs a flange [REPO]
 FLEET_K = 1.0 / math.cos(math.radians(FLEET_DEG))
 DESIGN_FORCE = T15["work_margin"]            # 16.8 N: running pull at a full spool / 1.5 skip margin [REPO D37]
 JEANS_PEAK = 1.50 * 1.101 * G                # N: claw 0.60 + jeans 0.90 kg, worst tension per weight 1.101 (+2 m/s2) [REPO Lift budget]
+FIN_T = P.FIN1021_T_PRODUCTION_MM            # 3.175 mm: the motor sits this far behind the tab's back face (D38)
+WARM = dict(design=0.85, prototype=S.HOT_DERATE)   # PETG strength factor near the motor [ASSUMED / REPO]
 
 FUSE = dict(
     hold_nm=HOLD,
@@ -64,44 +74,49 @@ FUSE = dict(
     run_empty=T15["work_core"],              # 33.6 N: skips at this pull while moving
     run_full=T15["work"],                    # 25.2 N
     slip_low=T15["slip"] * VECTOR_LOW,       # 33.9 N: if the true torque vector is 1/sqrt(2) of the datasheet figure
-    slip_fleet=T15["slip"] * FLEET_K,        # 53.5 N: along a fully fleeted line (only the in-plane share turns the drum)
+    slip_fleet=T15["slip"] * FLEET_K,        # 53.4 N: along a fully fleeted line (only the in-plane share turns the drum)
     upper=T15["slip"] * MOTOR_SENS * FLEET_K,  # 59.4 N: 40 N.cm motor AND fully fleeted line
     upper_hold_nm=HOLD * MOTOR_SENS,         # 0.40 N.m: most torque the motor can put through the spool joint
 )
 PASS_RATIO = 1.5
 
 
-def verdict(ratio: float) -> str:
-    return "PASS" if ratio >= PASS_RATIO else ("MARGINAL" if ratio >= 1.0 else "GIVES FIRST")
+def verdict(lo: float, hi: float | None = None) -> str:
+    if hi is not None and lo < 1.0 <= hi:
+        return "MAY GIVE FIRST"
+    return "PASS" if lo >= PASS_RATIO else ("MARGINAL" if lo >= 1.0 else "GIVES FIRST")
 
 
 # ===========================================================================
-# 1. LINE AND KNOTS
+# 1. LINE, KNOTS AND TIE-OFFS
 # ===========================================================================
-LINE_RATED_LBF = 120.0          # 9KM DWLIFE X8 braided Dyneema, 120 lb [REPO docs/SHOPPING_LIST.md]
+LINE_RATED_LBF = 120.0          # 9KM DWLIFE X8 braided Dyneema, 120 lb [REPO docs/SHOPPING_LIST.md]; diameter to measure
 KNOT_EFF = (0.50, 0.90)         # braid knot strength / line strength: 50 % (clinch-type knots in braid) to 90 % (Palomar) [SRC]
 MU_LINE_PETG = (0.05, 0.10)     # UHMWPE on PETG [ASSUMED], for the dead wraps at the spool
 DEAD_WRAPS = 3                  # wraps never paid out (proposed rule)
+CLAW_EYE = dict(d=2.0, wall=5.0, edge=8.0)   # claw housing cable hole Ø2 through a 5 mm wall [REPO CAMBAY1021_CORNER_HOLE_D]; edge [ASSUMED]
 
 
 def line_links() -> dict:
     rated = LINE_RATED_LBF * LBF
     knot = [rated * e for e in KNOT_EFF]
-    # Capstan: with n dead wraps the spool tie-off sees T exp(-mu 2 pi n); the knot at the claw sees the full T.
     capstan = [math.exp(-mu * 2 * math.pi * DEAD_WRAPS) for mu in MU_LINE_PETG]
+    # Claw eye: knot behind a washer, two shear planes from the hole to the edge [hand bound, geometry to confirm].
+    eye = 2 * (CLAW_EYE["edge"] - CLAW_EYE["d"] / 2) * CLAW_EYE["wall"] * PETG_SHEAR[0]
     return dict(rated=rated, knot_lower=knot[0], knot_upper=knot[1],
-                tieoff_share_with_wraps=(min(capstan), max(capstan)))
+                tieoff_share_with_wraps=(min(capstan), max(capstan)), claw_eye=eye)
 
 
 # ===========================================================================
 # 2. SPOOL TO SHAFT: SET SCREW ON THE D-FLAT
 # ===========================================================================
-# Geometry [REPO verification/design_review_gen2.md R4, Spoolv3]: bore 5.45 with a 0.50 mm flat (4.95 across the flat),
-# radial M3 set screw (2.8 hole) on the flat's axis, hub (core) 15 mm.  Shaft 5.0 with a 0.50 mm flat (4.50 across).
-SHAFT_D = 5.0
-SHAFT_FLAT_DEPTH = 0.5
-BORE_D = 5.45
-BORE_FLAT_DEPTH = 0.5
+# Shaft [REPO cad/params.py]: Ø5.0 with a 0.5 mm flat.  Spool: the 10/21 reference spool in cad/params.py (bore 5.30, flat at
+# 2.15 mm from the axis); the v3 Spoolv3 (10/18) had 5.45 / 2.225 [REPO review R4].  Radial M3 set screw on the flat's axis, hub Ø15.
+SHAFT_D = P.MOTOR_SHAFT_DIA
+SHAFT_FLAT_DEPTH = P.MOTOR_SHAFT_FLAT
+BORE_D = P.ENC1021_BORE_D                       # 5.30
+BORE_FLAT_DEPTH = BORE_D / 2 - P.ENC1021_BORE_FLAT_X   # 0.50
+BORE_V3 = (5.45, 0.50)
 HUB_R = 7.5
 MU_TIP = 0.20                   # steel cup point on the steel flat, dry [ASSUMED]
 MU_BORE = 0.25                  # steel shaft on the PETG bore [ASSUMED]
@@ -110,49 +125,51 @@ K_NUT = 0.20                    # torque coefficient, dry steel [ASSUMED]
 SEAT_TORQUE_STEEL = (3.0 * 0.113, 4.0 * 0.113)   # N.m: 3-4 in-lb for a #4-40 / M3 cup point in a STEEL thread [SRC]
 PETG_SHEAR = (0.58 * S.PETG["yield_derated"], 0.58 * S.PETG["uts"])  # 14.5 to 26 MPa, printed thread shear [ASSUMED]
 SEAT_FRACTION = (0.5, 0.8)      # set screws in a plastic thread are seated below the strip force [ASSUMED]
+SHORT_INSERT_LEN = 4.0          # mm, a short M3 heat-set insert (the standard 5.7 mm one does not fit the hub wall)
+INSERT_PULLOUT = (400.0, 750.0)  # N, short M3 insert in warm PETG [ASSUMED; the bench test measures it]
 
 
 def setscrew_joint() -> dict:
     r_flat = SHAFT_D / 2 - SHAFT_FLAT_DEPTH          # 2.0 mm: screw tip on the flat
     r_bore = SHAFT_D / 2                             # 2.5 mm: line contact with the bore opposite the screw
     lever = MU_TIP * r_flat + MU_BORE * r_bore       # mm: torque per newton of set-screw force
-    # Thread length in the hub at the flat: hub radius minus the bore flat's distance from the axis.
-    l_e = HUB_R - (BORE_D / 2 - BORE_FLAT_DEPTH) - 0.5          # 4.8 mm (0.5 mm lead-in)
-    a_strip = 0.5 * math.pi * 3.0 * l_e                         # mm2, internal-thread shear area (about half the cylinder)
-    f_strip = [a_strip * t for t in PETG_SHEAR]
+    wall = HUB_R - (BORE_D / 2 - BORE_FLAT_DEPTH)    # 5.35 mm of hub wall at the screw
+    l_e = wall - 0.5                                 # 0.5 mm lead-in
+    a_strip = 0.5 * math.pi * 3.0 * l_e              # mm2, internal-thread shear area (about half the cylinder)
+    warm = WARM["design"]
+    f_strip = [a_strip * t * warm for t in PETG_SHEAR]
     f_seat_petg = [f_strip[0] * SEAT_FRACTION[0], f_strip[1] * SEAT_FRACTION[1]]
-    f_seat_insert = [t / (K_NUT * 3.0e-3) for t in SEAT_TORQUE_STEEL]   # brass insert: seat to the steel rating
-    cap = lambda f: CUP_BITE * f * lever * 1e-3                 # N.m
-    petg = [cap(f) for f in f_seat_petg]
-    insert = [cap(f) for f in f_seat_insert]
-    return dict(r_flat=r_flat, lever_mm=lever, thread_len=l_e, strip_area=a_strip, f_strip=f_strip,
-                f_seat_petg=f_seat_petg, f_seat_insert=f_seat_insert,
-                torque_petg=petg, torque_insert=insert,
-                dflat_now=dflat_engagement(BORE_D, BORE_FLAT_DEPTH),
-                dflat_tight=dflat_engagement(5.15, 0.5 + 0.10 - 0.075))
+    f_seat_steel = [t / (K_NUT * 3.0e-3) for t in SEAT_TORQUE_STEEL]     # what the screw itself can be seated to
+    f_seat_insert = [min(f_seat_steel[0], INSERT_PULLOUT[0] * warm), min(f_seat_steel[1], INSERT_PULLOUT[1])]
+    cap = lambda f: CUP_BITE * f * lever * 1e-3      # N.m
+    return dict(r_flat=r_flat, lever_mm=lever, hub_wall=wall, thread_len=l_e, strip_area=a_strip, f_strip=f_strip,
+                f_seat_petg=f_seat_petg, f_seat_steel=f_seat_steel, f_seat_insert=f_seat_insert,
+                insert_fits=dict(standard_5p7=wall >= 5.7 + 0.3, short=wall >= SHORT_INSERT_LEN + 0.3),
+                torque_petg=[cap(f) for f in f_seat_petg], torque_insert=[cap(f) for f in f_seat_insert],
+                dflat_now=dflat_engagement(BORE_D, BORE_FLAT_DEPTH), dflat_v3=dflat_engagement(*BORE_V3))
 
 
 def dflat_engagement(bore_d: float, bore_flat_depth: float) -> dict:
     """If the set screw slips: how far the shaft turns before its flat corner meets the bore's flat, and the lever of that
-    contact. The screw pushes the shaft into the round side of the bore, so the whole clearance sits at the flat."""
+    contact. The screw pushes the shaft into the round side of the bore, so the whole clearance sits at the flat. The contact
+    is a steel edge on PETG, so it crushes rather than drives (the check's Hertz estimate is 113 to 155 MPa)."""
     r = SHAFT_D / 2
-    off = (bore_d - SHAFT_D) / 2                             # shaft centre pushed away from the flat
-    h_bore = bore_d / 2 - bore_flat_depth + off              # bore flat from the shaft axis
+    off = (bore_d - SHAFT_D) / 2
+    h_bore = bore_d / 2 - bore_flat_depth + off
     h_shaft = r - SHAFT_FLAT_DEPTH
-    a0 = math.acos(h_shaft / r)                              # corner angle from the flat normal
+    a0 = math.acos(h_shaft / r)
     a1 = math.acos(min(1.0, h_bore / r))
-    turn = math.degrees(a0 - a1)
     lever = r * math.sin(a1)
-    force = HOLD / (lever * 1e-3) if lever > 0 else float("inf")
-    return dict(gap=h_bore - h_shaft, turn_deg=turn, lever_mm=lever, contact_force_at_hold=force,
-                across_flat=bore_d - bore_flat_depth)
+    return dict(gap=h_bore - h_shaft, turn_deg=math.degrees(a0 - a1), lever_mm=lever,
+                contact_force_at_hold=HOLD / (lever * 1e-3) if lever > 0 else float("inf"),
+                across_flat=bore_d - bore_flat_depth, bore=bore_d)
 
 
 # ===========================================================================
 # 3. MOTOR SHAFT AND FRONT BEARING
 # ===========================================================================
 SHAFT_SY = (350.0, 600.0)       # MPa, stepper shaft yield: plain carbon steel to hardened stainless [ASSUMED]
-BRG_IN = 3.0                    # mm, front bearing centre behind the flange face [ASSUMED]
+BRG_IN = 3.0                    # mm, front bearing centre behind the motor's flange face [ASSUMED]
 BRG_SPAN = 30.0                 # mm, front-to-rear bearing spacing, 38-40 mm body [ASSUMED]
 BRG_C0 = 380.0                  # N, static rating of a 625-size (5 x 16 x 5) deep-groove bearing [ASSUMED, check datasheet]
 RADIAL_RATING = 28.0            # N at 20 mm from the flange: service (life) rating, 17HS4401-1704A listing [SRC]
@@ -171,69 +188,123 @@ def dflat_section_modulus(d: float = SHAFT_D, depth: float = SHAFT_FLAT_DEPTH, n
     best = float("inf")
     for ang in np.linspace(0, math.pi, 73):
         c, s = math.cos(ang), math.sin(ang)
-        dist = (Y[m] - yc) * c + (Z[m] - zc) * s          # distance from a neutral axis at angle ang
+        dist = (Y[m] - yc) * c + (Z[m] - zc) * s
         I = (dist ** 2).sum() * dA
         best = min(best, I / np.abs(dist).max())
     return best
 
 
 def shaft_links() -> dict:
-    a = S.Y_DRUM + BRG_IN                                    # 21 mm: line force to the front bearing
+    a = S.Y_DRUM + FIN_T + BRG_IN                            # 24.2 mm: drum mid-plane to the front bearing (fin included)
     Z = dflat_section_modulus()
-    f_yield = SHAFT_SY[0] * Z / a
-    f_yield_hi = SHAFT_SY[1] * Z / a
-    r_front = lambda F: F * (a + BRG_SPAN) / BRG_SPAN       # overhung load on the front bearing
     f_brg = BRG_C0 * BRG_SPAN / (a + BRG_SPAN)
-    return dict(lever=a, Z=Z, Z_round=math.pi * SHAFT_D ** 3 / 32, f_yield=f_yield, f_yield_hi=f_yield_hi, f_bearing_static=f_brg,
-                front_bearing_at_fuse=r_front(FUSE["upper"]),
+    return dict(lever=a, Z=Z, Z_round=math.pi * SHAFT_D ** 3 / 32, f_yield=SHAFT_SY[0] * Z / a, f_yield_hi=SHAFT_SY[1] * Z / a,
+                f_bearing_static=f_brg, front_bearing_at_fuse=FUSE["upper"] * (a + BRG_SPAN) / BRG_SPAN,
                 radial_rating=RADIAL_RATING, run_vs_rating=FUSE["run_empty"] / RADIAL_RATING)
 
 
 # ===========================================================================
-# 4. MOTOR TO TAB: 4 x M3 x 12 (D38) through the 5 mm PETG tab into the motor's aluminium front cap
+# 4. MOTOR TO TAB: 4 x M3 x 12 (D38) through the PETG tab and the fin into the motor's aluminium front cap
 # ===========================================================================
-M3_ENGAGE = 3.8                 # mm thread in the motor [REPO D38]
+M3_ENGAGE = 3.8                 # mm thread in the motor with the 5 mm tab and the 1/8 in fin [REPO D38]
 AL_SHEAR = 120.0                # MPa, die-cast / 6061 aluminium shear (lower) [ASSUMED]
-HEAD_D, HOLE_D, TAB_T = 5.5, 3.5, 5.0   # [REPO THERMAL_SCREW_HEAD_D, S3 hole, tab]
-SCREW_PATTERN = 31.0            # mm [REPO NEMA17_HOLES]
+HEAD_D, HOLE_D = P.THERMAL_SCREW_HEAD_D, P.THERMAL_TAB_HOLE_D
+SCREW_PATTERN = P.NEMA17_HOLES
 
 
-def motor_screw_links() -> dict:
-    strip_al = 0.6 * math.pi * 3.0 * M3_ENGAGE * AL_SHEAR             # N per screw
-    punch = math.pi * HEAD_D * TAB_T * PETG_SHEAR[0]                   # head punching through the tab, N per screw
-    per_screw_per_N = S.Y_DRUM / (2 * SCREW_PATTERN)                   # tension per screw per N of line (pivot on one row)
+def motor_screw_links(tab_t: float = 5.0) -> dict:
+    engage = M3_ENGAGE - (tab_t - 5.0)                                 # a thicker tab leaves less thread in the motor
+    strip_al = 0.6 * math.pi * 3.0 * engage * AL_SHEAR                # N per screw
+    punch = math.pi * HEAD_D * tab_t * PETG_SHEAR[0] * WARM["design"]  # head punching through the warm tab, N per screw
+    per_screw_per_N = (S.Y_DRUM + FIN_T) / (2 * SCREW_PATTERN)         # tension per screw per N of line (pivot on one row)
     cap = min(strip_al, punch)
-    return dict(strip_al=strip_al, punch=punch, per_screw_per_N=per_screw_per_N,
-                f_line=cap / per_screw_per_N, at_fuse=FUSE["upper"] * per_screw_per_N)
+    return dict(engage=engage, strip_al=strip_al, punch=punch, per_screw_per_N=per_screw_per_N,
+                f_line=cap / per_screw_per_N, f_line_hi=max(strip_al, punch) / per_screw_per_N,
+                at_fuse=FUSE["upper"] * per_screw_per_N)
 
 
 # ===========================================================================
-# 5. MOTOR TAB (5 mm PETG), SLIDE-IN RETENTION: the hand model of the static-study manual, scaled to 1.5 A
+# 5. MOTOR TAB: root section, each face with its own root detail, over every reachable cable direction
 # ===========================================================================
-KT = dict(sharp=2.5, fillet_2mm=1.5)    # stress concentration at the tab root: sharp back corner (as drawn), 2 mm fillet [ASSUMED]
-PETG_LAYER = S.Z_STRENGTH               # 22.5 MPa across layers [REPO review R5]
+# Root section of the tab (normal x): thickness t along y (back face y = 0 against the fin, spool-side face y = t), width
+# b = 42.3 along z.  Back-side root: sharp corner as drawn (Kt 2.5); spool-side root: R2.5 fillet as drawn (Kt 1.5).  A 2 mm
+# fillet on the back root makes that side Kt 1.5 too.  Kt values follow the static manual's band [ASSUMED].
+TAB_B = 42.3
+TAB_X_ROOT = -21.15
+KT = dict(sharp=2.5, fillet=1.5)
+PETG_LAYER = S.Z_STRENGTH       # 22.5 MPa across layers [REPO review R5]
+
+
+def tab_face_stress(F: np.ndarray, p: np.ndarray, t: float) -> dict:
+    """Stresses per newton... at the root for force F (N) at load point p (mm, station frame, y measured from the tab's
+    back face).  sigma_x = Fx/A - Mz*y'/Iz + My*z/Iy (y' from the mid-plane), worst corner in z; shear: transverse + torsion."""
+    A = TAB_B * t
+    Iy = t * TAB_B ** 3 / 12.0
+    Iz = TAB_B * t ** 3 / 12.0
+    r = np.array([p[0] - TAB_X_ROOT, p[1] - t / 2, p[2]])
+    M = np.cross(r, F)
+    bend_z = abs(M[1]) * (TAB_B / 2) / Iy
+    back = F[0] / A - M[2] * (-t / 2) / Iz + bend_z
+    front = F[0] / A - M[2] * (t / 2) / Iz + bend_z
+    tau = max(1.5 * abs(F[1]) / A, 1.5 * abs(F[2]) / A) + abs(M[0]) / (0.312 * TAB_B * t * t)
+    return dict(back=back, front=front, tau=tau)
+
+
+def tab_gives_at(u: np.ndarray, t: float, kt_back: float, kt_front: float, warm: float) -> tuple[float, str]:
+    """Cable tension along unit vector u at which the first root detail reaches the warm allowable."""
+    p = S.tangent_point(u)
+    s = tab_face_stress(u, p, t)          # per newton of cable
+    worst = (float("inf"), "")
+    for face, kt in (("back", kt_back), ("front", kt_front)):
+        sig = max(s[face], 0.0)
+        vm = math.sqrt(sig ** 2 + 3 * s["tau"] ** 2)
+        f_vm = S.PETG["yield_derated"] * warm / (kt * vm)
+        f_layer = PETG_LAYER * warm / (kt * sig) if sig > 0 else float("inf")
+        f = min(f_vm, f_layer)
+        if f < worst[0]:
+            worst = (f, face)
+    return worst
+
+
+def reachable_directions() -> list:
+    """Every cable direction the bare drum allows: polar angle 0 to 84 deg, azimuth -90 to 90 deg, fleet clipped."""
+    out = []
+    for th in np.arange(0.0, 84.1, 3.0):
+        for ps in np.arange(-90.0, 90.1, 7.5):
+            u, k = S.clip_fleet(S.unit_vector(th, ps))
+            out.append((float(th), float(ps), u / np.linalg.norm(u), k))
+    return out
 
 
 def tab_links() -> dict:
+    dirs = reachable_directions()
+    variants = {
+        "5 mm, as drawn": (5.0, KT["sharp"], KT["fillet"]),
+        "5 mm, 2 mm back fillet": (5.0, KT["fillet"], KT["fillet"]),
+        "6 mm, fillets both roots": (6.0, KT["fillet"], KT["fillet"]),
+        "7 mm, fillets both roots": (7.0, KT["fillet"], KT["fillet"]),
+    }
     out = {}
-    for cid, label, u, T, p in S.reachable_cases(T15):
-        est = S.tab_root_estimate(T * u, p)          # at the 1.5 A slip tension for that direction
-        per_N_vm, per_N_sig = est["vm_nom"] / T, est["sigma_nom"] / T
+    for name, (t, kb, kf) in variants.items():
         rows = {}
-        for k, kt in KT.items():
-            f_vm = S.PETG["yield_derated"] / (kt * per_N_vm)
-            f_sig = PETG_LAYER / (kt * per_N_sig)
-            rows[k] = min(f_vm, f_sig)
-        out[cid] = dict(label=label, T_slip=T, vm_at_slip=est["vm_nom"], sig_at_slip=est["sigma_nom"],
-                        fail_sharp=rows["sharp"], fail_fillet=rows["fillet_2mm"], nominal=S.PETG["yield_derated"] / per_N_vm)
-    worst = min(out, key=lambda c: out[c]["fail_sharp"])
-    return dict(cases=out, worst=worst)
+        for cond, warm in (("room", 1.0), *WARM.items()):
+            best = min(((tab_gives_at(u, t, kb, kf, warm), th, ps) for th, ps, u, k in dirs), key=lambda x: x[0][0])
+            (f, face), th, ps = best
+            rows[cond] = dict(f=f, face=face, theta=th, psi=ps)
+        out[name] = rows
+    # Static-manual criterion at 1.5 A: SF on the 25 MPa derated yield at the slip force, along-wall reachable case D4f
+    u4 = S.fleet_limited_case()
+    sf = {}
+    for name, (t, kb, kf) in variants.items():
+        f, face = tab_gives_at(u4, t, kb, kf, 1.0)
+        sf[name] = f / FUSE["slip_fleet"]
+    return dict(variants=out, sf_at_slip_D4f=sf)
 
 
 def retention_link() -> dict:
     # Dovetail flank bearing 0.053 MPa at the D3 pull-away of 33.3 N (manual section 9): linear.
     bearing_per_N = 0.053 / 33.3
-    return dict(bearing_at_fuse=bearing_per_N * FUSE["upper"], f_line=S.PETG["yield_derated"] / bearing_per_N)
+    return dict(bearing_at_fuse=bearing_per_N * FUSE["upper"], f_line=S.PETG["yield_derated"] * WARM["design"] / bearing_per_N)
 
 
 # ===========================================================================
@@ -250,7 +321,7 @@ PLATE_T = 10.53                 # mm, PETG under the counterbore [REPO manual W2
 DRYWALL_T = 12.7                # mm, 1/2 in gypsum [ASSUMED]
 THREAD_IN_STUD_IN = 1.0         # inches of thread in the stud (#6 x 2-1/2 in partly threaded) [ASSUMED, measure]
 HEAD_6_D = 6.6                  # mm, #6 pan head under the counterbore [ASSUMED]
-DRYWALL_ONLY = dict(bare=(5 * LBF, 10 * LBF), plastic_anchor=(10 * LBF, 25 * LBF), zinc_selfdrill=(60 * LBF, 60 * LBF))  # tension [SRC]
+DRYWALL_ONLY = dict(bare=(5 * LBF, 10 * LBF), plastic_anchor=(10 * LBF, 25 * LBF))   # tension [SRC]
 COL_Y = S.SCREW_COLS_Y
 PLATE_Y = (-94.44, 125.56)      # mm, wall mount plate edges [REPO manual W1]
 
@@ -264,8 +335,7 @@ def withdrawal(screw: str, species: str, inches: float = THREAD_IN_STUD_IN) -> d
 def screw_lateral(screw: str = "#6") -> float:
     """Screw bent in double curvature across the drywall gap (PETG plate clamped, stud holds the other end)."""
     dr = SCREW_ROOT_IN[screw] * INCH
-    mp = FYB * dr ** 3 / 6.0
-    return 2 * mp / DRYWALL_T
+    return 2 * FYB * dr ** 3 / 6.0 / DRYWALL_T
 
 
 def _moments(F: np.ndarray, p: np.ndarray, C: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -309,33 +379,32 @@ def solve_line_force(fn, u: np.ndarray, p: np.ndarray, target: float, key: str =
 def wall_links() -> dict:
     reach = S.reachable_cases(T15)
     w = withdrawal("#6", "spruce-pine-fir")
-    lat = screw_lateral("#6")
     rows = {}
     for cid, label, u, T, p in reach:
         s6, s3 = screws_six(T * u, p), screws_one_column(T * u, p)
         rows[cid] = dict(T=T, six_t=s6["t_top"], six_v=s6["shear"], one_t=s3["t_top"], one_v=s3["shear"],
+                         one_t_at_upper=screws_one_column(FUSE["upper"] * u, p)["t_top"],
                          f_design_one=solve_line_force(screws_one_column, u, p, w["design"]),
                          f_ult_one=solve_line_force(screws_one_column, u, p, w["ultimate"]),
                          f_design_six=solve_line_force(screws_six, u, p, w["design"]),
                          f_bare_drywall=solve_line_force(screws_six, u, p, DRYWALL_ONLY["bare"][0]),
+                         f_bare_drywall_hi=solve_line_force(screws_six, u, p, DRYWALL_ONLY["bare"][1]),
                          f_plastic_anchor=solve_line_force(screws_six, u, p, DRYWALL_ONLY["plastic_anchor"][0]))
     worst = min(rows, key=lambda c: rows[c]["f_design_one"])
+    worst_dw = min(rows, key=lambda c: rows[c]["f_bare_drywall"])
     table = {f"{s} in {sp}": withdrawal(s, sp) for s in SCREW_D_IN for sp in SPECIES_G}
-    punch = math.pi * HEAD_6_D * PLATE_T * PETG_SHEAR[0]          # head punching through the 10.5 mm PETG under the counterbore
+    punch = math.pi * HEAD_6_D * PLATE_T * PETG_SHEAR[0]        # wall plate is away from the motor: room temperature
     cid, label, u, T, p = [c for c in reach if c[0] == worst][0]
-    f_punch = solve_line_force(screws_one_column, u, p, punch)
-    return dict(per_case=rows, worst=worst, withdrawal_6_spf=w, lateral_6=lat, table_1in=table,
-                head_punch=punch, f_head_punch=f_punch)
+    return dict(per_case=rows, worst=worst, worst_drywall=worst_dw, withdrawal_6_spf=w, lateral_6=screw_lateral("#6"),
+                table_1in=table, head_punch=punch, f_head_punch=solve_line_force(screws_one_column, u, p, punch))
 
 
 def stud_bending() -> dict:
     """A 2 x 4 stud (1.5 x 3.5 in, SPF) loaded at mid-height by the worst pull-away, simply supported over 2.44 m.
     The station is near the top plate, so this is an upper bound on the stud's own stress."""
-    L = 2.44
     S_x = (1.5 * INCH) * (3.5 * INCH) ** 2 / 6.0 * 1e-9        # m3
-    F = FUSE["upper"]
-    sigma = (F * L / 4.0) / S_x / 1e6                          # MPa
-    return dict(F=F, sigma=sigma, Fb_ref=875 * 0.006895)      # SPF No. 2 reference bending, 875 psi [SRC NDS supplement]
+    sigma = (FUSE["upper"] * 2.44 / 4.0) / S_x / 1e6           # MPa
+    return dict(F=FUSE["upper"], sigma=sigma, Fb_ref=875 * 0.006895)      # SPF No. 2 reference bending, 875 psi [SRC]
 
 
 # ===========================================================================
@@ -343,12 +412,13 @@ def stud_bending() -> dict:
 # ===========================================================================
 def detection() -> dict:
     cfg = json.loads((S.ROOT / "config" / "robot.sim.json").read_text())
-    tol = cfg["faults"]["tracking_tol_counts"]
+    tol = cfg["faults"]["tracking_tol_counts"]                  # simulation profile; hardware configs leave it null
     dwell = cfg["faults"]["tracking_dwell_s"]
     cpr = 4096                                                  # AS5600 [REPO EncoderConfig]
     skip_deg = 4 * 360.0 / 200                                  # a stepper loses steps in whole electrical cycles: 4 full steps
-    return dict(tol_counts=tol, tol_deg=tol * 360.0 / cpr, dwell_s=dwell, skip_deg=skip_deg,
-                skip_counts=skip_deg / 360.0 * cpr, line_per_skip_mm=math.radians(skip_deg) * S.R_EMPTY * 1e3,
+    skip_counts = skip_deg / 360.0 * cpr
+    return dict(tol_counts=tol, tol_deg=tol * 360.0 / cpr, dwell_s=dwell, skip_deg=skip_deg, skip_counts=skip_counts,
+                line_per_skip_mm=math.radians(skip_deg) * S.R_EMPTY * 1e3, margin=skip_counts / tol,
                 tol_line_mm=math.radians(tol * 360.0 / cpr) * S.R_EMPTY * 1e3)
 
 
@@ -365,42 +435,49 @@ def build() -> dict:
     wall = wall_links()
     stud = stud_bending()
     det = detection()
-    tw = tab["cases"][tab["worst"]]
     ww = wall["per_case"][wall["worst"]]
+    dw = wall["per_case"][wall["worst_drywall"]]
     t_need = FUSE["upper_hold_nm"]
-    k_line = FLEET_K / S.R_EMPTY           # N of line (fleeted, empty core) per N.m through the spool joint
-    links = [   # name, lower, upper (line tension, N), ratio basis, basis text
+    tv = tab["variants"]
+    to_line = 1.0 / S.R_EMPTY                    # N of straight cable on the empty core per N.m through the spool joint
+    links = [   # name, lower, upper (cable tension, N), (ratio low, ratio high) or None, basis
         ("Motor torque (the fuse)", FUSE["slip_low"], FUSE["upper"], None,
-         "holding torque / spool radius; 33.9 N (1/sqrt2 vector) to 59.4 N (40 N.cm motor, fleeted line)"),
-        ("Spool on shaft: set screw in a printed thread", ss["torque_petg"][0] * k_line, ss["torque_petg"][1] * k_line,
-         ss["torque_petg"][0] / t_need,
-         f"{ss['torque_petg'][0]:.2f} to {ss['torque_petg'][1]:.2f} N.m against {t_need:.2f} N.m: seat force capped by the PETG thread"),
-        ("Motor tab root, sharp back corner (as drawn)", tw["fail_sharp"], tw["nominal"], None,
-         f"hand model of the static manual, worst reachable direction {tab['worst']}, 25 MPa derated / 22.5 MPa across layers"),
-        ("Spool on shaft: set screw in a brass heat-set insert", ss["torque_insert"][0] * k_line, ss["torque_insert"][1] * k_line,
-         ss["torque_insert"][0] / t_need,
-         f"{ss['torque_insert'][0]:.2f} to {ss['torque_insert'][1]:.2f} N.m: screw seated to the steel-thread rating (3-4 in-lb)"),
-        ("Motor tab root with a 2 mm fillet", tw["fail_fillet"], tw["nominal"], None, "same model, Kt 1.5"),
-        ("Motor shaft (bending yield at the D-flat)", sh["f_yield"], sh["f_yield_hi"], None,
-         f"350 to 600 MPa x Z {sh['Z']:.2f} mm3 / {sh['lever']:.0f} mm; front-bearing static rating at {sh['f_bearing_static']:.0f} N"),
+         "holding torque / spool radius; 33.9 N (1/sqrt2 vector) to 59.4 N (40 N.cm motor, fleeted cable)"),
+        ("Spool set screw in the printed thread (as drawn)", ss["torque_petg"][0] * to_line, ss["torque_petg"][1] * to_line,
+         (ss["torque_petg"][0] / t_need, ss["torque_petg"][1] / t_need),
+         f"{ss['torque_petg'][0]:.2f} to {ss['torque_petg'][1]:.2f} N.m against {t_need:.2f} N.m; seat force capped by the warm PETG thread"),
+        ("Motor tab, 5 mm, sharp back corner (as drawn)", tv["5 mm, as drawn"]["design"]["f"], tv["5 mm, as drawn"]["room"]["f"], None,
+         f"{tv['5 mm, as drawn']['design']['face']} root governs; warm x{WARM['design']}; room temperature {tv['5 mm, as drawn']['room']['f']:.0f} N"),
+        ("Motor tab, 5 mm with a 2 mm back fillet", tv["5 mm, 2 mm back fillet"]["design"]["f"], tv["5 mm, 2 mm back fillet"]["room"]["f"], None,
+         f"spool-side R2.5 fillet governs; room temperature {tv['5 mm, 2 mm back fillet']['room']['f']:.0f} N"),
+        ("Spool set screw in a short insert or nut", ss["torque_insert"][0] * to_line, ss["torque_insert"][1] * to_line,
+         (ss["torque_insert"][0] / t_need, ss["torque_insert"][1] / t_need),
+         f"{ss['torque_insert'][0]:.2f} to {ss['torque_insert'][1]:.2f} N.m; seat force capped by the insert's pull-out (400 to 750 N assumed)"),
+        ("Motor tab, 6 mm with fillets on both roots", tv["6 mm, fillets both roots"]["design"]["f"], tv["6 mm, fillets both roots"]["room"]["f"], None,
+         f"room temperature {tv['6 mm, fillets both roots']['room']['f']:.0f} N; M3 x 12 then has {motor_screw_links(6.0)['engage']:.1f} mm of thread"),
+        ("Motor shaft, bending yield at the D-flat", sh["f_yield"], sh["f_yield_hi"], None,
+         f"350 to 600 MPa x Z {sh['Z']:.2f} mm3 / {sh['lever']:.1f} mm (fin included); bearing static {sh['f_bearing_static']:.0f} N"),
         ("Line knot (120 lb braid)", line["knot_lower"], line["knot_upper"], None, "50 to 90 % knot efficiency"),
-        ("Wall screws: 3 x #6 in one stud column", ww["f_design_one"], ww["f_ult_one"], None,
-         f"top screw at the NDS design value (lower) and the test ultimate (upper); 1 in of thread in SPF, "
-         f"{wall['withdrawal_6_spf']['design']:.0f} / {wall['withdrawal_6_spf']['ultimate']:.0f} N per screw"),
+        ("Wall screws, 3 x #6 in one stud column", ww["f_design_one"], ww["f_ult_one"], None,
+         f"top screw at the NDS design value (lower, includes the code's ~5 x factor) and the test ultimate (upper)"),
+        ("Claw cable eye, knot behind a washer", line["claw_eye"], line["claw_eye"] * PETG_SHEAR[1] / PETG_SHEAR[0], None,
+         "two shear planes, Ø2 hole in a 5 mm wall, 8 mm edge (assumed)"),
+        ("Motor screws, 4 x M3 x 12 into the motor", ms["f_line"], ms["f_line_hi"], None,
+         "head punching through the warm 5 mm tab; thread strip in the aluminium cap"),
         ("Wall plate: screw head pulls through the PETG", wall["f_head_punch"], wall["f_head_punch"] * PETG_SHEAR[1] / PETG_SHEAR[0], None,
          f"#6 head punching through {PLATE_T} mm of PETG, {wall['head_punch']:.0f} N per screw"),
-        ("Motor screws (4 x M3 x 12 into the motor)", ms["f_line"], ms["strip_al"] / ms["per_screw_per_N"], None,
-         "head punching through the 5 mm PETG tab; thread strip in the aluminium cap"),
-        ("Slide-in dovetails and lips", 1000.0, ret["f_line"], None,
-         f"flank bearing {ret['bearing_at_fuse']:.2f} MPa at the fuse; not limiting (shown as > 1 kN)"),
+        ("Slide-in dovetails and lips", ret["f_line"], ret["f_line"] * 2, None, f"flank bearing {ret['bearing_at_fuse']:.2f} MPa at the fuse"),
     ]
     rows = []
-    for name, lo, hi, ratio_t, basis in links:
-        ratio = ratio_t if ratio_t is not None else lo / FUSE["upper"]
-        rows.append(dict(link=name, lower=lo, upper=hi, ratio=ratio,
-                         verdict="FUSE" if name.startswith("Motor torque") else verdict(ratio), basis=basis))
-    return dict(fuse=FUSE, design_force=DESIGN_FORCE, jeans_peak=JEANS_PEAK, line=line, setscrew=ss, shaft=sh,
-                motor_screws=ms, tab=tab, retention=ret, wall=wall, stud=stud, detection=det, ranking=rows,
+    for name, lo, hi, rt, basis in links:
+        r_lo, r_hi = rt if rt is not None else (lo / FUSE["upper"], hi / FUSE["upper"])
+        is_fuse = name.startswith("Motor torque")
+        rows.append(dict(link=name, lower=lo, upper=hi, ratio=r_lo, ratio_hi=r_hi,
+                         verdict="FUSE" if is_fuse else verdict(r_lo, r_hi if rt is not None else None), basis=basis))
+    comparison = dict(link="Six wall screws in drywall only (no stud)", lower=dw["f_bare_drywall"], upper=dw["f_bare_drywall_hi"],
+                      ratio=dw["f_bare_drywall"] / FUSE["upper"], verdict="GIVES FIRST")
+    return dict(fuse=FUSE, design_force=DESIGN_FORCE, jeans_peak=JEANS_PEAK, warm=WARM, line=line, setscrew=ss, shaft=sh,
+                motor_screws=ms, tab=tab, retention=ret, wall=wall, stud=stud, detection=det, ranking=rows, drywall=comparison,
                 torque_needed_nm=t_need, pass_ratio=PASS_RATIO, fleet_deg=FLEET_DEG)
 
 
@@ -409,75 +486,69 @@ def report(r: dict) -> None:
     print("=" * 100)
     print("WEAKEST LINK OF THE LIFTING CHAIN, ONE STATION AT 1.5 A")
     print("=" * 100)
-    print("\n0. Demand and the fuse (line tension, N)")
+    print("\n0. Demand and the fuse (cable tension, N)")
     print(f"  design force (full spool, 1.5 skip margin)      {r['design_force']:6.1f}")
     print(f"  jeans case, worst cable (1.50 kg x 1.101 x g)    {r['jeans_peak']:6.1f}")
     print(f"  motor skips while moving: full / empty spool     {f['run_full']:6.1f} / {f['run_empty']:.1f}")
     print(f"  motor slips while holding: full / empty spool    {f['slip_full']:6.1f} / {f['slip_empty']:.1f}   (hold {f['hold_nm']:.3f} N.m)")
     print(f"  lower bound (1/sqrt2 current vector)             {f['slip_low']:6.1f}")
-    print(f"  fully fleeted line ({r['fleet_deg']:.1f} deg): / cos            {f['slip_fleet']:6.1f}")
-    print(f"  UPPER (40 N.cm motor and fleeted line)           {f['upper']:6.1f}   <- every other link must give above this")
+    print(f"  fully fleeted cable ({r['fleet_deg']:.1f} deg): / cos           {f['slip_fleet']:6.1f}")
+    print(f"  UPPER (40 N.cm motor and fleeted cable)          {f['upper']:6.1f}   <- every other link must give above this")
     print(f"  fuse / jeans demand: {f['slip_empty']/r['jeans_peak']:.2f} holding, {f['run_full']/r['jeans_peak']:.2f} moving at a full spool")
+    print(f"  warm PETG factor: design {r['warm']['design']} (1/8 in fin), prototype {r['warm']['prototype']} (0.019 in fin)")
 
-    print("\n1. Line")
     L = r["line"]
-    print(f"  rated 120 lb = {L['rated']:.0f} N; knot {L['knot_lower']:.0f} to {L['knot_upper']:.0f} N; "
-          f"with {DEAD_WRAPS} dead wraps the spool tie-off sees {L['tieoff_share_with_wraps'][0]*100:.0f} to "
-          f"{L['tieoff_share_with_wraps'][1]*100:.0f} % of the line tension")
+    print(f"\n1. Line: rated 120 lb = {L['rated']:.0f} N; knot {L['knot_lower']:.0f} to {L['knot_upper']:.0f} N; with {DEAD_WRAPS} dead wraps "
+          f"the spool tie-off sees {L['tieoff_share_with_wraps'][0]*100:.0f} to {L['tieoff_share_with_wraps'][1]*100:.0f} %; claw eye {L['claw_eye']:.0f} N")
 
-    print("\n2. Spool on the shaft (set screw on the D-flat)")
     s = r["setscrew"]
-    print(f"  torque per N of set-screw force: {s['lever_mm']:.3f} mm (mu_tip {MU_TIP} x {s['r_flat']} + mu_bore {MU_BORE} x 2.5), x{CUP_BITE} cup bite")
-    print(f"  printed thread: {s['thread_len']:.1f} mm long, strip area {s['strip_area']:.1f} mm2, strips at "
-          f"{s['f_strip'][0]:.0f} to {s['f_strip'][1]:.0f} N; seated {s['f_seat_petg'][0]:.0f} to {s['f_seat_petg'][1]:.0f} N")
-    print(f"  -> torque capacity {s['torque_petg'][0]:.2f} to {s['torque_petg'][1]:.2f} N.m   (needed: motor can apply {r['torque_needed_nm']:.2f} N.m)")
-    print(f"  brass insert, seated to 3-4 in-lb: {s['f_seat_insert'][0]:.0f} to {s['f_seat_insert'][1]:.0f} N -> "
-          f"{s['torque_insert'][0]:.2f} to {s['torque_insert'][1]:.2f} N.m")
-    for k in ("dflat_now", "dflat_tight"):
+    print("\n2. Spool on the shaft (set screw on the D-flat), 10/21 spool (bore 5.30)")
+    print(f"  torque per N of set-screw force {s['lever_mm']:.3f} mm, x{CUP_BITE} cup bite; hub wall at the screw {s['hub_wall']:.2f} mm "
+          f"(standard 5.7 mm insert fits: {s['insert_fits']['standard_5p7']}, short 4 mm insert fits: {s['insert_fits']['short']})")
+    print(f"  printed thread (warm): strips at {s['f_strip'][0]:.0f} to {s['f_strip'][1]:.0f} N, seated {s['f_seat_petg'][0]:.0f} to "
+          f"{s['f_seat_petg'][1]:.0f} N -> {s['torque_petg'][0]:.2f} to {s['torque_petg'][1]:.2f} N.m (motor can apply {r['torque_needed_nm']:.2f})")
+    print(f"  short insert or nut: seat force {s['f_seat_insert'][0]:.0f} to {s['f_seat_insert'][1]:.0f} N (steel-rated {s['f_seat_steel'][0]:.0f} to "
+          f"{s['f_seat_steel'][1]:.0f}, pull-out {INSERT_PULLOUT[0]:.0f} to {INSERT_PULLOUT[1]:.0f}) -> {s['torque_insert'][0]:.2f} to {s['torque_insert'][1]:.2f} N.m")
+    for k in ("dflat_now", "dflat_v3"):
         d = s[k]
-        print(f"  D-flat backup, bore {d['across_flat']:.2f} across the flat: gap {d['gap']:.2f} mm, engages after {d['turn_deg']:.1f} deg "
-              f"at {d['lever_mm']:.2f} mm from the axis -> {d['contact_force_at_hold']:.0f} N line contact at 0.36 N.m")
+        print(f"  D-flat backup, bore {d['bore']:.2f} ({d['across_flat']:.2f} across the flat): gap {d['gap']:.2f} mm, engages after {d['turn_deg']:.1f} deg "
+              f"at {d['lever_mm']:.2f} mm from the axis -> {d['contact_force_at_hold']:.0f} N of steel-edge contact on PETG at 0.36 N.m")
 
-    print("\n3. Shaft and bearing")
     h = r["shaft"]
-    print(f"  lever {h['lever']:.0f} mm, Z(D-flat) {h['Z']:.2f} mm3 (round {h['Z_round']:.2f}); yield at {h['f_yield']:.0f} to {h['f_yield_hi']:.0f} N; "
-          f"front bearing static at {h['f_bearing_static']:.0f} N; bearing load at the fuse {h['front_bearing_at_fuse']:.0f} N")
-    print(f"  service rating 28 N at 20 mm: running pull at the core is {h['run_vs_rating']:.2f} x the rating (bearing life, not strength)")
+    print(f"\n3. Shaft: lever {h['lever']:.1f} mm, Z(D-flat) {h['Z']:.2f} mm3 (round {h['Z_round']:.2f}); yield at {h['f_yield']:.0f} to "
+          f"{h['f_yield_hi']:.0f} N; bearing static {h['f_bearing_static']:.0f} N; running pull at the core {h['run_vs_rating']:.2f} x the 28 N life rating")
 
-    print("\n4. Motor screws")
     m = r["motor_screws"]
-    print(f"  per screw: Al thread strip {m['strip_al']:.0f} N, head punch-through {m['punch']:.0f} N; "
-          f"tension {m['per_screw_per_N']:.2f} N per N of line ({m['at_fuse']:.0f} N at the fuse)")
+    print(f"\n4. Motor screws: Al strip {m['strip_al']:.0f} N, warm head punch {m['punch']:.0f} N per screw; {m['per_screw_per_N']:.2f} N per N of cable")
 
-    print("\n5. Motor tab (hand model of the static manual, at the 1.5 A slip tension for each direction)")
-    for cid, c in r["tab"]["cases"].items():
-        print(f"  {cid:<4} T {c['T_slip']:5.1f} N: vM nominal {c['vm_at_slip']:.2f} MPa; gives at {c['fail_sharp']:.0f} N (sharp), "
-              f"{c['fail_fillet']:.0f} N (2 mm fillet), {c['nominal']:.0f} N (no concentration)")
-    print(f"  slide-in dovetails: {r['retention']['bearing_at_fuse']:.3f} MPa at the fuse; would need {r['retention']['f_line']:.0f} N")
+    print("\n5. Motor tab (worst reachable direction; cable tension at which the first root detail reaches the allowable)")
+    for name, rows in r["tab"]["variants"].items():
+        cells = "; ".join(f"{c} {v['f']:.0f} N ({v['face']}, theta {v['theta']:.0f} psi {v['psi']:+.0f})" for c, v in rows.items())
+        print(f"  {name:<28} {cells}")
+    print("  static manual's SF on 25 MPa at the 1.5 A slip force, along-wall D4f: " +
+          ", ".join(f"{k} {v:.2f}" for k, v in r["tab"]["sf_at_slip_D4f"].items()))
+    print(f"  slide-in dovetails: {r['retention']['bearing_at_fuse']:.3f} MPa at the fuse")
 
-    print("\n6. Wall screws and stud")
     w = r["wall"]
-    print(f"  #6 in SPF, 1 in of thread: design {w['withdrawal_6_spf']['design']:.0f} N, ultimate {w['withdrawal_6_spf']['ultimate']:.0f} N; "
-          f"lateral (bending across 1/2 in drywall) {w['lateral_6']:.0f} N per screw")
+    print(f"\n6. Wall: #6 in SPF, 1 in of thread: design {w['withdrawal_6_spf']['design']:.0f} N, ultimate {w['withdrawal_6_spf']['ultimate']:.0f} N; "
+          f"lateral {w['lateral_6']:.0f} N per screw")
     for cid, c in w["per_case"].items():
-        print(f"  {cid:<4} at {c['T']:.1f} N: top screw {c['six_t']:.1f} N (6 screws) / {c['one_t']:.1f} N (one column); "
-              f"one column reaches the design value at {c['f_design_one']:.0f} N, ultimate at {c['f_ult_one']:.0f} N; "
-              f"6 screws in bare drywall give at {c['f_bare_drywall']:.0f} N, in plastic anchors at {c['f_plastic_anchor']:.0f} N")
-    print(f"  wall plate: #6 head punching through the PETG at {w['head_punch']:.0f} N per screw -> line {w['f_head_punch']:.0f} N")
-    st = r["stud"]
-    print(f"  stud bending at the fuse (mid-height, upper bound): {st['sigma']:.2f} MPa vs {st['Fb_ref']:.1f} MPa reference")
-    print("  withdrawal per inch of thread (design / ultimate, N):")
+        print(f"  {cid:<4} at {c['T']:.1f} N: top screw {c['six_t']:.1f} N (6) / {c['one_t']:.1f} N (one column), {c['one_t_at_upper']:.1f} N at the fuse upper; "
+              f"one column at design {c['f_design_one']:.0f} N, ultimate {c['f_ult_one']:.0f} N; bare drywall {c['f_bare_drywall']:.0f} N")
+    print(f"  stud bending at the fuse (upper bound): {r['stud']['sigma']:.2f} MPa vs {r['stud']['Fb_ref']:.1f} MPa reference")
     for k, v in w["table_1in"].items():
-        print(f"    {k:<26} {v['design']:6.0f} / {v['ultimate']:6.0f}")
+        print(f"    {k:<26} {v['design']:6.0f} / {v['ultimate']:6.0f} N per inch of thread")
 
-    print("\n7. Encoder detection")
     d = r["detection"]
-    print(f"  tracking fault at {d['tol_counts']} counts ({d['tol_deg']:.1f} deg, {d['tol_line_mm']:.2f} mm of line) held {d['dwell_s']} s; "
-          f"one skip = {d['skip_deg']:.1f} deg = {d['skip_counts']:.0f} counts = {d['line_per_skip_mm']:.2f} mm of line -> caught")
+    print(f"\n7. Encoder: tracking fault at {d['tol_counts']} counts ({d['tol_deg']:.1f} deg, {d['tol_line_mm']:.2f} mm of cable) held {d['dwell_s']} s; "
+          f"one skip = {d['skip_deg']:.1f} deg = {d['skip_counts']:.0f} counts = {d['line_per_skip_mm']:.2f} mm (margin {d['margin']:.2f}); "
+          f"hardware configs must set a tolerance below {d['skip_counts']:.0f}")
 
-    print("\nRANKING (line tension at which each link gives, N; ratio = lower / fuse upper %.1f N, torque links: N.m / N.m)" % f["upper"])
+    print("\nRANKING at the design condition (cable tension at which each link gives, N; ratio = lower / %.1f N, torque links N.m / N.m)" % f["upper"])
     for x in sorted(r["ranking"], key=lambda x: x["lower"]):
-        print(f"  {x['link']:<72} {x['lower']:7.0f} to {x['upper']:7.0f}   {x['ratio']:5.2f}  {x['verdict']}")
+        print(f"  {x['link']:<52} {x['lower']:7.0f} to {x['upper']:7.0f}   {x['ratio']:5.2f}  {x['verdict']}")
+    c = r["drywall"]
+    print(f"  ({c['link']}: {c['lower']:.0f} to {c['upper']:.0f} N, {c['ratio']:.2f}, {c['verdict']})")
 
 
 def main() -> None:

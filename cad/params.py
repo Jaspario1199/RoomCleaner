@@ -662,3 +662,36 @@ ENC1021_V2_FOOT_BUMP_OVER = 0.3       # ... and 0.3 mm above it
 ENC1021_V2_RIB_TOL = 0.05             # ASSUMED worst-case asymmetry between opposite crush features (a common over/undersize cancels); to be measured on the first print
 ENC1021_V2_TARGET_RSS = 0.25
 ENC1021_V2_TARGET_WORST = 0.40
+
+
+# =============================================================================
+# GRIPPER 1021 HOUSING LID (LID1021_*): light press-fit lid for the open top of the electrical housing (exports/step/gripper1021_housing_cambay_34.step)
+# cad/parts/gripper1021_housing_lid.py.  Bay frame of that housing (origin on the tube axis in the box bottom plane, +y up, = world minus
+# CAMBAY1021_BAY_ORIGIN_WORLD).  Opening and seat MEASURED from that STEP (not from the spec text): the open top is a 85 x 85 recess with R12.5 corners
+# (corner centres at +-30), y 50 .. 55, whose floor is a 2.5 mm wide seat ring at y = 50 around the 80 x 80 R10 pocket (the pocket is open down to y = 5).
+# =============================================================================
+LID1021_SEAT_Y = 50.0                 # measured 50.000012
+LID1021_RIM_Y = 55.0                  # measured 55.000018 (rim top)
+LID1021_RECESS_HALF = 42.5            # measured +-42.5 (spec: CAMBAY1021_TRI_LID_RECESS_HALF)
+LID1021_RECESS_R = 12.5               # measured R12.5, corner centres at +-LID1021_RECESS_CORNER_C
+LID1021_RECESS_CORNER_C = 30.0
+LID1021_POCKET_HALF = 40.0            # the seat ring's inner edge: pocket 80 x 80, R10 (corner centres at +-30)
+LID1021_POCKET_R = 10.0
+LID1021_REF_RESIDUAL = (-0.000003, 0.000012, -0.000029)   # measured offsets of the STEP's recess centre (x, z) and seat plane (y) from the design numbers; subtracted in the loader
+# --- lid: plate on the seat, pushed into the recess by four crush bumps on in-plane cantilever arms
+LID1021_THICK = 1.8                   # plate thickness (top face 3.2 mm below the rim)
+LID1021_SIDE_CLEAR = 0.25             # plate edge to recess wall (between the bumps)
+LID1021_INTERF = 0.15                 # press-fit interference of each bump tip with the recess wall, lid centred
+LID1021_TOP_CHAMFER = 0.3             # 45 deg on the plate's top edge (the bed face when printed): no elephant-foot lip against the wall
+LID1021_BUMP_TIP = 0.6                # bump tip width along the edge (>= 0.45: printable with a 0.4 nozzle)
+LID1021_BUMP_BASE = 1.6
+LID1021_ARM_T = 2.0                   # cantilever arm width (perpendicular to the edge), height = plate thickness: bends in the layer plane
+LID1021_SLOT = 1.0                    # width of the slots that free each arm
+LID1021_ARM_ROOT_X = 10.0             # arm on the +z side, along x: root here (the plate is solid beyond) ...
+LID1021_ARM_FREE_X = -2.0             # ... free end here
+LID1021_BUMP_X = 2.0                  # bump centre along x (8 mm from the root: lever of the arm)
+LID1021_NOTCH = (14.0, 4.5, 2.0, -20.0)   # pry notch on the +z side: width, depth from the plate edge (2.25 of it past the seat ring: a blade reaches under the plate), inner corner radius, centre x
+LID1021_KEEPOUT = 5.0                 # required distance to the cable holes (and the lines leaving them) and to the camera-bay cover
+LID1021_PETG_G_CM3 = 1.27             # cad/materials.py
+LID1021_PETG_E_MPA = 2100.0
+LID1021_FRICTION = 0.4                # PETG on PETG, for the retention estimate

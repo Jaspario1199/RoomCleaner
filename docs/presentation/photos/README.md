@@ -22,3 +22,4 @@ Technical Presentation — v2 draft"). Suggested placement:
 | 19 | soldered station perfboard: point-to-point wiring, 100 µF at the driver supply, buck module underneath (Jasper, 10/21) | deck v3 "Station board" |
 | 20 | slicing a PETG plate for the Creality K1 (0.4 mm nozzle, 0.20 mm standard, supports on) (Jasper, 10/21) | deck v3 "Designing parts to be printed" |
 | 21 | printed claw: aluminium tube in the top mount, MG996R servo seated in the gear housing, slotted housing half beside it (Jasper, 10/22) | deck v4.2 "Built and simulated" (built claw) |
+| 22 | printed gear train in the gear housing: MG996R, 36T/24T compound on its bearing (grey), sync gear and crank (blue), arms beside it (Jasper, 10/22) | deck v4.2 "A geared four-bar keeps the jaws parallel" |

@@ -580,8 +580,9 @@ content("A geared four-bar keeps the jaws parallel through a 53 mm stroke", [
   "53 mm opening; closing drops the tips ~38 mm: a scoop",
   "Gear teeth at servo stall: safety factor about 2",
   "Swept in CAD: no collisions from open to closed",
-], { file: P("renders/gripper1021/hands_on_mechanism_poses.png"), alt: "Hands on the four-bar at open, mid and closed",
-     caption: "Hands on the linkage: open, mid, closed" },
+], { file: [P("renders/gripper1021/hands_on_mechanism_poses.png"), PH("22_gear_train_printed_servo.jpg")],
+     alt: "Hands on the four-bar in CAD, and the printed gear train",
+     caption: "In CAD: hands on the linkage, open, mid, closed (left). Printed: the gear train with the servo (right)" },
 "Four-bar: ground 36.5, crank 53, rocker 50, coupler 34.7 mm. Lewis: module 1.5, PETG allowable 22.5 MPa.",
 { split: 0.5, eq: { lines: [
   "Gear ratio i = 36 / 18 = 2   (servo → crank)",

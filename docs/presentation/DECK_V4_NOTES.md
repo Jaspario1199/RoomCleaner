@@ -69,3 +69,6 @@ Facts behind the obstacle slide (code, not hardware):
 - **Photo 21 (Jasper, 10/22):** the printed claw body (tube in the top mount, servo in the gear housing). It now appears on the
   "Built and simulated" slide next to the heat fin. That slide's bullets list the claw body as built and the encoder casing as
   designed.
+- **Photo 22 (Jasper, 10/22):** the printed gear train with the servo. It sits next to the CAD linkage poses on *A geared four-bar
+  keeps the jaws parallel* (slide 27).
+- **Overview:** `deck_v4/contact_sheet.png` shows all 52 slides on one page.

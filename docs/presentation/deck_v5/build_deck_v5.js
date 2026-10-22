@@ -790,6 +790,31 @@ content("Fin Length", [
   "k = 160 W/m·K, h = 7 W/m²·K, t = 0.48 mm → L_{95} = 136 mm",
 ], note: "Incropera et al., Fundamentals of Heat and Mass Transfer, ch. 3" } });
 
+content("Fin Sizing for 4 W", [
+  "**Question:** what fin carries all 4.05 W alone, with the motor ≤ 60 °C?",
+  "**Built 0.019 in sheet:** never; even infinitely long it carries ≈ 2 W",
+  "**1/8 in, painted, 200 mm:** 56–59 °C alone; ≈ 45 °C with the vented shell",
+  "**Thickness is the lever,** not length; bare needs 1/4 in × ≈ 300 mm",
+], (sl, x, y, w, h) => {
+  table(sl, ["Painted 6061, 44 mm wide", "Mass", "Motor, 200 mm, fin alone", "Shortest for ≤ 60 °C"], [
+    ["0.019 in (built)", "14 g", "100–120 °C", "never (max ≈ 2.0 W)"],
+    ["1/16 in", "47 g", "66–72 °C", "never (max ≈ 3.6 W)"],
+    ["0.090 in", "68 g", "60–65 °C", "210 mm or never"],
+    ["1/8 in (first drawing)", "94 g", "56–59 °C", "145–185 mm"],
+    ["3/16 in", "141 g", "53–55 °C", "125–140 mm"],
+    ["1/4 in", "189 g", "51–52 °C", "115–125 mm"],
+  ], x, y + 0.1, w, [0.32, 0.12, 0.28, 0.28], { size: 13, rowH: 0.5, name: "fin sizing" });
+  caption(sl, "All 4.05 W through the fin, 23 °C room, paste contact; ranges: flange at one temperature to heat spread over the patch. Calculated.",
+          x, y + 0.1 + 7 * 0.5 + 0.12, w);
+}, "The built sheet works today only because the motor also sheds about 2.5 W into the vented shell. A thin sheet has a large m = √(2h/kt), " +
+"so its far end does almost nothing: the most heat any length can carry is w √(2hkt) θ_b, about 2 W for 0.019 in at a 60 °C base. The 1/8 in plate " +
+"of my first drawing, painted, would carry all of it at the same 200 mm, and with the vented shell the motor would run at about 45 °C. Mass is no " +
+"problem on a wall station. 1/8 in may be beyond a hand shear: bandsaw and square it on the mill. Details: calculations/fin_sizing_4w.md.",
+{ split: 0.4, status: "Calculated", eq: { lines: [
+  "q_{∞} = w √(2 h k t) · θ_b",
+  "m = √(2h / (k t)),   η = tanh(mL) / (mL)",
+] } });
+
 content("Floor Board Accuracy", [
   "Angle error becomes position error through the lever arm",
   "One tag: 12.9 mrad × 0.51 m ≈ 6.6 mm",

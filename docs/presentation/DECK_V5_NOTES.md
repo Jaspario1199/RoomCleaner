@@ -1,6 +1,6 @@
 # Deck v5: notes and content contract (2026-10-22)
 
-`deck_v5/build_deck_v5.js` builds `deck_v5/RoomCleaner_Buntinx_Oct27_v5.pptx` / `.pdf`: 23 main slides + 13 backups,
+`deck_v5/build_deck_v5.js` builds `deck_v5/RoomCleaner_Buntinx_Oct27_v5.pptx` / `.pdf`: 23 main slides + 14 backups,
 validated. `deck_v5/contact_sheet.png` shows all 33. Decks v1 to v4 are unchanged.
 
 ## Why v5
@@ -50,6 +50,12 @@ What changed from v4 (52 slides):
 | 22 | Lessons Learned | actual vs half-time bars | |
 | 23 | Questions | | |
 | B | Where It Stands, Fin Length, Floor Board Accuracy, Startup Calibration, Logic: Gen 1 vs Final, One Run, Phone App, Obstacles, Claw Electrical, Gear Strength, Safety, Acronyms, Calculations and Sources | | |
+
+## Update, Oct 22: fin sizing for 4 W
+
+Backup slide **Fin Sizing for 4 W** (after Fin Length): which aluminium thickness and length would carry all 4.05 W alone with
+the motor at or below 60 °C. The built 0.019 in sheet never can (about 2 W even infinitely long); 1/8 in painted at 200 mm can
+(56 to 59 °C alone, about 45 °C with the vented shell). Source: `calculations/fin_sizing_4w.py` and `.md`.
 
 ## Update, Oct 22: thermal check
 

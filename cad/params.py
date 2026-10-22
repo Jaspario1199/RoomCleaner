@@ -415,6 +415,9 @@ GRIPV6R_DENSITY_PETG = 1.27       # g/cm3 (cad/materials.py)
 # --- four-bar (lead analysis, cad/reference/gripper_1021/fourbar.py) -----------------------------------------------
 GRIP1021_AXIS_X = 951.8475            # tube axis x (the two grip faces meet on this plane at the closed pose)
 GRIP1021_AXIS_Z = 1103.99             # tube axis z
+GRIP1021_TUBE_LEN_CAD = 304.8         # tube length in Jasper's 1021 assembly STEP (12 in)
+GRIP1021_TUBE_LEN = 10.48 * 25.4      # D36 (Jasper 10/22): tube as built, 266.19 mm; the head sits
+                                      # GRIP1021_TUBE_LEN_CAD - GRIP1021_TUBE_LEN = 38.61 mm higher than in the STEP
 GRIP1021_O2 = (969.997, 721.413)      # compound (right crank) axis
 GRIP1021_O4 = (963.847, 685.391)      # right arm pivot (gear-housing pin)
 GRIP1021_CRANK_R = 53.0               # crank pin A at this radius from O2

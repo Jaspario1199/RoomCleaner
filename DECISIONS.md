@@ -303,3 +303,16 @@ LxW? ... I say we start with this and then the robot builds its own model of the
   even after phase 2. A static map never detects people or pets, so "nobody under the robot" stays.
 - **Spec:** `docs/ROOM_MAP_SPEC.md`. Not built yet. It goes to an implementer after the phone-app verification finishes,
   because it edits the same files.
+
+D36. **Claw tube as built: 10.48 in (266.2 mm)** (Jasper, 10/22: "the new pipe length is 10.48 in"). D32's 1021
+assembly has the full 12 in tube (304.8 mm); the built one is 38.6 mm shorter, so the head (gear housing, arms,
+hands) sits 38.6 mm closer to the electronics box. (D28's 254.8 mm cut was for the v7 head and is history.)
+- **Config:** `claw.lowest_point_body_m` z = −0.4854 m in `robot.three34.example.json` and `robot.sim3_34.json`
+  (closed fingertips: −0.5240 in the 12 in CAD + 0.0386). The old −0.5173 would have been 32 mm off, past
+  SELF_CHECK's ±3 cm floor-height check.
+- **Rest the claw on CLOSED jaws at startup:** open, the four-bar lifts the tips about 42 mm.
+- **Field check:** standing on closed jaws, the electronics box's bottom face is 477.6 mm (18.8 in) above the floor.
+- **Still the v6 CAD value:** `com_body_m` (measure it).
+- **Unchanged:** the camera, which sits in the box.
+- **Not yet re-derived:** the corner-hole profiles (`robot.three.example.json`, four-station configs).
+- Parameter: `cad/params.py` `GRIP1021_TUBE_LEN`.

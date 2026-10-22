@@ -51,6 +51,9 @@ review's conditions; the review IDs (M1, L2, ...) are given so you can look up t
    config is running four stations (section 3).
 5. On Setup, read the mode line and the **start point** line (section 4). Put the claw upright on sheet 0 of the board at
    that point, camera side toward station C (section 4).
+   **Jaws closed** (D36): with the 10.48 in tube the config expects the closed fingertips 0.485 m below the cable holes. Open,
+   the hands ride about 42 mm higher and the startup stops at SELF_CHECK ("claw origin ... expected 0.485 m"). Quick check
+   with a tape: the bottom face of the electronics box is about **478 mm (18.8 in)** above the floor.
 6. Tick the checklist (it names the three cables and the start point) and start. Stay out from under the robot.
 7. The startup takes up slack on A, B, C one at a time, pretensions, lifts a few cm, calibrates, and ends READY.
    `LOCAL_ONLY` with the reason "slack probe was off" is the normal, safe result (section 6).

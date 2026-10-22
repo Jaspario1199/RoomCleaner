@@ -231,7 +231,7 @@
     "lowest_point_body_m": [
       -0.00045,
       0.0025,
-      -0.5173
+      -0.4854
     ],
     "imu": false,
     "grip_tilt_max_rad": 0.08726646259971647,
@@ -241,7 +241,7 @@
       0.0012,
       -0.19638
     ],
-    "_provenance": "Housing _34 (D34): attachment points A, B, C = OUTER mouths of the three-cable holes T_A, T_B, T_C (verification/gripper1021_housing_34_verification.md; body frame: origin on the tube axis at the 1021 corner-hole inner-mouth height, +z up, +x = box x, +y = -box z, camera bay at +y); D = the 1021 corner hole D inner mouth (unused in three-station mode). Start with the camera bay toward station C. com_body_m / camera_in_body / lowest_point_body_m unchanged (VERIFY)."
+    "_provenance": "Housing _34 (D34): attachment points A, B, C = OUTER mouths of the three-cable holes T_A, T_B, T_C (verification/gripper1021_housing_34_verification.md; body frame: origin on the tube axis at the 1021 corner-hole inner-mouth height, +z up, +x = box x, +y = -box z, camera bay at +y); D = the 1021 corner hole D inner mouth (unused in three-station mode). Start with the camera bay toward station C. com_body_m / camera_in_body / lowest_point_body_m unchanged (VERIFY). lowest_point_body_m z = -0.4854: 1021 hands' CLOSED fingertips with Jasper's tube cut to 10.48 in (266.2 mm; 12 in CAD tip -0.5240 + 38.6 mm, D36, 10/22). Rest the claw on CLOSED jaws at startup (open, the four-bar lifts the tips about 42 mm). com_body_m is still the v6 CAD value: measure it."
   },
   "marker": {
     "family": "apriltag_36h11",

@@ -153,3 +153,25 @@ lower `ENC1021_FLEX_WALL_T` to 1.0 or `ENC1021_HOOK_OVERLAP` to 0.3.
 `renders/encoder1021/`: for each part the 7 standard views (`*_front|rear|left|right|top|bottom|iso.png`, station frame, camera
 at -y / +y / -x / +x / +z / -z), section views (`encoder1021_magnet_cap_section_z0`, `encoder1021_casing_section_z0|x0|hole_row`),
 and the assembly preview with the slip-in mount, spool, motor and shell (`encoder1021_assembly_iso`, `_iso_front`, `_section_z0`).
+
+## 10. Fit-test variants (added 2026-10-22, after the independent verification; nominal exports unchanged)
+
+Built through the parameters (`encoder1021.build_variant(key)`, `params_override`), the master `ENC1021_*` values in `cad/params.py` are not
+edited, and `git status` shows the nominal `encoder1021_{casing,magnet_cap}.step/.stl` unmodified. Regenerate with
+`/usr/bin/python3 -m cad.parts.encoder1021 variants` (the plain run rewrites the nominal exports, do not use it for this).
+Tests: `tests/test_encoder1021_variants.py` (22 items; each variant is one valid solid with the changed dimension measured on the solid,
+zero interference with the station parts except the cap ribs, STEP round trip, STL watertight; together with the 54 nominal tests: 76 pass).
+
+| file stem (`exports/step` and `exports/stl`) | overrides | measured on the solid |
+|---|---|---|
+| `encoder1021_magnet_cap` (nominal, existing) | rib 0.15 high, 0.30 tip | tip r 2.70, 0.05 crush, ribs overlap the bore by 0.163 mm3 |
+| `encoder1021_magnet_cap_rib020` | `ENC1021_CAP_RIB_H` 0.20, `ENC1021_CAP_RIB_W_TIP` 0.45 | tip r 2.750, crush 0.10, 0.477 mm3, 490.8 mm3 |
+| `encoder1021_magnet_cap_rib025` | `ENC1021_CAP_RIB_H` 0.25, `ENC1021_CAP_RIB_W_TIP` 0.45 | tip r 2.800, crush 0.15, 0.735 mm3, 491.3 mm3 |
+| `encoder1021_casing_foot234` | `ENC1021_FOOT_SIZE` 23.4 | foot 23.4 x 23.4 (y max 56.7), side play 0.300 at 7 depths, normal gap foot round to divot wall 0.044 mm (nominal foot 0.0198), floor patch 21.4 flat, 3425.5 mm3 |
+
+- Rib caps: only the rib height and tip width change (verifier condition 2 asked for a tip of at least 0.45 on the taller ribs); the peg round
+  part (r 2.55), flat (2.05), pocket, head, magnet face 29.3 and peg end 22.6 are identical to nominal, the bounding box is the same
+  14 x 6.7 x 14, and the 0.6 mm to the shaft end is unchanged. Without ribs the peg has zero interference in every variant.
+- Foot 23.4: the cost is lateral play (0.3 mm per side instead of 0.2, so the foot term of the chip-offset stack-up grows). Use it only if the
+  23.6 foot binds. Pocket, tabs, chip plane (30.8), hooks, holes (axes unchanged, coaxial with the divot holes), screw access, the bridge
+  and the print orientation are the same as nominal; zero interference with all six station parts; foot-on-floor is the only contact.

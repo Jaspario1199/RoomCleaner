@@ -34,9 +34,11 @@ Every level along y is derived from ENC1021_* in Cfg, so one edit of cad/params.
 
 from __future__ import annotations
 
+import contextlib
 import functools
 import math
 import os
+import sys
 
 import cadquery as cq
 
@@ -457,6 +459,57 @@ def export_all(step_dir: str = STEP_DIR, stl_dir: str = STL_DIR) -> dict:
     return out
 
 
+# =============================================================================================================================
+# fit-test variants (cad/parts, lead request 2026-10-22): built THROUGH the parameters, the master ENC1021_* values stay untouched
+# =============================================================================================================================
+@contextlib.contextmanager
+def params_override(**values):
+    """Temporarily set cad.params attributes (restored on exit, also on error): the master values are never edited."""
+    old = {}
+    try:
+        for k, v in values.items():
+            if not hasattr(P, k):
+                raise AttributeError(f"cad.params has no {k}")
+            old[k] = getattr(P, k)
+            setattr(P, k, v)
+        yield
+    finally:
+        for k, v in old.items():
+            setattr(P, k, v)
+
+
+# key -> (part, parameter overrides, file stem).  The taller crush ribs also get a wider tip (0.45: at least a 0.4 mm nozzle line,
+# verifier condition 2); foot234 is the fallback if the 23.6 foot binds in the divot (0.3 mm per side instead of 0.2).
+VARIANTS = {
+    "rib020": ("cap", {"ENC1021_CAP_RIB_H": 0.20, "ENC1021_CAP_RIB_W_TIP": 0.45}, "encoder1021_magnet_cap_rib020"),
+    "rib025": ("cap", {"ENC1021_CAP_RIB_H": 0.25, "ENC1021_CAP_RIB_W_TIP": 0.45}, "encoder1021_magnet_cap_rib025"),
+    "foot234": ("casing", {"ENC1021_FOOT_SIZE": 23.4}, "encoder1021_casing_foot234"),
+}
+
+
+def build_variant(key: str) -> cq.Workplane:
+    """One fit-test variant (a single call per variant)."""
+    part, overrides, _ = VARIANTS[key]
+    with params_override(**overrides):
+        return make_magnet_cap() if part == "cap" else make_casing()
+
+
+def export_variant(key: str, step_dir: str = STEP_DIR, stl_dir: str = STL_DIR) -> dict:
+    """STEP (station frame) + STL (print orientation) of one variant; the nominal exports are not touched."""
+    part, _, stem = VARIANTS[key]
+    os.makedirs(step_dir, exist_ok=True)
+    os.makedirs(stl_dir, exist_ok=True)
+    wp = build_variant(key)
+    step, stl = os.path.join(step_dir, f"{stem}.step"), os.path.join(stl_dir, f"{stem}.stl")
+    cq.exporters.export(wp, step)
+    cq.exporters.export(cq.Workplane("XY").add(to_print_pose(wp.val(), part)), stl, tolerance=0.02, angularTolerance=0.1)
+    return {"step": step, "stl": stl}
+
+
+def export_variants() -> dict:
+    return {k: export_variant(k) for k in VARIANTS}
+
+
 # standard views: name -> (direction from the part TO the camera, screen-up hint), station frame (x room, y toward spool, z up)
 VIEWS = {
     "front": ((0, -1, 0), (0, 0, 1)),     # camera at -y: the chip / magnet side; +x right
@@ -720,7 +773,13 @@ def render_sections(out_dir: str = RENDER_DIR) -> list:
 
 
 # =============================================================================================================================
-if __name__ == "__main__":
+if __name__ == "__main__" and sys.argv[1:] == ["variants"]:
+    for k, d in export_variants().items():                  # fit-test variants only; the nominal exports are not rewritten
+        v = build_variant(k).val()
+        bb = v.BoundingBox()
+        print(f"{k}: valid={v.isValid()} solids={len(v.Solids())} vol={v.Volume():.1f} mm3 bbox {bb.xlen:.3f} x {bb.ylen:.3f} x {bb.zlen:.3f}  "
+              f"{d['step']}  {d['stl']}")
+elif __name__ == "__main__":
     c = Cfg()
     for nm, mk, part in (("magnet cap", make_magnet_cap, "cap"), ("encoder casing", make_casing, "casing")):
         wp = mk()

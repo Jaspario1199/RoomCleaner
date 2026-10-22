@@ -1,0 +1,332 @@
+{
+ "fuse": {
+  "hold_nm": 0.36000000000000004,
+  "slip_empty": 48.00000000000001,
+  "slip_full": 36.0,
+  "run_empty": 33.6,
+  "run_full": 25.2,
+  "slip_low": 33.941125496954285,
+  "slip_fleet": 53.42960498708212,
+  "upper": 59.366227763424575,
+  "upper_hold_nm": 0.4000000000000001
+ },
+ "design_force": 16.8,
+ "jeans_peak": 16.201215,
+ "line": {
+  "rated": 533.78664,
+  "knot_lower": 266.89332,
+  "knot_upper": 480.407976,
+  "tieoff_share_with_wraps": [
+   0.1518358019806489,
+   0.3896611373753468
+  ]
+ },
+ "setscrew": {
+  "r_flat": 2.0,
+  "lever_mm": 1.025,
+  "thread_len": 4.775,
+  "strip_area": 22.501657381336894,
+  "f_strip": [
+   326.27403202938495,
+   587.2932576528929
+  ],
+  "f_seat_petg": [
+   163.13701601469248,
+   469.8346061223143
+  ],
+  "f_seat_insert": [
+   565.0,
+   753.3333333333333
+  ],
+  "torque_petg": [
+   0.19229775762731874,
+   0.553817541966678
+  ],
+  "torque_insert": [
+   0.6659937499999999,
+   0.8879916666666665
+  ],
+  "dflat_now": {
+   "gap": 0.4500000000000002,
+   "turn_deg": 25.391556691310466,
+   "lever_mm": 0.4974937185533088,
+   "contact_force_at_hold": 723.6272269866344,
+   "across_flat": 4.95
+  },
+  "dflat_tight": {
+   "gap": 0.12500000000000044,
+   "turn_deg": 5.081567028792419,
+   "lever_mm": 1.3169567191065914,
+   "contact_force_at_hold": 273.3575027767199,
+   "across_flat": 4.625
+  }
+ },
+ "shaft": {
+  "lever": 21.0,
+  "Z": 10.288606529467591,
+  "Z_round": 12.271846303085129,
+  "f_yield": 171.47677549112652,
+  "f_yield_hi": 293.9601865562169,
+  "f_bearing_static": 223.52941176470588,
+  "front_bearing_at_fuse": 100.92258719782177,
+  "radial_rating": 28.0,
+  "run_vs_rating": 1.2
+ },
+ "motor_screws": {
+  "strip_al": 2578.619250066502,
+  "punch": 1252.7100706189296,
+  "per_screw_per_N": 0.2903225806451613,
+  "f_line": 4314.8902432429795,
+  "at_fuse": 17.235356447445845
+ },
+ "tab": {
+  "cases": {
+   "D1": {
+    "label": "straight down",
+    "T_slip": 48.00000000000001,
+    "vm_at_slip": 4.588967389993948,
+    "sig_at_slip": 0.9222876112871586,
+    "fail_sharp": 104.59869491481246,
+    "fail_fillet": 174.3311581913541,
+    "nominal": 261.4967372870311
+   },
+   "D2c": {
+    "label": "floor-centre diagonal, fleet-clipped",
+    "T_slip": 53.42960498708212,
+    "vm_at_slip": 4.7730029170402695,
+    "sig_at_slip": 2.1989331929173574,
+    "fail_sharp": 111.94127872063761,
+    "fail_fillet": 186.56879786772936,
+    "nominal": 279.85319680159404
+   },
+   "D3": {
+    "label": "scan, straight out",
+    "T_slip": 48.00000000000001,
+    "vm_at_slip": 4.818046090307923,
+    "sig_at_slip": 4.736843240278063,
+    "fail_sharp": 91.19997814718495,
+    "fail_fillet": 151.9999635786416,
+    "nominal": 249.06361987983968
+   },
+   "D4f": {
+    "label": "along the wall toward -y, reachable",
+    "T_slip": 53.42960498708212,
+    "vm_at_slip": 7.760483695932179,
+    "sig_at_slip": 7.748616023986816,
+    "fail_sharp": 62.0583654416681,
+    "fail_fillet": 103.43060906944683,
+    "nominal": 172.1207307448129
+   }
+  },
+  "worst": "D4f"
+ },
+ "retention": {
+  "bearing_at_fuse": 0.09448678893277786,
+  "f_line": 15707.54716981132
+ },
+ "wall": {
+  "per_case": {
+   "D1": {
+    "T": 48.00000000000001,
+    "six_t": 15.05922496666667,
+    "six_v": 10.635236777283668,
+    "one_t": 30.11844993333334,
+    "one_v": 32.24188994996667,
+    "f_design_one": 551.1956370053724,
+    "f_ult_one": 3065.3573953791447,
+    "f_design_six": 1108.811279913174,
+    "f_bare_drywall": 73.95340907448303,
+    "f_plastic_anchor": 154.3268240513953
+   },
+   "D2c": {
+    "T": 53.42960498708212,
+    "six_t": 25.768748938601746,
+    "six_v": 10.715791429292722,
+    "one_t": 34.23411217029979,
+    "one_v": 27.5711196473394,
+    "f_design_one": 531.2418971575664,
+    "f_ult_one": 2954.3889117745703,
+    "f_design_six": 683.303636112234,
+    "f_bare_drywall": 45.5737006277991,
+    "f_plastic_anchor": 95.10372227835637
+   },
+   "D3": {
+    "T": 48.00000000000001,
+    "six_t": 12.118756912248278,
+    "six_v": 4.525079819679592,
+    "one_t": 25.860849275880504,
+    "one_v": 10.465967392438694,
+    "f_design_one": 656.3955217537036,
+    "f_ult_one": 3650.4041973791163,
+    "f_design_six": 1424.0657310414026,
+    "f_bare_drywall": 94.97965746245319,
+    "f_plastic_anchor": 198.20464085579783
+   },
+   "D4f": {
+    "T": 53.42960498708212,
+    "six_t": 21.374584499409195,
+    "six_v": 5.751298634251581,
+    "one_t": 29.597109593630382,
+    "one_v": 14.32457057379414,
+    "f_design_one": 625.826857557335,
+    "f_ult_one": 3480.4030678885238,
+    "f_design_six": 836.5103166434533,
+    "f_bare_drywall": 55.79199162422195,
+    "f_plastic_anchor": 116.42736937517452
+   }
+  },
+  "worst": "D2c",
+  "withdrawal_6_spf": {
+   "design": 308.6092797026401,
+   "ultimate": 1700.0581373092803
+  },
+  "lateral_6": 270.85725183280005,
+  "table_1in": {
+   "#6 in spruce-pine-fir": {
+    "design": 308.6092797026401,
+    "ultimate": 1700.0581373092803
+   },
+   "#6 in Douglas fir-larch": {
+    "design": 437.37142815000004,
+    "ultimate": 2409.3794463000004
+   },
+   "#6 in southern pine": {
+    "design": 529.2194280615003,
+    "ultimate": 2915.3491300230003
+   },
+   "#8 in spruce-pine-fir": {
+    "design": 366.75305703792003,
+    "ultimate": 2020.3589457878402
+   },
+   "#8 in Douglas fir-larch": {
+    "design": 519.7747407,
+    "ultimate": 2863.3205014000005
+   },
+   "#8 in southern pine": {
+    "design": 628.9274362470003,
+    "ultimate": 3464.6178066940006
+   },
+   "#10 in spruce-pine-fir": {
+    "design": 424.8968343732,
+    "ultimate": 2340.6597542664
+   },
+   "#10 in Douglas fir-larch": {
+    "design": 602.1780532500001,
+    "ultimate": 3317.2615565
+   },
+   "#10 in southern pine": {
+    "design": 728.6354444325002,
+    "ultimate": 4013.886483365
+   }
+  },
+  "head_punch": 3165.8488904681594,
+  "f_head_punch": 5506.999069275769
+ },
+ "stud": {
+  "F": 59.366227763424575,
+  "sigma": 0.7215925516577751,
+  "Fb_ref": 6.033125
+ },
+ "detection": {
+  "tol_counts": 60,
+  "tol_deg": 5.2734375,
+  "dwell_s": 0.15,
+  "skip_deg": 7.2,
+  "skip_counts": 81.92,
+  "line_per_skip_mm": 0.942477796076938,
+  "tol_line_mm": 0.6902913545485385
+ },
+ "ranking": [
+  {
+   "link": "Motor torque (the fuse)",
+   "lower": 33.941125496954285,
+   "upper": 59.366227763424575,
+   "ratio": 0.5717244766201122,
+   "verdict": "FUSE",
+   "basis": "holding torque / spool radius; 33.9 N (1/sqrt2 vector) to 59.4 N (40 N.cm motor, fleeted line)"
+  },
+  {
+   "link": "Spool on shaft: set screw in a printed thread",
+   "lower": 28.539981194248046,
+   "upper": 82.19514583943437,
+   "ratio": 0.4807443940682968,
+   "verdict": "GIVES FIRST",
+   "basis": "0.19 to 0.55 N.m against 0.40 N.m: seat force capped by the PETG thread"
+  },
+  {
+   "link": "Motor tab root, sharp back corner (as drawn)",
+   "lower": 62.0583654416681,
+   "upper": 172.1207307448129,
+   "ratio": 1.045347966001339,
+   "verdict": "MARGINAL",
+   "basis": "hand model of the static manual, worst reachable direction D4f, 25 MPa derated / 22.5 MPa across layers"
+  },
+  {
+   "link": "Spool on shaft: set screw in a brass heat-set insert",
+   "lower": 98.8438416287931,
+   "upper": 131.79178883839077,
+   "ratio": 1.6649843749999995,
+   "verdict": "PASS",
+   "basis": "0.67 to 0.89 N.m: screw seated to the steel-thread rating (3-4 in-lb)"
+  },
+  {
+   "link": "Motor tab root with a 2 mm fillet",
+   "lower": 103.43060906944683,
+   "upper": 172.1207307448129,
+   "ratio": 1.7422466100022316,
+   "verdict": "PASS",
+   "basis": "same model, Kt 1.5"
+  },
+  {
+   "link": "Motor shaft (bending yield at the D-flat)",
+   "lower": 171.47677549112652,
+   "upper": 293.9601865562169,
+   "ratio": 2.88845665206259,
+   "verdict": "PASS",
+   "basis": "350 to 600 MPa x Z 10.29 mm3 / 21 mm; front-bearing static rating at 224 N"
+  },
+  {
+   "link": "Line knot (120 lb braid)",
+   "lower": 266.89332,
+   "upper": 480.407976,
+   "ratio": 4.495709598790316,
+   "verdict": "PASS",
+   "basis": "50 to 90 % knot efficiency"
+  },
+  {
+   "link": "Wall screws: 3 x #6 in one stud column",
+   "lower": 531.2418971575664,
+   "upper": 2954.3889117745703,
+   "ratio": 8.94855403773631,
+   "verdict": "PASS",
+   "basis": "top screw at the NDS design value (lower) and the test ultimate (upper); 1 in of thread in SPF, 309 / 1700 N per screw"
+  },
+  {
+   "link": "Wall plate: screw head pulls through the PETG",
+   "lower": 5506.999069275769,
+   "upper": 9912.598324696384,
+   "ratio": 92.76316311053574,
+   "verdict": "PASS",
+   "basis": "#6 head punching through 10.53 mm of PETG, 3166 N per screw"
+  },
+  {
+   "link": "Motor screws (4 x M3 x 12 into the motor)",
+   "lower": 4314.8902432429795,
+   "upper": 8881.910750229063,
+   "ratio": 72.68257401224633,
+   "verdict": "PASS",
+   "basis": "head punching through the 5 mm PETG tab; thread strip in the aluminium cap"
+  },
+  {
+   "link": "Slide-in dovetails and lips",
+   "lower": 1000.0,
+   "upper": 15707.54716981132,
+   "ratio": 16.844593932850458,
+   "verdict": "PASS",
+   "basis": "flank bearing 0.09 MPa at the fuse; not limiting (shown as > 1 kN)"
+  }
+ ],
+ "torque_needed_nm": 0.4000000000000001,
+ "pass_ratio": 1.5,
+ "fleet_deg": 26.05428033712045
+}

@@ -556,3 +556,10 @@ slack_probe default (keep false until probe H1/M2 are closed).
   before M3 × 10); magnet thickness (2.5 mm assumed); which heat-set inserts are real.
 - Do not run `python -m cad.parts.encoder1021 v2`: it would overwrite the Ø6 record files with Ø4 geometry.
 - Deck: v7 (`docs/presentation/DECK_V7_NOTES.md`) is current — one story by project phase, figure plus statements.
+
+## Claw weighed (10/22, Jasper)
+- Claw 0.60 kg without the battery (CAD estimate was 0.76 kg). With the 0.10 kg battery (spec) and 0.90 kg jeans the
+  claw needs 1.60 kg of lift against the 1.56 kg capacity at 1.5 A: 0.04 kg (about 3 %) short. The 1 lb test (1.15 kg) fits.
+  The claw is still 0.15 kg over its 0.45 kg budget. Sheet "Lift budget" updated (input row 13); deck v7 updated.
+- Fix options, in order: the pull test (running torque above the assumed 0.7 of holding may close it), a 40 g claw cut,
+  or a 2:1 gear stage at each winch (clears it and allows about 1 A, halving the motor heat).

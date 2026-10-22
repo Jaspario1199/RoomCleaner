@@ -33,6 +33,10 @@ from .simkit import ModelFrameItemPerception, assert_no_eq_failures, item_offset
 from .test_three_station import fast3
 
 PROFILE = "config/robot.sim3_34.json"
+# tonight's operator setting is the item's real weight (about 0.2-0.3 kg), not the 0.9 kg of the jeans requirement: with 0.9 kg the
+# cable tension limit of this three-cable profile leaves NO position carriable at the transport height (see
+# test_with_the_jeans_payload_of_0_9_kg_every_item_is_unreachable_before_any_grip and verification/task_pumping_results.md)
+PAYLOAD_KG = 0.3
 _RUN: dict = {}
 
 
@@ -75,11 +79,10 @@ def claw_xyz(r):
     return r.ctx.model.pose_from_positions(r.ctx.co.positions())[0]
 
 
-def carry_plannable(r, xy, height=0.05, margin=0.8):
-    """Can an item at ``xy`` be carried to the hamper with the full payload? The same legs as ``TaskRunner._handle`` (lift, verify shift,
-    raise, transport) planned with the real path check and the tension limit scaled by ``margin``. On the three-cable claw the tension
-    limit binds with 0.9 kg at some places (the first rehearsal of this file: 12.1 N > 12.0 N at 'raise' over (1.92, 1.00)); the
-    tests that deliver items choose items where it does not, so that they test reach and not this."""
+def carry_plannable(r, xy, height=0.05, margin=0.9, payload=PAYLOAD_KG):
+    """Can an item at ``xy`` be carried to the hamper with ``payload`` kg? The same legs as ``TaskRunner._handle`` (lift, verify shift,
+    raise, transport) planned with the real path check and the tension limit scaled by ``margin``. The tests that deliver items choose
+    items where it can, so that they test reach and not the tension limit."""
     ctx, tc = r.ctx, r.cfg.tasks
     zf = -float(r.cfg.claw.lowest_point_body_m[2])
     hamper = np.asarray(tc.hamper_room_m, float)
@@ -91,7 +94,7 @@ def carry_plannable(r, xy, height=0.05, margin=0.8):
     z_t = max(above[2], zf + tc.hamper_height_m + tc.release_clearance_m)
     legs = [(grip, above), (above, shift), (shift, np.array([shift[0], shift[1], z_t])),
             (np.array([shift[0], shift[1], z_t]), np.array([hamper[0], hamper[1], z_t]))]
-    lim = dataclasses.replace(ctx.lim, mass_kg=r.cfg.claw.mass_kg + tc.max_payload_kg, t_max=ctx.lim.t_max * margin)
+    lim = dataclasses.replace(ctx.lim, mass_kg=r.cfg.claw.mass_kg + payload, t_max=ctx.lim.t_max * margin)
     try:
         for a, b in legs:
             plan_line(ctx.model, a, b, lim, ws=ctx.ws, allow_low=True)
@@ -168,8 +171,7 @@ def outside_point(r, vol, z=1.0):
 def make_runner(r, perception=None, **tasks_changes):
     """A TaskRunner whose task configuration is a copy with ``tasks_changes`` (the shared config is never modified)."""
     runner = TaskRunner(r.ctx, perception or ModelFrameItemPerception(r.world))
-    if tasks_changes:
-        runner.tc = dataclasses.replace(r.cfg.tasks, **tasks_changes)
+    runner.tc = dataclasses.replace(r.cfg.tasks, **{"max_payload_kg": PAYLOAD_KG, **tasks_changes})
     return runner
 
 
@@ -410,6 +412,32 @@ def test_a_tension_refusal_while_planning_the_descent_fails_that_item_with_the_j
     assert len(out["done"]) == 1 and len(out["failed"]) == 1, out
     assert out["failed"][0][1].startswith("unreachable: descend ") and "tension infeasible" in out["failed"][0][1]
     assert r.world.held is None
+    reset(r)
+
+
+def test_with_the_jeans_payload_of_0_9_kg_every_item_is_unreachable_before_any_grip(rig):
+    """The default ``tasks.max_payload_kg`` is 0.9 kg (jeans). On this three-cable profile the cable tension limit (15 N, 12 N with the
+    planner's margin) leaves no position carriable at the transport height with that mass, so the carry dry run refuses every item
+    BEFORE the claw moves towards it; with the item's real weight (0.3 kg) the same item is delivered. Without the dry run the task
+    picked the item up and aborted in the air at 'raise' (rehearsal: tension infeasible, 12.1 N > 12.0 N)."""
+    r, sup = rig
+    home(r)
+    off = item_offsets(r, n=1)[0]                                       # carriable with 0.3 kg
+    r.world.add_item("sock", r.world.p[:2] + off)
+    runner = make_runner(r, max_payload_kg=0.9)
+    moves, executed, unspy = spy(r, runner)
+    grips = []
+    orig_grip = r.claw.grip
+    r.claw.grip = lambda close: (grips.append(close), orig_grip(close))[1]
+    try:
+        out = runner.run()
+    finally:
+        unspy()
+        r.claw.grip = orig_grip
+    assert out["done"] == [] and [f[0] for f in out["failed"]] == ["sock"], out
+    assert out["failed"][0][1].startswith("unreachable: ") and "tension infeasible" in out["failed"][0][1], out["failed"]
+    assert grips == [] and not [m for m in moves if m[0] and "sock" in m[0]]       # nothing gripped, nothing moved towards the item
+    assert r.world.items[0]["state"] == "floor"
     reset(r)
 
 

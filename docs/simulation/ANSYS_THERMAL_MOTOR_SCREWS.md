@@ -1,5 +1,8 @@
 # Study D: ANSYS steady-state thermal of the motor, fin, motor screws and heat-set inserts (1.5 A)
 
+> **Superseded for use (10/22):** Jasper is running the study in **SOLIDWORKS Simulation**; see Study E,
+> [`SW_THERMAL_NEMA17_DETAILED.md`](SW_THERMAL_NEMA17_DETAILED.md). This ANSYS version is kept for reference.
+
 ANSYS Mechanical walkthrough for Jasper (lead, 2026-10-22). It is the ANSYS version of Study C
 ([`SW_THERMAL_MOTOR_ASSEMBLY.md`](SW_THERMAL_MOTOR_ASSEMBLY.md)), with two additions Jasper asked for:
 - the **four M3 motor screws**;

@@ -1,0 +1,8 @@
+name,suggested material,k W/m.K,density g/cm3,volume mm3,mass g,exposed surface type,note
+front_cap,Aluminium die-cast (A380),96.0,2.74,14607.00,40.02,aluminium end cap,carries the 4 tapped holes and the pilot boss: the heat path into the fin
+stator,Silicon-steel laminations,25.0,7.65,18994.13,145.31,black painted steel,k is IN-PLANE; across the stack (along y) about 1 to 2 W/m.K because of the lamination insulation (orthotropic if the study allows)
+winding,"Copper winding + slot insulation, homogenised",1.0,5.0,10833.78,54.17,internal (no exposed surface),"the heat source: assign the 4.05 W here; effective k 0.5 to 2 (fill and varnish), density ~50 % copper fill"
+rear_cap,Aluminium die-cast (A380),96.0,2.74,14032.88,38.45,aluminium end cap,blind Ø5.0 shaft seat 7 mm deep
+shaft,Carbon steel,50.0,7.85,1197.73,9.40,bare steel shaft,"Ø5, no D-flat in this model; exposed 24 mm beyond the front face"
+connector,PBT,0.25,1.4,576.00,0.81,plastic connector,"housing only, no pins"
+total,,,,60241.53,288.16,,

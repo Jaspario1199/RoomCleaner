@@ -45,7 +45,7 @@ Conditions for printing: (C1) compensate first-layer elephant foot at the bump t
 | 5 | Corner bores / lines (13.76 deg, 400 mm) | >= 5 mm | 39.43 mm (all four) | 5.0 | PASS |
 | 5 | T_A / T_B / T_C bores | >= 5 mm | 7.00 mm (all three) | 5.0 | PASS |
 | 5 | Lines leaving T holes, elevation 0 / 15 / 30 / 45 / 60 deg, surface to lid | >= 5 mm | 7.98 / 7.96 / 7.68 / 6.82 / 5.54 mm | 5.0 | PASS |
-| 5 | Steep lines 75 / 90 deg | literal 5 mm not reachable | lid 3.99 (T_C 4.23) / 2.25 mm; the housing rim is closer: 2.42 (T_C 2.84) / 0.00 mm. The 83 deg worst case of the housing cable study is covered in the run output (`test_05b`). Lid stays inside the 45 mm wall plane (max 42.65) | | PASS (lid never limiting) |
+| 5 | Steep lines 75 / 90 deg | literal 5 mm not reachable | lid 3.99 (T_C 4.23) / 2.25 mm; the housing rim is closer: 2.42 (T_C 2.84) / 0.00 mm. At 83 deg (the worst elevation of the housing cable study): lid 3.20 (T_C) / 3.08, rim 1.07 / 0.86 mm. Lid stays inside the 45 mm wall plane (max 42.65) | | PASS (lid never limiting) |
 | 5 | Camera-bay cover | clear | 21.01 mm, overlap 0.000 mm3 | 5.0 | PASS |
 | 5 | Pry notch | opens into free space | notch x -27 .. -13, inner wall z 37.75 (4.5 deep); 2.25 mm of it (z 37.75 .. 40) is over the open pocket; 20 columns under it are empty down to the pocket floor (y 5.0); an 8 x 1 mm blade pushed down to y 8 touches neither lid nor housing; 10 mm of plate to the arm slot, 3 mm of straight edge to the corner start | | PASS |
 | 6 | STL watertight | every edge shared by 2 triangles | 1256 triangles, 0 bad edges | exact | PASS |

@@ -60,10 +60,13 @@ shank Ø3.0 from y 5 to y = -t - 4.0 filling the motor holes (shared cylinder + 
 pocket floor); `insert_enc_n` OD 3.45 x 4.0 ID 2.1 flush with the divot floor on the hole bottom. `THERMAL_INSERTS = ("deck", "enc")` selects the candidates (tested: `()`, `("deck",)`,
 `("enc",)`, both). Which inserts Jasper means is still not confirmed.
 
-**Fin split (lead's addition).** `fin_in` (below) and `fin_out` (above) the plane z = `THERMAL_FIN_SPLIT_Z` = 34.6 (station_1021 frame). Re-measured from `Shell_Casing.step`: max z of shell material inside the
-Heat_horn's x / y footprint widened by 6 mm = **34.593** (parameter 34.6, tolerance 0.05, asserted at build). **Height above the fin's bottom edge: 52.96 mm** (34.6 - (-18.356); 52.95 for the measured top).
-The halves touch on the plane over 42 x t = 133.35 mm2 (1/8 in) / 20.29 mm2 (0.019 in); volumes sum to the unsplit fin within 1e-9 mm3 (limit 0.01). Caution: the measured top depends on which footprint is
-used. With the 3.175 mm fin's own footprint widened by 6 mm (y -9.175 .. +6) the max z is 36.45, because a taller shell feature lies at y < -6; the Heat_horn (2.0 mm) footprint, which the 34.6 refers to, gives 34.593.
+**Fin split (lead's addition, plane corrected by the lead).** `fin_in` (below) and `fin_out` (above) the plane z = `THERMAL_FIN_SPLIT_Z` = **31.16** (station_1021 frame): the top of the roof plate at the fin slot
+(roof plate z 27.84 .. 31.16, F6 of `verification/thermal_assembly_1p5a_check.md`), where the fin leaves the shell enclosure. The builder re-measures it on the two slot walls of `Shell_Casing.step`
+(both end at z = 31.1558 in the file, parameter 31.16, tolerance 0.05, asserted at build). **Height above the fin's bottom edge: 49.52 mm** (31.16 - (-18.356)).
+The funnel that rises around the slot above the roof plate (z 33 at 6 mm off the fin, 36 to 37 at 9 mm) is outside air; my first split plane (z 34.6, the funnel top inside a 6 mm widened footprint) is superseded.
+The halves touch on the plane over 42 x t = 133.35 mm2 (1/8 in) / 20.29 mm2 (0.019 in); volumes sum to the unsplit fin within 1e-9 mm3 (limit 0.01):
+**1/8 in: fin_in 5225.267 mm3 (14.11 g), fin_out 21680.557 mm3 (58.54 g)** (sum 26905.824); **0.019 in: fin_in 794.899 mm3 (2.15 g), fin_out 3298.176 mm3 (8.91 g)** (sum 4093.075).
+The slip-in (tab top z 26.29) and the motor face (top z 23.79) stay below the plane, so `fin_out` touches only `fin_in`; `fin_in` holds all 5 holes.
 
 **Overlaps: none.** All three variants: the largest pair overlap is 0.000000 mm3 (limit 0.01); no pair overlaps at all.
 
@@ -72,13 +75,13 @@ Body table, `fin1p8` (volumes measured; masses = volume x the density in `THERMA
 | body | material to assign | k W/m.K | density g/cm3 | volume mm3 | mass g |
 |---|---|---|---|---|---|
 | motor_block | structural steel (motor proxy, effective density so the block = 0.28 kg) | 50 | 4.118 | 67879.92 | 279.53 |
-| fin_in / fin_out | aluminium 6061-T6 (5052-H32 k ~138) | 167 | 2.70 | 5683.99 / 21221.83 | 15.35 / 57.30 |
+| fin_in / fin_out | aluminium 6061-T6 (5052-H32 k ~138) | 167 | 2.70 | 5225.27 / 21680.56 | 14.11 / 58.54 |
 | slipin_mount | PETG | 0.20 | 1.27 | 217693.15 | 276.47 |
 | screw_1..4 (each) | steel (12.9 alloy; A2 would be k ~16) | 50 | 7.85 | 157.34 | 1.235 |
 | insert_deck | brass | 115 | 8.5 | 47.28 | 0.402 |
 | insert_enc_1..4 (each) | brass | 115 | 8.5 | 23.54 | 0.200 |
 
-`fin0p019`: same, with fin_in / fin_out 864.68 / 3228.39 mm3 (2.34 / 8.72 g) and screws 138.31 mm3 (1.086 g). `detailed_fin1p8`: section 4 for the motor bodies, screws 156.10 mm3 (1.225 g).
+`fin0p019`: same, with fin_in / fin_out 794.90 / 3298.18 mm3 (2.15 / 8.91 g) and screws 138.31 mm3 (1.086 g). `detailed_fin1p8`: section 4 for the motor bodies, screws 156.10 mm3 (1.225 g).
 
 **Contact list for the simulation** (face-to-face contact areas, mm2; computed as the area of the coincident faces, checked against the analytic values; distance 0 within 1e-9). `fin1p8` (`fin0p019` is identical
 except fin_in - fin_out = 20.29):
@@ -159,4 +162,14 @@ Retention note: the crush ribs engage 1.5 mm less (spool contact volume 0.234 vs
 
 ## 7. Tests (all run with `/usr/bin/python3 -m pytest`)
 
-SEE_RESULTS_BELOW
+| suite | result |
+|---|---|
+| `tests/test_heat_fin1021.py` (outline and holes = reference, thicknesses, volume = area x t, flat frame, asm copy vs the original assembly's Heat_horn, STEP / STL / DXF / drawing) | 29 passed |
+| `tests/test_thermal_station1021.py` (names, optional inserts, overlap limits, contact list, screws, inserts, motor shift, fin split at z 31.16, named-component STEP read-back, tables, shell slot and screw-length findings) | 49 passed |
+| `tests/test_nema17_thermal.py` (dimensions, body list, no overlaps, shaft in the bores, winding inside the stator, screws in the front cap, placement, exports, table) | 19 passed |
+| `tests/test_encoder1021.py`, `_v2.py`, `_variants.py`, `_verification.py`, `_v2_verification.py` (the existing suites, Ø6 numbers now read the parameters / the record) | all passed |
+| `tests/test_encoder1021_m4.py` (Ø4.0 caps), `tests/test_encoder1021_peg1p9.py` (short peg) | 18 + 9 passed |
+
+Encoder run: **182 passed** in total (9 min 22 s, 0 failed) over the seven `test_encoder1021*.py` files; the three new thermal / fin / NEMA files: **97 passed** (38 s). After the Ø4.0 change, 20 of the 155 existing encoder tests failed, only because they hard-coded Ø6 / Ø6.2 / Ø6.3 or compared a Ø4.0 build with the Ø6 files on disk; they were updated as
+described in `verification/encoder1021_build_notes.md`. Bounds that were loosened: the cap volume (v1 450 .. 600, v2 480 .. 560, actual 531.9) and the v2 overhang-area lower bound (now 0.7 x the
+pocket disc instead of 28 mm2); the other edits replace a typed Ø6 number by the same quantity derived from the parameters.

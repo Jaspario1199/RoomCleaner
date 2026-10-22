@@ -19,7 +19,7 @@ It is one STEP assembly; every part is named.
 | `shaft` | Ø5 steel shaft | Alloy Steel (library) | 50 | steel |
 | `connector` | plastic connector housing | Custom "PBT" | 0.25 | plastic |
 | `screw_1..4` | M3 × 12 socket head, 3.8 mm into the front cap | Alloy Steel | 50 (42 for 12.9; stainless 16) | steel |
-| `fin_in`, `fin_out` | the **1/8 in** fin, split where it leaves the shell | 6061-T6 (library 6061 Alloy) | 167 | matte black paint |
+| `fin_in`, `fin_out` | the **1/8 in** fin, split where it leaves the shell: at z 31.16 (the shell roof plate at the slot), not 34.6 | 6061-T6 (library 6061 Alloy) | 167 | matte black paint |
 | `slipin_mount` | the PETG slip-in | Custom "PETG printed" | 0.20 | PETG |
 
 **A note on the motor's surfaces.** On a NEMA 17 the black sides are **not plastic**: they are the laminated **steel** stator,
@@ -40,9 +40,11 @@ against 0.1). Section 3 gives the numbers for both.
 | **Motor outside** (front cap, stator) | **45 to 49 °C** | network model (sheet 48.9 °C; refined with radiation 44.7 to 45.8 °C) |
 | Winding | a few K above the stator in this model; a real motor's winding sits 10 to 20 K above its case (insulation, air gaps) | the homogenised winding conducts better than a real coil |
 | **Heat carried by the fin** | **2.4 to 2.5 W** (about 60 % of 4.05 W) | network model |
-| **PETG max** (tab against the fin) | about 1 to 3 K below the front cap: **≈ 43 to 48 °C** | must stay **under 60 °C** |
+| **PETG max** (tab against the fin) | PETG maximum about equal to the front cap (0.5 to 1.2 K lower against the fin): **about 45 to 49 °C** | must stay **under 60 °C** |
 | **Screw heads** | close to the front cap temperature, minus a few K | steel bridges heat around the PETG |
 | Heat per screw | well under 0.1 W | a head can only lose heat into the PETG and still air |
+
+The bonded motor face on the PETG deck carries real heat (about 0.7 W in Study C).
 
 The model passes when:
 - the energy balance closes within 1 % of 4.05 W;

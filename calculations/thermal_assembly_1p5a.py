@@ -10,7 +10,10 @@ from calculations import simulation_loads as S
 
 I_D37 = 1.5                      # A, D37 (Jasper, 10/22)
 CAD_FIN_T = 2.0                  # mm, Heat_horn thickness in Assem_laundry_v3_step_1021 (y -2 to 0)
-CAD_FIN_EXIT = 53.0              # mm above the fin's bottom edge where it leaves the shell top (z 34.6 in the 1021 frame)
+CAD_FIN_EXIT = 49.5              # mm above the fin's bottom edge where it leaves the shell roof plate (z 31.16 in the 1021 frame; STEP-measured,
+                                 # roof plate at the fin slot is z 27.84 to 31.16; was 53.0 / z 34.6 before the 10/22 independent check, F6)
+CAD_FIN_EXIT_Z = 31.16           # mm, same point in the 1021 station frame
+CAD_FIN_TOP_Z = 210.24           # mm, fin top edge in the 1021 station frame (fin is 228.6 mm tall)
 CONTACT = {"thermal paste": 10000.0, "dry, flat": 3000.0, "dry, bowed sheet": 736.0}   # W/m^2K (Study B section 1.2)
 
 
@@ -41,7 +44,7 @@ def main():
         a = S.coupled_converged(k, S.T_AS_BUILT, S.EPS["black paint"], rc, "vented", P=p)
         b = S.coupled_converged(k, S.T_AS_BUILT, S.EPS["black paint"], rc, "vented", P=p, isothermal=True)
         print(f"  for comparison, {i} A ({p:.2f} W), painted, vented: motor {a['r']['T_motor']:.1f} -> {b['r']['T_motor']:.1f} C")
-    for L, w in ((200.0, 44.0), (210.24 - 34.6, 42.0)):
+    for L, w in ((200.0, 44.0), (CAD_FIN_TOP_Z - CAD_FIN_EXIT_Z, 42.0)):
         f = S.fin_analytic(k, S.T_AS_BUILT, 9.2, L_mm=L, w_mm=w)
         print(f"  fin {w:.0f} mm wide, {L:.0f} mm exposed (painted h 9.2): eta {f['eta']:.3f}, R_fin {f['R']:.1f} K/W")
 

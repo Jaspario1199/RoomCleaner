@@ -26,7 +26,6 @@ shaft touches the caps, as the lead asked.  No pair of bodies overlaps; coincide
 from __future__ import annotations
 
 import csv
-import math
 import os
 
 import cadquery as cq

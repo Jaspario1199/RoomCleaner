@@ -101,3 +101,20 @@ The slides no longer carry red placeholders: the version sent on Oct 22 uses neu
 Send the PDF to the recruiters: the PPTX speaker notes are a coaching track ("Pause and ask", "If asked") meant for Jasper only.
 
 **About Me (Oct 22, Jasper):** photos only, the three collage columns filling the slide; the degree, EcoFil, Gladiator Dash role and Ironman are in the speaker notes.
+
+## Appendix kept on file; its data moved into the talk (Oct 22, Jasper)
+
+The main deck has no appendix: 20 slides, ending on "Takeaways and Next Steps". The appendix builds as its own file with
+`PART=appendix` (same script): `RoomCleaner_Buntinx_Oct27_v8_appendix.pptx` / `.pdf` (divider plus 9 slides).
+
+**Data moved onto related slides** (Jasper: "having excessive data/graphs on a slide is perfectly fine"):
+
+| Appendix slide | Now on |
+|---|---|
+| Control Logic: Generation 1 vs. Final (table) | One Controller per Winch, under the before/after photos |
+| Floor Board Accuracy (chart) | Camera Calibration Replaces Bead Homing, under the bead-homing chart |
+| Claw Electrical | Claw slide, as a power bullet (schematic stays on file) |
+| Heat Fin Length (chart) and Fin Sizing for 4 W (table) | Motor Cooling: two charts, the table and the P = I²R box |
+| Operating Sequence (phone app screens) and Safe State and Failure Modes (table) | First System Test |
+| Calculations and Sources | Results Against Targets: link to the calculation sheet; the chart captions name the sources |
+| Acronyms | On file only (each acronym is written out on first use) |

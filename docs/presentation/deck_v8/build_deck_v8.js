@@ -15,7 +15,8 @@ const pptxgen = require("pptxgenjs");
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
 const P = (...p) => path.join(ROOT, ...p);
-const OUT = path.join(__dirname, "RoomCleaner_Buntinx_Oct27_v8.pptx");
+const PART = process.env.PART === "appendix" ? "appendix" : "main";   // PART=appendix builds the appendix kept on file
+const OUT = path.join(__dirname, PART === "main" ? "RoomCleaner_Buntinx_Oct27_v8.pptx" : "RoomCleaner_Buntinx_Oct27_v8_appendix.pptx");
 const FIGDIR = path.join(__dirname, "..", "deck_v3", "fig");
 const SHEETFIG = path.join(__dirname, "fig");      // Sheet charts with the weighed claw (0.60 kg with battery) in Cable tension and Lift budget, Oct 22
 const { size: imgSize } = require("../deck_v2/img_size.js");
@@ -277,6 +278,7 @@ function roomSketch(sl, x, y, w, h) {
 }
 // Safe-state and failure table rows are plain text; this keeps the slide consistent with the rest.
 
+if (PART === "main") {
 // ================================================================================================ INTRODUCTION
 section("Introduction");
 {
@@ -414,34 +416,51 @@ content("One Controller per Winch", [
   "Now: a controller in each station, fed by one 12 V pair: 50 m (164 ft)",
   "Each station can be built and tested on its own",
   "Cost: timing moves into software; 50 ms of skew is 2.5 mm of cable error, about 7.5 N",
-], { file: [PH("14_gen1_cnc_shield_a4988.jpg"), PH("19_station_perfboard_soldered.jpg")], alt: "Central board and station board",
-     caption: "Before: one central driver board. After: a controller in each station." },
-"Cable routes are 6, 21, 23 and 32 ft. If asked: each station runs time-stamped segments on its own clock and holds if the link drops; " +
-"a 40 ms skew budget keeps the error to 2 mm. Line stiffness is about 3 N/mm over a 3 m run.",
+], (sl, x, y, w, h) => {
+  figure(sl, { file: [PH("14_gen1_cnc_shield_a4988.jpg"), PH("19_station_perfboard_soldered.jpg")], alt: "Central board and station board",
+               caption: "Before: one central driver board. After: a controller in each station." }, x, y, w, 2.45);
+  table(sl, ["", "Generation 1", "Final"], [
+    ["Where is the claw?", "Assumed from commanded cable lengths", "Measured by the claw camera at every startup"],
+    ["Room geometry", "Anchors from a tape measure", "Anchors and cable lengths fitted, with error bars"],
+    ["Motor control", "One central board", "A controller per station, coordinated by the laptop"],
+    ["Finding laundry", "Ceiling camera", "Claw camera"],
+    ["Did the grab work?", "Assumed", "Camera checks pickup and delivery"],
+    ["Faults", "Emergency stop only", "PAUSE keeps torque; the emergency stop cuts power"],
+  ], x, y + 2.5, w, [0.22, 0.33, 0.45], { size: 10.5, rowH: 0.34, name: "control logic" });
+},
+"Cable routes are 6, 21, 23 and 32 ft. Generation 1 trusted its model; the final logic measures before it trusts and checks after it acts. " +
+"If asked: each station runs time-stamped segments on its own clock and holds if the link drops; a 40 ms skew budget keeps the error to 2 mm. " +
+"Line stiffness is about 3 N/mm over a 3 m run.",
 { size: 17, space: 12 });
 
 content("Camera Calibration Replaces Bead Homing", [
   "Bead homing fixes each cable's shortest length, so most of the room is out of reach",
   "Instead the claw camera reads a printed floor board, and a fit finds the anchors and cable lengths",
-  "Simulated: cable lengths known to about 12–16 mm, well inside the 0.2 m and 0.4 m margins",
+  "Camera pose per frame, best case: 6.6 mm with one tag in view, 0.7 mm with four",
+  "Simulated: cable lengths known to about 12–16 mm after the fit, well inside the 0.2 m and 0.4 m margins",
   "The whole room opens only when the fit's error bars allow it",
-], { sheet: "bead_homing", tab: "Bead homing" },
-"The curve is why bead homing died: with home 1 m up, 5 % of the room is reachable; 2 m up, 29 %. If asked why not home each cable at its own shortest length: " +
-"that drags the claw into the high-tension zone next to an anchor (previous phase). Camera pose per frame is 0.7 mm best case with four tags (appendix); " +
-"the number that matters is the cable length after the fit. Simulated so far.",
-{ size: 17, space: 12 });
+], (sl, x, y, w, h) => {
+  figure(sl, { sheet: "bead_homing", tab: "Bead homing" }, x, y, w, h / 2 - 0.05);
+  figure(sl, { sheet: "floor_board", tab: "Floor board" }, x, y + h / 2 + 0.05, w, h / 2 - 0.05);
+},
+"Top: why bead homing died; with home 1 m up, 5 % of the room is reachable, 2 m up, 29 %. Bottom: the floor board, per camera frame. " +
+"If asked why not home each cable at its own shortest length: that drags the claw into the high-tension zone next to an anchor. " +
+"The number that matters is the cable length after the fit, not the per-frame camera error; averaging tags removes noise but not bias. Simulated so far.",
+{ size: 16, space: 10 });
 
 content("Claw: Four Versions to a Parallel Grip", [
   "Fingers (CAD only), then a clamp whose jaws could not close on thin cloth (Sep 30)",
   "v6 clamp: 4.6 times its mass budget in CAD (Oct 20)",
   "Final: geared four-bar, parallel jaws, 53 mm opening; gear safety factor 2.05 at servo stall",
   "Grip for jeans is short at narrow grabs",
+  "Power: two-cell 7.4 V pack, 6 V servo rail, separate 5 V logic; peak 2.8–3.1 A at the pack's 3 A rating",
 ], { grid: [R("gen1_tentacle_claw.png"), R("claw_v6.png"), R("gripper1021_head.png"), PH("22_gear_train_printed_servo.jpg")],
      alt: "Claw versions", caption: "Finger claw (CAD only), v6 clamp (CAD), final four-bar (CAD), printed gear train" },
 "Each version failed for a reason I can name. The first clamp's pinion travel left a 2 mm gap, so the pads never met on thin cloth. v6 was up to 2.06 kg in CAD " +
 "against 0.45 kg, with no torque path from the servo. Final gears: module 1.5 with a 16 mm face (module 1 with a 6 mm face gave a safety factor of 0.35). " +
-"Grip assumes friction 0.3; at 6 V the jaws give 17 % more, enough above a 22 mm grab; next are grippy pads. If asked: servo heat while holding, and claw yaw.",
-{ size: 17, space: 10, eq: { title: "Grip force per jaw, jeans", lines: [
+"Grip assumes friction 0.3; at 6 V the jaws give 17 % more, enough above a 22 mm grab; next are grippy pads. If asked: servo heat while holding, and claw yaw. " +
+"Electrical: 5 A fuse for shorts; the claw schematic passes its rules check with 0 errors; charged attended at 1 A or less.",
+{ size: 16, space: 8, eq: { title: "Grip force per jaw, jeans", lines: [
   "N ≥ m (g + a) / (2μ) = 0.9 × 11.81 / 0.6 = **17.7 N**",
   "Jaws: **13.3 N** narrowest to 25 N at a 70 mm grab",
 ] } });
@@ -472,18 +491,31 @@ content("Winch Pull at 1.5 A", [
   "F_{design} = 25.2 N / 1.5 = **16.8 N**",
 ] } });
 
-content("Motor Cooling", [
-  "1.5 A doubles motor heat to 4.05 W; the PETG mount must stay below 60 °C",
-  "Vented shell and aluminum fin: 56–59 °C with the 0.019 in prototype, 45–49 °C with the 1/8 in design fin",
-  "Assumed: 1.8 Ω coil (to measure) and a 23 °C room; warmer air near the ceiling uses up the prototype's margin",
-  "This week: SolidWorks study and a 90-minute hold test; fallback 1.35 A",
-], { sheet: "motor_temperature", tab: "Motor temperature" },
-"The ranges are the simple and the refined hand model; the bars show the simple one. The PETG next to the motor runs at about the motor temperature (independent 3-D check). " +
-"If asked: measuring the coil resistance takes 30 seconds with a meter; fin sizing is in the appendix, and thickness beats length.",
-{ size: 17, space: 10, eq: { title: "Motor heat, P = I² R", lines: [
-  "At 1.06 A: (1.06 A)² × 1.8 Ω = 2.0 W",
-  "At 1.5 A: (1.5 A)² × 1.8 Ω = **4.05 W**",
-] } });
+{
+  const sl = blank("Motor Cooling");
+  const fx = M, fw = 6.9, fy = 1.3, fh = 5.45, bx = fx + fw + 0.4, bw = W - M - bx;
+  figure(sl, { sheet: "motor_temperature", tab: "Motor temperature; assumed 1.8 Ω coil, 23 °C room" }, fx, fy, fw, fh / 2 - 0.05);
+  figure(sl, { sheet: "heat_fin", tab: "Heat fin; Incropera, ch. 3" }, fx, fy + fh / 2 + 0.05, fw, fh / 2 - 0.05);
+  bullets(sl, [
+    "1.5 A doubles motor heat to 4.05 W; the PETG mount must stay below 60 °C",
+    "Vented shell and fin: 56–59 °C with the 0.019 in prototype, 45–49 °C with the 1/8 in design",
+    "The thin sheet stops gaining by 136 mm; the 1/8 in plate keeps gaining to 349 mm",
+  ], bx, 1.35, bw, 1.8, 15, { space: 6, name: "cooling bullets" });
+  label(sl, "If the fin alone carried all 4.05 W (painted 6061, 44 mm wide)", bx, 3.15, bw, 0.28, { size: 11, bold: true, color: HEX.navy });
+  table(sl, ["Thickness", "Mass", "Shortest for ≤ 60 °C"], [
+    ["0.019 in (prototype)", "14 g", "None (2.0 W max)"],
+    ["1/16 in", "47 g", "None (3.6 W max)"],
+    ["0.090 in", "68 g", "210 mm or none"],
+    ["1/8 in (design)", "94 g", "145–185 mm"],
+    ["3/16 in", "141 g", "125–140 mm"],
+    ["1/4 in", "189 g", "115–125 mm"],
+  ], bx, 3.45, bw, [0.42, 0.18, 0.4], { size: 10, rowH: 0.28, name: "fin sizing" });
+  eqBox(sl, { title: "Motor heat, P = I² R", lines: ["At 1.06 A: (1.06 A)² × 1.8 Ω = 2.0 W", "At 1.5 A: (1.5 A)² × 1.8 Ω = **4.05 W**"] }, bx, 6.75 - eqHeight({ lines: [1, 2] }), bw);
+  sl.addNotes("Top chart: motor temperature for each fin, vented and sealed; the ranges in the bullets are the simple and the refined hand model. Bottom chart: why thickness beats " +
+              "length; the built length is 200 mm, limited by the ceiling. The table answers what fin it would take to carry all the heat alone. " +
+              "This week: SolidWorks study and a 90-minute hold test; fallback 1.35 A. If asked: measuring the coil resistance takes 30 seconds; warmer air near the ceiling " +
+              "uses up the prototype's 1–4 K margin; the PETG next to the motor runs at about the motor temperature (independent 3-D check).");
+}
 
 content("Weight Budget", [
   "Claw with battery weighed 0.60 kg (0.86 kg estimated)",
@@ -509,25 +541,38 @@ content("Build: Printing, Machining, Bring-Up", [
 ], { grid: [PH("06_shear_with_drawings_and_blanks.jpg"), PH("15_heat_fin_finished_part.jpg"), PH("19_station_perfboard_soldered.jpg"), PH("03_mill_setup_with_shop_drawing.jpg")],
      alt: "Build photos", caption: "Fin blanks and drawing, finished fin, soldered station board, mill setup" },
 "Two lessons from the bench: measure the hardware before trusting the software's view of it, and test a fit before printing the part. " +
-"If asked: the driver stays disabled at boot so a reset cannot move a motor, which also means a reset drops a hanging claw (appendix, safe state). [Fill in: readings and date.]",
+"If asked: the driver stays disabled at boot so a reset cannot move a motor, which also means a reset drops a hanging claw (safe-state table on the system-test slide). [Fill in: readings and date.]",
 { size: 17, space: 12 });
 
-content("First System Test", [
-  "Three stations hold the claw under gravity over the triangle they span, about half the floor",
-  "Self-check, calibration, short move, then pickup",
-  "1 lb first, then one garment; pass limits set before the run",
-], (sl, x, y, w, h) => {
-  fitImage(sl, PH("04_gen2_station_shells.jpg"), x, y, w, 2.5, "Stations being built for the test");
-  caption(sl, "Stations being built for the test", x, y + 2.53, w);
+{
+  const sl = blank("First System Test");
+  const fx = M, fw = 6.9, bx = fx + fw + 0.4, bw = W - M - bx;
+  figure(sl, { file: [P("docs/app_screenshots/01_home.png"), P("docs/app_screenshots/02_camera.png"), P("docs/app_screenshots/04_chat.png")],
+               alt: "Phone app screens", caption: "Phone app: home, live claw camera, chat; every move waits for approval" }, fx, 1.3, fw, 2.95);
   table(sl, ["Check", "Pass limit", "Result"], [
     ["Self-check", "All stations answer; slack taken up", "Planned"],
     ["Calibration", "Held-out poses: cable residual ≤ 20 mm", "Planned"],
     ["Short move, 1 lb", "300 mm at 50 mm/s; cable mismatch ≤ 2 mm", "Planned"],
     ["Pickup", "One garment into the hamper", "Planned"],
-  ], x, y + 2.95, w, [0.25, 0.57, 0.18], { size: 13, rowH: 0.46, name: "pass limits" });
-}, "Pause and ask: which pass limit would you tighten? If the test has not run by Monday, show the rig as built and the dated plan, not empty cells. " +
-"Logged: cable lengths, encoder counts, motor temperatures, the fit's error bars.",
-{ size: 17, space: 12 });
+  ], fx, 4.45, fw, [0.25, 0.57, 0.18], { size: 12, rowH: 0.44, name: "pass limits" });
+  bullets(sl, [
+    "Three stations hold the claw under gravity over the triangle they span, about half the floor",
+    "Sequence: self-check, calibration, short move, then pickup",
+    "1 lb first, then one garment; pass limits set before the run",
+  ], bx, 1.35, bw, 2.1, 15, { space: 6, name: "test bullets" });
+  label(sl, "If something goes wrong", bx, 3.5, bw, 0.28, { size: 12, bold: true, color: HEX.navy });
+  table(sl, ["Event", "What happens"], [
+    ["PAUSE or a detected fault", "All stations hold with torque on; nothing restarts without approval"],
+    ["Wi-Fi link lost", "Stations stop and hold on their own clocks"],
+    ["Power loss or emergency stop", "Torque is lost and the claw can fall, so nobody stands underneath; brake planned"],
+    ["Reset or brown-out", "Driver off at boot: same as a power loss"],
+    ["Driver over-temperature", "The A4988 shuts off; the hold test watches it"],
+  ], bx, 3.8, bw, [0.38, 0.62], { size: 10, rowH: 0.44, name: "safe state" });
+  sl.addNotes("Pause and ask: which pass limit would you tighten? Three cables give three force equations, so slack shows up directly. The app runs the sequence: " +
+              "start up (self-check, take up slack, calibrate), find (scan, detect, choose the nearest), pick (hover until still, grip, deliver; the camera confirms each step). " +
+              "The safe state is PAUSE, torque on; anything that removes power drops the claw. If the test has not run by Monday, show the rig and the dated plan. " +
+              "Logged: cable lengths, encoder counts, motor temperatures, the fit's error bars.");
+}
 
 // ================================================================================================ RESULTS AND TAKEAWAYS
 section("Results and Takeaways"); PHASE = "";
@@ -544,7 +589,9 @@ section("Results and Takeaways"); PHASE = "";
     ["Accuracy", "≤ 2 mm cable mismatch", "40 ms skew budget gives 2 mm", "Not measured", "To be tested"],
     ["Speed", "50 mm/s", "Not yet run", "None", "To be tested"],
     ["Cost", "Hobby budget", "Not yet totaled", "Receipts", "Open"],
-  ], M, 1.3, W - 2 * M, [0.17, 0.2, 0.3, 0.13, 0.2], { size: 14, rowH: 0.55 });
+  ], M, 1.3, W - 2 * M, [0.17, 0.2, 0.3, 0.13, 0.2], { size: 14, rowH: 0.49 });
+  sl.addText([{ text: "Calculations: RoomCleaner engineering calculations (Google Sheets)", options: { hyperlink: { url: SHEET_URL, tooltip: "Open the calculation sheet" } } }],
+             { x: M, y: 6.5, w: 8, h: 0.32, fontSize: 13, color: HEX.navy, fontFace: "Arial", margin: 0, isTextBox: true, objectName: "sheet link" });
   sl.addNotes("Back to the targets, with the evidence for each. Two are not met: grip for jeans at narrow grabs and claw mass. Two are marginal and this week's tests decide them: " +
               "lift capacity and the prototype fin's temperature. Only the claw mass is measured so far.");
 }
@@ -589,6 +636,9 @@ content("Takeaways and Next Steps", [
 "Leave this slide up for questions.",
 { figW: 7.0, size: 16, space: 6 });
 
+}
+
+if (PART === "appendix") {
 // ================================================================================================ APPENDIX
 section("Appendix"); PHASE = "Appendix";
 {
@@ -698,6 +748,8 @@ content("Claw Electrical", [
   ], { sheet: "cable_tension", tab: "Cable tension" }, "");
   sl.addText([{ text: "RoomCleaner engineering calculations (Google Sheets)", options: { hyperlink: { url: SHEET_URL, tooltip: "Open the calculation sheet" } } }],
              { x: 8.05, y: 4.6, w: 4.7, h: 0.4, fontSize: 15, color: HEX.navy, fontFace: "Arial", margin: 0, isTextBox: true, objectName: "sheet link" });
+}
+
 }
 
 // ------------------------------------------------------------------------------------------------ write

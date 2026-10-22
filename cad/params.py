@@ -626,3 +626,39 @@ ENC1021_STIFF_LOAD_N = 1.0            # acceptance: this push on the frame ...
 ENC1021_STIFF_LIMIT_MM = 0.1          # ... moves the chip less than this
 ENC1021_OVERHANG_DEG = 45.0           # printability limit (a face is flagged above this + ENC1021_OVERHANG_TOL_DEG)
 ENC1021_OVERHANG_TOL_DEG = 0.5
+
+
+# =============================================================================
+# ENCODER 1021 v2 (ENC1021_V2_*): SELF-CENTRING version of the magnet cap and casing, answer to verification finding F1 (worst-case
+# chip-to-magnet offset 0.78 mm vs about 0.25 mm AS5600 guidance).  v1 values above are unchanged; v2 builders read ENC1021_V2_<X> where it
+# exists and fall back to ENC1021_<X> otherwise (cad/parts/encoder1021.py, Cfg(v2=True)).  Units mm.
+# Idea: every sliding fit that set the chip position by CLEARANCE (board in its pocket, magnet in its pocket, peg in the bore, foot in the
+# divot) gets a large clearance (never binds, whatever the FDM size error) plus small crush ribs / bumps that touch on all sides
+# symmetrically; the centre then moves only with the ASYMMETRY of opposite ribs (ENC1021_V2_RIB_TOL), not with over- or undersize.
+# =============================================================================
+# --- board pocket: 0.25 mm per side (pocket 23.5), 2 ribs per wall (8), rib tip (protrusion - clearance) inside the board outline
+ENC1021_V2_PCB_CLEAR = 0.25
+ENC1021_V2_BOARD_RIB_CRUSH = 0.10     # nominal crush of each rib on the 23.0 board; rib height above the wall = 0.25 + 0.10 = 0.35
+ENC1021_V2_BOARD_RIB_POS = 6.5        # rib centre from the wall centre: clear of the pad rows (+-4 on the +-x edges) and of the hook lips (+-4 on the +-z edges) and the corner tabs (>= 8.7)
+ENC1021_V2_BOARD_RIB_TIP = 0.45       # printable with a 0.4 mm nozzle
+ENC1021_V2_BOARD_RIB_BASE = 0.9
+# --- magnet pocket in the cap: Ø6.3 (0.15 per side) + 3 ribs, crush on the Ø6.0 magnet
+ENC1021_V2_CAP_POCKET_CLEAR_D = 0.30
+ENC1021_V2_MAGNET_RIB_N = 3
+ENC1021_V2_MAGNET_RIB_CRUSH = 0.12
+ENC1021_V2_MAGNET_RIB_TIP = 0.45
+ENC1021_V2_MAGNET_RIB_BASE = 0.9
+# --- peg: the 0.20 mm rib variant of the fit-test round becomes the default
+ENC1021_V2_CAP_RIB_H = 0.20
+ENC1021_V2_CAP_RIB_W_TIP = 0.45
+# --- foot: 23.4 (0.3 per side: no bind at the 0.044 mm normal gap of the bottom round), 8 crush bumps follow the divot's quarter-round wall
+ENC1021_V2_FOOT_SIZE = 23.4
+ENC1021_V2_FOOT_BUMP_CRUSH = 0.10     # lateral interference with the measured dish wall, at every depth the bump covers
+ENC1021_V2_FOOT_BUMP_POS = 9.0        # two bumps per side at +-9.0 from the side centre (rotation lever)
+ENC1021_V2_FOOT_BUMP_W = 0.6          # bump width along the side
+ENC1021_V2_FOOT_BUMP_DEPTH = 0.7      # bump covers 0.7 mm below the plate-face plane (the wall is steep there) ...
+ENC1021_V2_FOOT_BUMP_OVER = 0.3       # ... and 0.3 mm above it
+# --- stack-up (same method as verification/encoder1021_verification.md item 5)
+ENC1021_V2_RIB_TOL = 0.05             # ASSUMED worst-case asymmetry between opposite crush features (a common over/undersize cancels); to be measured on the first print
+ENC1021_V2_TARGET_RSS = 0.25
+ENC1021_V2_TARGET_WORST = 0.40

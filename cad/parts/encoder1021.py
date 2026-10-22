@@ -67,11 +67,19 @@ HOOK_TOP_MARGIN = 0.1   # mm, hook-edge wall stands this far above the top of th
 # =============================================================================================================================
 # derived values (read from cad/params.py at CALL time, so a parameter edit -- or a test monkeypatch -- regenerates everything)
 # =============================================================================================================================
-class Cfg:
-    """All derived levels / sizes of both parts.  y levels are in the station frame."""
+def _pick(name: str, v2: bool):
+    """ENC1021_<name>, or ENC1021_V2_<name> when v2 and that override exists (v1 values are never edited)."""
+    key = f"ENC1021_V2_{name}"
+    return getattr(P, key) if (v2 and hasattr(P, key)) else getattr(P, f"ENC1021_{name}")
 
-    def __init__(self):
+
+class Cfg:
+    """All derived levels / sizes of both parts.  y levels are in the station frame.  Cfg(v2=True): the self-centring version."""
+
+    def __init__(self, v2: bool = False):
         p = P
+        self.v2 = v2
+        pick = lambda n: _pick(n, v2)
         # --- purchased parts
         self.magnet_d, self.magnet_t = p.ENC1021_MAGNET_D, p.ENC1021_MAGNET_T
         self.pcb_size, self.pcb_t, self.chip_h = p.ENC1021_PCB_SIZE, p.ENC1021_PCB_THICK, p.ENC1021_CHIP_H
@@ -89,7 +97,7 @@ class Cfg:
         self.divot_hole_d, self.divot_pitch = p.ENC1021_DIVOT_HOLE_D, p.ENC1021_DIVOT_HOLE_PITCH
         # --- magnet cap
         self.head_d = p.ENC1021_CAP_HEAD_D
-        self.pocket_d = self.magnet_d + p.ENC1021_CAP_POCKET_CLEAR_D
+        self.pocket_d = self.magnet_d + pick("CAP_POCKET_CLEAR_D")
         self.pocket_depth = self.magnet_t + p.ENC1021_CAP_POCKET_EXTRA_DEPTH
         self.head_t = max(p.ENC1021_CAP_HEAD_T, self.pocket_depth + p.ENC1021_CAP_FLOOR_MIN)
         self.head_chamfer = p.ENC1021_CAP_HEAD_CHAMFER
@@ -99,8 +107,8 @@ class Cfg:
         self.peg_d, self.peg_flat_x = p.ENC1021_CAP_PEG_D, p.ENC1021_CAP_PEG_FLAT_X
         self.peg_len = p.ENC1021_CAP_PEG_LEN
         self.peg_end_y = self.spool_face_y - self.peg_len                 # 22.6
-        self.rib_n, self.rib_h = p.ENC1021_CAP_RIB_N, p.ENC1021_CAP_RIB_H
-        self.rib_wb, self.rib_wt = p.ENC1021_CAP_RIB_W_BASE, p.ENC1021_CAP_RIB_W_TIP
+        self.rib_n, self.rib_h = p.ENC1021_CAP_RIB_N, pick("CAP_RIB_H")
+        self.rib_wb, self.rib_wt = p.ENC1021_CAP_RIB_W_BASE, pick("CAP_RIB_W_TIP")
         self.lead_in = p.ENC1021_CAP_LEAD_IN
         self.notch_w, self.notch_r, self.notch_h = p.ENC1021_CAP_NOTCH
         # --- board stack
@@ -109,7 +117,8 @@ class Cfg:
         self.pcb_back_y = self.pcb_front_y + self.pcb_t                   # 33.85
         self.board_cx, self.board_cz = -self.chip_off[0], -self.chip_off[1]   # board centre (chip is on the axis)
         self.pcb_half = self.pcb_size / 2
-        self.pocket_half = self.pcb_half + p.ENC1021_PCB_CLEAR            # 11.7
+        self.pcb_clear = pick("PCB_CLEAR")
+        self.pocket_half = self.pcb_half + self.pcb_clear                 # 11.7 (v2: 11.75)
         self.wall = p.ENC1021_WALL
         self.frame_front_y = self.chip_face_y + p.ENC1021_TAB_SETBACK     # 31.0
         self.tab_t = self.pcb_front_y - self.frame_front_y                # 1.25
@@ -122,7 +131,7 @@ class Cfg:
         self.wall_top_z = self.catch_y + self.hook_lip_y + HOOK_TOP_MARGIN # hook-edge (+-z) walls: 35.05
         self.lip_protrusion = self.pocket_half - (self.pcb_half - self.hook_overlap)   # 0.7 beyond the wall's inner face
         # --- foot / bridge
-        self.foot = p.ENC1021_FOOT_SIZE
+        self.foot = pick("FOOT_SIZE")
         self.foot_r, self.foot_key_r = p.ENC1021_FOOT_CORNER_R, p.ENC1021_FOOT_KEY_R
         self.foot_top_x = self.floor_x + p.ENC1021_FOOT_H                  # -18.15
         self.foot_hole_d = p.ENC1021_FOOT_HOLE_D
@@ -136,6 +145,15 @@ class Cfg:
         self.pins_on, self.pin_pitch = p.ENC1021_PINS_ON, p.ENC1021_PIN_PITCH
         self.pin_d = p.ENC1021_PIN_D
         self.pin_len = min(p.ENC1021_PIN_LEN, self.pcb_t - 0.3)
+        # --- v2 self-centring features (only built when v2)
+        self.mag_rib_n, self.mag_rib_crush = p.ENC1021_V2_MAGNET_RIB_N, p.ENC1021_V2_MAGNET_RIB_CRUSH
+        self.mag_rib_tip, self.mag_rib_base = p.ENC1021_V2_MAGNET_RIB_TIP, p.ENC1021_V2_MAGNET_RIB_BASE
+        self.mag_rib_h = (self.pocket_d - self.magnet_d) / 2 + self.mag_rib_crush         # protrusion from the pocket wall
+        self.brd_rib_crush, self.brd_rib_pos = p.ENC1021_V2_BOARD_RIB_CRUSH, p.ENC1021_V2_BOARD_RIB_POS
+        self.brd_rib_tip, self.brd_rib_base = p.ENC1021_V2_BOARD_RIB_TIP, p.ENC1021_V2_BOARD_RIB_BASE
+        self.brd_rib_h = self.pcb_clear + self.brd_rib_crush                                 # protrusion from the pocket wall
+        self.bump_crush, self.bump_pos, self.bump_w = p.ENC1021_V2_FOOT_BUMP_CRUSH, p.ENC1021_V2_FOOT_BUMP_POS, p.ENC1021_V2_FOOT_BUMP_W
+        self.bump_depth, self.bump_over = p.ENC1021_V2_FOOT_BUMP_DEPTH, p.ENC1021_V2_FOOT_BUMP_OVER
         # --- sanity (a bad parameter edit must fail loudly, not print a wrong part)
         assert self.head_t >= self.pocket_depth + p.ENC1021_CAP_FLOOR_MIN - 1e-9
         assert self.pocket_d < self.head_d - 4.0, "magnet too large for the Ø14 head"
@@ -147,6 +165,13 @@ class Cfg:
         assert hole_y_min - self.screw_access_r >= self.bridge_top_y + 0.3, "bridge would block the screw heads / driver"
         assert self.foot <= self.divot_rim - 0.2 + 1e-9, "foot needs >= 0.1 mm per side inside the divot rim"
         assert self.foot_r >= 1.2 - 1e-9 and self.foot_key_r < self.foot_r + 1e-9
+        if v2:
+            assert self.mag_rib_tip >= 0.45 - 1e-9 and self.brd_rib_tip >= 0.45 - 1e-9 and self.rib_wt >= 0.45 - 1e-9, "rib tips below 0.45 mm"
+            assert self.mag_rib_h < (self.pocket_d / 2) - 1.0 and 0.5 * self.mag_rib_base * self.mag_rib_n < math.pi * self.pocket_d / 2
+            assert self.brd_rib_pos - self.brd_rib_base / 2 >= 4.5, "board ribs must stay clear of the pad rows and the hook lips (|pos| < 4)"
+            assert self.brd_rib_pos + self.brd_rib_base / 2 <= self.pocket_half - self.tab - 0.1, "board ribs must stay clear of the corner tabs"
+            assert self.bump_pos + self.bump_w / 2 <= self.foot / 2 - self.foot_r, "foot bumps must sit on the straight part of the side"
+            assert self.bump_crush > 0 and self.bump_depth > 0
 
 
 # =============================================================================================================================
@@ -178,12 +203,12 @@ def _teardrop_x(y_c: float, z_c: float, r: float, x0: float, x1: float) -> cq.Wo
 # =============================================================================================================================
 # MAGNET CAP
 # =============================================================================================================================
-def make_peg(ribs: bool = True, overlap: float = 0.0) -> cq.Workplane:
+def make_peg(ribs: bool = True, overlap: float = 0.0, v2: bool = False) -> cq.Workplane:
     """The D-peg alone: y from the peg end (22.6) up to the head underside (+ `overlap` into the head).
 
     Ø5.10 round part, flat at x = +2.05 (the bore's flat is at +2.15, its round part Ø5.30), `rib_n` axial crush ribs
-    `rib_h` high (tip radius 2.70 = 0.05 mm of radial crush into the bore), 45 deg lead-in at the end."""
-    c = Cfg()
+    `rib_h` high (tip radius 2.70 = 0.05 mm of radial crush into the bore; v2: 0.20 high, tip 0.45, 0.10 crush), 45 deg lead-in."""
+    c = Cfg(v2)
     r0 = c.peg_d / 2
     y0, y1 = c.peg_end_y, c.spool_face_y + overlap
     core = _cyl_y(r0, y0, y1).intersect(_box(-r0 - OVERSHOOT, c.peg_flat_x, y0 - OVERSHOOT, y1 + OVERSHOOT,
@@ -206,16 +231,39 @@ def make_peg(ribs: bool = True, overlap: float = 0.0) -> cq.Workplane:
     return core.intersect(cone)
 
 
-def make_magnet_cap(ribs: bool = True) -> cq.Workplane:
-    """Head + pocket + pry notch + D-peg, one solid, station frame (peg toward -y).  ribs=False drops the crush ribs (tests)."""
-    c = Cfg()
+def _magnet_ribs(c: Cfg) -> cq.Workplane:
+    """v2: `mag_rib_n` crush ribs inside the magnet pocket (equally spaced, one opposite the peg flat's side), tip radius
+    pocket r - mag_rib_h = magnet r - crush, so they centre the Ø6 magnet; 45 deg lead-in at the mouth."""
+    r_wall = c.pocket_d / 2
+    r_tip = r_wall - c.mag_rib_h
+    y0, y1 = c.pocket_floor_y - FUSE, c.magnet_face_y
+    ribs = None
+    for i in range(c.mag_rib_n):
+        ang = 180.0 + i * 360.0 / c.mag_rib_n
+        rib = (cq.Workplane(_plane_y(y0))
+               .polyline([(r_wall + RIB_INSET, -c.mag_rib_base / 2), (r_tip, -c.mag_rib_tip / 2),
+                          (r_tip, c.mag_rib_tip / 2), (r_wall + RIB_INSET, c.mag_rib_base / 2)]).close()
+               .extrude(y1 - y0).rotate((0, 0, 0), (0, 1, 0), ang))
+        ribs = rib if ribs is None else ribs.union(rib)
+    h = c.mag_rib_h                                                   # lead-in: remove the rib inside a 45 deg cone that ends at the wall
+    cone = (cq.Workplane("XY").polyline([(0, y1 - h), (r_tip, y1 - h), (r_tip + h + OVERSHOOT, y1 + OVERSHOOT), (0, y1 + OVERSHOOT)]).close()
+            .revolve(360, (0, 0, 0), (0, 1, 0)))
+    return ribs.cut(cone)
+
+
+def make_magnet_cap(ribs: bool = True, v2: bool = False) -> cq.Workplane:
+    """Head + pocket + pry notch + D-peg, one solid, station frame (peg toward -y).  ribs=False drops the crush ribs (tests).
+    v2: pocket Ø6.3 with three crush ribs on the magnet, peg ribs 0.20 high with a 0.45 tip."""
+    c = Cfg(v2)
     y_face, y_top = c.spool_face_y, c.magnet_face_y
     head = _cyl_y(c.head_d / 2, y_face, y_top)
     head = head.faces(">Y").edges().chamfer(c.head_chamfer)
     head = head.cut(_cyl_y(c.pocket_d / 2, c.pocket_floor_y, y_top + OVERSHOOT))                      # magnet pocket, opens to +y
     notch = _box(-c.notch_w / 2, c.notch_w / 2, y_face - OVERSHOOT, y_face + c.notch_h, c.head_d / 2 - c.notch_r, c.head_d / 2 + OVERSHOOT)
     head = head.cut(notch)                                                                       # pry notch at +z, under the rim
-    cap = head.union(make_peg(ribs=ribs, overlap=JOIN))                                          # peg runs into the head
+    if v2 and ribs:
+        head = head.union(_magnet_ribs(c))                                                       # self-centring magnet ribs
+    cap = head.union(make_peg(ribs=ribs, overlap=JOIN, v2=v2))                                   # peg runs into the head
     return cap
 
 
@@ -228,13 +276,66 @@ def make_magnet() -> cq.Workplane:
 # =============================================================================================================================
 # ENCODER CASING
 # =============================================================================================================================
-def _foot(c: Cfg) -> cq.Workplane:
-    """23.6 x 23.6 slab, R1.2 plan corners, bottom edge rounded R1.0 so it follows the divot's quarter-round wall."""
-    f = (cq.Workplane("YZ", origin=(c.floor_x, 0, 0)).center(c.divot_y, c.divot_z).rect(c.foot, c.foot)
+def _rounded_slab(c: Cfg, size: float, corner_r: float, key_r: float) -> cq.Workplane:
+    """size x size slab on the divot centre, floor to foot top, plan corners corner_r, bottom edge rounded key_r."""
+    f = (cq.Workplane("YZ", origin=(c.floor_x, 0, 0)).center(c.divot_y, c.divot_z).rect(size, size)
          .extrude(c.foot_top_x - c.floor_x))
-    f = f.edges("|X").fillet(c.foot_r)
-    f = f.faces("<X").edges().fillet(c.foot_key_r)
-    return f
+    f = f.edges("|X").fillet(corner_r)
+    return f.faces("<X").edges().fillet(key_r)
+
+
+def _foot(c: Cfg) -> cq.Workplane:
+    """23.6 x 23.6 (v2: 23.4) slab, R1.2 plan corners, bottom edge rounded R1.0 so it follows the divot's quarter-round wall."""
+    return _rounded_slab(c, c.foot, c.foot_r, c.foot_key_r)
+
+
+def _foot_bumps(c: Cfg) -> cq.Workplane:
+    """v2: eight crush bumps (two per side, at +-bump_pos along each side) that centre the foot in the divot.
+
+    Each bump is a thin vertical rib (along x) whose tip follows the MEASURED divot wall (quarter-round R1.0 from the floor 22 x 22 up to the
+    rim 24 x 24) shifted outward by bump_crush: the envelope is the same rounded slab as the foot, sized divot_rim + 2 crush.  So the
+    interference with the wall is the lateral `bump_crush` at every depth the bump covers, from `bump_over` above the plate-face plane down to
+    `bump_depth` below it (the wall is steep there); the part of the wall below that, where it flattens, is not touched.  The foot's floor
+    contact stays the x datum."""
+    env = _rounded_slab(c, c.divot_rim + 2 * c.bump_crush, c.foot_r, c.divot_wall_r)
+    x0, x1 = c.plate_x - c.bump_depth, c.plate_x + c.bump_over
+    z_in = c.divot_z + c.foot / 2 - 1.5                              # pad starts deep inside the foot, so the bump fuses with it
+    z_out = c.divot_z + c.divot_rim / 2 + c.bump_crush + 0.3
+    out = None
+    for u in (-c.bump_pos, c.bump_pos):                               # canonical side: +z, positions along y
+        yc = c.divot_y + u
+        pad = _box(x0, x1, yc - c.bump_w / 2, yc + c.bump_w / 2, z_in, z_out)
+        out = pad.intersect(env) if out is None else out.union(pad.intersect(env))
+    sides = out
+    for ang in (90.0, 180.0, 270.0):                                  # the other three sides: rotate about the divot-centre x axis
+        sides = sides.union(out.rotate((0, c.divot_y, c.divot_z), (1, c.divot_y, c.divot_z), ang))
+    return sides
+
+
+def _board_ribs(c: Cfg) -> cq.Workplane:
+    """v2: eight crush ribs in the board pocket, two per wall at +-brd_rib_pos from the wall centre, tip = board edge - crush.
+
+    Built on the +z wall, copied by rotation about the board axis.  y from the frame front face (on the bed) to the wall top; 45 deg
+    lead-in at the top (the board enters from +y).  They run clear of the pad rows (+-x edges, |z| < 4), the hook lips (+-z edges, |x| < 4)
+    and the corner tabs (|pos| >= 8.75): board edge contact only, no component is touched."""
+    h, p = c.pocket_half, c.brd_rib_h
+    y0, y1 = c.frame_front_y, c.wall_top_x                            # from the bed face (no overhang under the rib) to the wall top
+    z_w, z_t = c.board_cz + h, c.board_cz + h - p                     # wall inner face, rib tip
+    ribs = None
+    for xs in (-c.brd_rib_pos, c.brd_rib_pos):
+        xc = c.board_cx + xs
+        rib = (cq.Workplane(_plane_y(y0))                              # local (u, v) = (x, -z)
+               .polyline([(xc - c.brd_rib_base / 2, -(z_w + FUSE)), (xc + c.brd_rib_base / 2, -(z_w + FUSE)),
+                          (xc + c.brd_rib_tip / 2, -z_t), (xc - c.brd_rib_tip / 2, -z_t)]).close().extrude(y1 - y0))
+        lead = (cq.Workplane("YZ", origin=(xc - c.brd_rib_base, 0, 0))   # triangle (y, z): removes the rib inside a 45 deg line ending at the wall
+                .polyline([(y1 - p, z_t), (y1 + OVERSHOOT, z_t), (y1 + OVERSHOOT, z_t + p + OVERSHOOT)]).close()
+                .extrude(2 * c.brd_rib_base))
+        rib = rib.cut(lead)
+        ribs = rib if ribs is None else ribs.union(rib)
+    out = ribs
+    for ang in (90.0, 180.0, 270.0):
+        out = out.union(ribs.rotate((c.board_cx, 0, c.board_cz), (c.board_cx, 1, c.board_cz), ang))
+    return out
 
 
 def _lip(c: Cfg, side: int) -> cq.Workplane:
@@ -249,9 +350,9 @@ def _lip(c: Cfg, side: int) -> cq.Workplane:
     return cq.Workplane("YZ", origin=(x0, 0, 0)).polyline(pts).close().extrude(c.hook_w)
 
 
-def make_casing(pins: bool | None = None) -> cq.Workplane:
-    """The encoder casing, one solid, station frame."""
-    c = Cfg()
+def make_casing(pins: bool | None = None, v2: bool = False) -> cq.Workplane:
+    """The encoder casing, one solid, station frame.  v2: 0.25 mm board clearance + 8 board ribs, 23.4 foot + 8 foot bumps."""
+    c = Cfg(v2)
     h, W = c.pocket_half, c.wall
     cx, cz = c.board_cx, c.board_cz
     yF = c.frame_front_y
@@ -288,6 +389,9 @@ def make_casing(pins: bool | None = None) -> cq.Workplane:
     # --- foot
     foot = _foot(c)
     parts.append(foot)
+    if v2:
+        parts.append(_board_ribs(c))
+        parts.append(_foot_bumps(c))
 
     body = parts[0]
     for part in parts[1:]:
@@ -326,9 +430,9 @@ def reference_parts(corrected: bool = True) -> dict:
     return {n: _ref(n, corrected) for n in REF_NAMES}
 
 
-def assembly(include_reference: bool = True) -> dict:
+def assembly(include_reference: bool = True, v2: bool = False) -> dict:
     """name -> cq.Shape for the new parts (+ the reference solids), all in the station frame."""
-    out = {"cap": make_magnet_cap().val(), "magnet": make_magnet().val(), "casing": make_casing().val(),
+    out = {"cap": make_magnet_cap(v2=v2).val(), "magnet": make_magnet().val(), "casing": make_casing(v2=v2).val(),
            "board": make_board().val()}
     if include_reference:
         out.update(reference_parts())
@@ -457,6 +561,73 @@ def export_all(step_dir: str = STEP_DIR, stl_dir: str = STL_DIR) -> dict:
         cq.exporters.export(cq.Workplane("XY").add(to_print_pose(wp.val(), part)), stl, tolerance=0.02, angularTolerance=0.1)
         out[part] = {"step": step, "stl": stl}
     return out
+
+
+# =============================================================================================================================
+# v2: export and the lateral stack-up (same method as verification/encoder1021_verification.md item 5)
+# =============================================================================================================================
+CAP_NAME_V2 = "encoder1021_magnet_cap_v2"
+CASING_NAME_V2 = "encoder1021_casing_v2"
+
+
+def export_all_v2(step_dir: str = STEP_DIR, stl_dir: str = STL_DIR) -> dict:
+    """STEP (station frame) + STL (print orientation, same orientations as v1) of the v2 parts; v1 exports are not touched."""
+    os.makedirs(step_dir, exist_ok=True)
+    os.makedirs(stl_dir, exist_ok=True)
+    out = {}
+    for name, part, mk in ((CAP_NAME_V2, "cap", make_magnet_cap), (CASING_NAME_V2, "casing", make_casing)):
+        wp = mk(v2=True)
+        step, stl = os.path.join(step_dir, f"{name}.step"), os.path.join(stl_dir, f"{name}.stl")
+        cq.exporters.export(wp, step)
+        cq.exporters.export(cq.Workplane("XY").add(to_print_pose(wp.val(), part)), stl, tolerance=0.02, angularTolerance=0.1)
+        out[part] = {"step": step, "stl": stl}
+    return out
+
+
+V1_FOOT_ROTATION_DEG = 1.10        # v1 foot can turn this far in the divot before a corner hits (verifier, reproduced in tests)
+
+
+def stackup(version: int = 2, eps: float | None = None, foot: str = "bumps") -> dict:
+    """Worst-case and RSS lateral offset of the chip from the magnet axis, per axis (x = floor normal, z = across the divot).
+
+    Same method as the verifier: each term is a bound, worst case = linear sum, RSS = quadrature of the bounds; terms from these parts only
+    (not the spool-on-shaft eccentricity, the printed slip-in / motor seat, PCB outline, chip placement on the board).
+    version 1: bounds are the CLEARANCES (board 0.2, peg 0.10, magnet 0.10, foot rotation 1.10 deg x 14.2 mm arm = 0.273 in z).
+    version 2: bounds are the ASYMMETRY `eps` of opposing crush features (a common over/undersize cancels): board, peg, magnet each eps in x
+    and z; foot translation eps in z (x is the floor datum) plus foot rotation eps / lever x arm in z.  foot = "bumps" (8 bumps at +-bump_pos,
+    lever = bump_pos) or "pins" (two close-fit pins in diagonal divot holes, lever = half their distance)."""
+    c = Cfg(version == 2)
+    arm = c.divot_y - c.chip_face_y                                   # chip face to divot centre, 14.2 mm: lever of the foot rotation
+    terms = {}
+    if version == 1:
+        terms["foot rotation (1.10 deg)"] = (0.0, math.radians(V1_FOOT_ROTATION_DEG) * arm)
+        terms["board in pocket"] = (c.pcb_clear, c.pcb_clear)
+        terms["peg in bore"] = ((P.ENC1021_BORE_D - c.peg_d) / 2,) * 2
+        terms["magnet in pocket"] = ((c.pocket_d - c.magnet_d) / 2,) * 2
+        eps = None
+    else:
+        eps = P.ENC1021_V2_RIB_TOL if eps is None else eps
+        if foot == "bumps":
+            lever = c.bump_pos
+        elif foot == "pins":
+            lever = 0.5 * math.hypot(c.divot_pitch, c.divot_pitch)
+        else:
+            raise ValueError(foot)
+        terms["foot translation"] = (0.0, eps)
+        terms[f"foot rotation ({foot}, lever {lever:.2f})"] = (0.0, eps / lever * arm)
+        terms["board ribs"] = (eps, eps)
+        terms["peg ribs"] = (eps, eps)
+        terms["magnet ribs"] = (eps, eps)
+    wx = sum(t[0] for t in terms.values())
+    wz = sum(t[1] for t in terms.values())
+    rx = math.sqrt(sum(t[0] ** 2 for t in terms.values()))
+    rz = math.sqrt(sum(t[1] ** 2 for t in terms.values()))
+    res = {"version": version, "eps": eps, "arm": arm, "terms": terms, "worst_x": wx, "worst_z": wz, "worst_radial": math.hypot(wx, wz),
+           "rss_x": rx, "rss_z": rz, "rss_radial": math.hypot(rx, rz)}
+    if version == 2:                                                   # every v2 term is proportional to eps: the largest eps that still meets the targets
+        res["eps_max_worst"] = eps * P.ENC1021_V2_TARGET_WORST / res["worst_radial"]
+        res["eps_max_rss"] = eps * P.ENC1021_V2_TARGET_RSS / res["rss_radial"]
+    return res
 
 
 # =============================================================================================================================
@@ -679,10 +850,12 @@ def render_part(shape: cq.Shape, name: str, rgb, out_dir: str = RENDER_DIR) -> l
     return paths
 
 
-def render_assembly(out_dir: str = RENDER_DIR) -> list:
+def render_assembly(out_dir: str = RENDER_DIR, v2: bool = False) -> list:
     """Assembly preview with the slip-in mount, spool, motor and shell (the large parts are clipped to the station zone)."""
     os.makedirs(out_dir, exist_ok=True)
-    asm = assembly()
+    pre = "v2_" if v2 else ""
+    ttl = "v2 " if v2 else ""
+    asm = assembly(v2=v2)
     lo, hi = (-42.0, -6.0, -32.0), (32.0, 72.0, 32.0)
     clip = _box(lo[0], hi[0], lo[1], hi[1], lo[2], hi[2]).val()
     half = _box(lo[0], hi[0], lo[1], hi[1], lo[2], 0.0).val()          # keep z <= 0 for the cut-away
@@ -704,29 +877,32 @@ def render_assembly(out_dir: str = RENDER_DIR) -> list:
 
     paths = []
     clip_items = items(clip, 0.20)
-    p1 = os.path.join(out_dir, "encoder1021_assembly_iso.png")
+    p1 = os.path.join(out_dir, f"{pre}encoder1021_assembly_iso.png")
     render_scene(clip_items, p1, ((0.62, 0.55, 0.56), (0, 0, 1)),
-                 "encoder 1021 assembly: magnet cap + casing with slip-in mount, spool, motor, shell (translucent, clipped)",
+                 f"encoder 1021 {ttl}assembly: magnet cap + casing with slip-in mount, spool, motor, shell (translucent, clipped)",
                  px=900, bounds=(lo, hi), note="station frame (x room, y toward spool, z up); view from the room side, behind the casing")
     paths.append(p1)
-    p1b = os.path.join(out_dir, "encoder1021_assembly_iso_front.png")
+    p1b = os.path.join(out_dir, f"{pre}encoder1021_assembly_iso_front.png")
     render_scene(clip_items, p1b, ((0.55, -0.62, 0.56), (0, 0, 1)),
-                 "encoder 1021 assembly: same, seen from the spool side",
+                 f"encoder 1021 {ttl}assembly: same, seen from the spool side",
                  px=900, bounds=(lo, hi), note="station frame (x room, y toward spool, z up)")
     paths.append(p1b)
-    p2 = os.path.join(out_dir, "encoder1021_assembly_section_z0.png")
+    p2 = os.path.join(out_dir, f"{pre}encoder1021_assembly_section_z0.png")
     render_scene(items(half, 0.22), p2, ((0, 0, 1), (0, 1, 0)),
-                 "encoder 1021 assembly: section at z = 0 seen from +z",
+                 f"encoder 1021 {ttl}assembly: section at z = 0 seen from +z",
                  px=900, bounds=(lo, hi), note="+x right (room), +y up: spool at the bottom, magnet cap, chip, board, casing and foot above; slip-in on the left")
     paths.append(p2)
     return paths
 
 
-def render_sections(out_dir: str = RENDER_DIR) -> list:
-    """Section views: cap in the spool bore (z = 0), casing stack (z = 0 and x = 0), foot through a screw-hole row (z = +4.75)."""
+def render_sections(out_dir: str = RENDER_DIR, v2: bool = False) -> list:
+    """Section views: cap in the spool bore (z = 0), casing stack (z = 0 and x = 0), foot through a screw-hole row (z = +4.75).
+    v2: files get the prefix v2_ and the v2 names; two more sections show the board ribs / foot bumps."""
     os.makedirs(out_dir, exist_ok=True)
-    c = Cfg()
-    cap, mag, cas, brd = (make_magnet_cap().val(), make_magnet().val(), make_casing().val(), make_board().val())
+    pre = "v2_" if v2 else ""
+    cap_name, cas_name = CAP_NAME, CASING_NAME
+    c = Cfg(v2)
+    cap, mag, cas, brd = (make_magnet_cap(v2=v2).val(), make_magnet().val(), make_casing(v2=v2).val(), make_board().val())
     ref = reference_parts()
     col = {"cap": (0.95, 0.55, 0.12), "mag": (0.80, 0.12, 0.12), "cas": (0.20, 0.50, 0.90), "brd": (0.10, 0.55, 0.30),
            "spool": (0.45, 0.72, 0.45), "slip": (0.60, 0.60, 0.62), "motor": (0.40, 0.42, 0.48)}
@@ -741,7 +917,7 @@ def render_sections(out_dir: str = RENDER_DIR) -> list:
     paths = []
     zcut = 0.0
     z_half = dict(z1=zcut)
-    p = os.path.join(out_dir, f"{CAP_NAME}_section_z0.png")
+    p = os.path.join(out_dir, f"{pre}{cap_name}_section_z0.png")
     render_scene(items([(keep(ref["Spool1011"], y0=5, y1=40, **z_half), "spool", 0.95, 0.03),
                         (keep(ref["Motor_Reference"], y0=-5, y1=40, x0=-10, x1=10, **z_half), "motor", 0.8, 0.03),
                         (keep(cap, **z_half), "cap", 1.0, 0.02), (keep(mag, **z_half), "mag", 1.0, 0.02),
@@ -749,31 +925,67 @@ def render_sections(out_dir: str = RENDER_DIR) -> list:
                  p, ((0, 0, 1), (0, 1, 0)), "magnet cap section z = 0: D-peg in the spool bore, magnet in its pocket, chip 1.5 mm above",
                  px=900, bounds=((-14, 19, -3), (14, 35, 3)), note="+x right, +y up")
     paths.append(p)
-    p = os.path.join(out_dir, f"{CASING_NAME}_section_z0.png")
+    p = os.path.join(out_dir, f"{pre}{cas_name}_section_z0.png")
     render_scene(items([(keep(ref["Slipin_mount_piecev3"], x0=-35, x1=-15, y0=25, y1=62, **z_half), "slip", 0.6, 0.05),
                         (keep(cas, **z_half), "cas", 1.0, 0.02), (keep(brd, **z_half), "brd", 1.0, 0.02),
                         (keep(mag, **z_half), "mag", 1.0, 0.02), (keep(cap, **z_half), "cap", 1.0, 0.02)]),
                  p, ((0, 0, 1), (0, 1, 0)), "encoder casing section z = 0: foot in the divot, bridge, board pocket, tabs",
                  px=900, bounds=((-28, 24, -3), (16, 60, 3)), note="+x right, +y up")
     paths.append(p)
-    p = os.path.join(out_dir, f"{CASING_NAME}_section_x0.png")
+    p = os.path.join(out_dir, f"{pre}{cas_name}_section_x0.png")
     render_scene(items([(keep(cas, x1=0.0), "cas", 1.0, 0.02), (keep(brd, x1=0.0), "brd", 1.0, 0.02),
                         (keep(mag, x1=0.0), "mag", 1.0, 0.02), (keep(cap, x1=0.0), "cap", 1.0, 0.02)]),
                  p, ((1, 0, 0), (0, 0, 1)), "encoder casing section x = 0 seen from +x: snap-hook lips behind the board, tabs, chip",
                  px=900, bounds=((-3, 21, -16), (3, 43, 16)), note="+y right, +z up")
     paths.append(p)
     z_hole = c.hole_pts[0][1] if c.hole_pts[0][1] > 0 else c.hole_pts[-1][1]
-    p = os.path.join(out_dir, f"{CASING_NAME}_section_hole_row.png")
+    p = os.path.join(out_dir, f"{pre}{cas_name}_section_hole_row.png")
     render_scene(items([(keep(ref["Slipin_mount_piecev3"], x0=-30, x1=-15, y0=25, y1=62, z1=z_hole), "slip", 0.6, 0.03),
                         (keep(cas, z1=z_hole), "cas", 1.0, 0.02)]),
                  p, ((0, 0, 1), (0, 1, 0)), f"foot screw holes over the divot holes: section through the hole row z = {z_hole:+.2f}",
                  px=900, bounds=((-30, 30, -3), (-12, 60, 3)), note="+x right, +y up")
     paths.append(p)
+    if v2:
+        # board ribs: section at y = 33.05 (inside the PCB thickness) seen from +y, with the 23.0 board outline's crush against 8 ribs
+        p = os.path.join(out_dir, f"{pre}{cas_name}_section_board_ribs.png")
+        slab_lo = _box(-40, 20, 20, 33.05, -20, 20).val()
+        render_scene(items([(keep(cas, y1=33.05), "cas", 1.0, 0.02), (keep(brd, y1=33.05), "brd", 0.6, 0.02)]),
+                     p, ((0, 1, 0), (0, 0, 1)), "v2 board pocket seen from the back at y = 33.05: 0.25 mm clearance, 8 crush ribs (0.10 crush on the board)",
+                     px=900, bounds=((-16, 30, -16), (16, 34, 16)), note="-x right (camera at +y), +z up; ribs at +-6.5 on every wall, clear of the pad rows and hook lips")
+        paths.append(p)
+        # foot bumps: section at x = -21.5 (key depth 0.35) seen from +x: slip-in dish wall vs foot + 8 bumps
+        p = os.path.join(out_dir, f"{pre}{cas_name}_section_foot_bumps.png")
+        render_scene(items([(keep(ref["Slipin_mount_piecev3"], x0=-30, x1=-21.5, y0=25, y1=65, z0=-20, z1=20), "slip", 0.6, 0.03),
+                            (keep(cas, x1=-21.5, y0=25, y1=65), "cas", 1.0, 0.02)]),
+                     p, ((1, 0, 0), (0, 0, 1)), "v2 foot in the divot: section at x = -21.5 seen from +x, 8 crush bumps on the dish wall",
+                     px=900, bounds=((-23, 28, -16), (-21, 62, 16)), note="+y right, +z up; bump tips 0.10 mm beyond the measured wall")
+        paths.append(p)
+        # magnet pocket ribs: section at y = 28 seen from +y
+        p = os.path.join(out_dir, f"{pre}{cap_name}_section_magnet_ribs.png")
+        render_scene(items([(keep(cap, y1=28.0), "cap", 1.0, 0.01), (keep(mag, y1=28.0), "mag", 0.8, 0.01)]),
+                     p, ((0, 1, 0), (0, 0, 1)), "v2 magnet pocket seen from +y at y = 28: Ø6.3 pocket, 3 ribs, Ø6.0 magnet (0.12 crush)",
+                     px=900, bounds=((-8, 22, -8), (8, 29, 8)), note="-x right (camera at +y), +z up")
+        paths.append(p)
     return paths
 
 
 # =============================================================================================================================
-if __name__ == "__main__" and sys.argv[1:] == ["variants"]:
+if __name__ == "__main__" and sys.argv[1:] == ["v2"]:
+    for nm, mk in (("magnet cap v2", make_magnet_cap), ("encoder casing v2", make_casing)):
+        v = mk(v2=True).val()
+        bb = v.BoundingBox()
+        print(f"{nm}: valid={v.isValid()} solids={len(v.Solids())} vol={v.Volume():.1f} mm3 mass={v.Volume() * P.ENC1021_PETG_G_CM3 / 1000:.2f} g "
+              f"bbox x[{bb.xmin:.3f},{bb.xmax:.3f}] y[{bb.ymin:.3f},{bb.ymax:.3f}] z[{bb.zmin:.3f},{bb.zmax:.3f}]")
+    for k, d in export_all_v2().items():                      # v2 only: the v1 and variant exports are not rewritten
+        print(k, d["step"], d["stl"])
+    for nm, mk, rgb in ((f"v2_{CAP_NAME}", make_magnet_cap, (0.93, 0.55, 0.18)), (f"v2_{CASING_NAME}", make_casing, (0.25, 0.55, 0.88))):
+        render_part(mk(v2=True).val(), nm, rgb)
+    render_assembly(v2=True)
+    render_sections(v2=True)
+    for ver in (1, 2):
+        r = stackup(ver)
+        print(f"stack-up v{ver}: worst radial {r['worst_radial']:.3f} mm (x {r['worst_x']:.3f}, z {r['worst_z']:.3f}), RSS radial {r['rss_radial']:.3f} mm")
+elif __name__ == "__main__" and sys.argv[1:] == ["variants"]:
     for k, d in export_variants().items():                  # fit-test variants only; the nominal exports are not rewritten
         v = build_variant(k).val()
         bb = v.BoundingBox()

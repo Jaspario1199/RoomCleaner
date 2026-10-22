@@ -65,4 +65,4 @@ Facts behind the obstacle slide (code, not hardware):
     the encoder casing and magnet cap inside the shell;
   - `gripper1021_asbuilt.png`: the claw as built, with the housing carrying both cable patterns (D34) and its camera-bay cover,
     the 10.48 in tube (D36: the head moved up by the 38.6 mm cut), the 1021 head and the four-bar hands.
-- **Unchanged:** the title slide still shows `gripper1021_final.png` (12 in tube); swap it if the as-built claw should open the talk.
+- **Unchanged, by choice (Jasper):** the title slide keeps `gripper1021_final.png` (12 in tube). The slide says "10.5 in tube" (10.48 as built).

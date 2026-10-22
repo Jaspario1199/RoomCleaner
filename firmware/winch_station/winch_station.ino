@@ -14,11 +14,17 @@
  *     broadcast to the other stations
  *   - a reboot starts a new boot id/epoch: the host must re-reference L0
  *
- * Pins (Rev C): STEP GPIO3, DIR GPIO4, EN GPIO5 (active low, 10k pull-up),
- * HOME GPIO10 (NC switch to GND, internal pull-up), AS5600 SDA GPIO6 / SCL GPIO7.
+ * Pins, chosen at compile time by the board selected in the Arduino IDE:
+ *   XIAO ESP32-C3 (Rev C/D): STEP GPIO3, DIR GPIO4, EN GPIO5 (active low, 10k pull-up),
+ *     HOME GPIO10 (NC switch to GND, internal pull-up), AS5600 SDA GPIO6 / SCL GPIO7.
+ *     Board: "XIAO_ESP32C3", USB CDC On Boot enabled.
+ *   ELEGOO ESP32 DevKit, ESP-WROOM-32, 30 pins (docs/electrical/station_revD_20261021/BREADBOARD_LAYOUT_ESP32.md):
+ *     STEP GPIO25, DIR GPIO26, EN GPIO27, HOME GPIO32, SDA GPIO21, SCL GPIO22; none is a boot-strapping pin,
+ *     and all float at reset, so the EN pull-up keeps the driver off through boot.
+ *     Board: "ESP32 Dev Module" (CP2102 USB; hold BOOT if the upload does not start).
  * The A4988 has no fault output (unlike the DRV8825 bench code's GPIO20).
  *
- * Board: "XIAO_ESP32C3", USB CDC On Boot enabled, arduino-esp32 core 3.x.
+ * arduino-esp32 core 3.x for both boards.
  * Copy secrets.example.h -> secrets.h and set STATION_ID, Wi-Fi, static IP.
  *
  * STATUS: written against the core API; not yet compiled for the ESP32 in this
@@ -38,7 +44,13 @@
 
 using namespace roomcleaner::winch;
 
+#if CONFIG_IDF_TARGET_ESP32C3        // Seeed XIAO ESP32-C3
 constexpr int STEP_PIN = 3, DIR_PIN = 4, EN_PIN = 5, HOME_PIN = 10, SDA_PIN = 6, SCL_PIN = 7;
+#elif CONFIG_IDF_TARGET_ESP32        // ELEGOO ESP32 DevKit (ESP-WROOM-32)
+constexpr int STEP_PIN = 25, DIR_PIN = 26, EN_PIN = 27, HOME_PIN = 32, SDA_PIN = 21, SCL_PIN = 22;
+#else
+#error "winch_station: build for XIAO_ESP32C3 or ESP32 Dev Module"
+#endif
 constexpr uint16_t UDP_PORT = 8771;          // stations listen here
 constexpr uint16_t HOST_PORT = 8770;         // host transport binds here
 constexpr int64_t PERIOD_US = 1000;          // control period (1 kHz)

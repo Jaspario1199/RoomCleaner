@@ -259,3 +259,21 @@ eps itself; the real board outline (a 23.2 board would crush the board ribs 0.2 
 force of 8 board ribs, 3 magnet ribs and 8 foot bumps (all crush ribs in PETG yield locally; no force was calculated); ribs avoid the pad rows and hook lips, but the
 photo of the board was not available: check that no part sits within 0.45 of the edge at +-6.5 on any side, and move `ENC1021_V2_BOARD_RIB_POS` if one does;
 the spool-on-shaft eccentricity and the printed slip-in / motor seat position, which the verifier also left out.
+
+## Assembly-frame STEP copies (lead, 2026-10-22)
+
+Jasper asked for STEP files of the cap and casing to put into the final assembly. The v2 STEP files were already exported
+from the CadQuery source (true B-rep solids, not converted from the STL), and they match the builder exactly (volume and
+bounding box). `tools/export_encoder1021_asm.py` also writes copies placed in the coordinates of
+`Assem_laundry_v3_step_1021.STEP`:
+
+| file | frame | use |
+|---|---|---|
+| `exports/step/encoder1021_casing_v2.step`, `encoder1021_magnet_cap_v2.step` | station frame (origin on the motor shaft at the motor flange face) | mate in SOLIDWORKS: foot face to divot floor, holes to divot holes; cap axis to shaft axis, head face to spool face |
+| `exports/step/encoder1021_casing_v2_asm1021.step`, `encoder1021_magnet_cap_v2_asm1021.step` | the 10/21 assembly's own coordinates | insert with the part origin on the assembly origin (or fix at the origin): they land in place |
+
+Offset station frame → assembly: (1269.084243, 738.761645, 930.203854) mm = O + (0, 0, 2.64) + the extraction residual.
+Check, run in assembly coordinates against the original assembly STEP: the casing touches only the slip-in mount (0.336 mm³:
+the eight foot bumps) and the cap touches only the spool (0.477 mm³: the three crush ribs); the peg ends 0.6 mm short of the
+motor shaft. These equal the corrected-frame values in `encoder1021_v2_verification.md`. Volumes unchanged by the round trip: PASS.
+SOLIDWORKS will report these intended press-fit overlaps in an interference check.

@@ -76,7 +76,8 @@ inspection and bring-up, not on software.
   wiring, soldering, bench bring-up and debugging, test plan, design decisions.
   Purchased modules: NEMA 17 steppers, A4988 drivers, ESP32 boards, MG996R
   servo, camera. (Jasper's direction 2026-10-20: the deck does not mention AI
-  tools.)
+  tools. Superseded 2026-10-22: Jasper asked the deck to say he dictated and
+  built out the control logic using Claude Code; deck v7, Timeline and Scope.)
 - **Confirm:** project start date.
 
 ### 4 · First principles: cable statics (2.5 min)

@@ -85,7 +85,6 @@ The numbers are the same as v5 and v6 (1.5 A). v1 to v6 are kept unchanged.
 
 The red brackets on the slides mark these:
 - graduation year, and your role in the Gladiator Dash (the photos are in);
-- the software parts Jasper wrote;
 - the generation 1 test weight;
 - the weighed claw mass and the total cost;
 - the test results;
@@ -96,3 +95,5 @@ The speaker notes also ask for:
 - the electronics readings;
 - the fin machining time;
 - the Gantt start date.
+
+**Software credit (Jasper, Oct 22):** the Timeline and Scope slide says "I dictated and built out the control logic using Claude Code". This replaces the Oct 20 direction that the deck not mention AI tools (SPACEX_OUTLINE.md).

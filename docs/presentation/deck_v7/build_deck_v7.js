@@ -299,7 +299,7 @@ content("Project Goal", [
     ["5. Build and test", "Oct 22 – Oct 27", 113, 119],
   ], M, 1.3, W - 2 * M);
   bullets(sl, [
-    "Solo project: requirements, calculations, all CAD (computer-aided design), printing, machining, wiring and [[software parts you wrote]]",
+    "Solo project: requirements, calculations, all CAD (computer-aided design), printing, machining and wiring; I dictated and built out the control logic using Claude Code",
     "Purchased: stepper motors, drivers, controller boards, servo, camera, battery and encoder boards",
     "Garment detection uses YOLO-World, an open-source model",
   ], M, gy + 0.4, W - 2 * M, 6.8 - gy - 0.4, 18, { space: 10, name: "scope" });

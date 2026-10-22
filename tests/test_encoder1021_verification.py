@@ -935,8 +935,10 @@ def test_6_minimum_walls(cas, cap):
         ts = ray(cas, (0, 34.2, s * 11.0), (0, 0, s), 0, 4.0)
         check("6", f"hook wall at z{s:+d}: thickness at y=34.2 through the lip tip flat (wall 1.2 + lip 0.6)", 1.8, ts[1] - ts[0], 0.005,
               note="lip protrudes 0.6 from the 1.2 wall")
-        ts = ray(cas, (s * 12.0, 32.5, 0), (s, 0, 0), 0, 4.0)
-        check("6", f"+-x wall at x{s:+d}: thickness (spec 2.0)", 2.0, ts[1] - ts[0], 0.005)
+    ts = ray(cas, (11.0, 32.5, 0), (1, 0, 0), 0, 4.0)
+    check("6", "+x wall (pad edge): thickness (spec 2.0)", 2.0, ts[1] - ts[0], 0.005)
+    ts = ray(cas, (-11.0, 32.5, 0), (-1, 0, 0), 0, 12.0)
+    check("6", "-x side: wall + bridge block, solid from the pocket to the bridge end (x -11.7 .. -20.9)", 9.2, ts[1] - ts[0], 0.01)
     # lip tip thickness (along y) at its end: the 45 deg ramp leaves 0.4 mm
     ts = ray(cas, (0, 33.0, 11.4), (0, 1, 0), 0, 4.0)
     check("6", "hook lip thickness along y at its tip (catch face to ramp start)", 0.4, ts[1] - ts[0], 0.01,

@@ -5,7 +5,7 @@ Panels:
   2. The same pocket's entry lip seen from above: the Ø14.000 lip is cut by 8 T-slots (a 0.4 mm gap backed by a 0.5 mm slot),
      so the lip ends flex outward as the bearing snaps past.
   3. Slide-in mount in the wall mount: horizontal section through one dovetail, with the measured gaps.
-  4. Heat fin: mill datums A and B and the hole positions (shop drawing, cad/parts/heat_fin1021.py).
+  4. Heat fin: Jasper's mill method: the edges locate the bottom-left hole, which then becomes the zero for the other four.
 
     /usr/bin/python3 docs/presentation/deck_v8/make_mfg_figure.py   -> docs/presentation/deck_v8/fig/mfg_details.png
 """
@@ -124,28 +124,35 @@ def panel_dovetail(ax, slipin, wall):
 
 
 def panel_fin(ax):
+    """Jasper's mill method (10/22): the two edges locate only the bottom-left M3 hole; once drilled, that hole is the mill's
+    zero and the other four holes are positioned from it, so the sheared edges (±0.5) do not move the hole pattern."""
     W = P.FIN1021_X_MAX - P.FIN1021_X_MIN                   # 42.0
     show = 72.0                                             # lower part of the 228.6 mm plate
     ax.plot([0, 0, W, W], [show, 0, 0, show], color=INK, lw=1.0)          # left side, bottom edge, long side
     ax.plot([-1, W + 1], [show, show], color=MUTED, lw=0.6, ls=(0, (4, 2)))
     ax.text(W / 2, show + 2.0, "plate continues: 195.6 / 228.6 tall", ha="center", fontsize=7.5, color=MUTED)
-    for i, d, X, XB, Y in FIN.hole_table():
-        t = np.linspace(0, 2 * math.pi, 120)
-        ax.plot(X + d / 2 * np.cos(t), Y + d / 2 * np.sin(t), color=NAVY, lw=0.9)
-    ax.plot([-3, W + 3], [-3.5, -3.5], color=RED, lw=2.2)
-    ax.plot([W + 3.5, W + 3.5], [-3, show - 4], color=RED, lw=2.2)
-    ax.text(-3, -7.5, "A  bottom edge", color=RED, fontsize=8.5, weight="bold")
-    ax.text(W + 5, show - 8, "B\nlong\nside", color=RED, fontsize=8.5, weight="bold", va="top")
     rows = FIN.hole_table()
+    t = np.linspace(0, 2 * math.pi, 120)
+    for i, d, X, XB, Y in rows:
+        ax.plot(X + d / 2 * np.cos(t), Y + d / 2 * np.sin(t), color=NAVY, lw=0.9)
+    zero = rows[1]                                          # hole 2: lower left M3
+    x0, y0 = zero[2], zero[4]
+    ax.plot([x0 - 4, x0 + 4], [y0, y0], color=RED, lw=0.8)
+    ax.plot([x0, x0], [y0 - 4, y0 + 4], color=RED, lw=0.8)
+    ax.text(x0 + 2.4, y0 + 2.2, "X0 Y0", color=RED, fontsize=8, weight="bold")
+    dim(ax, (0, -4.0), (x0, -4.0), f"{x0:.1f}", off=(0, -2.2), size=7.5, color=RED)
+    dim(ax, (-4.0, 0), (-4.0, y0), f"{y0:.1f}", off=(-3.0, 0), size=7.5, color=RED)
+    for i, d, X, XB, Y in rows[2:]:
+        ax.text(X + 2.2, Y + 2.2, f"({X - x0:.0f}, {Y - y0:.0f})", fontsize=7.5, color=NAVY)
     pil = rows[0]
-    ax.text(pil[2], pil[4], f"Ø{pil[1]:.1f}", ha="center", va="center", fontsize=7.5, color=NAVY)
-    dim(ax, (W, 44.0), (pil[2], 44.0), f"{pil[3]:.1f}", off=(0, 1.6), size=7.5)
-    dim(ax, (-6.0, 0), (-6.0, pil[4]), f"{pil[4]:.1f}", off=(-3.2, 0), size=7.5)
-    ax.text(W / 2, 52.0, "4 × Ø3.4 on 31.0 sq.\nall 5 holes in one setup\nfrom A and B, ±0.1", ha="center", fontsize=7.5, color=INK)
+    ax.text(pil[2], pil[4] + 2.0, f"Ø{pil[1]:.1f}", ha="center", va="center", fontsize=7.5, color=NAVY)
+    ax.text(pil[2], pil[4] - 2.4, f"({pil[2] - x0:.1f}, {pil[4] - y0:.1f})", ha="center", va="center", fontsize=7.5, color=NAVY)
+    ax.text(W / 2, 46.0, "edges locate the\nfirst hole only;\ndrilled, it is the\nzero for the rest", ha="center",
+            fontsize=7.2, color=INK)
     ax.set_xlim(-14, W + 14)
     ax.set_ylim(-10, show + 5)
     ax.set_aspect("equal")
-    ax.set_title("4  Heat fin, mill datums", loc="left", fontsize=10, color=INK, weight="bold")
+    ax.set_title("4  Heat fin: first hole is the mill zero", loc="left", fontsize=10, color=INK, weight="bold")
     ax.axis("off")
 
 

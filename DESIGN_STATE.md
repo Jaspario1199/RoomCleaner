@@ -583,5 +583,8 @@ slack_probe default (keep false until probe H1/M2 are closed).
 - Manufacturing facts measured from Jasper's parts: gear bearing pockets Ø14.075 behind a Ø14.000 × 1.95 mm entry lip cut by
   8 T-slots (0.4 mm gap backed by a 0.5 mm slot), 687 bearings on printed Ø7.000 pins into Ø7.05 sockets; slide-in 0.175 mm
   per side, 30° dovetail flanks 0.14 to 0.21 mm; insert holes M3 Ø4.1 × 7 (slide-in), Ø4.0 × 5 (gear housing), M2.5 Ø3.45 × 4
-  (encoder divot); wall screw holes Ø3.97 with Ø7.94 counterbores; fin datums A (bottom edge) and B (long side), 5 holes in
-  one setup ±0.1.
+  (encoder divot); wall screw holes Ø3.97 with Ø7.94 counterbores.
+- Fin drilling method (Jasper, 10/22): the edges locate only the bottom-left M3 hole (4.5 / 5.5 mm from the edges in the
+  drawing view); once drilled, that hole is the mill's zero and the other four holes are positioned from it ((31, 0), (0, 31),
+  (31, 31), pilot (15.5, 15.5)), so the ±0.5 mm sheared edges do not move the pattern. The shop drawing in
+  `cad/parts/heat_fin1021.py` still dimensions every hole from the edges (datums A and B); it can be redrawn from hole 2.

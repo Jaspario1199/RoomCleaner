@@ -589,7 +589,7 @@ content("Build: Printing, Machining, Bring-Up", [
     ["Heat-set inserts", "M3: Ø4.1 × 7 deck, Ø4.0 × 5 gear housing; M2.5: Ø3.45 × 4", "Melt-in; hole deeper than the insert"],
     ["Screw clearance", "M3 Ø3.5 printed, Ø3.4 drilled; wall Ø3.97 (5/32 in)", "+0.5 printed, +0.4 drilled"],
     ["Motor pilot, Ø22 boss", "Ø22.4 printed tab, Ø22.5 drilled fin", "+0.4 / +0.5"],
-    ["Fin datums", "A bottom edge, B long side; 5 holes in one setup", "±0.1 hole to hole, ±0.5 outline"],
+    ["Fin hole zero", "Edges locate the bottom-left hole; drilled, it is the zero for the other 4", "Pattern ±0.1, free of the ±0.5 sheared edges"],
   ], bx, 1.25, bw, [0.25, 0.44, 0.31], { size: 10.5, rowH: 0.5, name: "fits" });
   bullets(sl, [
     "Printed holes come out small, so every printed fit carries an allowance; the drilled fin needs none",
@@ -597,8 +597,9 @@ content("Build: Printing, Machining, Bring-Up", [
   ], bx, 5.85, bw, 0.95, 12, { space: 4, name: "printing rules" });
   sl.addNotes("This is what I designed into the parts so they assemble without filing. The gear pockets are the one I am proudest of: the bearing presses past a lip, " +
               "the T-slots let the lip ends flex, and it then sits free in a pocket 0.075 mm larger, so the lip holds it in without squeezing the race. " +
-              "The slide-in runs on 0.175 mm a side, enough to lift out by hand after printing shrinkage. The fin is the one metal part: both datums are " +
-              "sheared edges, and all five holes go in one setup, so hole-to-hole errors do not stack and it bolts on without reaming. " +
+              "The slide-in runs on 0.175 mm a side, enough to lift out by hand after printing shrinkage. The fin is the one metal part. The sheared edges are only " +
+              "good to half a millimetre, so I used them only to find the first hole; once it was drilled I zeroed the mill on that hole and put the other four " +
+              "in from it, so the hole pattern carries the mill's accuracy, not the edges', and the fin bolts on without reaming. " +
               "If asked: the spool bore taught me the allowance (Ø5.2 would not go on a 5 mm shaft; v3 opened it to Ø5.45 and the 10/21 CAD has Ø5.30; the set screw " +
               "carries the torque). [Confirm which spool bore is printed, which holes get heat-set inserts, and the insert part number.]");
 }

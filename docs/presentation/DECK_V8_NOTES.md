@@ -159,3 +159,6 @@ Poor decisions gain "parts built far stronger than any load needed". Main deck: 
 
 **Links removed (Oct 22, Jasper):** the audience cannot open the calculation Sheet, so the links on Results Against Targets and on the
 appendix's Calculations and Sources slide are gone. Chart captions still name the Sheet tab as the source.
+
+**Oct 22, Jasper:** the Takeaways and Next Steps slide has no diagram (two columns of statements); the floor-board
+"tags in view" chart is off the Camera Calibration slide (kept in the appendix file and the Sheet).

@@ -439,11 +439,8 @@ content("Camera Calibration Replaces Bead Homing", [
   "Camera pose per frame, best case: 6.6 mm with one tag in view, 0.7 mm with four",
   "Simulated: cable lengths known to about 12–16 mm after the fit; the whole room opens only when the error bars allow it",
   "Beads stay on the cables as end stops: a bead reaching its switch stops that station",
-], (sl, x, y, w, h) => {
-  figure(sl, { sheet: "bead_homing", tab: "Bead homing" }, x, y, w, h / 2 - 0.05);
-  figure(sl, { sheet: "floor_board", tab: "Floor board" }, x, y + h / 2 + 0.05, w, h / 2 - 0.05);
-},
-"Top: why bead homing died; with home 1 m up, 5 % of the room is reachable, 2 m up, 29 %. Bottom: the floor board, per camera frame. " +
+], { sheet: "bead_homing", tab: "Bead homing" },
+"The chart: why bead homing died; with home 1 m up, 5 % of the room is reachable, 2 m up, 29 %. " +
 "If asked why not home each cable at its own shortest length: that drags the claw into the high-tension zone next to an anchor. " +
 "The number that matters is the cable length after the fit, not the per-frame camera error; averaging tags removes noise but not bias. Simulated so far. " +
 "Beads now: the startup self-check requires every switch closed; until a bead is verified the planner keeps each cable a margin longer than its bead trip length; " +
@@ -682,30 +679,34 @@ section("Results and Takeaways"); PHASE = "";
               "[If true, add: several stations built before one was proven.]");
 }
 
-content("Takeaways and Next Steps", [
-  "Takeaways",
-  "- Pull-test one winch and weigh a mock claw in week 1; set the mass budget from that",
-  "- Kill ideas on paper first: bead homing and the central board failed calculations I could have run in week 1",
-  "- Prove one full station, calibration included, before copying it",
-  "- Size every part to a load number; over-building cost weight, plastic and print time",
-  "Next steps",
-  "- Pull test, then enter the measured limit in the planner",
-  "- Hold test at 1.5 A, three-station test, grip pads",
-  "- Spool set screw into metal; 6 mm motor tab with fillets on both roots",
-  "- Lighter redesign sized to the loads: about 60 % less station plastic, claw to its 0.45 kg budget",
-  "- Continuous testing: long runs logging tracking faults, temperatures and creep",
-  "- A brake or non-backdrivable stage, so a power loss cannot drop the claw",
-], (sl, x, y, w, h) => scheduleBars(sl, x, y + 1.3, w,
-    [["Plan", 7, HEX.pale], ["One station", 14, HEX.navy2], ["Copy", 7, HEX.pale], ["Clamp", 14, HEX.navy2], ["Test", 7, HEX.navy]],
-    "Same time scale. Half time: plan (pull test, mass budget), one station, copy, clamp, test."),
-"In half the time I would not build the central board, bead homing or the finger claw at all; the week-1 calculations already killed them. " +
-"Next steps in order: the pull test first, because both the lift margin and the planner's tension check depend on it. " +
-"The redesign uses the weakest-link numbers: the mount and dovetails are 90 to 225 times stronger than the motor can pull, so the station can lose about " +
-"60 % of its plastic while the motor tab, the one part that is short, gets thicker; a carbon tube and thinner housings bring the claw to 0.45 kg, " +
-"which lifts the jeans margin from 4 % to about 16 % (docs/decisions/WEIGHT_REDESIGN_PROPOSAL_20261022.md). Continuous testing then runs the robot for hours " +
-"and logs every tracking fault, temperature and any creep. " +
-"Leave this slide up for questions.",
-{ figW: 7.0, size: 14, space: 4 });
+{
+  // No diagram (Jasper, 10/22): two columns of statements, takeaways left, next steps right.
+  const sl = blank("Takeaways and Next Steps");
+  const cw = (W - 2 * M - 0.6) / 2, x2 = M + cw + 0.6;
+  label(sl, "Takeaways", M, 1.3, cw, 0.4, { size: 18, bold: true, color: HEX.navy });
+  bullets(sl, [
+    "Pull-test one winch and weigh a mock claw in week 1; set the mass budget from that",
+    "Kill ideas on paper first: bead homing and the central board failed calculations I could have run in week 1",
+    "Prove one full station, calibration included, before copying it",
+    "Size every part to a load number; over-building cost weight, plastic and print time",
+  ], M, 1.85, cw, 4.9, 17, { space: 12, name: "takeaways" });
+  label(sl, "Next steps", x2, 1.3, cw, 0.4, { size: 18, bold: true, color: HEX.navy });
+  bullets(sl, [
+    "Pull test, then enter the measured limit in the planner",
+    "Hold test at 1.5 A, three-station test, grip pads",
+    "Spool set screw into metal; 6 mm motor tab with fillets on both roots",
+    "Lighter redesign sized to the loads: about 60 % less station plastic, claw to its 0.45 kg budget",
+    "Continuous testing: long runs logging tracking faults, temperatures and creep",
+    "A brake or non-backdrivable stage, so a power loss cannot drop the claw",
+  ], x2, 1.85, cw, 4.9, 17, { space: 12, name: "next steps" });
+  sl.addNotes("In half the time I would not build the central board, bead homing or the finger claw at all; the week-1 calculations already killed them. " +
+    "Next steps in order: the pull test first, because both the lift margin and the planner's tension check depend on it. " +
+    "The redesign uses the weakest-link numbers: the mount and dovetails are 90 to 225 times stronger than the motor can pull, so the station can lose about " +
+    "60 % of its plastic while the motor tab, the one part that is short, gets thicker; a carbon tube and thinner housings bring the claw to 0.45 kg, " +
+    "which lifts the jeans margin from 4 % to about 16 % (docs/decisions/WEIGHT_REDESIGN_PROPOSAL_20261022.md). Continuous testing then runs the robot for hours " +
+    "and logs every tracking fault, temperature and any creep. " +
+    "Leave this slide up for questions.");
+}
 
 }
 

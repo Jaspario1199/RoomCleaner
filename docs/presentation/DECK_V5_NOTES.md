@@ -1,6 +1,6 @@
 # Deck v5: notes and content contract (2026-10-22)
 
-`deck_v5/build_deck_v5.js` builds `deck_v5/RoomCleaner_Buntinx_Oct27_v5.pptx` / `.pdf`: 20 main slides + 13 backups,
+`deck_v5/build_deck_v5.js` builds `deck_v5/RoomCleaner_Buntinx_Oct27_v5.pptx` / `.pdf`: 22 main slides + 13 backups,
 validated. `deck_v5/contact_sheet.png` shows all 33. Decks v1 to v4 are unchanged.
 
 ## Why v5
@@ -31,22 +31,34 @@ What changed from v4 (52 slides):
 | 3 | The Goal | final station and claw renders; gate strip | |
 | 4 | Scope and Timeline | native timeline; me vs bought | |
 | 5 | How It Works | five-layer diagram | Simulated end to end |
-| 6 | Cable Tension | Sheet chart, equations | Calculated |
-| 7 | Winch Pull | Sheet chart, equations | Calculated |
-| 8 | One Controller per Winch | wiring chart, equations | Built |
-| 9 | Cooling the Motor | motor temperature chart, equations | Fin built · temperature calculated |
-| 10 | Homing | bead homing chart, equation | Calculated · simulated |
-| 11 | The Claw | four claw images incl. photo 22 | Body built · hands in CAD |
-| 12 | Weight: the Open Problem | lift budget chart | Open problem |
-| 13 | Printed Fits | spool v1 to v3 | Built |
-| 14 | Machining the Fin | photos 06, 03, 02, 15 | Built |
-| 15 | Electronics Bring-Up | photos 19, 12 | Measured |
-| 16 | First Test | placeholder + pass-limit table | Planned · this week |
-| 17 | Good and Poor Decisions | eight thumbnails | |
-| 18 | Thorough vs Scrappy | mill photo; ESP32 breadboard drawing | |
-| 19 | Lessons Learned | actual vs half-time bars | |
-| 20 | Questions | | |
+| 6 | What I'm Optimizing | eight objective tiles (target, now, status); safety as the one constraint not traded | |
+| 7 | Trade-offs | six lever cards (gain, cost, where I set it) and the chain claw mass → pull → current → heat → fin | |
+| 8 | Cable Tension | Sheet chart, equations | Calculated |
+| 9 | Winch Pull | Sheet chart, equations | Calculated |
+| 10 | One Controller per Winch | wiring chart, equations | Built |
+| 11 | Cooling the Motor | motor temperature chart, equations | Fin built · temperature calculated |
+| 12 | Homing | bead homing chart, equation | Calculated · simulated |
+| 13 | The Claw | four claw images incl. photo 22 | Body built · hands in CAD |
+| 14 | Weight: the Open Problem | lift budget chart | Open problem |
+| 15 | Printed Fits | spool v1 to v3 | Built |
+| 16 | Machining the Fin | photos 06, 03, 02, 15 | Built |
+| 17 | Electronics Bring-Up | photos 19, 12 | Measured |
+| 18 | First Test | placeholder + pass-limit table | Planned · this week |
+| 19 | Good and Poor Decisions | eight thumbnails | |
+| 20 | Thorough vs Scrappy | mill photo; ESP32 breadboard drawing | |
+| 21 | Lessons Learned | actual vs half-time bars | |
+| 22 | Questions | | |
 | B | Where It Stands, Fin Length, Floor Board Accuracy, Startup Calibration, Logic: Gen 1 vs Final, One Run, Phone App, Obstacles, Claw Electrical, Gear Strength, Safety, Acronyms, Calculations and Sources | | |
+
+## Update, Oct 22: objectives and trade-offs
+
+Jasper asked for the parameters being optimized, and how they move together ("the more power we get, the more heat",
+"the more robust the claw, the more it weighs", "the more room, the more wiring and resistance"), right after the
+introduction. Two slides open the Design part: **What I'm Optimizing** (eight objectives with target, current value and
+status; safety stated as the one constraint that is not traded) and **Trade-offs** (six levers: motor current, claw
+strength, room size, reach toward the ceiling, spool radius, safety margins; each with its gain, cost, governing equation
+and where it is set, plus the chain claw mass → pull → current → heat → fin). Every number is one already in the deck.
+New placeholder: total spent (Cost tile).
 
 ## Update, Oct 22: drivers at 1.5 A (D37)
 
@@ -68,9 +80,10 @@ New placeholder: how 1.5 A was reached (Vref reading), on "Where It Stands" and 
 
 1. Slide 2: graduation month and year; hobbies and interests; one line on why a laundry robot; a photo of you building.
 2. Slide 4: which control-software parts you wrote (or delete the line); any shop access or mentors (or delete).
-3. Slide 12: the weighed claw mass.
-4. Slide 16: a photo or video of the three-station test, and the four result cells (record failures too).
-5. Backup "Where It Stands": how many stations are built.
+3. Slide 14: the weighed claw mass (also on slide 6, Claw mass tile).
+4. Slide 18: a photo or video of the three-station test, and the four result cells (record failures too).
+5. Backup "Where It Stands": how many stations are built, and how 1.5 A was reached.
+6. Slide 6, Cost tile: the total spent.
 
 In the speaker notes only: the start date (git shows Jul 16) and what happened in September; time per fin and any scrap; the
 1.14 V readings and date; confirm "several stations before one was proven" as a poor decision.

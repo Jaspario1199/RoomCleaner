@@ -378,6 +378,80 @@ content("How It Works", [
 
 // ================================================================================================ DESIGN
 part("Design");
+{
+  // What I'm optimizing: one tile per objective, its target and where it stands now; the colour is the status.
+  const sl = blank("What I’m Optimizing");
+  const st = { no: ["NOT MET", HEX.red], tight: ["TIGHT", HEX.navy2], met: ["MET IN DESIGN", HEX.navy], test: ["TEST PENDING", HEX.grey] };
+  const tiles = [
+    ["Lift capacity", "Maximize", "Claw + jeans anywhere: 1.76 kg", "1.56 kg at 1.5 A (calculated)", "no"],
+    ["Claw mass", "Minimize", "0.45 kg budget", "≈ 0.86 kg with battery (CAD); [[weighed: ___ g]]", "no"],
+    ["Motor temperature", "Limit", "Under 60 °C (PETG creep)", "≈ 58 °C, vented shell + fin (calculated)", "tight"],
+    ["Working area", "Maximize", "The whole 11 × 9 ft floor", "All but 0.2 m at the walls (simulated)", "met"],
+    ["Wiring", "Minimize", "One plug per station", "One 12 V pair; 0.51 V drop on the longest run", "met"],
+    ["Accuracy", "Maximize", "≤ 2 mm per cable over 300 mm", "Floor board 0.7 mm (calculated)", "test"],
+    ["Speed", "Maximize", "50 mm/s, 2 m/s²", "In every tension check; not yet run", "test"],
+    ["Cost", "Minimize", "Hobby budget; parts I can buy and fix", "[[total spent: $___]]", "test"],
+  ];
+  const g = 0.18, tw = (W - 2 * M - 3 * g) / 4, th = 2.22, y0 = 1.6;
+  tiles.forEach(([name, dir, target, now, s], i) => {
+    const x = M + (i % 4) * (tw + g), y = y0 + Math.floor(i / 4) * (th + g), [lab, col] = st[s];
+    sl.addShape(pres.shapes.RECTANGLE, { x, y, w: tw, h: th, fill: { color: "FFFFFF" }, line: { color: HEX.rule, width: 1 }, objectName: `${name} tile` });
+    sl.addShape(pres.shapes.RECTANGLE, { x, y, w: tw, h: 0.1, fill: { color: col }, line: { color: col }, objectName: `${name} status bar` });
+    label(sl, lab, x + 0.15, y + 0.17, tw - 0.3, 0.24, { size: 10.5, bold: true, color: col });
+    label(sl, name, x + 0.15, y + 0.42, tw - 0.3, 0.36, { size: 17, bold: true });
+    label(sl, dir, x + 0.15, y + 0.78, tw - 0.3, 0.26, { size: 12, color: HEX.grey });
+    label(sl, `**Target:** ${target}`, x + 0.15, y + 1.06, tw - 0.3, 0.5, { size: 13, valign: "top" });
+    label(sl, `**Now:** ${now}`, x + 0.15, y + 1.56, tw - 0.3, 0.58, { size: 13, valign: "top", color: s === "no" ? HEX.red : HEX.ink });
+  });
+  sl.addShape(pres.shapes.RECTANGLE, { x: M, y: 6.35, w: W - 2 * M, h: 0.5, fill: { color: HEX.light }, line: { color: HEX.light }, objectName: "constraint box" });
+  label(sl, "**Not traded:** safety. Anchors in studs, one hard stop, holds on any fault, nobody under the robot",
+        M + 0.15, 6.35, W - 2 * M - 0.3, 0.5, { size: 15 });
+  sl.addNotes("Eight things I optimize, each with a number. Two are not met today: lift capacity and claw mass, and they are the same problem " +
+              "seen from two sides. Motor temperature is tight since the 1.5 A change. Working area and wiring are met by the design. Accuracy, " +
+              "speed and cost wait on the hardware test and the receipts. Safety is a constraint, not an objective: I never trade it for any of the others.");
+}
+
+{
+  // Trade-offs: each lever, what it gains, what it costs, and where I set it; the chain at the bottom shows how they couple.
+  const sl = blank("Trade-offs");
+  const cards = [
+    ["Motor current ↑", "pull, T ∝ I (+41 % at 1.5 A)", "heat, P = I²R (2.0 → 4.1 W)", "1.5 A, vented shell + fin"],
+    ["Claw strength ↑", "gear safety factor 0.4 → 2", "mass; payload = capacity − claw", "module 1.5 gears; mass budget open"],
+    ["Room size ↑", "more floor covered", "longer wire, more resistance: R = ρL/A", "only 12 V travels, on 16-gauge wire"],
+    ["Reach toward the ceiling ↑", "more working volume", "tension, T = W / (4 sin φ): 12 → 32 N", "stop 0.4 m below the anchors"],
+    ["Spool radius ↓", "pull, T = τ / r", "line speed, v = ω r; less line per layer", "Ø15 core: 34 N empty, 25 N full"],
+    ["Safety margins ↑", "no skipped steps, no wall contact", "usable force (÷ 1.5) and floor area", "÷ 1.5; 0.2 m walls, 0.4 m ceiling"],
+  ];
+  const g = 0.2, cw = (W - 2 * M - 2 * g) / 3, ch = 2.15, y0 = 1.6;
+  cards.forEach(([lever, gain, cost, set], i) => {
+    const x = M + (i % 3) * (cw + g), y = y0 + Math.floor(i / 3) * (ch + g);
+    sl.addShape(pres.shapes.RECTANGLE, { x, y, w: cw, h: ch, fill: { color: "FFFFFF" }, line: { color: HEX.navy, width: 1 }, objectName: `${lever} card` });
+    band(sl, lever, x, y, cw, HEX.navy);
+    const line = (lead, text, color, last) => [{ text: lead, options: { bold: true, color } }, { text, options: { color, breakLine: !last } }];
+    sl.addText([...line("Gain:  ", gain, HEX.navy), ...line("Cost:  ", cost, HEX.red), ...line("Set:  ", set, HEX.mid, true)],
+               { x: x + 0.15, y: y + 0.52, w: cw - 0.3, h: ch - 0.6, fontSize: 14.5, fontFace: "Arial", valign: "top", paraSpaceAfter: 7,
+                 margin: 0, isTextBox: true, objectName: `${lever} text` });
+  });
+  // how the trades chain: claw mass drives current, current drives heat
+  const chain = ["Claw mass ↑", "Pull needed ↑", "Motor current ↑", "Heat ↑ as I²", "Fin and vents"];
+  const cy = 6.3, lw = 1.5, bx = M + lw, cg = 0.32, bw = (W - M - bx - 4 * cg) / 5, bh = 0.52;
+  label(sl, "How they chain:", M, cy, lw - 0.1, bh, { size: 14, bold: true, color: HEX.navy });
+  chain.forEach((t, i) => {
+    const x = bx + i * (bw + cg), last = i === chain.length - 1;
+    sl.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y: cy, w: bw, h: bh, rectRadius: 0.08, fill: { color: last ? HEX.navy : HEX.light },
+                                                 line: { color: HEX.navy, width: 1 }, objectName: `chain ${i + 1}` });
+    label(sl, t, x, cy, bw, bh, { size: 14, bold: true, color: last ? "FFFFFF" : HEX.navy, align: "center" });
+    if (!last) seg(sl, x + bw + 0.04, cy + bh / 2, x + bw + cg - 0.04, cy + bh / 2, { color: HEX.grey, width: 1.5, endArrowType: "triangle" });
+  });
+  sl.addNotes("Every lever helps one thing and hurts another, and each design slide after this is one of these trades. " +
+              "Current: pull goes with I but heat goes with I squared, so 41 % more pull costs twice the heat. " +
+              "Claw strength: the stall check pushed the gears from module 1 to 1.5, and every gram of claw comes out of the payload. " +
+              "Room size: wire resistance grows with length, R = ρL/A; that is why only power travels, and the longest 32 ft run drops 0.51 V at 2 A on 16 AWG. " +
+              "Reach: tension doubles each time the depth below the anchors halves. Spool: a smaller radius pulls harder but reels slower, and the radius grows as the line winds on. " +
+              "Margins: they buy safety with force and floor area. The chain at the bottom is why weight matters so much: a heavier claw needs more pull, " +
+              "more pull needs more current, and the heat grows with the square of the current.");
+}
+
 content("Cable Tension", [
   "**Cables only pull:** every tension must stay above zero",
   "**Near the ceiling** the cables flatten and tension climbs",

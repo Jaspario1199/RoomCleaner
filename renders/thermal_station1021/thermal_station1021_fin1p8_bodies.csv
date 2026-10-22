@@ -1,7 +1,7 @@
 name,material to assign,k W/m.K,density g/cm3,volume mm3,mass g,note
 motor_block,Structural steel (motor proxy; effective density so the block = THERMAL_MOTOR_MASS_G),50.0,4.118,67879.923,279.534,"isothermal-ish steel block, as in the FEA of calculations/thermal_assembly_1p5a.py"
-fin_in,Aluminium 6061-T6,167.0,2.700,5683.991,15.347,5052-H32 is similar (k 138): the fin is built in either
-fin_out,Aluminium 6061-T6,167.0,2.700,21221.833,57.299,5052-H32 is similar (k 138): the fin is built in either
+fin_in,Aluminium 6061-T6,167.0,2.700,5225.267,14.108,5052-H32 is similar (k 138): the fin is built in either
+fin_out,Aluminium 6061-T6,167.0,2.700,21680.557,58.538,5052-H32 is similar (k 138): the fin is built in either
 slipin_mount,PETG,0.2,1.270,217693.152,276.470,print orientation matters (k across layers is lower); cad/materials.py density
 screw_1,"Steel (M3 socket head, 12.9 alloy / A2 equivalent)",50.0,7.850,157.335,1.235,A2 stainless would be about 16
 screw_2,"Steel (M3 socket head, 12.9 alloy / A2 equivalent)",50.0,7.850,157.335,1.235,A2 stainless would be about 16

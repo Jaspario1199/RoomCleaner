@@ -21,7 +21,8 @@ OUT = HERE / "fig"
 DPI = 900
 TABS = {"Cable tension": "sheet_cable_tension", "Winch pull": "sheet_winch_pull", "Heat fin": "sheet_heat_fin",
         "Motor case temperature": "sheet_motor_temperature", "Motor temperature": "sheet_motor_temperature", "Wiring": "sheet_wiring", "Bead homing": "sheet_bead_homing",
-        "Floor board": "sheet_floor_board", "Lift budget": "sheet_lift_budget"}
+        "Floor board": "sheet_floor_board", "Lift budget": "sheet_lift_budget",
+        "Weakest link": "sheet_weakest_link"}
 
 
 def main(PDF=PDF, OUT=OUT):

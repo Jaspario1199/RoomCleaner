@@ -471,13 +471,13 @@ content("Claw: Four Versions to a Parallel Grip", [
 section("Final Design"); PHASE = "Phase 4 of 5: Final design";
 content("Final Wall Station", [
   "Slide-in wall mount: the station lifts off while the anchor stays in the stud",
-  "Load path: cable, spool, motor, 5 mm PETG tab, shell, mount, stud",
-  "Mount sized for a 34 N cable snag at a safety factor of 3; SolidWorks static study to run",
+  "Load path: cable, spool, set screw, motor, 5 mm PETG tab, slide-in, wall mount, screws, stud",
+  "Every part must outlast the motor's 48 N slip force (two slides on); SolidWorks static study to run at that force",
   "Aluminum fin exits through a slot in the shell top",
 ], { file: SC("station_shell_transparent_1022.png"), alt: "Final wall station with a transparent shell", caption: "Final wall station (SolidWorks), shell shown transparent" },
-"Walk the load from the cable to the stud. 34 N is the spool's slip limit; a stalled winch at 1.5 A could otherwise pull about 48 N over the empty core. " +
-"The PETG tab has to carry that below 60 °C, which is where the thermal limit on the cooling slide comes from. " +
-"If asked: the 1/8 in fin needs the shell slot about 1 mm wider on the motor side, and M3 × 12 screws.",
+"Walk the load from the cable to the stud. At 1.5 A the motor holds up to 48 N on the empty spool before it slips, so that is the most the cable can put " +
+"on the station. The PETG tab has to carry it below 60 °C, which is where the thermal limit on the cooling slide comes from. " +
+"If asked: the static manual was written at the old 34 N and scales linearly; the 1/8 in fin needs the shell slot about 1 mm wider on the motor side, and M3 × 12 screws.",
 { size: 17, space: 12 });
 
 content("Winch Pull at 1.5 A", [
@@ -492,6 +492,30 @@ content("Winch Pull at 1.5 A", [
   "T = τ / r = 0.252 N·m / 0.010 m = **25.2 N**",
   "F_{design} = 25.2 N / 1.5 = **16.8 N**",
 ] } });
+
+{
+  // Numbers from calculations/lift_chain_weakest_link.py (its JSON); the chart is the Sheet's "Weakest link" tab.
+  const WL = require(P("calculations", "lift_chain_weakest_link.json"));
+  const n0 = v => String(Math.round(v));
+  const worstDrywall = Math.min(...Object.values(WL.wall.per_case).map(c => c.f_bare_drywall));
+  content("Which Part Gives First", [
+    `Goal: the motor slips before any part breaks. It slips at ${n0(WL.fuse.slip_low)}–${n0(WL.fuse.upper)} N of cable pull; jeans need ${n0(WL.jeans_peak)} N`,
+    `A slip of ${WL.detection.tol_line_mm.toFixed(1)} mm of cable trips the spool encoder; the station stops and reports an overload`,
+    "As drawn, two parts give near or below the motor: the set screw in printed plastic and the tab's sharp corner",
+    "Fixes: a brass insert for the set screw, a 2 mm fillet on the tab; then every part is at least 1.5 times the motor",
+    `Studs only: one #6 screw holds ${n0(WL.wall.withdrawal_6_spf.design)} N (code design value); in drywall the mount lets go at ${n0(worstDrywall)} N`,
+  ], { sheet: "weakest_link", tab: "Weakest link" },
+  "The question for every part between the cable and the stud: does it outlast the motor? The motor is the fuse: above its holding torque it skips, " +
+  "the spool's encoder sees the spool fall behind the command, and the station stops. That only works if everything else is stronger. " +
+  "As drawn, two parts are not: the set screw that holds the spool on the shaft is threaded into printed plastic, so it can slip first, and the motor tab's " +
+  "sharp back corner is about level with the motor. Both fixes are cheap. If asked: wood-screw withdrawal from the NDS, W = 2850 G² D per inch of thread, " +
+  "G 0.42 for spruce-pine-fir; the average test failure is about 5.5 times that. The pull test settles the set screw: paint a line across the shaft and the spool; " +
+  "if it breaks, the spool slipped. If a 2:1 gear stage is added, the motor's pull doubles and this ranking has to be redone.",
+  { size: 15, space: 8, eq: { title: "Motor slip force (the fuse)", lines: [
+    "F = τ_h / r = 0.36 N·m / 0.0075 m = **48 N**",
+    "F_{max} = 48 N × 1.11 (motor) × 1.11 (cable angle) = **59 N**",
+  ] } });
+}
 
 {
   const sl = blank("Motor Cooling");
@@ -586,15 +610,16 @@ section("Results and Takeaways"); PHASE = "";
     ["Grip for jeans", "17.7 N per jaw", "13.3–25 N", "Calculated", RED("Short at narrow grabs")],
     ["Claw mass", "0.45 kg", "0.60 kg with battery", "Weighed", RED("Not met")],
     ["Motor temperature", "Below 60 °C", "56–59 °C prototype fin", "Calculated", "Marginal; hold test"],
+    ["Weakest link", "Motor slips first", "Set screw and tab corner give first", "Calculated", RED("Two fixes")],
     ["Working area", "Floor, 0.2 m wall margin", "All but 0.2 m at the walls", "Calculated", "Met in design"],
     ["Wiring", "One cable per station", "One 12 V pair; 0.51 V drop", "Built", "Met"],
     ["Accuracy", "≤ 2 mm cable mismatch", "40 ms skew budget gives 2 mm", "Not measured", "To be tested"],
     ["Speed", "50 mm/s", "Not yet run", "None", "To be tested"],
     ["Cost", "Hobby budget", "Not yet totaled", "Receipts", "Open"],
-  ], M, 1.3, W - 2 * M, [0.17, 0.2, 0.3, 0.13, 0.2], { size: 14, rowH: 0.49 });
+  ], M, 1.3, W - 2 * M, [0.17, 0.2, 0.3, 0.13, 0.2], { size: 14, rowH: 0.45 });
   sl.addText([{ text: "Calculations: RoomCleaner engineering calculations (Google Sheets)", options: { hyperlink: { url: SHEET_URL, tooltip: "Open the calculation sheet" } } }],
              { x: M, y: 6.5, w: 8, h: 0.32, fontSize: 13, color: HEX.navy, fontFace: "Arial", margin: 0, isTextBox: true, objectName: "sheet link" });
-  sl.addNotes("Back to the targets, with the evidence for each. Two are not met: grip for jeans at narrow grabs and claw mass. Two are marginal and this week's tests decide them: " +
+  sl.addNotes("Back to the targets, with the evidence for each. Three are not met: grip for jeans at narrow grabs, claw mass, and the weakest link (two cheap fixes). Two are marginal and this week's tests decide them: " +
               "lift capacity and the prototype fin's temperature. Only the claw mass is measured so far.");
 }
 
@@ -629,6 +654,7 @@ content("Takeaways and Next Steps", [
   "Next steps",
   "- Pull test, then enter the measured limit in the planner",
   "- Hold test at 1.5 A, three-station test, grip pads",
+  "- Brass insert for the spool set screw, 2 mm fillet on the motor tab",
   "- A brake or non-backdrivable stage, so a power loss cannot drop the claw",
 ], (sl, x, y, w, h) => scheduleBars(sl, x, y + 1.3, w,
     [["Plan", 7, HEX.pale], ["One station", 14, HEX.navy2], ["Copy", 7, HEX.pale], ["Clamp", 14, HEX.navy2], ["Test", 7, HEX.navy]],

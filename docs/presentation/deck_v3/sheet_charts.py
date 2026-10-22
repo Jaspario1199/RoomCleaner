@@ -4,6 +4,7 @@ The charts are made in the Google Sheet "RoomCleaner engineering calculations" (
 File > Download > PDF (or the Drive API, application/pdf) to docs/presentation/deck_v3/sheet_export.pdf, then:
 
     /usr/bin/python3 docs/presentation/deck_v3/sheet_charts.py      -> docs/presentation/deck_v3/fig/sheet_*.png
+    /usr/bin/python3 docs/presentation/deck_v3/sheet_charts.py <export.pdf> <out_dir>   (another export, e.g. deck_v5)
 
 Each tab prints on its own page; the chart is the large white rectangle on the right of the page, found from the PDF's
 vector drawing, then rendered at high resolution with pdftoppm and cropped just inside its border.
@@ -23,7 +24,7 @@ TABS = {"Cable tension": "sheet_cable_tension", "Winch pull": "sheet_winch_pull"
         "Floor board": "sheet_floor_board", "Lift budget": "sheet_lift_budget"}
 
 
-def main():
+def main(PDF=PDF, OUT=OUT):
     OUT.mkdir(exist_ok=True)
     done = []
     with pdfplumber.open(PDF) as pdf:
@@ -49,4 +50,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(*(Path(a) for a in sys.argv[1:3]))

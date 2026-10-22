@@ -48,6 +48,22 @@ What changed from v4 (52 slides):
 | 20 | Questions | | |
 | B | Where It Stands, Fin Length, Floor Board Accuracy, Startup Calibration, Logic: Gen 1 vs Final, One Run, Phone App, Obstacles, Claw Electrical, Gear Strength, Safety, Acronyms, Calculations and Sources | | |
 
+## Update, Oct 22: drivers at 1.5 A (D37)
+
+The calculation Sheet's Vref input went from 0.85 V to 1.2 V (1.5 A). The lift capacity now follows the winch force (it was
+a typed 1.1 kg), and the lift chart gained a "claw + battery + 1 lb test" bar. Everything else follows the Sheet's formulas.
+The charts were re-exported to `deck_v5/fig/` (`sheet_export.pdf`, then `deck_v3/sheet_charts.py <pdf> <out_dir>`); the
+1.06 A charts are unchanged in `deck_v3/fig/`.
+
+Slides changed:
+- Cable Tension: 0.4 m now holds while accelerating (14.7 N against 16.8 N).
+- Winch Pull: 1.5 A, 34 / 25 N, design force 16.8 N.
+- Cooling the Motor: twice the heat; vented + fin 58 °C; hold test decides 1.5 or 1.35 A.
+- Weight: capacity 1.56 kg; the 1 lb test fits; jeans 0.2 kg over.
+- Good and Poor Decisions, Where It Stands: the same numbers.
+
+New placeholder: how 1.5 A was reached (Vref reading), on "Where It Stands" and in the Winch Pull notes.
+
 ## Placeholders for Jasper (red, in brackets, on the slides)
 
 1. Slide 2: graduation month and year; hobbies and interests; one line on why a laundry robot; a photo of you building.

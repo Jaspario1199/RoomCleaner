@@ -1,5 +1,7 @@
 # Winch lift capacity at 1.06 A — decision memo (2026-10-21)
 
+**Update 2026-10-22 (D37):** the drivers now run at 1.5 A, so the design force is 16.8 N and the capacity is 1.56 kg (direct drive, 0.2 m wall margin). The tables below are the 1.06 A record.
+
 **Status: needs Jasper's decision.** Supersedes the capacity statements made
 with D29/D30 ("~43 N", "~34 N per cable", "claw budget ~650–750 g"). Those
 used the stepper's *holding* (snag) force; the planning number is the

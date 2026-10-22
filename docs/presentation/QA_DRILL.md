@@ -7,6 +7,15 @@ Rehearsal sheet for Jasper Buntinx. Thirty likely questions in eight groups. Eac
 
 Evidence words, used exactly as on the slides: **MEASURED** (an instrument reading exists), **CALCULATED** (worked from stated inputs and assumptions), **SIMULATED** (a model ran, nothing physical), **PLANNED** (a test is defined, no result). Anything in `[fill in: ...]` is a fact the written record does not contain. Supply it or say "not done yet"; do not guess in the room.
 
+## Update, Oct 22: drivers at 1.5 A (D37)
+
+The winch drivers now run at **1.5 A** (was 1.06 A). Where an answer below gives a 1.06 A number, say the 1.5 A one:
+running pull **25–34 N** (was 18–24), design force **16.8 N** (was 11.9), lift capacity **1.56 kg** (was 1.1). The 1 lb test
+fits (1.32 kg with the claw and battery); jeans are still **0.2 kg** over. The cost is heat: **4.1 W** in the motor (was
+2.0 W); a vented shell with the fin gives **58 °C** against the 60 °C limit, so the hold test decides between 1.5 and 1.35 A.
+All CALCULATED. `I = V_ref / (8 R_s) = 1.2 / 0.8 = 1.5 A`; `P = I² R = 2.25 × 1.8 = 4.05 W`.
+- [fill in: how you reached 1.5 A (Vref reading; did VDD or the sense resistor change?).]
+
 ## Facts to fill in before the panel
 
 - [fill in: project start date. The timeline strip says July 16; confirm.]

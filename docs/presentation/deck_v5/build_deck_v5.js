@@ -16,6 +16,7 @@ const ROOT = path.resolve(__dirname, "..", "..", "..");
 const P = (...p) => path.join(ROOT, ...p);
 const OUT = path.join(__dirname, "RoomCleaner_Buntinx_Oct27_v5.pptx");
 const FIGDIR = path.join(__dirname, "..", "deck_v3", "fig");
+const SHEETFIG = path.join(__dirname, "fig");        // Sheet charts at 1.5 A (Oct 22); the 1.06 A versions stay in deck_v3/fig
 const { size: imgSize } = require("../deck_v2/img_size.js");
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/1UGFnkL1v305WnDYj5aj5zBtgxnxmGP7_TVRN0afZTGs/edit";
 
@@ -106,7 +107,7 @@ function caption(sl, text, x, y, w) {
 }
 // Chart made in the Google Sheet, cropped from its PDF export by deck_v3/sheet_charts.py.
 function sheetChart(sl, name, tab, x, y, w, h) {
-  const r = fitImage(sl, path.join(FIGDIR, `sheet_${name}.png`), x, y, w, h - 0.42, `Chart from the calculation sheet: ${tab}`, { alignTop: true });
+  const r = fitImage(sl, path.join(SHEETFIG, `sheet_${name}.png`), x, y, w, h - 0.42, `Chart from the calculation sheet: ${tab}`, { alignTop: true });
   sl.addShape(pres.shapes.RECTANGLE, { x: r.x, y: r.y, w: r.w, h: r.h, fill: { type: "none" }, line: { color: HEX.rule, width: 0.75 }, objectName: "chart frame" });
   caption(sl, `My calculation sheet (Google Sheets), “${tab}” tab. Calculated, not measured.`, r.x, r.y + r.h + 0.08, Math.max(r.w, 4.5));
   return r;
@@ -381,10 +382,12 @@ content("Cable Tension", [
   "**Cables only pull:** every tension must stay above zero",
   "**Near the ceiling** the cables flatten and tension climbs",
   "32 N per cable at 0.15 m below the anchors; 8.3 N at 0.6 m",
-  "**Decision:** keep 0.4 m below the anchors (12.2 N vs 11.9 N design)",
+  "**Decision:** keep 0.4 m below the anchors; at 1.5 A that holds even while accelerating (14.7 N vs 16.8 N)",
 ], { sheet: "cable_tension", tab: "Cable tension" },
 "Force balance on the claw: the cable pulls and the weight sum to zero. Centred claw, equal shares. D_h = 2.17 m from the room centre to a " +
 "corner. The tension doubles each time the depth halves near the ceiling, so the ceiling margin is set by tension, not by collision. " +
+"At 1.06 A the design force was 11.9 N, so 0.4 m was only just enough standing still (12.2 N). At 1.5 A it is 16.8 N, so 0.4 m also covers the " +
+"2 m/s² acceleration case (14.7 N). 0.3 m would now hold standing still (16.2 N) but not while accelerating (19.5 N), so I keep 0.4 m. " +
 "If asked about a corner pick: the far cables go near-horizontal and carry little; the planner checks every cable stays inside its tension limits.",
 { status: "Calculated", eq: { lines: [
   "Σ T_i **u**_i + m(**g** + **a**) = **0**,   T_i > 0",
@@ -392,17 +395,19 @@ content("Cable Tension", [
 ] } });
 
 content("Winch Pull", [
-  "NEMA 17 stepper motor (standard 1.7 in frame) and a printed spool",
-  "Driver current limit set to 1.06 A",
-  "Pull: 24 N on an empty spool, 18 N on a full one",
-  "**Design force 11.9 N:** full-spool pull ÷ 1.5 margin",
+  "NEMA 17 stepper (standard 1.7 in frame), printed spool",
+  "**Driver current raised to 1.5 A,** the motor's rating (was 1.06 A)",
+  "Pull: 34 N empty spool, 25 N full",
+  "**Design force 16.8 N** (was 11.9 N): full-spool pull ÷ 1.5 margin",
   "**Next:** a luggage-scale pull test replaces my torque assumption",
 ], { sheet: "winch_pull", tab: "Winch pull" },
-"Current limit from the driver's reference voltage: 0.85 V gives 1.06 A (A4988 datasheet). Running torque is lower than holding torque; I assumed " +
-"0.7, and the pull test measures it. A smaller spool gives more pull per amp but more turns per metre. The 1.5 margin covers skipped steps.",
-{ status: "Calculated", eq: { lines: [
-  "I = V_{ref} / (8 R_s) = 0.85 V / (8 × 0.1 Ω) = 1.06 A",
-  "T = τ_{run} / r:   23.8 N at r = 7.5 mm,   17.9 N at r = 10 mm",
+"Current limit from the driver's reference voltage (A4988 datasheet): the first boards topped out at 0.85 V, which is 1.06 A. I got the " +
+"drivers to 1.5 A, the motor's rated current, so every pull goes up 41 % (1.5 / 1.06). [Fill in: how, and the Vref you read.] " +
+"The cost is heat: the motor makes twice the heat (next slides). Running torque is lower than holding torque; I assumed 0.7, and the pull " +
+"test measures it. A smaller spool gives more pull per amp but more turns per metre. The 1.5 margin covers skipped steps.",
+{ status: "1.5 A set · pull calculated", eq: { lines: [
+  "I = V_{ref} / (8 R_s) = 1.2 V / (8 × 0.1 Ω) = 1.5 A",
+  "T = τ_{run} / r:   33.6 N at r = 7.5 mm,   25.2 N at r = 10 mm",
 ] } });
 
 content("One Controller per Winch", [
@@ -423,17 +428,18 @@ content("One Controller per Winch", [
 content("Cooling the Motor", [
   "**Problem:** a sealed printed shell traps motor heat; PETG creeps above 60 °C",
   "**Decision:** an aluminium fin up through the shell, shaped like an antelope horn",
-  "**Result:** 64 °C sealed → 46 °C with the fin, at 1.06 A",
-  "**Next:** a 90-minute hold test measures it",
+  "**At 1.5 A:** twice the heat (4.1 W); vented + fin ≈ 58 °C, without the fin 77 °C",
+  "**Next:** 90-minute hold test at 1.5 A; back to 1.35 A if it runs hot",
 ], { sheet: "motor_temperature", tab: "Motor temperature" },
-"Model: motor to shell air to room, with the fin as a second path out. P = I²R = 2.0 W in the motor. The fin carries about half the heat in the " +
-"sealed case. Length: a long thin fin gives 95 % of its heat by 136 mm for the 0.019 in sheet I built; I built 200 mm, sized earlier for 1/8 in " +
+"Model: motor to shell air to room, with the fin as a second path out. At 1.5 A, P = I²R = 4.1 W in the motor, double the 2.0 W at 1.06 A. " +
+"Results at 1.5 A: vented 77 °C without the fin, 58 °C with it; sealed 99 °C without, 66 °C with, so the shell must stay vented. At 1.06 A " +
+"the sealed shell with the fin was 46 °C. The driver chip also heats more (it holds current all the time, even standing still); if it " +
+"overheats it shuts off and the winch loses torque, so the hold test watches the driver too. At 1.35 A the vented case is 51 °C. Length: a long thin fin gives 95 % of its heat by 136 mm for the 0.019 in sheet I built; I built 200 mm, sized earlier for 1/8 in " +
 "plate (backup slide). A horn is a heat exchanger: warm blood into the core, heat out through the surface; the fin is one tall thin blade from the heat source.",
 { status: "Fin built · temperature calculated", eq: { lines: [
-  "P_m = I² R = (1.06 A)² × 1.8 Ω = 2.0 W",
+  "P_m = I² R = (1.5 A)² × 1.8 Ω = 4.1 W",
   "1/R = 1/R_{shell} + 1/R_{fin},   ΔT = P · R",
-  "Fin: η = tanh(mL) / (mL),   95 % at L = 1.83 / m",
-], note: "Incropera et al., Fundamentals of Heat and Mass Transfer, ch. 3" } });
+] } });
 
 content("Homing", [
   "**Plan A:** a bead on each cable trips a switch → known length",
@@ -467,17 +473,19 @@ content("The Claw", [
 ] } });
 
 content("Weight: the Open Problem", [
-  "**Capacity:** about 1.1 kg total at the worst point in the room",
+  "**Capacity at 1.5 A:** about 1.56 kg at the worst point (was 1.10)",
   "**Claw:** about 0.76 kg printed (CAD) + 0.1 kg battery; [[weighed: ___ g]]",
-  "Claw + jeans is over the capacity today",
-  "**Options:** lighter claw · 3:1 winch reduction (≈ 2.7× pull) · lighter demo load",
+  "**1 lb test now fits** (1.32 kg); jeans are still 0.2 kg over",
+  "**Options:** lighter claw · 3:1 winch reduction · lighter demo load",
   "**Next:** the pull test decides",
 ], { sheet: "lift_budget", tab: "Lift budget" },
-"Be upfront: the numbers say the current claw plus jeans is too heavy. Root cause: I set the mass budget late, after the claw grew. " +
+"Be upfront: even at 1.5 A the current claw plus jeans is too heavy, by about 0.2 kg instead of 0.66 kg. Root cause: I set the mass budget " +
+"late, after the claw grew. Capacity = design force / (worst tension per unit weight × g) = 16.8 / (1.101 × 9.81) = 1.56 kg; the worst point " +
+"is the middle of a long wall at task height. " +
 "Claw mass estimate: 0.55 infill fraction × 927 g solid + 198 g tube + 55 g servo ≈ 0.76 kg. The pull test turns the 0.7 running-torque " +
 "assumption into a measurement, and that number picks the fix.",
 { status: "Open problem", eq: { lines: [
-  "Σ T_i u_{iz} = m (g + a),   0 < T_i ≤ 11.9 N",
+  "Σ T_i u_{iz} = m (g + a),   0 < T_i ≤ 16.8 N",
 ] } });
 
 // ================================================================================================ BUILD
@@ -556,7 +564,7 @@ part("Lessons");
       [R("v6r_compound.png"), "Gear strength checked at stall", "Module 1 would have failed; fixed in CAD"],
     ]],
     ["Poor decisions", HEX.red, [
-      [R("claw_v6.png"), "Mass budget set late", "Claw + jeans is now over the winch capacity"],
+      [R("claw_v6.png"), "Mass budget set late", "Claw + jeans is 0.2 kg over, even at 1.5 A"],
       [PH("09_homing_switch_perfboard.jpg"), "Bead homing as plan A", "Under a third of the room; a redesign"],
       [R("spool_v2.png"), "Spool printed before a fit coupon", "Three prints to fit the shaft"],
       [PH("04_gen2_station_shells.jpg"), "Several stations before one was proven", "Every fix repeated on each station"],
@@ -663,12 +671,12 @@ part("Backup");
   const sl = blank("Where It Stands");
   table(sl, ["Part", "Status", "Next test"], [
     ["Wall stations", "Built; bench-commissioned [[how many]]", "Three-station test, then the fourth"],
-    ["Station electronics", "Built; schematic net-checked", "90-minute hold test"],
+    ["Station electronics", "Built; drivers at 1.5 A [[how: Vref reading]]", "90-minute hold test at 1.5 A"],
     ["Heat fin", "Built (sheared and milled)", "Hold test with and without the fin"],
     ["Claw body: tube, mount, servo, gears", "Built", "Weigh it"],
     ["Claw hands, camera housing, encoder casing", "Checked in CAD; printing", "Fit checks on the first print"],
     ["Calibration and control software", "Simulated end to end", "First hardware run"],
-    ["Winch pull", "Calculated: 18–24 N", "Luggage-scale pull test"],
+    ["Winch pull", "Calculated at 1.5 A: 25–34 N", "Luggage-scale pull test"],
   ], M, 1.65, W - 2 * M, [0.32, 0.36, 0.32], { size: 14, rowH: 0.62 });
   sl.addNotes("Everything calculated or simulated is called that; the next-test column is what turns it into measurements.");
 }

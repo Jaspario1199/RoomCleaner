@@ -316,3 +316,33 @@ hands) sits 38.6 mm closer to the electronics box. (D28's 254.8 mm cut was for t
 - **Unchanged:** the camera, which sits in the box.
 - **Not yet re-derived:** the corner-hole profiles (`robot.three.example.json`, four-station configs).
 - Parameter: `cad/params.py` `GRIP1021_TUBE_LEN`.
+
+D37. **Winch drivers at 1.5 A, superseding D30's 1.06 A** (Jasper, 10/22: "I actually got 1.5 amps to work on the
+motors, so I think our strength is increased"). 1.5 A is the motor's rated current. How it was reached (the Vref reading,
+whether VDD or the sense resistor changed) is **not yet recorded**; the calculation Sheet uses Vref 1.2 V on the R100
+carrier, which gives 1.5 A. D29's 1.35 A and D30's 1.06 A entries stay as history.
+- **Strength (calculated; calculation Sheet, `calculations/gen2_payload_limit.py`):**
+  - running pull 33.6 N on an empty spool and 25.2 N on a full one (was 23.8 / 17.9);
+  - design force 16.8 N (was 11.9), +41 %;
+  - worst-point lift capacity 1.56 kg (was 1.10), with the same linear program: 0.2 m wall margin, claw up to 1.6 m,
+    +2 m/s² included, worst tension per unit weight 1.101;
+  - claw + battery + 1 lb test = 1.32 kg now fits; claw + battery + jeans = 1.76 kg is still 0.21 kg over (was 0.66);
+  - the 0.4 m ceiling margin now holds the +2 m/s² case too (14.7 N against 16.8 N).
+- **Heat (calculated; same two-node model):**
+  - motor heat P = I²R = 4.05 W (was 2.0 W);
+  - vented shell with the 0.019 in fin: 57.6 °C against the 60 °C PETG limit;
+  - vented without the fin: 77.2 °C;
+  - sealed with the fin: 66.3 °C, so **the shells must stay vented and the fin fitted**;
+  - at 1.35 A the vented shell with the fin is 51.2 °C, with a 15.1 N design force.
+- **Conditions:**
+  1. Run a 90-minute hold test at 1.5 A with the shell closed as installed. Read the motor case and the A4988 chip or its
+     heatsink (the A4988 holds full current even standing still; if it overheats it shuts its outputs off and the winch
+     loses torque). If the motor case is above about 55 °C, or the driver heatsink is above about 70 °C (D29's rule),
+     drop to 1.35 A.
+  2. If VDD was raised to 5 V to reach Vref 1.2 V, the 3.3 V STEP, DIR and EN signals are below the A4988's logic-high
+     threshold of 0.7 × VDD = 3.5 V. Re-check the boot-off bench test (a reset must not move the motor, and EN high
+     must disable the driver) before the motor goes back on a loaded line.
+  3. Software: `motion.max_tension_n` stays unset on the hardware configs until the pull test measures the real pull.
+     The simulation configs keep 15.0 N.
+- The deck v5 charts are re-exported at 1.5 A to `docs/presentation/deck_v5/fig/`; the 1.06 A charts stay in
+  `docs/presentation/deck_v3/fig/` (decks v3 and v4).

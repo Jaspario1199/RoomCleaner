@@ -17,7 +17,7 @@ const ROOT = path.resolve(__dirname, "..", "..", "..");
 const P = (...p) => path.join(ROOT, ...p);
 const OUT = path.join(__dirname, "RoomCleaner_Buntinx_Oct27_v7.pptx");
 const FIGDIR = path.join(__dirname, "..", "deck_v3", "fig");
-const SHEETFIG = path.join(__dirname, "..", "deck_v5", "fig");      // Sheet charts at 1.5 A (Oct 22)
+const SHEETFIG = path.join(__dirname, "fig");      // Sheet charts at 1.5 A with the weighed claw (Oct 22); deck_v5/fig keeps the earlier export
 const { size: imgSize } = require("../deck_v2/img_size.js");
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/1UGFnkL1v305WnDYj5aj5zBtgxnxmGP7_TVRN0afZTGs/edit";
 
@@ -249,11 +249,11 @@ section("Introduction");
 }
 
 content("About Me", [
-  "Mechanical Engineering, Texas A&M University, [[graduation year]]",
+  "Mechanical Engineering, Texas A&M University, class of 2027",
   "Built EcoFil, a filament recycler with a shredder, dryer and extruder",
   "Finished an Ironman 70.3 in 6:53 and a marathon in 2025",
   "Hiking, canyons and cliff jumping",
-  "Gladiator Dash fundraiser: $185K raised for Still Creek Ranch [[your role]]",
+  "Led obstacle assembly, repairs and transport for the Gladiator Dash, which raised $185K",
 ], (sl, x, y, w, h) => {
   // three photo columns from Jasper's collage, at one height, each with a short caption
   const cols = [["about_outdoors.png", "Outdoors and endurance"], ["about_engineering.png", "Engineering projects"], ["about_community.png", "Community"]];
@@ -270,7 +270,7 @@ content("About Me", [
 "One minute. Degree and graduation date. EcoFil: what each stage does and what you learned building it (the middle photos). " +
 "Also mention the metal sculptures for the Austin Creek Show (fiber laser cutting and welding: real fabrication). " +
 "Endurance: the 70.3 (2,105 yd swim, 56 mi bike, 13.1 mi run) and the marathon say you finish long things. " +
-"Community: [your organization and your role in the Gladiator Dash]. " +
+"Community: Special Events Build Logistics Chair for the One Army Gladiator Dash; I headed assembly, repairs and transportation of the obstacles, and the event raised $185K for Still Creek Ranch. " +
 "Close with why a laundry robot: a problem you have, and a machine you could build end to end yourself.",
 { figW: 7.8, size: 17, space: 10 });
 
@@ -467,18 +467,20 @@ content("Motor Cooling", [
 
 content("Weight Budget: Open Issue", [
   "Lift capacity at 1.5 A: 1.56 kg",
-  "Claw with battery estimated at 0.86 kg [[weighed]]",
-  "1 lb test fits; jeans are 0.2 kg over",
-  "Next: a lighter claw or a gear reduction at each winch",
+  "Claw weighed at 0.60 kg; the CAD estimate was 0.76 kg",
+  "1 lb test fits; jeans are 0.04 kg over",
+  "Next: the pull test, then a 40 g cut or gears at each winch",
 ], { sheet: "lift_budget", tab: "Lift budget" },
-"Be upfront: even at 1.5 A the claw plus jeans is too heavy, by about 0.2 kg (it was 0.66 kg at 1.06 A). Root cause: I set the mass budget late, after the claw grew. " +
+"Be upfront: with the weighed claw, claw plus battery plus jeans is 1.60 kg against 1.56 kg, so jeans are still 0.04 kg (about 3 %) over. It was 0.66 kg over at 1.06 A. " +
+"Root cause: I set the mass budget late, after the claw grew; the claw is still 0.15 kg over its 0.45 kg budget. " +
 "k = 1.101 is the worst cable tension per unit weight over the room with 2 m/s²: the middle of a long wall at task height. " +
-"Claw estimate: 0.55 fill × 927 g solid + 198 g tube + 55 g servo ≈ 0.76 kg, plus 0.10 kg battery. " +
-"A 2:1 or 3:1 gear stage at each winch clears it with margin and lets the current drop back to about 1 A, which also halves the heat; the pull test result picks the fix.",
+"The CAD estimate (0.55 fill × 927 g solid + 198 g tube + 55 g servo = 0.76 kg) was conservative; the battery (0.10 kg, from its spec) is added on top. " +
+"The gap is now small enough that the pull test may close it on its own (running torque above the assumed 0.7 of holding). If not: take 40 g out of the claw, " +
+"or add a 2:1 gear stage at each winch, which clears it with margin and lets the current drop back to about 1 A, halving the heat.",
 { eq: { title: "Lift capacity", lines: [
   "m_{max} = F_{design} / (k g)",
   "= 16.8 / (1.101 × 9.81) = **1.56 kg**",
-  "Needed with jeans: **1.76 kg**",
+  "Needed: 0.60 + 0.10 + 0.90 = **1.60 kg**",
 ] } });
 
 // ================================================================================================ PHASE 5: BUILD AND TEST
@@ -542,8 +544,8 @@ section("Results and Takeaways");
   const sl = blank("Results Against Targets");
   const NOT = { text: "Not met", color: HEX.red, bold: true };
   table(sl, ["Target", "Goal", "Current", "Status"], [
-    ["Lift capacity", "1.76 kg with jeans", "1.56 kg (calculated)", NOT],
-    ["Claw mass", "0.45 kg", "0.86 kg with battery; [[weighed]]", NOT],
+    ["Lift capacity", "1.60 kg with jeans", "1.56 kg (calculated)", { text: "0.04 kg short", color: HEX.red, bold: true }],
+    ["Claw mass", "0.45 kg", "0.60 kg (weighed)", NOT],
     ["Motor temperature", "Below 60 °C", "45–49 °C with the 1/8 in fin", "Met in design"],
     ["Working area", "Full 11 × 9 ft floor", "All but 0.2 m along the walls", "Met in design"],
     ["Wiring", "One cable per station", "One 12 V pair; 0.51 V drop", "Met"],
@@ -564,7 +566,7 @@ section("Results and Takeaways");
     ["Gear strength checked at servo stall", "Failure caught in CAD, before printing"],
   ], M, 1.3, W - 2 * M, cw, { size: 16, rowH: 0.55, name: "good decisions" });
   table(sl, ["Poor decision", "Result"], [
-    ["Mass budget set late", "0.2 kg over capacity with jeans"],
+    ["Mass budget set late", "Claw 0.15 kg over budget; jeans 0.04 kg over capacity"],
     ["Bead homing as the first plan", "Under a third of the room reachable"],
     ["Several stations built before one was proven", "Every fix repeated on each station [[confirm]]"],
   ], M, 3.95, W - 2 * M, cw, { size: 16, rowH: 0.55, headColor: HEX.red, name: "poor decisions" });
@@ -594,15 +596,15 @@ content("Takeaways and Next Steps", [
   "- Prove one station before building the rest",
   "- In half the time: freeze requirements in week 1, order long-lead parts on day 1",
   "Next steps",
-  "- Pull test and weigh the claw, then choose a lighter claw or winch gears",
+  "- Pull test; then a 40 g claw cut or gears at each winch",
   "- 90-minute hold test at 1.5 A with the 1/8 in fin",
   "- Three-station test, then add the fourth station",
 ], (sl, x, y, w, h) => scheduleBars(sl, x, y + 1.5, w),
 "Takeaways: weigh the claw and set its budget from the measured pull before designing it; one complete station tested end to end before building more; " +
 "coupons before every new fit; a meter on every rail before debugging code. Half the time: most lost time was the redesign and the generations a frozen requirement " +
 "and an early test would have avoided; the chart compares the actual 15 weeks with a 7-week plan on the same scale. " +
-"Next steps, in order: the luggage-scale pull test turns the 0.7 running-torque assumption into a measurement, and with the weighed claw it decides between a lighter claw " +
-"and a 2:1 or 3:1 gear stage at each winch (which also lets the current drop back to about 1 A). Then machine the 1/8 in fin, widen the shell slot about 1 mm, " +
+"Next steps, in order: the luggage-scale pull test turns the 0.7 running-torque assumption into a measurement; with the claw weighed at 0.60 kg it decides between a 40 g cut " +
+"and a 2:1 gear stage at each winch (which also lets the current drop back to about 1 A). Then machine the 1/8 in fin, widen the shell slot about 1 mm, " +
 "and run the SolidWorks study and the 90-minute hold test. Then the three-station test with 1 lb, one garment, and the fourth station.",
 { figW: 7.4, space: 8 });
 

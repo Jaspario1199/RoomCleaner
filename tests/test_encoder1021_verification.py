@@ -488,6 +488,37 @@ def test_2_cap_peg_length_and_shaft_clearance(cap, ref_corr, ref_plain):
     check("2", "cap vs motor: interference volume (mm3)", 0.0, vol_common(cap, mo), 1e-6)
 
 
+def test_2_cap_rotational_lash_without_ribs(cap, ref_corr):
+    """The D-key has 0.10 mm of clearance on the flat: how far can the cap turn in the bore if the crush ribs do not grip?"""
+    sp = ref_corr["Spool1011"]
+    ang, rc = radial_profile(cap, 24.3, 0.0, 0.0)
+    r0 = float(np.median(rc[(np.cos(np.radians(ang)) < 0.5) & (rc < 2.6)]))
+    flat = float(np.max(rc * np.cos(np.radians(ang))))
+    peg = cyl(r0, 3.4, (0, 22.6, 0), (0, 1, 0)).intersect(box(-3, flat, 21, 27, -3, 3))      # clean D-peg (no ribs) from the measured profile
+    check_true("2", "clean D-peg has no interference with the bore at 0 deg", vol_common(peg, sp) < 1e-9)
+    lo, hi = 0.0, 20.0
+    for _ in range(14):
+        mid = 0.5 * (lo + hi)
+        free = all(vol_common(peg.rotate(cq.Vector(0, 0, 0), cq.Vector(0, 1, 0), sg * mid), sp) < 1e-6 for sg in (1, -1))
+        lo, hi = (mid, hi) if free else (lo, mid)
+    cx = math.sqrt(r0 ** 2 - flat ** 2)
+    # corner (flat, cx) rotated until x' = 2.15:  flat cos(a) + cx sin(a) = 2.15
+    a = 0.0
+    for _ in range(60):
+        a += (2.15 - (flat * math.cos(a) + cx * math.sin(a))) / (-flat * math.sin(a) + cx * math.cos(a))
+    analytic = math.degrees(a)
+    check("2", "angular lash of the cap in the bore if the ribs do not grip, +- deg (BRep) vs analytic corner-on-flat", analytic, lo, 0.1,
+          note="the 0.10 mm flat clearance is the only key: +-4 deg = about +-0.5 mm of line at the 7.5 mm core radius per direction reversal")
+    info("2", "line-length hysteresis at the Ø15 core from that lash (mm, total)", 2 * math.radians(lo) * 7.5)
+
+
+def test_ref_spool_vs_shaft_interference_is_a_reference_model_matter(ref_corr):
+    """Observation only: spool bore flat (x = +2.15) and shaft flat (z = +2.0) are 90 deg apart in the reference assembly."""
+    v = vol_common(ref_corr["Spool1011"], ref_corr["Motor_Reference"])
+    info("2", "reference spool vs Motor_Reference shaft interference (mm3): bore flat and shaft flat are 90 deg apart in the 10/21 assembly", v,
+         note="not caused by the new parts; the spool must be turned 90 deg or driven by something other than the D-flat; the cap keys on the bore only")
+
+
 def test_2_cap_magnet_pocket_and_face(cap, ref_plain, ref_corr, offs):
     pockets = [c for c in cyl_faces(cap, 1) if abs(c[0] - 3.1) < 0.01]
     check("2", "magnet pocket cylinder faces (Ø6.2)", 1, len(pockets), 0)
@@ -806,12 +837,16 @@ def test_5_stackup_vs_as5600_limit(cas, cap, ref_corr):
         best = max(best, d + lever * math.radians(t))
     info("5", "foot translation d (mm), rotation limit at that d (deg), chip z shift (mm)", combo)
     foot_z = best
-    # board in pocket
-    pocket = 23.4
-    board_clear = (pocket - SPEC["pcb"]) / 2                              # 0.2 per axis (nominal board 23.0)
-    # cap peg in the bore (measured in item 2): round 0.10, flat 0.10; magnet in its pocket 0.10
-    peg = 0.10
-    mag = (6.2 - 6.0) / 2
+    # board in pocket: measured pocket width minus the nominal 23.0 board
+    dd = [ray(cas, (0, 33.0, 0), v, 0, 40)[0] for v in ((1, 0, 0), (-1, 0, 0))]
+    board_clear = (dd[0] + dd[1] - SPEC["pcb"]) / 2                       # 0.2 per axis
+    # cap peg in the bore (round part, measured from the spool and the cap); flat clearance is the same 0.10 (item 2)
+    a_, rb = radial_profile(ref_corr["Spool1011"], 24.3, 0.0, 0.0)
+    a_, rc = radial_profile(cap, 24.3, 0.0, 0.0)
+    rmask = np.cos(np.radians(a_)) < 0.5
+    peg = float(np.median(rb[rmask])) - float(np.median(rc[rmask & (rc < 2.6)]))
+    # magnet in its pocket: pocket radius from the cap minus the nominal Ø6 magnet
+    mag = [c for c in cyl_faces(cap, 1) if abs(c[0] - 3.1) < 0.01][0][0] - 3.0
     z_wc = foot_z + board_clear + peg + mag
     x_wc = 0.0 + board_clear + peg + mag                                  # x is datum-ed by the divot floor: no foot play in x
     wc = math.hypot(x_wc, z_wc)
@@ -827,7 +862,7 @@ def test_5_stackup_vs_as5600_limit(cas, cap, ref_corr):
     z2 = foot_z2 + 0.1 + 0.05 + 0.05
     x2 = 0.1 + 0.05 + 0.05
     rss2 = math.hypot(math.sqrt(foot_z2 ** 2 + 0.1 ** 2 + 0.05 ** 2 + 0.05 ** 2), math.sqrt(0.1 ** 2 + 0.05 ** 2 + 0.05 ** 2))
-    info("5", "with PCB_CLEAR 0.1, foot clearance 0.1/side, peg clearance 0.05, magnet pocket +0.1: worst-case radial, RSS (mm)",
+    info("5", "with PCB_CLEAR 0.1, foot clearance 0.1/side, peg clearance 0.05, magnet pocket Ø6.1: worst-case radial, RSS (mm)",
          (round(math.hypot(x2, z2), 3), round(rss2, 3)))
     # axial: air gap range from the measured foot y play at the rim level
     gy = [ray(local, (-21.2, 45.0, 0.0), d, 0, 40)[0] - ray(cas, (-21.2, 45.0, 0.0), d, 0, 40)[0] for d in ((0, 1, 0), (0, -1, 0))]
@@ -940,7 +975,7 @@ def test_6_minimum_walls(cas, cap):
     ts = ray(cas, (-11.0, 32.5, 0), (-1, 0, 0), 0, 12.0)
     check("6", "-x side: wall + bridge block, solid from the pocket to the bridge end (x -11.7 .. -20.9)", 9.2, ts[1] - ts[0], 0.01)
     # lip tip thickness (along y) at its end: the 45 deg ramp leaves 0.4 mm
-    ts = ray(cas, (0, 33.0, 11.4), (0, 1, 0), 0, 4.0)
+    ts = ray(cas, (0, 33.0, 11.101), (0, 1, 0), 0, 4.0)
     check("6", "hook lip thickness along y at its tip (catch face to ramp start)", 0.4, ts[1] - ts[0], 0.01,
           note="2 layers at 0.2; thin feature, expect stringing / weak tip")
     # global sampling for anything thinner than 1.15 mm that is not a hook lip
@@ -1015,6 +1050,36 @@ def test_6_snap_hook_strain(cas):
          "PASS" if rows[3][4] <= 2.0 else "FAIL", "1.84 %: inside, with <10 % margin")
 
 
+def test_6_bridge_stiffness_hand_calc_reproduced(cas):
+    """Spec: a 1 N push on the frame must move the chip < 0.1 mm.  Reproduce the cantilever hand calculation with the section
+    measured here (ray-sampled cross-section of the bridge neck at x = -16, only the part against the foot, y >= 33.2)."""
+    x_mid, y_lo = -16.0, 33.2
+    dz = 0.05
+    zs = np.arange(-13.7 + dz / 2, 13.7, dz)
+    area = 0.0
+    sy = 0.0
+    syy = 0.0
+    for z in zs:
+        ts = ray(cas, (x_mid, 25.0, z), (0, 1, 0), 0, 20.0)
+        ys = [25.0 + t for t in ts]
+        for a, b in zip(ys[0::2], ys[1::2]):
+            a = max(a, y_lo)
+            if b <= a:
+                continue
+            area += (b - a) * dz
+            sy += 0.5 * (b * b - a * a) * dz
+            syy += (b ** 3 - a ** 3) / 3.0 * dz
+    yc = sy / area
+    I = syy - area * yc * yc
+    check("6", "bridge neck section at x=-16, y 33.2..36.2: area (mm2) = (27.4 - 2 x 1.6) x 3.0", 24.2 * 3.0, area, 0.3)
+    check("6", "bridge neck second moment for y-deflection (mm4) = 24.2 x 3.0^3 / 12", 54.45, I, 1.0)
+    F, E, L, a = 1.0, PETG_E_MPA, 13.7 + 18.15, 18.15
+    d_y = F * a * a * (3 * L - a) / (6 * E * I)
+    check("6", "chip motion in y for 1 N on the far wall (mm), cantilever model, reproduces the notes' 0.037", 0.037, d_y, 0.004)
+    check_max("6", "chip motion for 1 N (mm) < 0.1 (spec)", 0.1, d_y,
+              note="clamp at the foot face assumed rigid: foot screws, floor contact and slip-in flexibility are NOT in this number")
+
+
 # =====================================================================================================================
 # 7  STEP / STL round trip
 # =====================================================================================================================
@@ -1038,6 +1103,10 @@ def test_7_step_roundtrip_and_stl(cap, cas, tmp_path):
         # symmetric difference between the file and the builder solid
         x = builder.cut(step_shape).Volume() + step_shape.cut(builder).Volume()
         check("7", f"{nm}: volume of the boolean difference file vs builder (mm3)", 0.0, x, 0.01)
+        # file-level: millimetre units and exactly one MANIFOLD_SOLID_BREP in the STEP text
+        txt = open(CAP_STEP if nm == "cap" else CAS_STEP).read()
+        check_true("7", f"{nm}: STEP units are millimetres", "SI_UNIT(.MILLI.,.METRE.)" in txt)
+        check("7", f"{nm}: MANIFOLD_SOLID_BREP entities in the STEP file", 1, txt.count("MANIFOLD_SOLID_BREP("), 0)
         # STL
         tri = read_stl(stl_path)
         check("7", f"{nm}: STL is watertight (edges not shared by exactly 2 triangles)", 0, stl_watertight(tri), 0)

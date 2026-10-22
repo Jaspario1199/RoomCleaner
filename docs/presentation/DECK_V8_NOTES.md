@@ -165,3 +165,7 @@ appendix's Calculations and Sources slide are gone. Chart captions still name th
 
 **Opening (Oct 22, Jasper):** slide 1 is a text-only "SpaceX Onsite" title with name and school, no date; About Me second;
 the project picture (RoomCleaner, the built station and claw body) third, then Project Goal. Main deck: 22 slides.
+
+**Photos (Oct 22, Jasper):** project picture = the station on the wall and the assembled claw; Final Wall Station = CAD next to
+the built station; Build = the slicer photo replaces the shear photo; Manufacturing = the end-stop switch press fit replaces the
+lug-hole snapshot, with a new "End-stop switch" row (the Ø4.1 × 7 hole is no longer listed as a heat-set pocket).

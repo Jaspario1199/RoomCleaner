@@ -316,10 +316,10 @@ section("Introduction");
   sl.addShape(pres.shapes.RECTANGLE, { x: 0, y: 0, w: 5.6, h: 7.5, fill: { color: HEX.navy }, line: { color: HEX.navy } });
   sl.addText("RoomCleaner", { x: M, y: 2.6, w: 4.8, h: 1.0, fontSize: 44, bold: true, color: "FFFFFF", fontFace: "Arial", margin: 0, isTextBox: true });
   sl.addText("A four-cable ceiling robot designed to pick laundry off the floor", { x: M, y: 3.65, w: 4.6, h: 1.2, fontSize: 22, color: HEX.pale, fontFace: "Arial", margin: 0, isTextBox: true });
-  const r1 = fitImage(sl, PH("11_gen2_station_assembled.jpg"), 6.0, 0.6, 3.3, 6.0, "Wall station, assembled");
-  const r2 = fitImage(sl, PH("21_claw_printed_tube_servo.jpg"), 9.45, 0.6, 3.3, 6.0, "Printed claw body with its servo");
-  label(sl, "Wall station (built)", 6.0, r1.y + r1.h + 0.1, 3.3, 0.3, { size: 11, color: HEX.grey, align: "center" });
-  label(sl, "Claw body and servo (built)", 9.45, r2.y + r2.h + 0.1, 3.3, 0.3, { size: 11, color: HEX.grey, align: "center" });
+  const r1 = fitImage(sl, PH("24_station_housing_on_wall.jpg"), 6.0, 0.6, 3.3, 6.0, "Wall station on the wall");
+  const r2 = fitImage(sl, PH("25_claw_assembled.jpg"), 9.45, 0.6, 3.3, 6.0, "The claw, assembled");
+  label(sl, "Wall station on the wall (built)", 6.0, r1.y + r1.h + 0.1, 3.3, 0.3, { size: 11, color: HEX.grey, align: "center" });
+  label(sl, "Claw (built)", 9.45, r2.y + r2.h + 0.1, 3.3, 0.3, { size: 11, color: HEX.grey, align: "center" });
   sl.addNotes("One sentence: four winches near the ceiling corners hold one claw on cables; it is designed to pick clothes off the floor and drop them in a hamper.");
 }
 
@@ -484,7 +484,8 @@ section("Final Design"); PHASE = "Phase 4 of 5: Final design";
     "Load path: cable, spool, set screw, motor, PETG tab, slide-in, wall mount, screws, stud",
     `Design idea: the motor is the weakest link. It slips at ${n0(WL.fuse.slip_low)}–${n0(WL.fuse.upper)} N, before any part breaks, and the spool encoder reports the overload`,
     "Aluminum fin exits through a slot in the shell top",
-  ], { file: SC("station_shell_transparent_1022.png"), alt: "Final wall station with a transparent shell", caption: "Final wall station (SolidWorks), shell shown transparent" },
+  ], { file: [SC("station_shell_transparent_1022.png"), PH("11_gen2_station_assembled.jpg")], alt: "Final wall station: CAD and built",
+       caption: "SolidWorks, shell transparent (left); the built station (right)" },
   "Walk the load from the cable to the stud. The design idea: make the motor the part that gives first. At 1.5 A it holds up to 48 N on the empty spool " +
   "(59 N at most, with a 40 N·cm motor and the cable at its steepest angle); above that it skips, the encoder on the spool sees the spool fall behind the " +
   "command, and the station stops and reports an overload, so nothing is damaged. Every other part has to outlast that. " +
@@ -561,8 +562,8 @@ content("Build: Printing, Machining, Bring-Up", [
   "Fin drilled in one mill setup from a 1:1 drawing; the 7/8 in pilot fits the 22 mm motor boss",
   "First motor would not turn: logic rail at 1.14 V, traced to a bad 3.3 V connection",
   "Now: a meter on every rail before code, and fit coupons before new fits",
-], { grid: [PH("06_shear_with_drawings_and_blanks.jpg"), PH("15_heat_fin_finished_part.jpg"), PH("19_station_perfboard_soldered.jpg"), PH("03_mill_setup_with_shop_drawing.jpg")],
-     alt: "Build photos", caption: "Fin blanks and drawing, finished fin, soldered station board, mill setup" },
+], { grid: [PH("26_slicer_k1_petg_supports.jpg"), PH("15_heat_fin_finished_part.jpg"), PH("19_station_perfboard_soldered.jpg"), PH("03_mill_setup_with_shop_drawing.jpg")],
+     alt: "Build photos", caption: "Slicing PETG for the K1, finished fin, soldered station board, mill setup" },
 "Two lessons from the bench: measure the hardware before trusting the software's view of it, and test a fit before printing the part. " +
 "If asked: the driver stays disabled at boot so a reset cannot move a motor, which also means a reset drops a hanging claw (safe-state table on the system-test slide). [Fill in: readings and date.]",
 { size: 17, space: 12 });
@@ -577,7 +578,7 @@ content("Build: Printing, Machining, Bring-Up", [
     ["snap_gear_lip.png", "Gear: Ø14.000 entry lip, 8 T-slots"],
     ["snap_gear_stack.png", "Cut open: 687 bearing on the printed pin"],
     ["snap_dovetail.png", "Slide-in rib in the wall-mount dovetail"],
-    ["snap_insert_pocket.png", "Heat-set pocket: Ø4.1 × 7 over Ø3.4"],
+    [PH("23_slide_in_switch_pressfit.jpg"), "End-stop switch pressed into the slide-in"],
     ["snap_spool.png", "v3 spool: D-bore and set-screw hole"],
     [PH("01_mill_drilling_fin_closeup.jpg"), "Fin: holes drilled from the first hole"],
   ];
@@ -595,11 +596,12 @@ content("Build: Printing, Machining, Bring-Up", [
     ["Gear pins", "Printed Ø7.000 pin into a Ø7.05 socket", "Line-to-line in the bearing; +0.05"],
     ["Slide-in mount", "0.175 per side; 30° dovetail flanks", "Slip fit, 0.14–0.21 on the flanks"],
     ["Spool on Ø5 D-shaft", "Ø5.30 bore (10/21), Ø5.45 in v3; 0.5 mm flat", "+0.30 to +0.45: Ø5.2 printed too tight"],
-    ["Heat-set inserts", "M3: Ø4.1 × 7 deck, Ø4.0 × 5 gear housing; M2.5: Ø3.45 × 4", "Melt-in; hole deeper than the insert"],
+    ["End-stop switch", "Pocket 6.65 × 20.3 × 9 on a 1 mm ledge, lever window below", "Press fit, no screws"],
+    ["Heat-set inserts", "M3: Ø4.0 × 5 gear housing; M2.5: Ø3.45 × 4 encoder", "Melt-in; hole deeper than the insert"],
     ["Screw clearance", "M3 Ø3.5 printed, Ø3.4 drilled; wall Ø3.97 (5/32 in)", "+0.5 printed, +0.4 drilled"],
     ["Motor pilot, Ø22 boss", "Ø22.4 printed tab, Ø22.5 drilled fin", "+0.4 / +0.5"],
     ["Fin hole zero", "Edges locate the bottom-left hole; drilled, it is the zero for the other 4", "Pattern ±0.1, free of the ±0.5 sheared edges"],
-  ], bx, 1.25, bw, [0.25, 0.44, 0.31], { size: 10.5, rowH: 0.5, name: "fits" });
+  ], bx, 1.25, bw, [0.25, 0.44, 0.31], { size: 10.5, rowH: 0.44, name: "fits" });
   bullets(sl, [
     "Printed holes come out small, so every printed fit carries an allowance; the drilled fin needs none",
     "PETG on a Creality K1, 0.4 mm nozzle, 0.2 mm layers; loads along the layers, mating faces off supports",

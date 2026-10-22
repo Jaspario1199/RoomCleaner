@@ -24,3 +24,7 @@ Technical Presentation — v2 draft"). Suggested placement:
 | 21 | printed claw: aluminium tube in the top mount, MG996R servo seated in the gear housing, slotted housing half beside it (Jasper, 10/22) | deck v4.2 "Built and simulated" (built claw) |
 | 22 | printed gear train in the gear housing: MG996R, 36T/24T compound on its bearing (grey), sync gear and crank (blue), arms beside it (Jasper, 10/22) | deck v4.2 "A geared four-bar keeps the jaws parallel" |
 | about_me/ | Jasper's About Me collage (10/22): the original webp plus three crops: outdoors and endurance (hikes, Ironman 70.3, 2025 marathon), engineering (EcoFil, team photo), community (Gladiator Dash for Still Creek Ranch, group photos) | deck v7 "About Me" |
+| 23 | end-stop switch pressed into its pocket in the slide-in's lower lug, no screws (Jasper, 10/22) | deck v8 "Manufacturing: Fits and Datums" |
+| 24 | printed station shell (electrical housing) mounted on the wall (Jasper, 10/22) | deck v8 "Final Wall Station" |
+| 25 | the claw assembled: four-bar jaws, gear train, tube, electrical housing (Jasper, 10/22) | deck v8 project picture |
+| 26 | slicing PETG parts for the Creality K1: 0.4 mm nozzle, 0.20 mm standard, supports at 30° (Jasper, 10/18) | deck v8 "Build" |

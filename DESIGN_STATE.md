@@ -605,3 +605,12 @@ slack_probe default (keep false until probe H1/M2 are closed).
   break the monitoring loop.
 - Still to do at the bench stage (D39): set `faults.tracking_tol_counts` on the hardware configs below one 82-count skip
   (60 proposed); they are null today.
+
+## Deck photos and a corrected hole (10/22, Jasper's photos)
+- New photos 23 to 26 (`docs/presentation/photos/`): end-stop switch pressed into the slide-in's lower lug; the station shell on
+  the wall; the assembled claw; slicing PETG for the K1. Placed on the project picture, Final Wall Station (next to the CAD),
+  Manufacturing and Build slides.
+- Correction: the stepped hole in the slide-in's lower lug (Ø4.1 × 7 over Ø3.4, at x 7.85, y 15.56 in the station_1021 frame)
+  sits beside the switch pocket (6.65 × 20.3 × 9 deep on a 1 mm ledge with a lever window). It is probably the cable hole under
+  the spool, not a heat-set insert pocket as `THERMAL_INSERTS` ("deck") and the first manufacturing slide assumed. The slide no
+  longer calls it an insert pocket; Jasper to confirm what the hole is for.

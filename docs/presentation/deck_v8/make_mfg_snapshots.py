@@ -199,7 +199,8 @@ def main():
     w_cut, _ = halfspace_cut(wall, (0, 0, zc), (0, 0, 1))
     snap("dovetail", [(s_cut, PART, plane, CUT), (w_cut, PART2, plane, CUT2)], (-32.0, 15.6, zc), (0.30, -0.20, 1.0), (1, 0, 0), 9.0)
 
-    # 4. heat-set insert pocket in the slide-in lug (Ø4.1 x 7 over Ø3.4), cut on its axis
+    # 4. the stepped hole in the slide-in's lower lug next to the end-stop switch pocket (Ø4.1 x 7 over Ø3.4), cut on its axis.
+    #    Not on the deck since 10/22: it is probably the cable hole under the spool, not a heat-set pocket (Jasper to confirm).
     i_cut, plane = halfspace_cut(slip, (7.85, 15.56, -47.0), (0, 1, 0))
     snap("insert_pocket", [(i_cut, PART, plane, CUT)], (7.85, 15.56, -47.0), (0.25, 1.0, 0.15), (0, 0, 1), 8.0)
 

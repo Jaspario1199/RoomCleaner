@@ -167,7 +167,7 @@ label input { margin-top: 2px; }
 .tabs button[aria-selected=true] { color: var(--accent); border-top-color: var(--accent); }
 
 /* ---- toast, dialog, connect */
-.toast { position: fixed; left: 12px; right: 12px; bottom: calc(var(--dock-h, 150px) + 8px); z-index: 30; padding: 10px 14px; border-radius: 12px; background: var(--ink); color: var(--page); font-size: 14px; font-weight: 600; text-align: center; box-shadow: 0 4px 16px rgba(0, 0, 0, .3); }
+.toast { position: fixed; left: 12px; right: 12px; bottom: calc(var(--dock-h, 150px) + 8px); z-index: 70; padding: 10px 14px; border-radius: 12px; background: var(--ink); color: var(--page); font-size: 14px; font-weight: 600; text-align: center; box-shadow: 0 4px 16px rgba(0, 0, 0, .3); }
 .toast.bad { background: var(--bad); color: #fff; }
 .sheet {
   position: fixed; left: 12px; right: 12px; bottom: calc(var(--dock-h, 150px) + 8px); z-index: 40; max-width: 560px; margin: 0 auto;

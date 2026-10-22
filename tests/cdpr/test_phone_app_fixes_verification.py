@@ -354,11 +354,12 @@ def test_v_f14_dock_is_above_the_connect_overlay_and_the_overlay_stops_above_it(
     assert re.search(r"inset:\s*0 0 var\(--dock-h", _css_rule(css, ".connect"))
 
 
-def test_v_f14_pin_the_pause_failure_toast_is_hidden_behind_the_connect_overlay():
-    """PIN (Low, found in Chromium: elementFromPoint at the toast centre returns the connect card). The overlay now ends above PAUSE,
+def test_v_f14_n1_fixed_the_pause_failure_toast_is_drawn_above_the_connect_overlay():
+    """FIXED 10/22 (lead): .toast z-index 70 > .connect 50, so the PAUSE failure toast is visible over the overlay. Was a
+    PIN (Low, found in Chromium: elementFromPoint at the toast centre returns the connect card). The overlay now ends above PAUSE,
     so the toast ('PAUSE DID NOT REACH THE ROBOT SERVICE...', bottom = dock height + 8 px) lies inside the overlay area and its z-index
     (30) is below the overlay's (50): pressing PAUSE with no or a wrong token shows nothing. Fixed when .toast has a z-index above
     .connect (or the toast is drawn in the overlay): then flip to ``>``."""
     css = (STATIC / "app.css").read_text()
     z = lambda rule: int(re.search(r"z-index:\s*(\d+)", rule).group(1))
-    assert z(_css_rule(css, ".toast")) < z(_css_rule(css, ".connect")), "WEAKNESS FIXED? the toast is now above the connect overlay: flip this pin"
+    assert z(_css_rule(css, ".toast")) > z(_css_rule(css, ".connect")), "N1 regressed: the PAUSE failure toast is under the connect overlay again"

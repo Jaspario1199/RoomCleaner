@@ -537,3 +537,22 @@ slack_probe default (keep false until probe H1/M2 are closed).
   M1 code fix for the corner-hole claw (pretension short of lift-off or a tilt-aware drag watch); M2
   unknown-top-level-key check in `load_config`; L5, L6. Phone-app review F1, F2, F4, F5, F6 and F14
   being fixed by an implementer (not yet verified).
+
+## 1/8 in fin, thermal simulation geometry, Ø4 magnet caps — verified (10/22, lead)
+- Built by the implementer to `cad/HEAT_FIN_1021_SPEC.md` (A to E): `cad/parts/heat_fin1021.py` (1/8 in production fin,
+  0.019 in prototype record; flat STEP/STL, DXF profile, shop drawing), `cad/thermal_station1021.py` (three SOLIDWORKS thermal
+  STEPs: block motor with each fin, and the detailed NEMA 17 with the 1/8 in fin), `cad/parts/nema17_thermal.py` (front cap,
+  stator, winding, rear cap, shaft, connector), and the Ø4.0 magnet caps `encoder1021_magnet_cap_v2_m4` and `_m4_peg1p9`.
+- Fin split for the convection sets at z 31.16 (shell roof at the fin slot), corrected by the lead from the implementer's
+  34.6 after the thermal check (F6).
+- Independent verification: `verification/heat_fin1021_thermal_verification.md` — all five items PASS (319 checks, 0
+  failures, 6 negative controls); every STEP reimports identically. Sent to Jasper: the NEMA 17 STEPs and the detailed
+  thermal assembly.
+- Thermal documents corrected per `verification/thermal_assembly_1p5a_check.md` (F1 to F7 and the fin-sizing items):
+  Study C and Study E manuals, `calculations/fin_sizing_4w.*`, `calculations/thermal_assembly_1p5a.py`. Headline numbers
+  unchanged; the PETG mount runs at about the motor temperature (not 1 to 3 K below).
+- Open, Jasper's: widen the shell's fin slot on the motor side to y ≤ −3.675 for the 1/8 in fin (69 mm³ overlap today);
+  M3 × 12 screws with the 1/8 in fin; with the 0.019 in fin M3 × 8 gives only 2.5 mm of thread (check the motor's hole depth
+  before M3 × 10); magnet thickness (2.5 mm assumed); which heat-set inserts are real.
+- Do not run `python -m cad.parts.encoder1021 v2`: it would overwrite the Ø6 record files with Ø4 geometry.
+- Deck: v7 (`docs/presentation/DECK_V7_NOTES.md`) is current — one story by project phase, figure plus statements.

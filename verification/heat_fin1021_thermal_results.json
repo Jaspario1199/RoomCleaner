@@ -593,6 +593,15 @@
   "note": ""
  },
  {
+  "id": "1.8f",
+  "item": "DXF header drawing extents ($EXTMIN / $EXTMAX) set (observation: unset = +-1e20, viewers must 'zoom extents')",
+  "expected": "set",
+  "measured": "$EXTMIN=(1e+20, 1e+20, 1e+20)",
+  "tol": 0,
+  "status": "NOTE",
+  "note": "entities and units are fine; only the header extents are not written"
+ },
+ {
   "id": "1.8e",
   "item": "DXF net area (outline - holes) vs STEP face area (mm2)",
   "expected": 8474.27536870356,
@@ -2629,6 +2638,15 @@
   "note": ""
  },
  {
+  "id": "2.14b",
+  "item": "OBSERVATION: block variants model 4.0 mm of shank in the motor holes (spec) vs the real screw engagement: 1/8 in + M3x12 = 3.825 (+0.175 modelled); 0.019 in + M3x8 = 2.517 (+1.483, +59 %); 0.019 in + M3x10 = 4.517 (longer than the 4.0 mm modelled hole; real hole ~4.5)",
+  "expected": "info",
+  "measured": "modelled 4.0 in both block variants; detailed variant 3.825 exact",
+  "tol": 0,
+  "status": "NOTE",
+  "note": ""
+ },
+ {
   "id": "2.14",
   "item": "engagement arithmetic M3x12 + 1/8 in = L - 5 (tab) - t (mm)",
   "expected": 3.825,
@@ -3675,6 +3693,17 @@
   "note": ""
  },
  {
+  "id": "5.5",
+  "item": "heat_fin1021_1p8: single-solid file: STEP product name (cosmetic observation)",
+  "expected": "info",
+  "measured": [
+   "Open CASCADE STEP translator 7.9 3"
+  ],
+  "tol": 0,
+  "status": "NOTE",
+  "note": "generic OpenCascade translator name, not a part name; SOLIDWORKS names the imported part after the file"
+ },
+ {
   "id": "5.0b",
   "item": "heat_fin1021_1p8_asm1021: STEP length unit is millimetre",
   "expected": true,
@@ -3711,6 +3740,17 @@
   "note": ""
  },
  {
+  "id": "5.5",
+  "item": "heat_fin1021_1p8_asm1021: single-solid file: STEP product name (cosmetic observation)",
+  "expected": "info",
+  "measured": [
+   "Open CASCADE STEP translator 7.9 1"
+  ],
+  "tol": 0,
+  "status": "NOTE",
+  "note": "generic OpenCascade translator name, not a part name; SOLIDWORKS names the imported part after the file"
+ },
+ {
   "id": "5.0b",
   "item": "heat_fin1021_0p019_asm1021: STEP length unit is millimetre",
   "expected": true,
@@ -3745,6 +3785,17 @@
   "tol": 0.01,
   "status": "PASS",
   "note": ""
+ },
+ {
+  "id": "5.5",
+  "item": "heat_fin1021_0p019_asm1021: single-solid file: STEP product name (cosmetic observation)",
+  "expected": "info",
+  "measured": [
+   "Open CASCADE STEP translator 7.9 2"
+  ],
+  "tol": 0,
+  "status": "NOTE",
+  "note": "generic OpenCascade translator name, not a part name; SOLIDWORKS names the imported part after the file"
  },
  {
   "id": "5.0b",
@@ -4035,6 +4086,17 @@
   "note": ""
  },
  {
+  "id": "5.5",
+  "item": "encoder1021_magnet_cap_v2_m4: single-solid file: STEP product name (cosmetic observation)",
+  "expected": "info",
+  "measured": [
+   "Open CASCADE STEP translator 7.9 1"
+  ],
+  "tol": 0,
+  "status": "NOTE",
+  "note": "generic OpenCascade translator name, not a part name; SOLIDWORKS names the imported part after the file"
+ },
+ {
   "id": "5.0b",
   "item": "encoder1021_magnet_cap_v2_m4_asm1021: STEP length unit is millimetre",
   "expected": true,
@@ -4069,6 +4131,17 @@
   "tol": 0.01,
   "status": "PASS",
   "note": ""
+ },
+ {
+  "id": "5.5",
+  "item": "encoder1021_magnet_cap_v2_m4_asm1021: single-solid file: STEP product name (cosmetic observation)",
+  "expected": "info",
+  "measured": [
+   "Open CASCADE STEP translator 7.9 1"
+  ],
+  "tol": 0,
+  "status": "NOTE",
+  "note": "generic OpenCascade translator name, not a part name; SOLIDWORKS names the imported part after the file"
  },
  {
   "id": "5.0b",
@@ -4107,6 +4180,17 @@
   "note": ""
  },
  {
+  "id": "5.5",
+  "item": "encoder1021_magnet_cap_v2_m4_peg1p9: single-solid file: STEP product name (cosmetic observation)",
+  "expected": "info",
+  "measured": [
+   "Open CASCADE STEP translator 7.9 2"
+  ],
+  "tol": 0,
+  "status": "NOTE",
+  "note": "generic OpenCascade translator name, not a part name; SOLIDWORKS names the imported part after the file"
+ },
+ {
   "id": "5.0b",
   "item": "encoder1021_magnet_cap_v2_m4_peg1p9_asm1021: STEP length unit is millimetre",
   "expected": true,
@@ -4141,6 +4225,17 @@
   "tol": 0.01,
   "status": "PASS",
   "note": ""
+ },
+ {
+  "id": "5.5",
+  "item": "encoder1021_magnet_cap_v2_m4_peg1p9_asm1021: single-solid file: STEP product name (cosmetic observation)",
+  "expected": "info",
+  "measured": [
+   "Open CASCADE STEP translator 7.9 2"
+  ],
+  "tol": 0,
+  "status": "NOTE",
+  "note": "generic OpenCascade translator name, not a part name; SOLIDWORKS names the imported part after the file"
  },
  {
   "id": "9.1",

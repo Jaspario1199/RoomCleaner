@@ -292,6 +292,9 @@ def section1():
     dc = sorted((round(2 * c.dxf.radius, 3), round(c.dxf.center.x, 3), round(c.dxf.center.y, 3)) for c in circles)
     fc = sorted((round(2 * r, 3), round(a, 3), round(b, 3)) for r, a, b, *_ in cy)
     chk("1.8d", "DXF circles (Ø, X, Y) == flat STEP holes (tol 0.005)", fc, dc, 0.005, ok=len(dc) == len(fc) and all(all(abs(u - v) < 0.005 for u, v in zip(p, q)) for p, q in zip(dc, fc)))
+    ext_min = doc.header.get("$EXTMIN")
+    chk("1.8f", "DXF header drawing extents ($EXTMIN / $EXTMAX) set (observation: unset = +-1e20, viewers must 'zoom extents')", "set", f"$EXTMIN={tuple(ext_min)}", 0, ok=True, info=True,
+        note="entities and units are fine; only the header extents are not written")
     poly_area = 0.5 * abs(sum(pts[i][0] * pts[(i + 1) % 4][1] - pts[(i + 1) % 4][0] * pts[i][1] for i in range(4))) if len(pts) == 4 else -1
     net = poly_area - sum(math.pi * c.dxf.radius ** 2 for c in circles)
     chk("1.8e", "DXF net area (outline - holes) vs STEP face area (mm2)", area_ref, net, 0.05)
@@ -591,6 +594,8 @@ def section2b():
         chk("2.13b", f"[{key}] body table mass = volume x density (max |dm| g)", 0.0, massdev, 0.01)
         dev = max(abs(tab[k] - b[k].Volume()) for k in tab if k in b)
         chk("2.13", f"[{key}] body table volumes vs measured (max |dV| mm3, over {len(tab)} rows; every body listed={set(tab) == set(b)})", 0.0, dev, 0.01, ok=dev < 0.01 and set(tab) == set(b))
+    chk("2.14b", "OBSERVATION: block variants model 4.0 mm of shank in the motor holes (spec) vs the real screw engagement: 1/8 in + M3x12 = 3.825 (+0.175 modelled); 0.019 in + M3x8 = 2.517 (+1.483, +59 %); "
+        "0.019 in + M3x10 = 4.517 (longer than the 4.0 mm modelled hole; real hole ~4.5)", "info", "modelled 4.0 in both block variants; detailed variant 3.825 exact", 0, ok=True, info=True)
     # engagement arithmetic of the claims (screw length - tab - fin)
     for L, t, label in ((12, 3.175, "M3x12 + 1/8 in"), (8, 0.483, "M3x8 + 0.019 in"), (10, 0.483, "M3x10 + 0.019 in")):
         eng = L - 5.0 - t
@@ -815,8 +820,9 @@ STEP_FILES = [
 
 
 def section5():
+    import shutil
     import tempfile
-    tmp = Path(tempfile.mkdtemp(prefix="verify_step_"))
+    tmp = Path(tempfile.mkdtemp(prefix="verify_step_"))      # round-trip scratch files only; removed at the end
     for stem, nsol, vol_exp in STEP_FILES:
         path = STEP / f"{stem}.step"
         if not path.exists():
@@ -844,6 +850,12 @@ def section5():
             n.pop("__duplicates__")
             sv = sum(x.Volume() for x in n.values())
             chk("5.4", f"{stem}: every component named (none empty/None), volumes sum to file total", "all named", f"{len(n)} names, none None={None not in n}, sum V {sv:.3f}", 0, ok=None not in n and abs(sv - s.Volume()) < 1e-3 and all(k for k in n))
+        else:
+            nn = list(named(path))
+            nn = [x for x in nn if x != "__duplicates__"]
+            chk("5.5", f"{stem}: single-solid file: STEP product name (cosmetic observation)", "info", nn, 0, ok=True, info=True,
+                note="generic OpenCascade translator name, not a part name; SOLIDWORKS names the imported part after the file")
+    shutil.rmtree(tmp, ignore_errors=True)
     return {}
 
 

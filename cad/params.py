@@ -536,3 +536,93 @@ CAMBAY1021_TRI_BODY_ORIGIN_Y = CAMBAY1021_CORNER_HOLE_INNER_Y   # body-frame ori
 # Station anchor priors, room frame (x east, y north, z up), metres: docs/THREE_STATION_MODE_SPEC.md (C, A, B in IDS order).
 CAMBAY1021_TRI_ANCHORS_ROOM_M = ((1.6764, 2.6932, 2.5932), (0.05, 0.05, 2.5932), (3.3028, 0.05, 2.5932))
 CAMBAY1021_TRI_YAW_RANGE_DEG = 15.0   # claw yaw range of the cable-line analysis (+-)
+
+
+# =============================================================================
+# ENCODER 1021 -- AS5600 magnet cap + encoder casing for the 10/21 wall assembly (ENC1021_*)   cad/ENCODER_1021_SPEC.md
+# Master values for cad/parts/encoder1021.py (both parts).  Units mm.  Frame: the v3 STATION frame = the slip-in mount's own
+# frame: origin on the motor shaft axis in the slip-in motor-plate face, +y along the shaft toward the spool, +z up, +x out of
+# the wall into the room.  cad/reference/station_1021/*.step are that frame shifted up by ENC1021_REF_SHIFT_Z.
+# Every level along y (magnet face, chip face, PCB faces, frame front) is DERIVED in cad/parts/encoder1021.py from the values
+# below, so one edit here regenerates both parts.
+# =============================================================================
+# --- purchased parts: NOMINAL until Jasper measures them (spec section 6) ----------------------------------------------------
+ENC1021_MAGNET_D = 6.0                # diametric magnet shipped with the board
+ENC1021_MAGNET_T = 2.5
+ENC1021_PCB_SIZE = 23.0               # UMLIFE AS5600 module, square
+ENC1021_PCB_THICK = 1.6
+ENC1021_CHIP_H = 1.45                 # SOIC-8 height above the PCB front face (the face toward the magnet)
+ENC1021_CHIP_OFFSET = (0.0, 0.0)      # chip centre minus board centre, board (x, z) = station (x, z); expected centred
+ENC1021_AIR_GAP = 1.5                 # magnet face to chip face (AS5600 range about 0.5 - 3 mm)
+ENC1021_CHIP_BODY = (6.0, 4.0)        # SOIC-8 footprint incl. leads, station (x, z): used only for the display / clearance body
+# optional locating pins in the board's four corner holes: OFF until the hole pitch is measured
+ENC1021_PINS_ON = False
+ENC1021_PIN_PITCH = 19.0              # corner-hole centre spacing (placeholder, NOT measured)
+ENC1021_PIN_D = 2.0
+ENC1021_PIN_LEN = 1.2                 # protrusion into the board, capped at PCB_THICK - 0.3 in the builder
+
+# --- station interfaces, re-measured from the STEPs shifted by (0, 0, -2.64) -------------------------------------------------
+# The extraction carries a common placement residual (+0.004243, +0.001645, +0.003854) mm in (x, y, z): measured as the spool
+# centre (x, z) and the spool outer face (y = 26.001645); the divot floor, holes and shaft end all sit at the same offsets.
+# The values below are the exact design values with it removed.
+ENC1021_REF_SHIFT_Z = 2.64
+ENC1021_REF_RESIDUAL = (0.004243, 0.001645, 0.003854)
+ENC1021_SPOOL_FACE_Y = 26.0           # spool outer flange face (flange y 23 - 26, Ø36), plain disc with the bore
+ENC1021_SPOOL_FLANGE_D = 36.0
+ENC1021_SHAFT_END_Y = 22.0            # motor shaft end (Ø5 with a D-flat at z = +2.0)
+ENC1021_BORE_D = 5.30                 # spool bore, through
+ENC1021_BORE_FLAT_X = 2.15            # D-flat of the bore at x = +2.15 (material on the +x side)
+ENC1021_PLATE_FACE_X = -21.15         # back-plate face the divot is in, normal +x (spec rounds to -21.1)
+ENC1021_DIVOT_FLOOR_X = -22.15        # divot floor, 1.0 deep (spec rounds to -22.1)
+ENC1021_DIVOT_YZ = (45.0, 0.0)        # divot centre (y, z)
+ENC1021_DIVOT_RIM = 24.0              # opening at the plate face; plan corners R1.0
+ENC1021_DIVOT_WALL_R = 1.0            # the divot wall is a QUARTER-ROUND R1.0 (floor 22 x 22, sharp corners), not a straight wall
+ENC1021_DIVOT_HOLE_D = 3.45           # measured Ø3.45 (spec: Ø3.46), 4.0 deep below the floor
+ENC1021_DIVOT_HOLE_DEPTH = 4.0
+ENC1021_DIVOT_HOLE_PITCH = 9.5        # 9.5 mm square about the divot centre
+
+# --- magnet cap -----------------------------------------------------------------------------------------------------------------
+ENC1021_CAP_HEAD_D = 14.0
+ENC1021_CAP_HEAD_T = 3.3              # head against the spool face; grows if a thicker magnet needs it (floor >= CAP_FLOOR_MIN)
+ENC1021_CAP_FLOOR_MIN = 0.75          # solid material under the magnet
+ENC1021_CAP_HEAD_CHAMFER = 0.3        # 45 deg on the head's outer top edge (elephant-foot relief, magnet-face side on the bed)
+ENC1021_CAP_POCKET_CLEAR_D = 0.2      # pocket Ø = MAGNET_D + this
+ENC1021_CAP_POCKET_EXTRA_DEPTH = 0.05 # pocket depth = MAGNET_T + this (CA glue film under the magnet)
+ENC1021_CAP_PEG_D = 5.10              # D-peg: Ø5.10 round part ...
+ENC1021_CAP_PEG_FLAT_X = 2.05         # ... with its flat at x = +2.05 (0.10 inside the bore flat)
+ENC1021_CAP_PEG_LEN = 3.4             # peg end at SPOOL_FACE_Y - 3.4 = 22.6, 0.6 mm clear of the shaft end
+ENC1021_CAP_RIB_N = 3                 # axial crush ribs, equally spaced, one opposite the flat
+ENC1021_CAP_RIB_H = 0.15              # rib height above the peg surface (0.05 mm radial crush into the Ø5.30 bore)
+ENC1021_CAP_RIB_W_BASE = 0.8
+ENC1021_CAP_RIB_W_TIP = 0.3
+ENC1021_CAP_LEAD_IN = 0.5             # 45 deg lead-in on the peg end
+ENC1021_CAP_NOTCH = (3.0, 2.0, 0.8)   # pry notch in the head underside at +z: tangential width, radial depth, axial height
+
+# --- encoder casing -------------------------------------------------------------------------------------------------------------
+ENC1021_PCB_CLEAR = 0.2               # board pocket clearance per side (pocket 23.4 for the 23.0 board)
+ENC1021_WALL = 2.0                    # frame wall around the pocket (outer 27.4)
+ENC1021_TAB = 3.0                     # corner front stops, 3 x 3 in plan, at the pocket corners
+ENC1021_TAB_SETBACK = 0.2             # front face of the frame and tabs this far BEHIND the chip face (chip sticks out 0.2)
+ENC1021_FLEX_WALL_T = 1.2             # the +-z walls are thinned to this between the corner blocks: they flex as the snap hooks
+ENC1021_HOOK_W = 8.0                  # snap-hook lip length along x, centred
+ENC1021_HOOK_OVERLAP = 0.4            # lip overlap over the PCB back face edge (0.6 beyond the wall's inner face)
+ENC1021_HOOK_GAP = 0.1                # catch face this far behind the PCB back face
+ENC1021_HOOK_LIP_Y = 1.0              # lip height along y (45 deg lead-in ramp)
+ENC1021_FOOT_SIZE = 23.6              # foot plan: 0.2 per side inside the 24.0 divot rim
+ENC1021_FOOT_CORNER_R = 1.2           # >= divot plan corner R1.0 + margin
+ENC1021_FOOT_H = 4.0                  # divot floor up to the +x face: 1.0 keyed + 3.0 proud
+ENC1021_FOOT_KEY_R = 1.0              # bottom-edge round: follows the divot quarter-round so the whole 1.0 depth engages
+ENC1021_FOOT_HOLE_D = 3.4             # clearance holes at the divot holes (pass M2.5 and M3), teardrop top for printing
+ENC1021_SCREW_HEAD_D = 6.0            # M3 pan head; the region above each hole is kept open to this + tool clearance
+ENC1021_TOOL_CLEAR = 0.5
+ENC1021_BRIDGE_X0 = -20.9             # bridge / filler -x end: 0.25 mm above the plate face
+ENC1021_BRIDGE_TOP_Y = 36.2           # bridge top; must stay >= screw-head radius + tool clearance from the nearest hole row (y 40.25)
+ENC1021_BRIDGE_HALF_Z = 13.7          # bridge width = frame width
+ENC1021_TIE_SLOT = (3.0, 1.6, 6.2)    # strain-relief zip-tie slots through the bridge: x length, z width, z offset (+-)
+ENC1021_TIE_SLOT_X = -16.0            # ... centred at this x
+ENC1021_PETG_G_CM3 = 1.27             # cad/materials.py
+ENC1021_PETG_E_MPA = 2100.0           # cad/materials.py (1 N stiffness hand calculation)
+ENC1021_STIFF_LOAD_N = 1.0            # acceptance: this push on the frame ...
+ENC1021_STIFF_LIMIT_MM = 0.1          # ... moves the chip less than this
+ENC1021_OVERHANG_DEG = 45.0           # printability limit (a face is flagged above this + ENC1021_OVERHANG_TOL_DEG)
+ENC1021_OVERHANG_TOL_DEG = 0.5

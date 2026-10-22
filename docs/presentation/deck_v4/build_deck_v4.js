@@ -310,6 +310,19 @@ content("Goal: pick laundry off the floor anywhere in an 11 × 9 ft room", [
 ], { file: R("station_v3_assembly.png"), alt: "Winch station assembly", caption: "One of the four winch stations (CAD)" },
 "Requirements first: where it works, what it lifts, what it costs, and how it stays safe.");
 
+content("The final design: four wall stations hold one claw on four lines", [
+  "Four identical wall stations, one near each ceiling corner",
+  "- NEMA 17 winch and printed spool, its own ESP32 controller, a spool encoder, and the horn-inspired heat fin",
+  "- Each slides onto a wall frame screwed into a stud; one 12 V cable each",
+  "One claw on four Dyneema lines",
+  "- Geared four-bar gripper, camera in the housing, 10.48 in aluminium tube, 2S LiPo",
+  "Controlled from a laptop and a phone app over Wi-Fi",
+  "The rest of this talk is how each part got to this point",
+], { file: [R("station_1021_final.png"), R("gripper1021_asbuilt.png")], alt: "Final wall station and claw",
+     caption: "Final CAD: a wall station (Oct 21 assembly, with the heat fin) and the claw as built" },
+"The finished design first, so every later decision has a place to land. Station: wall frame, slide-in mount, shell, motor, spool, heat fin, encoder. Claw: housing with the camera bay, 10.48 in tube, geared head, four-bar hands.",
+{ split: 0.5 });
+
 {
   const sl = pres.addSlide({ masterName: "CONTENT", sectionTitle: "Opening" });
   head(sl, "Opening", "Outline");

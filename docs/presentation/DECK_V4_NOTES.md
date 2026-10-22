@@ -55,3 +55,14 @@ Facts behind the obstacle slide (code, not hardware):
 - While moving, the robot detects a jammed or stalled cable (station TRACKING fault) and a failed grip (camera). It cannot
   detect a person, a pet or a moved chair: the claw camera looks down and has no depth.
 - Gen 1 had the same keep-out idea for the ceiling fan (`roomcleaner/config.py` `FanZone`, exact segment test).
+
+## v4.2 (2026-10-22, Jasper: "make sure the final assembly is getting displayed in the presentation")
+
+- **New slide 3, *The final design: four wall stations hold one claw on four lines*,** right after the goal slide. The finished
+  robot comes before the story of how it got there. The deck is now 52 slides.
+- **Two new renders,** from `tools/render_deck_assets.py`; the older renders are kept:
+  - `station_1021_final.png`: Jasper's Oct 21 wall assembly (wall frame, slide-in mount, shell, motor, spool, heat fin), with
+    the encoder casing and magnet cap inside the shell;
+  - `gripper1021_asbuilt.png`: the claw as built, with the housing carrying both cable patterns (D34) and its camera-bay cover,
+    the 10.48 in tube (D36: the head moved up by the 38.6 mm cut), the 1021 head and the four-bar hands.
+- **Unchanged:** the title slide still shows `gripper1021_final.png` (12 in tube); swap it if the as-built claw should open the talk.

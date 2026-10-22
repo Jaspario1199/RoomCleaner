@@ -249,6 +249,56 @@ def _v6_part(name):
     return V, F
 
 
+# Final assemblies (deck v4.2, 10/22).
+# The wall station as Jasper's 10/21 assembly: wall frame, slide-in mount, shell, motor, spool, heat fin, plus the encoder
+# casing and magnet cap. The parts are in cad/reference/station_1021 (station frame, z up); the encoder parts are built in
+# the v3 frame and sit +2.64 mm higher there (cad/ENCODER_1021_SPEC.md).
+ST1021 = "cad/reference/station_1021/"
+
+
+def _station1021_final():
+    layers = [(*load(S(ST1021 + "Wall_Mount_v3.step")), PETG_DARK, False),
+              (*load(S(ST1021 + "Slipin_mount_piecev3.step")), PETG, False),
+              (*load(S(ST1021 + "Motor_Reference.step")), PETG_DARK, False),
+              (*load(S(ST1021 + "Spool1011.step")), ORANGE, False),
+              (*load(S(ST1021 + "Heat_horn.step")), ALU, True),
+              (*load(S(ST1021 + "Shell_Casing.step")), PETG, False)]
+    for n, col in (("encoder1021_casing", NAVY), ("encoder1021_magnet_cap", ORANGE)):
+        V, F = load(S(f"exports/step/{n}.step"))
+        layers.append((V + [0, 0, 2.64], F, col, False))
+    return layers
+
+
+JOBS["station_1021_final"] = _station1021_final
+
+
+# The claw as built (D36): the 1021 head, the lead's hands, the housing with both cable patterns (_34, D34) and its cover,
+# on the 10.48 in tube. The STEP has the 12 in tube; the head moves up by the cut and the tube is shortened from its lower end.
+TUBE_TOP_Y, TUBE_CUT = 1091.19, 304.8 - 10.48 * 25.4
+
+
+def _gripper1021_asbuilt():
+    head = ["03_Gripper_gear_housing_NAUO3", "07_Gripper_gear_housing_Part2_NAUO7", "04_Simple_18T_Pinionvlast_NAUO4",
+            "08_Claw_arm_extension3_NAUO8", "09_Claw_arm_extension3_NAUO9", "10_gripper_v6r_compound_36T_24T_norelief_NAUO10",
+            "11_gripper_v6r_follower_NAUO11", "01_Body_40x19x38_tabs_and_boss_ESTIMATED_step_NAUO13"]
+    up = np.array([0, TUBE_CUT, 0])
+    layers = [((lambda V, F: (V + up, F))(*load(S(REF1021 + k + ".step"), 0.2, 0.3)) + (PETG, False)) for k in head]
+    for h in ("right", "left"):
+        V, F = load(S(f"exports/step/gripper1021_hand_{h}.step"), 0.15, 0.25)
+        layers.append((V + up, F, NAVY, False))
+    V, F = load(S(REF1021 + "06_aluminum_tubing_NAUO6.step"), 0.2, 0.3)
+    V = V.copy()
+    V[:, 1] = TUBE_TOP_Y - (TUBE_TOP_Y - V[:, 1]) * (304.8 - TUBE_CUT) / 304.8      # 12 in -> 10.48 in, top end fixed
+    layers.append((V, F, ALU, True))
+    layers.append((*load(S(REF1021 + "00_Griper_Cylinder_NAUO1.step"), 0.2, 0.3), PETG, False))
+    layers.append((*load(S("exports/step/gripper1021_housing_cambay_34.step"), 0.2, 0.3), PETG, False))
+    layers.append((*load(S("exports/step/gripper1021_housing_cambay_cover.step"), 0.2, 0.3), NAVY, False))
+    return layers
+
+
+JOBS["gripper1021_asbuilt"] = _gripper1021_asbuilt
+
+
 # SolidWorks exports are Y-up; CadQuery parts are Z-up.
 YUP = dict(up=(0, 1, 0), view=(1, 0.8, 1))
 GEAR = dict(up=(0, 1, 0), view=(0.6, -0.8, 1.2))
@@ -263,6 +313,8 @@ OPTS["gripper_v7"] = {**YUP, "view": (1, 0.9, 1)}
 OPTS["gripper1021_final"] = {**YUP, "view": (1, 0.55, -1.1), **TALL}
 OPTS["gripper1021_head"] = {**YUP, "view": (0.9, 0.5, -1.2)}
 OPTS["gen1_overhead_camera"] = dict(view=(1, -1.2, -0.75))
+OPTS["station_1021_final"] = dict(view=(1.0, -0.75, 0.55))
+OPTS["gripper1021_asbuilt"] = {**YUP, "view": (1, 0.55, -1.1), **TALL}
 for n in ("claw_v6", "claw_v6_camera_bay", "wall_mount_v3"):
     OPTS[n] = {**OPTS[n], **TALL}
 

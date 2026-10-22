@@ -293,28 +293,24 @@ section("Introduction");
 }
 
 {
-  // three photos from Jasper's collage across the top, the statements under them
+  // photos only: Jasper's three collage columns (outdoors and endurance, engineering, community), filling the slide
   const sl = blank("About Me");
-  const cols = [["about_endurance.png", "Ironman 70.3, marathon"], ["about_ecofil.png", "EcoFil filament recycler"], ["about_gladiator.png", "Gladiator Dash obstacle build"]];
-  const g = 0.25, ar = cols.map(([f]) => { const d = imgSize(PH(`about_me/${f}`)); return d.w / d.h; });
-  const ih = Math.min(3.15, (W - 2 * M - 2 * g) / ar.reduce((a, b) => a + b, 0));
+  const cols = ["about_outdoors.png", "about_engineering.png", "about_community.png"];
+  const g = 0.2, top = 1.25, maxH = 6.85 - top, ar = cols.map(f => { const d = imgSize(PH(`about_me/${f}`)); return d.w / d.h; });
+  const ih = Math.min(maxH, (W - 2 * M - 2 * g) / ar.reduce((a, b) => a + b, 0));
   let cx = M + (W - 2 * M - 2 * g - ih * ar.reduce((a, b) => a + b, 0)) / 2;
-  cols.forEach(([f, cap], i) => {
+  cols.forEach((f, i) => {
     const iw = ih * ar[i];
-    sl.addImage({ path: PH(`about_me/${f}`), x: cx, y: 1.3, w: iw, h: ih, altText: cap, objectName: cap });
-    sl.addText(cap, { x: cx, y: 1.3 + ih + 0.06, w: iw, h: 0.42, fontSize: 11, color: HEX.grey, fontFace: "Arial", valign: "top", margin: 0, isTextBox: true, objectName: "caption" });
+    sl.addImage({ path: PH(`about_me/${f}`), x: cx, y: top, w: iw, h: ih, altText: f.replace(/about_|\.png/g, ""), objectName: f });
     cx += iw + g;
   });
-  bullets(sl, [
-    "Mechanical Engineering, Texas A&M University, class of 2027",
-    "Built EcoFil, a filament recycler with a shredder, dryer and extruder",
-    "Build logistics chair, Gladiator Dash: obstacle assembly, repairs and transport ($185K raised)",
-    "Ironman 70.3 in 6:53 and a marathon in 2025",
-  ], M + 0.6, 1.3 + ih + 0.55, W - 2 * M - 1.2, 6.85 - (1.3 + ih + 0.55), 17, { space: 6, name: "about bullets" });
-  sl.addNotes("Ninety seconds. I build things end to end, and I finish long things. EcoFil: what each stage does, and one result [add one number: filament diameter " +
-              "tolerance or throughput, and what broke]. Gladiator Dash: as Special Events Build Logistics Chair I headed assembly, repairs and transport of the obstacles; " +
+  sl.addNotes("Ninety seconds; the photos carry it, left to right. Mechanical Engineering at Texas A&M, class of 2027. " +
+              "Left: outdoors and endurance, an Ironman 70.3 in 6:53 and a marathon in 2025; I finish long things. " +
+              "Middle: EcoFil, a filament recycler I built with a shredder, dryer and extruder [add one number: filament diameter tolerance or throughput, and what broke]. " +
+              "Right: as Special Events Build Logistics Chair for the One Army Gladiator Dash I headed assembly, repairs and transport of the obstacles; " +
               "the event raised $185K for Still Creek Ranch. If asked: metal sculpture for the Austin Creek Show, with fiber laser cutting and welding.");
 }
+
 
 content("Project Goal", [
   "Pick up laundry in a 3.35 × 2.74 m (11 × 9 ft) room under a 2.74 m (9 ft) ceiling, and drop it in a hamper",

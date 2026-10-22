@@ -99,3 +99,5 @@ The slides no longer carry red placeholders: the version sent on Oct 22 uses neu
 - Number of stations built (Project Goal notes)
 
 Send the PDF to the recruiters: the PPTX speaker notes are a coaching track ("Pause and ask", "If asked") meant for Jasper only.
+
+**About Me (Oct 22, Jasper):** photos only, the three collage columns filling the slide; the degree, EcoFil, Gladiator Dash role and Ironman are in the speaker notes.

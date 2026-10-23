@@ -1,12 +1,13 @@
-"""Independent verification of the 3:1 spur winch drive train (geometry-verifier).
+"""Independent verification of the 3:1 spur winch drive train, REVISION B = 18T/54T (geometry-verifier).
 
-Contract: cad/WINCH_GEAR3_SPEC.md.  This file measures the EXPORTED files only (exports/step/winch_gear3_*.step, exports/stl/winch_gear3_*.stl).
+Contract: cad/WINCH_GEAR3_SPEC.md revision B (D41).  Revision A (20T/60T) passed an earlier run of this file; this file was rewritten from the
+revision B spec, not from the implementation.  It measures the EXPORTED files only (exports/step/winch_gear3_*.step, exports/stl/winch_gear3_*.stl).
 It does not import the implementer's builder (cad/parts/winch_gear3.py) or the implementer's tests.  The only repository code it loads is
-  * the spec-mandated involute generator cad/gripper_v3_fit_review_20261018/gears.py (to rebuild the gear independently), and
+  * the spec-mandated involute generator cad/gripper_v3_fit_review_20261018/gears.py (to rebuild the gears independently), and
   * cad/params.py (read-only, for the parameter audit in test_20).
 Spec numbers are hard-coded below (from the spec text), not read from the implementer's parameters.
 
-Run (about 6 min, 26 tests, 341 recorded checks):
+Run (about 8 min):
     cd /home/user/RoomCleaner && /usr/bin/python3 -m pytest -q -s -p no:cacheprovider tests/test_winch_gear3_verify.py
 The -s run prints a summary table (item, expected, measured, tolerance, status) at the end (test_99_summary).
 
@@ -64,11 +65,18 @@ RES = np.array([0.004243, 0.001645, 0.003854])   # extraction residual carried b
 POS_TOL = 0.005                                   # mm, positions/diameters after removing O + RES (the residual is known to 1e-6)
 RT_TOL = 1.0e-3                                   # 0.1 %
 
-# ---- spec numbers (cad/WINCH_GEAR3_SPEC.md), hard-coded
-ZM, ZS = 2.64, 2.64 - 40.20                       # motor axis z, spool axis z (x = 0 for both)
+# ---- spec numbers (cad/WINCH_GEAR3_SPEC.md revision B), hard-coded
+MOD = 1.0                                         # module
+NP, NG = 18, 54                                   # tooth counts (revision B, D41)
+CD = 36.20                                        # built centre distance (nominal m (18 + 54) / 2 = 36.00, +0.20 backlash allowance)
+ZM, ZS = 2.64, 2.64 - CD                          # motor axis z, spool axis z = -33.56 (x = 0 for both)
+RP_TIP, RP_ROOT, RP_PITCH = 10.0, 7.75, 9.0       # pinion: tip O20, root R = m (z/2 - 1.25) = 7.75 (generator), pitch R 9
+RG_TIP, RG_ROOT, RG_PITCH = 28.0, 25.75, 27.0     # gear: tip O56, root R 25.75 (spec section 3), pitch R 27
+WIN_D, WIN_R = 10.0, 17.5                         # lightening windows
 Y_T0, Y_T1 = 10.825, 20.825                       # teeth faces
 DRIVE_NAMES = ["motor_front_cap", "motor_stator", "motor_winding", "motor_rear_cap", "motor_shaft", "motor_connector", "fin", "pinion",
-               "spool_gear60", "shaft", "bearing_near", "bearing_far", "spacer_near", "magnet_cap", "magnet", "as5600_chip", "as5600_board"]
+               "spool_gear54", "shaft", "bearing_near", "bearing_far", "spacer_near", "magnet_cap", "magnet", "as5600_chip", "as5600_board"]
+GEARS_NAMES = ["pinion", "spool_gear54"]          # gears_asm1021: the two meshing bodies (names inferred from the other assemblies; spec lists none)
 
 REC: list = []   # (section, item, expected, measured, tolerance, status)
 
@@ -311,8 +319,8 @@ def part(name):
 @functools.lru_cache(None)
 def rims():
     b = drive()
-    g = common(b["spool_gear60"], ring_y(26.0, 33.0, Y_T0 - 0.01, Y_T1 + 0.01, 0, ZS))
-    p = common(b["pinion"], ring_y(7.5, 12.5, Y_T0 - 0.01, Y_T1 + 0.01, 0, ZM))
+    g = common(b["spool_gear54"], ring_y(23.0, 31.0, Y_T0 - 0.01, Y_T1 + 0.01, 0, ZS))      # tooth rim (root 25.75, tip 28.0); windows end at R22.5
+    p = common(b["pinion"], ring_y(6.5, 12.0, Y_T0 - 0.01, Y_T1 + 0.01, 0, ZM))             # tooth rim (root 7.75, tip 10.0)
     return g, p
 
 
@@ -321,7 +329,7 @@ def rot_y(shape, z_axis, deg):
 
 
 # =============================================================================== 1. STEP / STL file integrity
-@pytest.mark.parametrize("name", ["spool_gear60", "spacer_near", "magnet_cap"])
+@pytest.mark.parametrize("name", ["spool_gear54", "spacer_near", "magnet_cap"])
 def test_01_part_files(name, tmp_path):
     sec = f"1 part {name}"
     p = STEP + f"winch_gear3_{name}.step"
@@ -351,17 +359,18 @@ def test_01_part_files(name, tmp_path):
     check(sec, "print frame: bed face at z = 0 (STEP z min)", 0.0, tbb(s)[4], 1e-6)
 
 
-@pytest.mark.parametrize("name,extra", [("drive_asm1021", []), ("drive_with_slipin_asm1021", ["slipin_mount", "wall_mount"])])
-def test_02_assembly_files(name, extra, tmp_path):
+@pytest.mark.parametrize("name,want", [("drive_asm1021", DRIVE_NAMES), ("drive_with_slipin_asm1021", DRIVE_NAMES + ["slipin_mount", "wall_mount"]),
+                                       ("gears_asm1021", GEARS_NAMES)])
+def test_02_assembly_files(name, want, tmp_path):
     sec = f"1 assembly {name}"
     path = STEP + f"winch_gear3_{name}.step"
     raw = read_asm(path)
     names = [k for k in raw if k != "__dup__"]
-    want = DRIVE_NAMES + extra
-    check_true(sec, "named bodies (spec section 5 list)", len(want), len(names), sorted(names) == sorted(want))
+    check_true(sec, "named bodies (spec section 5 list; gears file: pinion + spool_gear54)", len(want), len(names), sorted(names) == sorted(want))
     check_true(sec, "duplicate names", 0, len(raw["__dup__"]), not raw["__dup__"])
     allsol = load_step(path).solids().vals()
     check_true(sec, "total solids in file", len(want), len(allsol), len(allsol) == len(want))
+    check_true(sec, "no stale revision-A body names (spool_gear60, pinion20)", "none", [k for k in names if k in ("spool_gear60", "pinion20")] or "none", not any(k in ("spool_gear60", "pinion20") for k in names))
     bad = [k for k in names if not (len(raw[k].Solids()) == 1 and len(raw[k].Shells()) == 1 and valid(raw[k]) and vol(raw[k]) > 0)]
     check_true(sec, "every body: one valid solid, one shell, V > 0 (no disconnected pieces)", "none bad", bad or "none bad", not bad)
     # round trip: write a named assembly with CadQuery, read it back with XCAF
@@ -417,18 +426,70 @@ def test_03_assembly_frame_and_unmodified_references():
     # the drive bodies are identical in both assemblies
     same = all(abs(vol(w[k]) - vol(b[k])) < 1e-6 and np.max(np.abs(tbb(w[k]) - tbb(b[k]))) < 1e-6 for k in DRIVE_NAMES)
     check_true(sec, "drive bodies identical in the two assemblies", True, same, same)
+    g = read_asm(STEP + "winch_gear3_gears_asm1021.step")
+    same_g = all(abs(vol(g[k]) - vol(b[k])) < 1e-6 and np.max(np.abs(tbb(g[k]) - tbb(b[k]))) < 1e-6 and abs(vol(g[k]) + vol(b[k]) - 2 * cvol(g[k], b[k])) < 0.01
+                 for k in GEARS_NAMES)
+    check_true(sec, "gears_asm1021 pinion and spool_gear54 identical to the drive_asm1021 bodies (volume, bbox, symmetric difference)", True, same_g, same_g)
 
 
 def test_04_part_files_equal_assembly_bodies():
     sec = "1 part file == assembly body"
     b = drive()
 
-    def to_station(shape, y0):
-        return shape.rotate(cq.Vector(0, 0, 0), cq.Vector(1, 0, 0), -90).translate(cq.Vector(0, y0, ZS))   # print frame -> design frame
-    for nm, key, y0 in [("spool_gear60", "spool_gear60", 10.825), ("spacer_near", "spacer_near", 5.0), ("magnet_cap", "magnet_cap", 49.3)]:
+    def to_station(shape, y0, z0=ZS):
+        return shape.rotate(cq.Vector(0, 0, 0), cq.Vector(1, 0, 0), -90).translate(cq.Vector(0, y0, z0))   # print frame -> design frame
+    for nm, key, y0 in [("spool_gear54", "spool_gear54", 10.825), ("spacer_near", "spacer_near", 5.0), ("magnet_cap", "magnet_cap", 49.3)]:
         st = to_station(part(nm), y0)
         sd = vol(st) + vol(b[key]) - 2 * cvol(st, b[key])
         check_le(sec, f"{nm}: symmetric difference of part STEP and assembly body (mm3)", 0.01, abs(sd))
+    # standalone pinion18.step: axis z, z = design y (teeth z 10.825 to 20.825, hub z 5.825 to 10.825), centred on x = y = 0
+    st = to_station(part("pinion18"), 0.0, ZM)
+    sd = vol(st) + vol(b["pinion"]) - 2 * cvol(st, b["pinion"])
+    check_le(sec, "pinion18: symmetric difference of the standalone STEP (axis z) and the assembly pinion (mm3)", 0.01, abs(sd))
+    check(sec, "pinion18: volume equals the assembly pinion", vol(b["pinion"]), vol(part("pinion18")), 1e-6)
+
+
+def test_04b_pinion18_file(tmp_path):
+    sec = "1 part pinion18"
+    p = STEP + "winch_gear3_pinion18.step"
+    head = open(p, "r", errors="ignore").read(200000)
+    check_true(sec, "STEP length unit", "MILLI METRE", "MILLI METRE" if "SI_UNIT(.MILLI.,.METRE.)" in head else "other", "SI_UNIT(.MILLI.,.METRE.)" in head)
+    w = load_step(p)
+    s = w.val()
+    check_true(sec, "valid BREP (BRepCheck)", True, valid(s), valid(s))
+    check_true(sec, "solid count", 1, len(s.Solids()), len(s.Solids()) == 1)
+    check_true(sec, "shell count", 1, len(s.Shells()), len(s.Shells()) == 1)
+    check_true(sec, "volume > 0", ">0", round(vol(s), 3), vol(s) > 0)
+    bb = tbb(s)
+    check(sec, "axis z: z min = hub start (design y 5.825)", 5.825, bb[4], POS_TOL)
+    check(sec, "axis z: z max = teeth end / shaft end (20.825)", 20.825, bb[5], POS_TOL)
+    check(sec, "tip diameter from bbox y (tooth tip on the y axis: O20)", 20.0, bb[3] - bb[2], POS_TOL)
+    names = [_name(l) for l in []]  # (product name is read below from the STEP text)
+    txt = open(p, "r", errors="ignore").read(60000)
+    check_true(sec, "no stale name pinion20 in the file", "absent", "present" if "pinion20" in txt else "absent", "pinion20" not in txt)
+    tmp = str(tmp_path / "verify_rt_pinion18.step")
+    cq.exporters.export(w, tmp)
+    s2 = load_step(tmp).val()
+    check_le(sec, "STEP round trip: relative volume change", RT_TOL, abs(vol(s2) - vol(s)) / vol(s))
+    check_le(sec, "STEP round trip: relative bbox change", RT_TOL, float(np.max(np.abs(tbb(s2) - tbb(s))) / np.max(np.abs(tbb(s)))))
+
+
+def test_04c_stale_files_gone():
+    sec = "1 stale revision-A files"
+    stale = []
+    for root, dirs, files in os.walk(REPO):
+        dirs[:] = [d for d in dirs if d not in (".git", "__pycache__", ".pytest_cache")]
+        for f in files:
+            if "gear60" in f or "pinion20" in f:
+                stale.append(os.path.relpath(os.path.join(root, f), REPO))
+    check_true(sec, "no file named *gear60* or *pinion20* anywhere in the repository (exports, renders, cad, step, stl)", "none", stale or "none", not stale)
+    want_step = {"winch_gear3_drive_asm1021.step", "winch_gear3_drive_with_slipin_asm1021.step", "winch_gear3_gears_asm1021.step", "winch_gear3_magnet_cap.step",
+                 "winch_gear3_pinion18.step", "winch_gear3_spacer_near.step", "winch_gear3_spool_gear54.step"}
+    got_step = {f for f in os.listdir(STEP) if f.startswith("winch_gear3_")}
+    check_true(sec, "exports/step/winch_gear3_* is exactly the 7 revision-B files", sorted(want_step), sorted(got_step), got_step == want_step)
+    want_stl = {"winch_gear3_magnet_cap.stl", "winch_gear3_spacer_near.stl", "winch_gear3_spool_gear54.stl"}
+    got_stl = {f for f in os.listdir(STL) if f.startswith("winch_gear3_")}
+    check_true(sec, "exports/stl/winch_gear3_* is exactly the 3 revision-B files", sorted(want_stl), sorted(got_stl), got_stl == want_stl)
 
 
 # =============================================================================== 2. gear stage
@@ -448,7 +509,7 @@ def test_05_gear_teeth_diameters_axes():
             if abs(c["dir"][1]) > 0.999 and math.hypot(c["loc"][0], c["loc"][2] - az) < 0.01:
                 g.setdefault(round(c["r"], 3), []).append(c)
         return g
-    gg, gp = coax(b["spool_gear60"], ZS), coax(b["pinion"], ZM)
+    gg, gp = coax(b["spool_gear54"], ZS), coax(b["pinion"], ZM)
     check_true(sec, "gear: tip faces (R 31.0) / root faces (R 28.75)", "60 / 60", f"{len(gg.get(31.0, []))} / {len(gg.get(28.75, []))}",
                len(gg.get(31.0, [])) == 60 and len(gg.get(28.75, [])) == 60)
     check_true(sec, "pinion: tip faces (R 11.0) / root faces (R 8.75)", "20 / 20", f"{len(gp.get(11.0, []))} / {len(gp.get(8.75, []))}",
@@ -459,7 +520,7 @@ def test_05_gear_teeth_diameters_axes():
     check(sec, "pinion root diameter (generator root R 8.75 = 17.5), from the root faces", 17.5, 2 * min(r for r in gp if r > 8), POS_TOL)
     # axes from the bore cylinders
     pb = [c for c in cyl_faces(b["pinion"]) if abs(c["r"] - 2.5) < 1e-4][0]
-    gb = [c for c in cyl_faces(b["spool_gear60"]) if abs(c["r"] - 3.5) < 1e-4][0]
+    gb = [c for c in cyl_faces(b["spool_gear54"]) if abs(c["r"] - 3.5) < 1e-4][0]
     ms = [c for c in cyl_faces(b["motor_shaft"]) if abs(c["r"] - 2.5) < 1e-4][0]
     sh = [c for c in cyl_faces(b["shaft"]) if abs(c["r"] - 3.5) < 1e-4][0]
     check(sec, "pinion bore axis x", 0.0, pb["loc"][0], POS_TOL)
@@ -470,16 +531,16 @@ def test_05_gear_teeth_diameters_axes():
     check(sec, "shaft axis z", ZS, sh["loc"][2], POS_TOL)
     check(sec, "centre distance pinion bore axis to spool bore axis", 40.20, abs(pb["loc"][2] - gb["loc"][2]), 0.001)
     # tooth faces and shaft end
-    ysp = [c for c in cyl_faces(b["spool_gear60"]) if abs(c["r"] - 31.0) < 1e-3]
+    ysp = [c for c in cyl_faces(b["spool_gear54"]) if abs(c["r"] - 31.0) < 1e-3]
     ypi = [c for c in cyl_faces(b["pinion"]) if abs(c["r"] - 11.0) < 1e-3]
     check(sec, "pinion tip faces y max (teeth face end = shaft end 20.825)", 20.825, max(c["bb"][3] for c in ypi), POS_TOL)
     check(sec, "pinion tip faces y min (10.825)", 10.825, min(c["bb"][2] for c in ypi), POS_TOL)
     check(sec, "gear tip faces y max (20.825)", 20.825, max(c["bb"][3] for c in ysp), POS_TOL)
-    check(sec, "gear near face y (bed face, teeth start 10.825)", 10.825, tbb(b["spool_gear60"])[2], POS_TOL)
+    check(sec, "gear near face y (bed face, teeth start 10.825)", 10.825, tbb(b["spool_gear54"])[2], POS_TOL)
     check(sec, "tip faces of the gear start 0.3 above the bed face (chamfer)", 11.125, min(c["bb"][2] for c in ysp), POS_TOL)
     check(sec, "pinion face width", 10.0, max(c["bb"][3] for c in ypi) - min(c["bb"][2] for c in ypi), POS_TOL)
     # phasing: a gear tooth SPACE on the line of centres, a pinion tooth on it
-    gm = material(b["spool_gear60"], (0, 15.825, ZS), (0, 0, 1), 0, 40)
+    gm = material(b["spool_gear54"], (0, 15.825, ZS), (0, 0, 1), 0, 40)
     pm = material(b["pinion"], (0, 15.825, ZM), (0, 0, -1), 0, 40)
     check(sec, "gear radius on the line of centres (tooth space -> root R 28.75)", 28.75, gm[-1][1], POS_TOL)
     check(sec, "pinion radius on the line of centres (tooth -> tip R 11.0)", 11.0, pm[-1][1], POS_TOL)
@@ -501,7 +562,7 @@ def test_06_gear_matches_repo_generator():
     def station(shape, y0, z0):
         return shape.rotate(cq.Vector(0, 0, 0), cq.Vector(1, 0, 0), -90).translate(cq.Vector(0, y0, z0))
     # tooth phase read from the STEP tip faces, then rebuilt with the repo generator (module 1, 20 deg, thinning 0.10 / 0, root blend 0.40)
-    for nm, key, n, R, az, thin in [("gear 60T", "spool_gear60", 60, 31.0, ZS, 0.10), ("pinion 20T", "pinion", 20, 11.0, ZM, 0.0)]:
+    for nm, key, n, R, az, thin in [("gear 60T", "spool_gear54", 60, 31.0, ZS, 0.10), ("pinion 20T", "pinion", 20, 11.0, ZM, 0.0)]:
         ang = sorted(math.degrees(math.atan2(c["face"].Center().z - az, c["face"].Center().x)) for c in cyl_faces(b[key]) if abs(c["r"] - R) < 1e-3)
         phase_axial = (-ang[0]) % (360.0 / n)                        # axial-frame angle = - station angle (local y = -station z)
         ref = station(G.gear(n, 1.0, 10.0, phase=phase_axial, reduction=thin, root_radius=0.40).val(), 10.825, az)
@@ -511,7 +572,7 @@ def test_06_gear_matches_repo_generator():
         sd = abs(vol(a) + vol(c) - 2 * cvol(a, c))
         check_le(sec, f"{nm}: rim solid (STEP) vs repo generator rebuilt independently, symmetric difference (mm3)", 0.01, sd)
     # phase of the gear is such that tooth centres are at 3 deg + 6 k (axial frame)
-    ang = sorted(math.degrees(math.atan2(c["face"].Center().z - ZS, c["face"].Center().x)) for c in cyl_faces(b["spool_gear60"]) if abs(c["r"] - 31.0) < 1e-3)
+    ang = sorted(math.degrees(math.atan2(c["face"].Center().z - ZS, c["face"].Center().x)) for c in cyl_faces(b["spool_gear54"]) if abs(c["r"] - 31.0) < 1e-3)
     check(sec, "gear tooth pitch (deg)", 6.0, float(np.mean(np.diff(ang))), 1e-6)
 
 
@@ -534,9 +595,9 @@ def test_07_mesh_poses():
     ctl = cvol(p_rim, rot_y(g_rim, ZS, 0.5))
     check_true(sec, "negative control (gear turned 0.5 deg alone) detects overlap", "> 0.1 mm3", round(ctl, 3), ctl > 0.1)
     # which features: tip-to-root clearance
-    gg = {round(c["r"], 3) for c in cyl_faces(drive()["spool_gear60"]) if abs(c["dir"][1]) > 0.999 and math.hypot(c["loc"][0], c["loc"][2] - ZS) < 0.01}
+    gg = {round(c["r"], 3) for c in cyl_faces(drive()["spool_gear54"]) if abs(c["dir"][1]) > 0.999 and math.hypot(c["loc"][0], c["loc"][2] - ZS) < 0.01}
     pg = {round(c["r"], 3) for c in cyl_faces(drive()["pinion"]) if abs(c["dir"][1]) > 0.999 and math.hypot(c["loc"][0], c["loc"][2] - ZM) < 0.01}
-    cd = abs([c for c in cyl_faces(drive()["pinion"]) if abs(c["r"] - 2.5) < 1e-4][0]["loc"][2] - [c for c in cyl_faces(drive()["spool_gear60"]) if abs(c["r"] - 3.5) < 1e-4][0]["loc"][2])
+    cd = abs([c for c in cyl_faces(drive()["pinion"]) if abs(c["r"] - 2.5) < 1e-4][0]["loc"][2] - [c for c in cyl_faces(drive()["spool_gear54"]) if abs(c["r"] - 3.5) < 1e-4][0]["loc"][2])
     check(sec, "tip-to-root clearance, measured (CD - R_tip_gear - R_root_pinion; also the other way round)", 0.45, cd - max(gg) - min(r for r in pg if r > 8), 0.002)
     check(sec, "tip-to-root clearance, other way (CD - R_tip_pinion - R_root_gear)", 0.45, cd - max(pg) - min(r for r in gg if r > 20), 0.002)
 
@@ -565,15 +626,15 @@ def test_08_backlash_bisect():
         f"{math.radians(tot) * 10:.4f} / {math.radians(tot / 3) * 7.5:.4f}", "-", True)
 
 
-# =============================================================================== 3. spool_gear60 part (print frame)
+# =============================================================================== 3. spool_gear54 part (print frame)
 def ray(s, ang, z, t1=40.0):
     d = (math.cos(math.radians(ang)), math.sin(math.radians(ang)), 0)
     return material(s, (0, 0, z), d, 0, t1)
 
 
 def test_09_spool_sections():
-    sec = "3 spool_gear60"
-    s = part("spool_gear60")
+    sec = "3 spool_gear54"
+    s = part("spool_gear54")
     bb = tbb(s)
     check(sec, "part starts (z 0 = design y 10.825)", 0.0, bb[4], 1e-6)
     check(sec, "part ends (design y 44.0 - 10.825 = 33.175)", 33.175, bb[5], 1e-6)
@@ -626,8 +687,8 @@ def test_09_spool_sections():
 
 
 def test_10_spool_tieoff():
-    sec = "3 spool_gear60 tie-off"
-    s = part("spool_gear60")
+    sec = "3 spool_gear54 tie-off"
+    s = part("spool_gear54")
     hole = [c for c in cyl_faces(s) if abs(c["r"] - 0.7) < 1e-4]
     check_true(sec, "tie-off hole faces (R0.7, Ø1.4)", ">= 1", len(hole), len(hole) >= 1)
     h = hole[0]
@@ -664,9 +725,9 @@ def test_10_spool_tieoff():
 
 
 def test_11_spool_independent_rebuild_and_chamfer():
-    sec = "3 spool_gear60 rebuild"
+    sec = "3 spool_gear54 rebuild"
     G = generator()
-    s = part("spool_gear60")
+    s = part("spool_gear54")
 
     def cyl(r, z0, z1, x=0.0, y=0.0):
         return cq.Solid.makeCylinder(r, z1 - z0, cq.Vector(x, y, z0), cq.Vector(0, 0, 1))
@@ -700,7 +761,7 @@ def test_11_spool_independent_rebuild_and_chamfer():
 
 def test_12_spool_printability():
     sec = "3 spool printability"
-    s = part("spool_gear60")
+    s = part("spool_gear54")
     pl = [p for p in plane_faces(s) if abs(p["n"][2] + 1) < 1e-6]
     bed = [p for p in pl if abs(p["loc"][2]) < 1e-6]
     over = [p for p in pl if p["loc"][2] > 1e-3]
@@ -708,7 +769,7 @@ def test_12_spool_printability():
     rec(sec, "bed contact area (mm2)", "-", f"{bed[0]['area']:.1f}", "-", True)
     check_true(sec, "downward-facing planar faces above the bed (need supports): only the flange inner face z 26.0", "1 face at z 26.0, area 841.2",
                [(round(float(p['loc'][2]), 3), round(p['area'], 1)) for p in over], len(over) == 1 and abs(over[0]["loc"][2] - 26.0) < 1e-4)
-    tri = read_stl(STL + "winch_gear3_spool_gear60.stl")
+    tri = read_stl(STL + "winch_gear3_spool_gear54.stl")
     nrm = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
     ar = np.linalg.norm(nrm, axis=1) / 2
     nz = nrm[:, 2] / np.linalg.norm(nrm, axis=1)
@@ -775,8 +836,8 @@ def test_14_shaft_bearings():
         check(sec, f"{nm}: axis x", 0.0, 0.5 * (bbx[0] + bbx[1]), POS_TOL)
     # stack: bearing near 0-5 | spacer 5-10.825 | spool 10.825-44.0 | bearing far 44-49: faces touch, no gaps
     check(sec, "stack: spacer y min equals near-bearing face (5.0)", 5.0, tbb(b["spacer_near"])[2], POS_TOL)
-    check(sec, "stack: spool far land end equals far-bearing face (44.0)", 44.0, tbb(b["spool_gear60"])[3], POS_TOL)
-    d, _ = mindist(b["spool_gear60"], b["bearing_far"])
+    check(sec, "stack: spool far land end equals far-bearing face (44.0)", 44.0, tbb(b["spool_gear54"])[3], POS_TOL)
+    d, _ = mindist(b["spool_gear54"], b["bearing_far"])
     check_le(sec, "spool to far bearing distance (touching on the Ø9 land)", 1e-4, d)
     d, _ = mindist(b["spacer_near"], b["bearing_near"])
     check_le(sec, "spacer to near bearing distance (touching on the Ø9 land)", 1e-4, d)
@@ -906,8 +967,8 @@ def test_17_pairwise_overlap():
 def test_17b_contacts_and_fits():
     sec = "5 contacts / fits"
     b = drive()
-    for a, c in [("motor_front_cap", "fin"), ("spacer_near", "spool_gear60"), ("spacer_near", "bearing_near"), ("spool_gear60", "bearing_far"),
-                 ("magnet", "magnet_cap"), ("as5600_chip", "as5600_board"), ("shaft", "spool_gear60"), ("shaft", "bearing_near"), ("shaft", "bearing_far"),
+    for a, c in [("motor_front_cap", "fin"), ("spacer_near", "spool_gear54"), ("spacer_near", "bearing_near"), ("spool_gear54", "bearing_far"),
+                 ("magnet", "magnet_cap"), ("as5600_chip", "as5600_board"), ("shaft", "spool_gear54"), ("shaft", "bearing_near"), ("shaft", "bearing_far"),
                  ("shaft", "magnet_cap"), ("pinion", "motor_shaft"), ("motor_shaft", "motor_front_cap")]:
         d, _ = mindist(b[a], b[c])
         check_le(sec, f"{a} touches {c} (distance, mm)", 1e-4, d)
@@ -915,7 +976,7 @@ def test_17b_contacts_and_fits():
     def bore_r(body, rmin, rmax):
         return [c["r"] for c in cyl_faces(b[body]) if rmin < c["r"] < rmax and abs(c["dir"][1]) > 0.999][0]
     shaft_r = bore_r("shaft", 3.4, 3.6)
-    for body, lo, hi, expect, note in [("spool_gear60", 3.4, 3.6, 0.0, "Ø7.00 bore on the Ø7 shaft (prints ~6.9: press fit)"),
+    for body, lo, hi, expect, note in [("spool_gear54", 3.4, 3.6, 0.0, "Ø7.00 bore on the Ø7 shaft (prints ~6.9: press fit)"),
                                        ("bearing_near", 3.4, 3.6, 0.0, "687 ID 7"), ("bearing_far", 3.4, 3.6, 0.0, "687 ID 7"),
                                        ("magnet_cap", 3.4, 3.6, 0.0, "Ø7 cap bore (press fit)"), ("spacer_near", 3.4, 3.7, 0.05, "Ø7.10 slip bore")]:
         check(sec, f"radial fit {body}: bore R - shaft R ({note})", expect, bore_r(body, lo, hi) - shaft_r, 1e-4)
@@ -925,14 +986,14 @@ def test_17b_contacts_and_fits():
 def test_18_clearances():
     sec = "5 clearances"
     b = drive()
-    pin, sp = b["pinion"], b["spool_gear60"]
+    pin, sp = b["pinion"], b["spool_gear54"]
     hub = common(pin, ring_y(0.0001, 7.6, 5.7, 10.8249, 0, ZM))
     check(sec, "extracted pinion hub (Ø14 x 5) volume sanity: pi 49 5 - bore - set-screw", math.pi * 49 * 5 - math.pi * 6.25 * 5 - math.pi * 2.25 * 4.5, vol(hub), 3.0)
     d, _ = mindist(sp, hub)
     check_ge(sec, "gear (whole spool) to pinion hub (mm, >= 1.5)", 1.5, d)
     for k in ["motor_front_cap", "motor_stator", "motor_winding", "motor_rear_cap", "motor_shaft", "motor_connector", "fin"]:
         d, _ = mindist(sp, b[k])
-        check_ge(sec, f"spool_gear60 to {k} (mm, >= 1.5)", 1.5, d)
+        check_ge(sec, f"spool_gear54 to {k} (mm, >= 1.5)", 1.5, d)
     check(sec, "pinion hub to the tab face (y 5.0)", 0.825, tbb(hub)[2] - 5.0, POS_TOL)
     d, _ = mindist(pin, b["fin"])
     check_ge(sec, "pinion to fin (mm)", 1.5, d)
@@ -954,27 +1015,27 @@ def test_19_interference_with_mounts():
                 res[(m, k)] = common(b[m], b[k])
     got = {key: round(vol(c), 3) for key, c in res.items() if vol(c) > 1e-3}
     rec(sec, "all overlapping (mount, body) pairs found", "slipin: spool, shaft, spacer; wall: spool", sorted(f"{m}/{k}" for m, k in got),
-        "-", set(got) == {("slipin_mount", "spool_gear60"), ("slipin_mount", "shaft"), ("slipin_mount", "spacer_near"), ("wall_mount", "spool_gear60")})
-    assert set(got) == {("slipin_mount", "spool_gear60"), ("slipin_mount", "shaft"), ("slipin_mount", "spacer_near"), ("wall_mount", "spool_gear60")}, got
-    check(sec, "slipin_mount x spool_gear60 volume (build notes 3953.3)", 3953.3, got[("slipin_mount", "spool_gear60")], 1.0)
+        "-", set(got) == {("slipin_mount", "spool_gear54"), ("slipin_mount", "shaft"), ("slipin_mount", "spacer_near"), ("wall_mount", "spool_gear54")})
+    assert set(got) == {("slipin_mount", "spool_gear54"), ("slipin_mount", "shaft"), ("slipin_mount", "spacer_near"), ("wall_mount", "spool_gear54")}, got
+    check(sec, "slipin_mount x spool_gear54 volume (build notes 3953.3)", 3953.3, got[("slipin_mount", "spool_gear54")], 1.0)
     check(sec, "slipin_mount x shaft volume (build notes 54.8 = 2 x 27.4)", 54.8, got[("slipin_mount", "shaft")], 0.2)
     check(sec, "slipin_mount x spacer_near volume (build notes 35.3)", 35.3, got[("slipin_mount", "spacer_near")], 0.2)
-    check(sec, "wall_mount x spool_gear60 volume (build notes 697.3)", 697.3, got[("wall_mount", "spool_gear60")], 0.5)
+    check(sec, "wall_mount x spool_gear54 volume (build notes 697.3)", 697.3, got[("wall_mount", "spool_gear54")], 0.5)
 
     def box(x0, x1, y0, y1, z0, z1):
         return cq.Solid.makeBox(x1 - x0, y1 - y0, z1 - z0, cq.Vector(x0, y0, z0))
     big = 1000.0
-    c = res[("slipin_mount", "spool_gear60")]
+    c = res[("slipin_mount", "spool_gear54")]
     A = vol(common(c, box(-big, -21.15, -big, big, -big, big)))
     B = vol(common(c, box(-21.15, big, -big, big, -big, -42.40)))
     C = vol(common(c, box(-21.15, big, -big, big, -42.40, big)))
     check(sec, "slide-in x spool: back plate region x < -21.15 (notes 2003.4)", 2003.4, A, 0.5)
     check(sec, "slide-in x spool: deck block region z < -42.4 (notes 1860.6)", 1860.6, B, 0.5)
     check(sec, "slide-in x spool: far cheek above the deck z > -42.4 (notes 89.3)", 89.3, C, 0.5)
-    check(sec, "slide-in x spool: region sum equals total", got[("slipin_mount", "spool_gear60")], A + B + C, 0.01)
+    check(sec, "slide-in x spool: region sum equals total", got[("slipin_mount", "spool_gear54")], A + B + C, 0.01)
     check(sec, "slide-in x spool: deck block under the gear y 10.825..20.825 (notes 1760.3)", 1760.3,
           vol(common(common(c, box(-21.15, big, -big, big, -big, -42.40)), box(-big, big, 10.8, 20.825, -big, big))), 0.5)
-    w = res[("wall_mount", "spool_gear60")]
+    w = res[("wall_mount", "spool_gear54")]
     big_part = max(vol(s) for s in w.Solids())
     check(sec, "wall mount x spool: main piece x -24.3..-8.45, z -66.6..-55.9 (notes 686.1)", 686.1, big_part, 0.5)
     check(sec, "wall mount x spool: number of separate pieces (notes: 1 + 12 slivers)", 13, len(w.Solids()), 0)
@@ -995,12 +1056,12 @@ def test_19_interference_with_mounts():
     old = shift_design(sw["Spool1011"])
     d0 = drive()
     info = {}
-    for k in ["spool_gear60", "as5600_board", "bearing_near", "bearing_far"]:
+    for k in ["spool_gear54", "as5600_board", "bearing_near", "bearing_far"]:
         info["Shell_Casing x " + k] = round(cvol(sh, d0[k]), 3)
     info["Spool1011 x pinion"] = round(cvol(old, d0["pinion"]), 3)
     info["Spool1011 x motor_shaft"] = round(cvol(old, d0["motor_shaft"]), 3)
     rec(sec, "informative: shell and the replaced old spool (build notes 1164.6 / 180.1 / 6.1 / 6.1 / 2012.9 / 8.4)", "info", info, "-", True)
-    check(sec, "Shell_Casing x spool_gear60 (notes 1164.6)", 1164.6, info["Shell_Casing x spool_gear60"], 1.0)
+    check(sec, "Shell_Casing x spool_gear54 (notes 1164.6)", 1164.6, info["Shell_Casing x spool_gear54"], 1.0)
     check(sec, "Shell_Casing x as5600_board (notes 180.1)", 180.1, info["Shell_Casing x as5600_board"], 0.5)
     check(sec, "Spool1011 x pinion (notes 2012.9)", 2012.9, info["Spool1011 x pinion"], 1.0)
     fin_over = cvol(sh, d0["fin"])

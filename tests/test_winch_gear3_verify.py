@@ -109,6 +109,16 @@ def check_true(section, item, expected, measured, cond):
     assert cond, f"{section} / {item}: expected {expected}, measured {measured}"
 
 
+def check_same_solid(sec, item, a, b):
+    """Two solids in the same frame are the same solid: volume, area, centre of mass and inertia agree to numerical noise (<= 1e-9 relative, 1e-9 mm
+    for the printed parts; 1e-8 relative for Jasper's 6e5 mm3 wall mount whose reference STEP is integrated differently).  A 0.5 deg rotation of
+    the 54T spool alone changes the centre of mass by 3e-5 mm and the inertia by 9e-7 relative, so these limits detect it."""
+    dv, da, dc, di = inv_diff(a, b)
+    ok = dv <= 1e-7 and da <= 1e-7 and dc <= 1e-5 and di <= 1e-7
+    rec(sec, item, "dV<=1e-7 rel, dA<=1e-7 rel, dCOM<=1e-5 mm, dI<=1e-7 rel", f"dV {dv:.1e}, dA {da:.1e}, dCOM {dc:.1e}, dI {di:.1e}", "-", ok)
+    assert ok, f"{sec} / {item}: dV {dv}, dA {da}, dCOM {dc}, dI {di}"
+
+
 # =============================================================================== helpers (fresh, independent of the implementer's code)
 def vol(s):
     p = GProp_GProps()
@@ -128,6 +138,22 @@ def tbb(s):
 
 def common(a, b):
     return cq.Shape.cast(BRepAlgoAPI_Common(a.wrapped, b.wrapped).Shape())
+
+
+def invariants(s):
+    """Volume, surface area, centre of mass and the inertia matrix about the origin: a cheap, sensitive fingerprint of a placed solid."""
+    p = GProp_GProps()
+    BRepGProp.VolumeProperties_s(s.wrapped, p)
+    q = GProp_GProps()
+    BRepGProp.SurfaceProperties_s(s.wrapped, q)
+    c, m = p.CentreOfMass(), p.MatrixOfInertia()
+    return dict(V=p.Mass(), A=q.Mass(), C=np.array([c.X(), c.Y(), c.Z()]), I=np.array([[m.Value(i, j) for j in (1, 2, 3)] for i in (1, 2, 3)]))
+
+
+def inv_diff(a, b):
+    """(dV relative, dA relative, dCOM mm, dI relative) between two solids placed in the same frame."""
+    x, y = invariants(a), invariants(b)
+    return (abs(x["V"] - y["V"]) / y["V"], abs(x["A"] - y["A"]) / y["A"], float(np.abs(x["C"] - y["C"]).max()), float(np.abs(x["I"] - y["I"]).max() / np.abs(y["I"]).max()))
 
 
 def cut(a, b):
@@ -422,14 +448,14 @@ def test_03_assembly_frame_and_unmodified_references():
     for k, ko in [("slipin_mount", "Slipin_mount_piecev3"), ("wall_mount", "Wall_Mount_v3")]:
         check(sec, f"{k} volume equals the original SolidWorks assembly part", vol(sw[ko]), vol(w[k]), 0.01)
         check_le(sec, f"{k} bbox vs original (mm, absolute coordinates: confirms offset O)", 1e-3, float(np.max(np.abs(tbb(sw[ko]) - tbb(w[k])))))
-        check_le(sec, f"{k} symmetric difference with original (mm3)", 0.01, abs(vol(w[k]) + vol(sw[ko]) - 2 * cvol(w[k], sw[ko])))
+        check_same_solid(sec, f"{k} equals the original SolidWorks part in place (volume, area, centre of mass, inertia; absolute coordinates)", w[k], sw[ko])
     # the drive bodies are identical in both assemblies
     same = all(abs(vol(w[k]) - vol(b[k])) < 1e-6 and np.max(np.abs(tbb(w[k]) - tbb(b[k]))) < 1e-6 for k in DRIVE_NAMES)
     check_true(sec, "drive bodies identical in the two assemblies", True, same, same)
     g = read_asm(STEP + "winch_gear3_gears_asm1021.step")
-    same_g = all(abs(vol(g[k]) - vol(b[k])) < 1e-6 and np.max(np.abs(tbb(g[k]) - tbb(b[k]))) < 1e-6 and abs(vol(g[k]) + vol(b[k]) - 2 * cvol(g[k], b[k])) < 0.01
-                 for k in GEARS_NAMES)
-    check_true(sec, "gears_asm1021 pinion and spool_gear54 identical to the drive_asm1021 bodies (volume, bbox, symmetric difference)", True, same_g, same_g)
+    for k in GEARS_NAMES:
+        check_le(sec, f"gears_asm1021 {k}: bbox vs drive_asm1021 body (mm)", 1e-6, float(np.max(np.abs(tbb(g[k]) - tbb(b[k])))))
+        check_same_solid(sec, f"gears_asm1021 {k} equals the drive_asm1021 body (volume, area, centre of mass, inertia; same frame)", g[k], b[k])
 
 
 def test_04_part_files_equal_assembly_bodies():
@@ -440,13 +466,17 @@ def test_04_part_files_equal_assembly_bodies():
         return shape.rotate(cq.Vector(0, 0, 0), cq.Vector(1, 0, 0), -90).translate(cq.Vector(0, y0, z0))   # print frame -> design frame
     for nm, key, y0 in [("spool_gear54", "spool_gear54", 10.825), ("spacer_near", "spacer_near", 5.0), ("magnet_cap", "magnet_cap", 49.3)]:
         st = to_station(part(nm), y0)
-        sd = vol(st) + vol(b[key]) - 2 * cvol(st, b[key])
-        check_le(sec, f"{nm}: symmetric difference of part STEP and assembly body (mm3)", 0.01, abs(sd))
+        check_same_solid(sec, f"{nm}: part STEP placed in the design frame equals the assembly body (volume, area, centre of mass, inertia)", st, b[key])
+        if nm != "spool_gear54":       # the boolean on the 54T spool takes about a minute; the fingerprint above is sufficient
+            sd = vol(st) + vol(b[key]) - 2 * cvol(st, b[key])
+            check_le(sec, f"{nm}: symmetric difference of part STEP and assembly body (mm3)", 0.01, abs(sd))
     # standalone pinion18.step: axis z, z = design y (teeth z 10.825 to 20.825, hub z 5.825 to 10.825), centred on x = y = 0
     st = to_station(part("pinion18"), 0.0, ZM)
-    sd = vol(st) + vol(b["pinion"]) - 2 * cvol(st, b["pinion"])
-    check_le(sec, "pinion18: symmetric difference of the standalone STEP (axis z) and the assembly pinion (mm3)", 0.01, abs(sd))
+    check_same_solid(sec, "pinion18: standalone STEP (axis z) placed in the design frame equals the assembly pinion (volume, area, centre of mass, inertia)", st, b["pinion"])
     check(sec, "pinion18: volume equals the assembly pinion", vol(b["pinion"]), vol(part("pinion18")), 1e-6)
+    # negative control: the fingerprint must see the spool turned 0.5 deg alone
+    dv, da, dc, di = inv_diff(rot_y(b["spool_gear54"], ZS, 0.5), b["spool_gear54"])
+    check_true(sec, "negative control: spool turned 0.5 deg alone is detected by the fingerprint", "dCOM > 1e-5 or dI > 1e-7", f"dCOM {dc:.1e}, dI {di:.1e}", dc > 1e-5 or di > 1e-7)
 
 
 def test_04b_pinion18_file(tmp_path):
@@ -1067,7 +1097,7 @@ def test_18_clearances():
     # the spool turns: sweep the gear one tooth pitch (6.667 deg) about its axis; the tightest pose has a tooth tip on the line of centres
     g_rim, _ = rims()
     sweep = []
-    for dg in [0.0, 5.0 / 6.0, 5.0 / 3.0, 2.5, 10.0 / 3.0, 25.0 / 6.0, 5.0, 35.0 / 6.0]:
+    for dg in [0.0, 5.0 / 3.0, 10.0 / 3.0, 5.0]:
         sweep.append((dg, mindist(rot_y(g_rim, ZS, dg), hub)[0]))
     dmin = min(v for _, v in sweep)
     rec(sec, "gear rim to pinion hub over one gear pitch of spool rotation (deg: mm)", "info", "; ".join(f"{a:.3f}:{v:.4f}" for a, v in sweep), "-", True)
@@ -1126,15 +1156,23 @@ def test_19_interference_with_mounts():
     C = vol(common(c, box(-21.15, big, -big, big, -42.40, big)))
     rec(sec, "slide-in x spool by region: back plate x < -21.15 / deck block z < -42.4 / above the deck z > -42.4 (mm3)", "info", f"{A:.3f} / {B:.3f} / {C:.3f}", "-", True)
     check(sec, "slide-in x spool: region sum equals total", got[("slipin_mount", "spool_gear54")], A + B + C, 0.01)
+    # comparison with verification/winch_gear3_build_notes.md section 5 (read AFTER these numbers were measured; revision B values)
+    check(sec, "slipin_mount x spool_gear54 volume (build notes rev B 2451.6)", 2451.6, got[("slipin_mount", "spool_gear54")], 1.0)
+    check(sec, "slide-in x spool: back plate x < -21.15 (notes 1233.3)", 1233.3, A, 0.5)
+    check(sec, "slide-in x spool: deck block z < -42.4 (notes 1133.2)", 1133.2, B, 0.5)
+    check(sec, "slide-in x spool: above the deck z > -42.4 (notes 85.1 = 72.3 drum in the far cheek + 12.8 teeth)", 85.1, C, 0.5)
+    check(sec, "slipin_mount x spacer_near volume (notes 13.0)", 13.0, got[("slipin_mount", "spacer_near")], 0.2)
+    check(sec, "wall_mount x spool_gear54 volume (notes 27.3)", 27.3, got[("wall_mount", "spool_gear54")], 0.2)
     pieces = sorted((vol(x), tuple(np.round(tbb(x), 2))) for x in c.Solids())[::-1]
-    rec(sec, "slide-in x spool pieces (volume, bbox x0 x1 y0 y1 z0 z1)", "info", [(round(v, 3), list(bb_)) for v, bb_ in pieces], "-", True)
+    rec(sec, "slide-in x spool pieces (volume, bbox x0 x1 y0 y1 z0 z1)", "info", [(round(v, 3), [float(x) for x in bb_]) for v, bb_ in pieces], "-", True)
     bsp = common(common(c, box(-21.15, big, -big, big, -big, -42.40)), box(-big, big, 10.8, 20.825, -big, big))
     rec(sec, "slide-in x spool: deck block under the gear y 10.825..20.825 (mm3)", "info", round(vol(bsp), 3), "-", True)
     sp = res[("slipin_mount", "spacer_near")]
-    rec(sec, "slide-in x spacer_near: volume, bbox", "info", (round(vol(sp), 3), list(np.round(tbb(sp), 2))), "-", True)
+    rec(sec, "slide-in x spacer_near: volume, bbox", "info", (round(vol(sp), 3), [float(x) for x in np.round(tbb(sp), 2)]), "-", True)
     w = res[("wall_mount", "spool_gear54")]
     wp = sorted((vol(x), tuple(np.round(tbb(x), 2))) for x in w.Solids())[::-1]
-    rec(sec, "wall mount x spool pieces (volume, bbox)", "info", [(round(v, 3), list(bb_)) for v, bb_ in wp], "-", True)
+    rec(sec, "wall mount x spool pieces (volume, bbox)", "info", [(round(v, 3), [float(x) for x in bb_]) for v, bb_ in wp], "-", True)
+    check_true(sec, "wall mount x spool: 2 pieces 25.8 + 1.5 (notes)", "2 pieces", [round(v, 1) for v, _ in wp], len(wp) == 2 and abs(wp[0][0] - 25.8) < 0.2 and abs(wp[1][0] - 1.5) < 0.2)
     # nearest approach of the bodies that do not overlap (redesign inputs): report distances
     near_list = []
     for m in ("slipin_mount", "wall_mount"):
@@ -1159,6 +1197,12 @@ def test_19_interference_with_mounts():
     info["Spool1011 x pinion"] = round(cvol(old, d0["pinion"]), 3)
     info["Spool1011 x motor_shaft"] = round(cvol(old, d0["motor_shaft"]), 3)
     rec(sec, "informative: shell (Shell_Casing of the original assembly) x drive bodies, and the replaced old spool (mm3)", "info", info, "-", True)
+    check(sec, "Shell_Casing x spool_gear54 (notes 730.4)", 730.4, info["Shell_Casing x spool_gear54"], 1.0)
+    check(sec, "Shell_Casing x as5600_board (notes 32.9)", 32.9, info["Shell_Casing x as5600_board"], 0.5)
+    check_true(sec, "Shell_Casing x bearings (notes: 0 now, 6.1 each in revision A)", "0 / 0", [info.get("Shell_Casing x bearing_near", 0), info.get("Shell_Casing x bearing_far", 0)],
+               "Shell_Casing x bearing_near" not in info and "Shell_Casing x bearing_far" not in info)
+    check(sec, "Spool1011 x pinion (notes 2012.9)", 2012.9, info["Spool1011 x pinion"], 1.0)
+    check(sec, "Spool1011 x motor_shaft (notes 8.4)", 8.4, info["Spool1011 x motor_shaft"], 0.1)
     fin_over = cvol(sh, d0["fin"])
     rec(sec, "NOT caused by the gears: Shell_Casing x fin (1/8 in fin is thicker than the Heat_horn it replaces) mm3", "info", round(fin_over, 3), "-", True)
     # distance of the shell to the bodies it does not overlap

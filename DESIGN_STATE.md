@@ -645,3 +645,21 @@ slack_probe default (keep false until probe H1/M2 are closed).
   equal the verified drive assembly's (volume difference 0, lead re-check); `tests/test_winch_gear3.py` 28 passed.
 - Next: Jasper redesigns the slide-in, far cheek and shell around `winch_gear3_drive_asm1021.step`; then the D39 pull test at
   50 mm/s on the geared station (replaces the 0.90 efficiency and the 0.7 running fraction).
+
+## Winch gears revision B: 18T/54T (D41) — built, verified, calculation rerun (10/23, lead)
+- Jasper (10/23): "can we make the radius of both gears just a little smaller". 18T/54T at module 1 (tip Ø20 / Ø56, was Ø22 / Ø62),
+  ratio 3.00, centre distance 36.20, spool axis z −33.56; windows Ø10 on R 17.5; gear-tip to pinion-hub criterion 1.0 mm (spec
+  revision B). Files are named by tooth count: `winch_gear3_spool_gear54`, `winch_gear3_pinion18`; the `spool_gear60` and
+  `pinion20` names in the entries above are revision A and those files are removed.
+- Builder tests 29 passed (cad-implementer); independent verification PASS, 29 tests, 412 checks, 0 failures, exported files only
+  (`verification/winch_gear3_verification.md`): CD 36.2000, zero mesh overlap over one pitch, flank gap 0.117 mm, backlash
+  0.249 mm, gear-tip to hub 1.237 mm worst pose, gear to motor and fin ≥ 5.8 mm. Drive train 79.3 g (was 89.5).
+- Interference with Jasper's current parts drops: slide-in/spool 3953 → 2452 mm³, shaft 55 → 0, spacer 35 → 13; wall mount
+  697 → 27; shell/spool 1165 → 730, shell/board 33. Pre-existing shell/fin overlap 68.9 mm³ (not from the drive).
+- Calculation rerun (`calculations/winch_gear3.md`, revision B): at 1.0 A every link passes 1.5 x except the set screw
+  (unchanged, marginal at low friction); teeth 2.65 → 2.34, tooth contact 2.22 → 1.79, motor shaft 5.77 → 5.19; seat loads 133 /
+  161 N radial, 87 N axial; the motor-shaft slip peak is 31.5 N, 1.13 x the catalogue life rating (short peaks only).
+- Claw tube (advice, 10/23, not yet adopted): 1-1/8 in OD x 0.049 in 6061-T6 keeps the printed socket and saddles, about 77 g
+  instead of 173 g for the 3 mm CAD wall; a printed plug inside the cross-bolt end so the M3 clamps plastic, not the wall. The
+  real wall of the current tube is still unmeasured.
+

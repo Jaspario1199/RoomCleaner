@@ -8,7 +8,7 @@ the tooth counts (`spool_gear54`, `pinion18`); the 20T/60T exports are removed. 
 Jasper (10/23): "lets go with spur gears" (3:1, after "I want to use a bevel gear system on the motor mounts to increase torque
 3:1"; the lead advised a parallel-axis stage instead of bevels). Recorded as D40. Jasper designs the mount, cheeks and shell in
 SolidWorks himself; this spec is the **drive train he designs around**: the motor where it is now, a purchased steel pinion on
-its shaft, and the spool on its own shaft with a printed 60-tooth gear, all placed in the `station_1021` frame so the STEP drops
+its shaft, and the spool on its own shaft with a printed 54-tooth gear (revision B), all placed in the `station_1021` frame so the STEP drops
 into his assembly.
 
 ## 1. Frame and fixed geometry (do not change)
@@ -83,6 +83,8 @@ path, print frame and the separate near spacer (section 3 and 4 tables).
     `bearing_near`, `bearing_far`, `spacer_near`, `magnet_cap`, `magnet`, `as5600_chip`, `as5600_board`), in the station_1021 frame;
   - `exports/step/winch_gear3_drive_with_slipin_asm1021.step`: the same plus Jasper's current slide-in and wall mount, for him to
     see what has to change.
+  - `exports/step/winch_gear3_gears_asm1021.step` (pinion + spool_gear54 in mesh, assembly coordinates) and
+    `exports/step/winch_gear3_pinion18.step` (the purchased pinion alone, axis z), added 10/23 at Jasper's request.
 - Renders `renders/winch_gear3/`: front, side, top, iso of the drive; the mesh close-up; and a section through the spool axis.
 - `tests/test_winch_gear3.py`: valid solids, counts, the key dimensions above, centre distance 36.20, ratio 3, no overlap between
   any two drive bodies (≤ 0.01 mm³), gear tip to pinion hub ≥ 1.0 mm (revision B: the Ø14 hub ends at the gear's face plane, so the gap is radial, 36.20 − 28.0 − 7.0 = 1.2 mm; the 0.2 mm end play cannot close it), gear to motor body and to the fin ≥ 1.5 mm, STEP
@@ -101,7 +103,7 @@ path, print frame and the separate near spacer (section 3 and 4 tables).
 
 *Revision B (18T/54T): seat loads from the rerun `calculations/winch_gear3.md`, interferences from the revision B build notes.*
 
-The drive train passed independent verification (`verification/winch_gear3_verification.md`, 26 tests, 0 failures). Inputs
+The drive train passed independent verification (`verification/winch_gear3_verification.md`; revision B: 29 tests, 0 failures). Inputs
 for the slide-in, far cheek and shell he redesigns (numbers from `calculations/winch_gear3.md`, at 1.0 A):
 
 - **Bearing seats:** Ø14 seats for the two 687s, the near one in the extended motor tab (y 0 to 5), the far one in a cheek

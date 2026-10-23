@@ -381,3 +381,20 @@ up and report an overload").
 - **Proposed changes, not yet approved:** spool set screw into metal plus a bench pull test; a 6 mm tab with fillets on both
   roots; wall screws into the stud only; 3 dead wraps; hardware tracking tolerance 60 counts; the host reports a payout-side
   tracking fault as an overload.
+
+D40. **Winch: 3:1 spur reduction** (Jasper, 10/23: "lets go with spur gears", after proposing 3:1 bevel gears; the lead advised
+a parallel-axis stage: bevels need their cone apexes held to about 0.1 mm, push both shafts axially, and print poorly).
+- **Drive train** (`cad/WINCH_GEAR3_SPEC.md`): purchased steel M1 20T pinion (Ø5 bore, set screw on the D-flat) on the
+  NEMA 17; printed PETG 60T gear made in one piece with the spool (Ø15 × 16 mm drum, Ø36 flange, as Spoolv3); the spool on its
+  own Ø7 × 55 steel shaft in two 687 bearings, 40.20 mm directly below the motor axis (40.00 + 0.20 backlash allowance). The
+  encoder magnet moves to a cap on the spool shaft's far end. Jasper redesigns the slide-in (tab extended down to the near
+  bearing, a far cheek, the cable hole and switch lug under the drum) and the shell in SolidWorks.
+- **Why:** lift capacity 1.56 kg (4 % margin on jeans, inside the uncertainty) rises to about 2.8 kg at 1.0 A; motor heat falls
+  from 4.05 W to 1.8 W; the printed set-screw joint that may slip before the motor goes away; the cable load leaves the motor
+  shaft (its bearing now sees only the gear mesh).
+- **Motor configuration (lead's recommendation; Jasper to confirm the current):** 1.0 A, Vref 0.80 V on the R100 carriers
+  (within the 3.3 V logic range, no VDD change); `drive.full_steps_per_rev` 600 (200 motor steps × 3); hardware
+  `faults.tracking_tol_counts` 20 (one skipped step is 27 counts at the spool); `drive.max_step_rate_hz` about 800 (50 mm/s
+  needs about 640 at the empty core). Configs change only when the gearbox is installed.
+- **Consequence for D39:** the most the motor can pull before it slips rises from 59 N to about 130 N at the cable (1.0 A,
+  40 N·cm motor, fleeted cable, back-driven through the stage), so the new station is sized for about 200 N (1.5 ×).

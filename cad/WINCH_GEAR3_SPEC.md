@@ -46,7 +46,7 @@ Along y, on the spool axis (x 0, z −37.56):
 The part runs y 10.825 to 44.0. **Print frame: the gear's near face (y 10.825) on the bed**; the far hub builds on top of the flange.
 The outer flange's inner face (y 36.825) overhangs the Ø15 drum by 10.5 mm and is printed on supports (record it in the build
 notes; the line touches that face, so it is sanded smooth). The near hub is a separate part (`spacer_near_w3`, below).
-| Tie-off | Ø1.4 chord hole through the drum core, perpendicular to the axis, 5.25 mm off the axis, at the drum mid-plane y 28.825; both ends open on the winding surface (as Spool1011) | ligaments: 1.05 mm to the Ø7 bore, 0.85 mm to the core surface at the chord's closest point |
+| Tie-off | Ø1.4 chord hole through the drum core, perpendicular to the axis, 5.25 mm off the axis, at the drum mid-plane y 28.825; both ends open on the winding surface (as Spool1011) | ligaments: 1.05 mm to the Ø7 bore, 1.55 mm to the core surface at the chord's closest point |
 
 ## 4. Purchased and reference bodies (assembly only)
 

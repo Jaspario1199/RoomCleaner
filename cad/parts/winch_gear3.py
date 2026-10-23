@@ -412,6 +412,18 @@ def export_assemblies(step_dir: str = STEP_DIR) -> dict:
     return out
 
 
+def export_gears(step_dir: str = STEP_DIR) -> dict:
+    """The two gears as their own STEP files: the purchased pinion alone (its axial frame, axis z) and the pinion + spool_gear60 in mesh
+    (assembly coordinates of the drive assembly, same colours)."""
+    pair = ("pinion", "spool_gear60")
+    asm = to_assembly(build_drive())
+    out = {"pinion": N.export_named_step({"pinion": make_pinion()}, os.path.join(step_dir, f"{NAME}_pinion20.step"),
+                                         assembly_name=f"{NAME}_pinion20", colors={"pinion": COLORS["pinion"]}),
+           "gears": N.export_named_step({k: asm[k] for k in pair}, os.path.join(step_dir, f"{NAME}_gears_asm1021.step"),
+                                        assembly_name=f"{NAME}_gears_asm1021", colors={k: COLORS[k] for k in pair})}
+    return out
+
+
 # =============================================================================================================================
 # renders (VTK, offscreen: run under xvfb-run)
 # =============================================================================================================================
@@ -640,6 +652,8 @@ def main(render: bool = True) -> None:
         print(f"overlap {k[0]} - {k[1]}: {v:.4f} mm3")
     for k, p in export_assemblies().items():
         print("exported assembly", k, p)
+    for k, p in export_gears().items():
+        print("exported gears", k, p)
     if render:
         for p in render_all():
             print("render", p)

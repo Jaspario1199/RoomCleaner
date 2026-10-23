@@ -463,8 +463,7 @@ def test_04b_pinion18_file(tmp_path):
     bb = tbb(s)
     check(sec, "axis z: z min = hub start (design y 5.825)", 5.825, bb[4], POS_TOL)
     check(sec, "axis z: z max = teeth end / shaft end (20.825)", 20.825, bb[5], POS_TOL)
-    check(sec, "tip diameter from bbox y (tooth tip on the y axis: O20)", 20.0, bb[3] - bb[2], POS_TOL)
-    names = [_name(l) for l in []]  # (product name is read below from the STEP text)
+    check(sec, "tip diameter from bbox y (a tooth tip on the y axis = the line of centres in the design frame: O20)", 20.0, bb[3] - bb[2], POS_TOL)
     txt = open(p, "r", errors="ignore").read(60000)
     check_true(sec, "no stale name pinion20 in the file", "absent", "present" if "pinion20" in txt else "absent", "pinion20" not in txt)
     tmp = str(tmp_path / "verify_rt_pinion18.step")
@@ -497,10 +496,10 @@ def test_05_gear_teeth_diameters_axes():
     sec = "2 gear stage"
     b = drive()
     g_rim, p_rim = rims()
-    ng = len(common(g_rim, ring_y(29.9, 30.1, 10.9, 20.7, 0, ZS)).Solids())
-    npn = len(common(p_rim, ring_y(9.9, 10.1, 10.9, 20.7, 0, ZM)).Solids())
-    check_true(sec, "gear tooth count (disjoint tooth sections at the pitch ring)", 60, ng, ng == 60)
-    check_true(sec, "pinion tooth count (disjoint tooth sections at the pitch ring)", 20, npn, npn == 20)
+    ng = len(common(g_rim, ring_y(RG_PITCH - 0.1, RG_PITCH + 0.1, 10.9, 20.7, 0, ZS)).Solids())
+    npn = len(common(p_rim, ring_y(RP_PITCH - 0.1, RP_PITCH + 0.1, 10.9, 20.7, 0, ZM)).Solids())
+    check_true(sec, "gear tooth count (disjoint tooth sections at the pitch ring R27)", NG, ng, ng == NG)
+    check_true(sec, "pinion tooth count (disjoint tooth sections at the pitch ring R9)", NP, npn, npn == NP)
     check(sec, "ratio", 3.0, ng / npn, 1e-9)
 
     def coax(shape, az):
@@ -510,14 +509,14 @@ def test_05_gear_teeth_diameters_axes():
                 g.setdefault(round(c["r"], 3), []).append(c)
         return g
     gg, gp = coax(b["spool_gear54"], ZS), coax(b["pinion"], ZM)
-    check_true(sec, "gear: tip faces (R 31.0) / root faces (R 28.75)", "60 / 60", f"{len(gg.get(31.0, []))} / {len(gg.get(28.75, []))}",
-               len(gg.get(31.0, [])) == 60 and len(gg.get(28.75, [])) == 60)
-    check_true(sec, "pinion: tip faces (R 11.0) / root faces (R 8.75)", "20 / 20", f"{len(gp.get(11.0, []))} / {len(gp.get(8.75, []))}",
-               len(gp.get(11.0, [])) == 20 and len(gp.get(8.75, [])) == 20)
-    check(sec, "gear tip diameter (spec 62), from the tip faces", 62.0, 2 * max(gg), POS_TOL)
-    check(sec, "gear root diameter (generator root R 28.75 = 57.5), from the root faces", 57.5, 2 * min(r for r in gg if r > 20), POS_TOL)
-    check(sec, "pinion tip diameter (spec 22), from the tip faces", 22.0, 2 * max(gp), POS_TOL)
-    check(sec, "pinion root diameter (generator root R 8.75 = 17.5), from the root faces", 17.5, 2 * min(r for r in gp if r > 8), POS_TOL)
+    check_true(sec, f"gear: tip faces (R {RG_TIP}) / root faces (R {RG_ROOT})", "54 / 54", f"{len(gg.get(RG_TIP, []))} / {len(gg.get(RG_ROOT, []))}",
+               len(gg.get(RG_TIP, [])) == NG and len(gg.get(RG_ROOT, [])) == NG)
+    check_true(sec, f"pinion: tip faces (R {RP_TIP}) / root faces (R {RP_ROOT})", "18 / 18", f"{len(gp.get(RP_TIP, []))} / {len(gp.get(RP_ROOT, []))}",
+               len(gp.get(RP_TIP, [])) == NP and len(gp.get(RP_ROOT, [])) == NP)
+    check(sec, "gear tip diameter (spec O56), from the tip faces", 2 * RG_TIP, 2 * max(gg), POS_TOL)
+    check(sec, "gear root diameter (spec root R 25.75 = 51.5), from the root faces", 2 * RG_ROOT, 2 * min(r for r in gg if r > 20), POS_TOL)
+    check(sec, "pinion tip diameter (spec O20), from the tip faces", 2 * RP_TIP, 2 * max(gp), POS_TOL)
+    check(sec, "pinion root diameter (generator root R 7.75 = 15.5), from the root faces", 2 * RP_ROOT, 2 * min(r for r in gp if r > 7), POS_TOL)
     # axes from the bore cylinders
     pb = [c for c in cyl_faces(b["pinion"]) if abs(c["r"] - 2.5) < 1e-4][0]
     gb = [c for c in cyl_faces(b["spool_gear54"]) if abs(c["r"] - 3.5) < 1e-4][0]
@@ -527,12 +526,14 @@ def test_05_gear_teeth_diameters_axes():
     check(sec, "pinion bore axis z", ZM, pb["loc"][2], POS_TOL)
     check(sec, "motor shaft axis z", ZM, ms["loc"][2], POS_TOL)
     check(sec, "spool bore axis x", 0.0, gb["loc"][0], POS_TOL)
-    check(sec, "spool bore axis z (2.64 - 40.20)", ZS, gb["loc"][2], POS_TOL)
-    check(sec, "shaft axis z", ZS, sh["loc"][2], POS_TOL)
-    check(sec, "centre distance pinion bore axis to spool bore axis", 40.20, abs(pb["loc"][2] - gb["loc"][2]), 0.001)
+    check(sec, "spool bore axis z (2.64 - 36.20 = -33.56)", -33.56, gb["loc"][2], POS_TOL)
+    check(sec, "shaft axis z (-33.56)", -33.56, sh["loc"][2], POS_TOL)
+    check(sec, "shaft axis x", 0.0, sh["loc"][0], POS_TOL)
+    check(sec, "centre distance pinion bore axis to spool bore axis (36.20)", CD, abs(pb["loc"][2] - gb["loc"][2]), 0.001)
+    check(sec, "centre distance minus nominal m (z1 + z2) / 2 = backlash allowance 0.20", 0.20, abs(pb["loc"][2] - gb["loc"][2]) - MOD * (NP + NG) / 2.0, 0.001)
     # tooth faces and shaft end
-    ysp = [c for c in cyl_faces(b["spool_gear54"]) if abs(c["r"] - 31.0) < 1e-3]
-    ypi = [c for c in cyl_faces(b["pinion"]) if abs(c["r"] - 11.0) < 1e-3]
+    ysp = [c for c in cyl_faces(b["spool_gear54"]) if abs(c["r"] - RG_TIP) < 1e-3]
+    ypi = [c for c in cyl_faces(b["pinion"]) if abs(c["r"] - RP_TIP) < 1e-3]
     check(sec, "pinion tip faces y max (teeth face end = shaft end 20.825)", 20.825, max(c["bb"][3] for c in ypi), POS_TOL)
     check(sec, "pinion tip faces y min (10.825)", 10.825, min(c["bb"][2] for c in ypi), POS_TOL)
     check(sec, "gear tip faces y max (20.825)", 20.825, max(c["bb"][3] for c in ysp), POS_TOL)
@@ -542,14 +543,24 @@ def test_05_gear_teeth_diameters_axes():
     # phasing: a gear tooth SPACE on the line of centres, a pinion tooth on it
     gm = material(b["spool_gear54"], (0, 15.825, ZS), (0, 0, 1), 0, 40)
     pm = material(b["pinion"], (0, 15.825, ZM), (0, 0, -1), 0, 40)
-    check(sec, "gear radius on the line of centres (tooth space -> root R 28.75)", 28.75, gm[-1][1], POS_TOL)
-    check(sec, "pinion radius on the line of centres (tooth -> tip R 11.0)", 11.0, pm[-1][1], POS_TOL)
+    check(sec, "gear radius on the line of centres (tooth space -> root R 25.75)", RG_ROOT, gm[-1][1], POS_TOL)
+    check(sec, "pinion radius on the line of centres (tooth -> tip R 10.0)", RP_TIP, pm[-1][1], POS_TOL)
+    # the next teeth on both sides: gear tooth centres at +-half a pitch (3.333 deg) from the line of centres, pinion spaces at +-half a pitch (10 deg)
+    for sgn in (+1, -1):
+        a = math.radians(sgn * 180.0 / NG)
+        d = (math.sin(a), 0.0, math.cos(a))
+        gt = material(b["spool_gear54"], (0, 15.825, ZS), d, 0, 40)
+        check(sec, f"gear radius {sgn * 180.0 / NG:+.3f} deg off the line of centres (next tooth centre -> tip R 28.0)", RG_TIP, gt[-1][1], POS_TOL)
+        a = math.radians(sgn * 180.0 / NP)
+        d = (math.sin(a), 0.0, -math.cos(a))
+        pt = material(b["pinion"], (0, 15.825, ZM), d, 0, 40)
+        check(sec, f"pinion radius {sgn * 180.0 / NP:+.3f} deg off the line of centres (next tooth space -> root R 7.75)", RP_ROOT, pt[-1][1], POS_TOL)
 
     # tooth thickness at the pitch circle (ring volume / ring cross-section area)
     def thick(shape, az, y0, y1, rr):
         sols = common(shape, ring_y(rr - 0.1, rr + 0.1, y0, y1, 0, az)).Solids()
         return float(np.mean([vol(s) for s in sols]) / (0.2 * (y1 - y0)))
-    tg, tp = thick(g_rim, ZS, 11.3, 20.7, 30.0), thick(p_rim, ZM, 10.9, 20.7, 10.0)
+    tg, tp = thick(g_rim, ZS, 11.3, 20.7, RG_PITCH), thick(p_rim, ZM, 10.9, 20.7, RP_PITCH)
     check(sec, "gear tooth thickness at pitch circle (pi/2 - 0.10 thinning)", math.pi / 2 - 0.10, tg, 0.005)
     check(sec, "pinion tooth thickness at pitch circle (pi/2, full tooth)", math.pi / 2, tp, 0.005)
 
@@ -562,18 +573,24 @@ def test_06_gear_matches_repo_generator():
     def station(shape, y0, z0):
         return shape.rotate(cq.Vector(0, 0, 0), cq.Vector(1, 0, 0), -90).translate(cq.Vector(0, y0, z0))
     # tooth phase read from the STEP tip faces, then rebuilt with the repo generator (module 1, 20 deg, thinning 0.10 / 0, root blend 0.40)
-    for nm, key, n, R, az, thin in [("gear 60T", "spool_gear54", 60, 31.0, ZS, 0.10), ("pinion 20T", "pinion", 20, 11.0, ZM, 0.0)]:
+    for nm, key, n, R, az, thin in [("gear 54T", "spool_gear54", NG, RG_TIP, ZS, 0.10), ("pinion 18T", "pinion", NP, RP_TIP, ZM, 0.0)]:
         ang = sorted(math.degrees(math.atan2(c["face"].Center().z - az, c["face"].Center().x)) for c in cyl_faces(b[key]) if abs(c["r"] - R) < 1e-3)
         phase_axial = (-ang[0]) % (360.0 / n)                        # axial-frame angle = - station angle (local y = -station z)
-        ref = station(G.gear(n, 1.0, 10.0, phase=phase_axial, reduction=thin, root_radius=0.40).val(), 10.825, az)
-        y0 = 11.3 if n == 60 else 10.9
-        zone = ring_y(26.0 if n == 60 else 7.5, 40.0, y0, 20.7, 0, az)
+        ref = station(G.gear(n, MOD, 10.0, phase=phase_axial, reduction=thin, root_radius=0.40).val(), 10.825, az)
+        y0 = 11.3 if n == NG else 10.9
+        zone = ring_y(23.0 if n == NG else 6.5, 40.0, y0, 20.7, 0, az)
         a, c = common(b[key], zone), common(ref, zone)
         sd = abs(vol(a) + vol(c) - 2 * cvol(a, c))
         check_le(sec, f"{nm}: rim solid (STEP) vs repo generator rebuilt independently, symmetric difference (mm3)", 0.01, sd)
-    # phase of the gear is such that tooth centres are at 3 deg + 6 k (axial frame)
-    ang = sorted(math.degrees(math.atan2(c["face"].Center().z - ZS, c["face"].Center().x)) for c in cyl_faces(b["spool_gear54"]) if abs(c["r"] - 31.0) < 1e-3)
-    check(sec, "gear tooth pitch (deg)", 6.0, float(np.mean(np.diff(ang))), 1e-6)
+        rec(sec, f"{nm}: measured tooth phase (axial-frame angle of the first tooth centre, deg; info)", "info", round(phase_axial, 4), "-", True)
+    # tooth pitch of the gear: 360 / 54
+    ang = sorted(math.degrees(math.atan2(c["face"].Center().z - ZS, c["face"].Center().x)) for c in cyl_faces(b["spool_gear54"]) if abs(c["r"] - RG_TIP) < 1e-3)
+    check(sec, "gear tooth pitch (deg) = 360 / 54", 360.0 / NG, float(np.mean(np.diff(ang))), 1e-6)
+    ang = sorted(math.degrees(math.atan2(c["face"].Center().z - ZM, c["face"].Center().x)) for c in cyl_faces(b["pinion"]) if abs(c["r"] - RP_TIP) < 1e-3)
+    check(sec, "pinion tooth pitch (deg) = 360 / 18", 360.0 / NP, float(np.mean(np.diff(ang))), 1e-6)
+
+
+POSES = [0.0, 20.0 / 6, 2 * 20.0 / 6, 3 * 20.0 / 6, 4 * 20.0 / 6, 5 * 20.0 / 6, 20.0]      # one pinion pitch (20 deg), gear turns -theta/3
 
 
 def test_07_mesh_poses():
@@ -581,16 +598,17 @@ def test_07_mesh_poses():
     g_rim, p_rim = rims()
     worst_d, worst_v = 1e9, 0.0
     rows = []
-    for th in [0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 18.0]:      # pinion pitch = 18 deg; gear rotates -th/3
+    for th in POSES:                                       # pinion pitch = 20 deg; gear rotates -th/3
         p = rot_y(p_rim, ZM, th)
         g = rot_y(g_rim, ZS, -th / 3.0)
         v = cvol(p, g)
         d, _ = mindist(p, g)
         rows.append((th, v, d))
         worst_d, worst_v = min(worst_d, d), max(worst_v, v)
-    check_le(sec, "pinion/gear overlap volume over 7 poses 0..18 deg (mm3, max)", 0.001, worst_v)
+    check_le(sec, "pinion/gear overlap volume over 7 poses 0..20 deg = one pinion pitch (mm3, max)", 0.001, worst_v)
     check_ge(sec, "minimum flank-to-flank distance over 7 poses (mm, positive)", 0.05, worst_d)
-    rec(sec, "min distance per pose (deg: mm)", "all > 0", "; ".join(f"{t:g}:{d:.4f}" for t, v, d in rows), "-", True)
+    rec(sec, "min distance per pose (deg: mm)", "all > 0", "; ".join(f"{t:.3f}:{d:.4f}" for t, v, d in rows), "-", True)
+    rec(sec, "overlap volume per pose (deg: mm3)", "all 0", "; ".join(f"{t:.3f}:{v:.5f}" for t, v, d in rows), "-", True)
     # negative control: the same test must see a collision when the gear is turned alone by 0.5 deg
     ctl = cvol(p_rim, rot_y(g_rim, ZS, 0.5))
     check_true(sec, "negative control (gear turned 0.5 deg alone) detects overlap", "> 0.1 mm3", round(ctl, 3), ctl > 0.1)
@@ -598,8 +616,8 @@ def test_07_mesh_poses():
     gg = {round(c["r"], 3) for c in cyl_faces(drive()["spool_gear54"]) if abs(c["dir"][1]) > 0.999 and math.hypot(c["loc"][0], c["loc"][2] - ZS) < 0.01}
     pg = {round(c["r"], 3) for c in cyl_faces(drive()["pinion"]) if abs(c["dir"][1]) > 0.999 and math.hypot(c["loc"][0], c["loc"][2] - ZM) < 0.01}
     cd = abs([c for c in cyl_faces(drive()["pinion"]) if abs(c["r"] - 2.5) < 1e-4][0]["loc"][2] - [c for c in cyl_faces(drive()["spool_gear54"]) if abs(c["r"] - 3.5) < 1e-4][0]["loc"][2])
-    check(sec, "tip-to-root clearance, measured (CD - R_tip_gear - R_root_pinion; also the other way round)", 0.45, cd - max(gg) - min(r for r in pg if r > 8), 0.002)
-    check(sec, "tip-to-root clearance, other way (CD - R_tip_pinion - R_root_gear)", 0.45, cd - max(pg) - min(r for r in gg if r > 20), 0.002)
+    check(sec, "tip-to-root clearance, measured (CD - R_tip_gear - R_root_pinion = 36.20 - 28.0 - 7.75)", 0.45, cd - max(gg) - min(r for r in pg if r > 7), 0.002)
+    check(sec, "tip-to-root clearance, other way (CD - R_tip_pinion - R_root_gear = 36.20 - 10.0 - 25.75)", 0.45, cd - max(pg) - min(r for r in gg if r > 20), 0.002)
 
 
 def test_08_backlash_bisect():
@@ -620,10 +638,13 @@ def test_08_backlash_bisect():
         return 0.5 * (lo + hi)
     dp, dm = find(+1), find(-1)
     tot = dp + dm
-    check(sec, "free pinion rotation, gear fixed: total (deg); analytic 0.246 mm / 10 mm pitch radius = 1.41 deg", 1.41, tot, 0.05)
+    # analytic transverse backlash: 2 x 0.20 x tan(20 deg) = 0.1456 (centre-distance allowance) + 0.10 (gear tooth thinning) = 0.2456 mm at the pinion pitch circle R9
+    an = math.degrees((2 * 0.20 * math.tan(math.radians(20)) + 0.10) / RP_PITCH)
+    check(sec, f"free pinion rotation, gear fixed: total (deg); analytic 0.2456 mm / 9 mm pitch radius = {an:.3f} deg", an, tot, 0.06)
     check(sec, "backlash symmetric about the reference pose (|+ - -|, deg)", 0.0, abs(dp - dm), 0.02)
-    rec(sec, "backlash transverse at the pinion pitch circle (mm); at the drum (cable mm)", "0.246 / 0.06",
-        f"{math.radians(tot) * 10:.4f} / {math.radians(tot / 3) * 7.5:.4f}", "-", True)
+    rec(sec, "backlash transverse at the pinion pitch circle (mm); at the drum (cable mm)", "0.246 / 0.07",
+        f"{math.radians(tot) * RP_PITCH:.4f} / {math.radians(tot / 3) * 7.5:.4f}", "-", True)
+    check_ge(sec, "free pinion rotation is positive both ways (no jam), min of the two halves (deg)", 0.3, min(dp, dm))
 
 
 # =============================================================================== 3. spool_gear54 part (print frame)

@@ -663,3 +663,12 @@ slack_probe default (keep false until probe H1/M2 are closed).
   instead of 173 g for the 3 mm CAD wall; a printed plug inside the cross-bolt end so the M3 clamps plastic, not the wall. The
   real wall of the current tube is still unmeasured.
 
+
+## Winch revision C: printed PETG pinion (D42) — built, verified, calculation rerun (10/23, lead)
+- Pinion printed: hub Ø14 from y −0.675 through the tab's Ø22.4 hole, D-bore Ø5.30 / flat 2.15, M3 heat-set insert pocket
+  Ø4.0 × 4.5 at y 7.91, thinning 0.10, bed chamfer; CD 36.30 (allowance 0.30), spool axis z −33.66. 4.7 g.
+- Builder tests 34 pass; independent verification PASS (32 tests, 503 checks): zero mesh overlap, flank gap 0.20, backlash 0.43,
+  gear tip to hub 1.33 worst pose, pinion to boss 0.50 / fin 4.25 / tab hole 4.20.
+- Calculation at 1.0 A: pinion teeth 1.75 (weakest tooth), insert set screw 1.50–3.32, PETG contact 3.55; all pass. At 1.5 A
+  pinion teeth 1.17 and set screw low end 1.00 are marginal: stay at 1.0 A. Backlash formula fixed (0.418 mm, 10 counts).
+- Open: Jasper to choose 18/54 (current) or 18/45 (2.5:1, gear Ø47) if smaller is still wanted.

@@ -1,11 +1,11 @@
-"""Independent verification of the 3:1 spur winch drive train, REVISION B = 18T/54T (geometry-verifier).
+"""Independent verification of the 3:1 spur winch drive train, REVISION C = printed PETG pinion 18T, 54T gear (geometry-verifier).
 
-Contract: cad/WINCH_GEAR3_SPEC.md revision B (D41).  Revision A (20T/60T) passed an earlier run of this file; this file was rewritten from the
-revision B spec, not from the implementation.  It measures the EXPORTED files only (exports/step/winch_gear3_*.step, exports/stl/winch_gear3_*.stl).
+Contract: cad/WINCH_GEAR3_SPEC.md revision C note (D42) on top of revision B (D41).  Revisions A (20T/60T) and B (18T/54T, steel pinion) passed earlier
+runs of this file; this file was updated to revision C from the spec, not from the implementation.  It measures the EXPORTED files only (exports/step/winch_gear3_*.step, exports/stl/winch_gear3_*.stl).
 It does not import the implementer's builder (cad/parts/winch_gear3.py) or the implementer's tests.  The only repository code it loads is
   * the spec-mandated involute generator cad/gripper_v3_fit_review_20261018/gears.py (to rebuild the gears independently), and
   * cad/params.py (read-only, for the parameter audit in test_20).
-Spec numbers are hard-coded below (from the spec text), not read from the implementer's parameters.
+Spec numbers are hard-coded below (from the spec text; the parameter NAMES in test_20 are the only thing taken from the repo), not read from the implementer's parameters.
 
 Run (about 8 min):
     cd /home/user/RoomCleaner && /usr/bin/python3 -m pytest -q -s -p no:cacheprovider tests/test_winch_gear3_verify.py
@@ -14,7 +14,7 @@ The -s run prints a summary table (item, expected, measured, tolerance, status) 
 Frames.  Assembly STEPs are station_1021 + O (O = 1269.08, 738.76, 927.56) plus the 0.004 mm extraction residual RES that the builder deliberately
 carries so the bodies coincide with Jasper's STEP files.  Every assembly body is translated by -(O + RES) here, which gives the design frame of the
 spec (motor axis x 0, z 2.64; +y along the motor shaft toward the spool; +x out of the wall; +z up).  O is cross-checked against Jasper's original
-SolidWorks assembly (the slide-in and wall mount coincide with it).  Part STEPs are in the print frame (axis +z, gear near face on z = 0).
+SolidWorks assembly (the slide-in and wall mount coincide with it).  Part STEPs are in the print frame (axis +z; spool/spacer/cap: near face on z = 0; pinion18: teeth end, design y 20.825, on z = 0).
 """
 from __future__ import annotations
 
@@ -65,11 +65,18 @@ RES = np.array([0.004243, 0.001645, 0.003854])   # extraction residual carried b
 POS_TOL = 0.005                                   # mm, positions/diameters after removing O + RES (the residual is known to 1e-6)
 RT_TOL = 1.0e-3                                   # 0.1 %
 
-# ---- spec numbers (cad/WINCH_GEAR3_SPEC.md revision B), hard-coded
+# ---- spec numbers (cad/WINCH_GEAR3_SPEC.md revision B + revision C note), hard-coded
 MOD = 1.0                                         # module
 NP, NG = 18, 54                                   # tooth counts (revision B, D41)
-CD = 36.20                                        # built centre distance (nominal m (18 + 54) / 2 = 36.00, +0.20 backlash allowance)
-ZM, ZS = 2.64, 2.64 - CD                          # motor axis z, spool axis z = -33.56 (x = 0 for both)
+CD_ALLOW = 0.30                                   # revision C: printed against printed (rev B steel against printed: 0.20)
+CD = 36.00 + CD_ALLOW                             # built centre distance 36.30 (nominal m (18 + 54) / 2 = 36.00)
+ZM, ZS = 2.64, 2.64 - CD                          # motor axis z, spool axis z = -33.66 (x = 0 for both)
+THIN = 0.10                                       # tooth thinning, gear and (revision C) pinion
+Y_HUB0, Y_BOSS = -0.675, -1.175                   # pinion hub end; motor pilot boss face (front face -3.175 + 2.0)
+BORE_R, BORE_FLAT = 2.65, 2.15                    # printed D-bore O5.30, flat 2.15 from the axis on +z
+INS_R, INS_DEPTH, SS_R = 2.0, 4.5, 1.5            # heat-set pocket O4.0 x 4.5, clearance hole O3.0
+Y_SS = (5.0 + 10.825) / 2.0                       # 7.9125, middle of the exposed hub (tab face y 5.0 .. teeth y 10.825)
+CH = 0.3                                          # bed/teeth-end chamfer
 RP_TIP, RP_ROOT, RP_PITCH = 10.0, 7.75, 9.0       # pinion: tip O20, root R = m (z/2 - 1.25) = 7.75 (generator), pitch R 9
 RG_TIP, RG_ROOT, RG_PITCH = 28.0, 25.75, 27.0     # gear: tip O56, root R 25.75 (spec section 3), pitch R 27
 WIN_D, WIN_R = 10.0, 17.5                         # lightening windows
@@ -354,8 +361,13 @@ def rot_y(shape, z_axis, deg):
     return shape.rotate(cq.Vector(0, 0, z_axis), cq.Vector(0, 1, z_axis), deg)
 
 
+def pinion_to_design(shape):
+    """pinion18 print frame (axis +z, teeth end on z = 0, print y = design z - ZM) -> design frame."""
+    return shape.rotate(cq.Vector(0, 0, 0), cq.Vector(1, 0, 0), 90).translate(cq.Vector(0, 20.825, ZM))
+
+
 # =============================================================================== 1. STEP / STL file integrity
-@pytest.mark.parametrize("name", ["spool_gear54", "spacer_near", "magnet_cap"])
+@pytest.mark.parametrize("name", ["spool_gear54", "spacer_near", "magnet_cap", "pinion18"])
 def test_01_part_files(name, tmp_path):
     sec = f"1 part {name}"
     p = STEP + f"winch_gear3_{name}.step"
@@ -470,37 +482,42 @@ def test_04_part_files_equal_assembly_bodies():
         if nm != "spool_gear54":       # the boolean on the 54T spool takes about a minute; the fingerprint above is sufficient
             sd = vol(st) + vol(b[key]) - 2 * cvol(st, b[key])
             check_le(sec, f"{nm}: symmetric difference of part STEP and assembly body (mm3)", 0.01, abs(sd))
-    # standalone pinion18.step: axis z, z = design y (teeth z 10.825 to 20.825, hub z 5.825 to 10.825), centred on x = y = 0
-    st = to_station(part("pinion18"), 0.0, ZM)
-    check_same_solid(sec, "pinion18: standalone STEP (axis z) placed in the design frame equals the assembly pinion (volume, area, centre of mass, inertia)", st, b["pinion"])
+    # pinion18.step is a printable part in its print frame: axis +z, teeth end (design y 20.825) on the bed z = 0, hub up to z 21.5;
+    # print (x, y, z) -> design (x, 20.825 - z, ZM + y)  (proper rotation: +90 deg about x, then translate)
+    st = pinion_to_design(part("pinion18"))
+    check_same_solid(sec, "pinion18: print-frame STEP placed in the design frame equals the assembly pinion (volume, area, centre of mass, inertia)", st, b["pinion"])
     check(sec, "pinion18: volume equals the assembly pinion", vol(b["pinion"]), vol(part("pinion18")), 1e-6)
     # negative control: the fingerprint must see the spool turned 0.5 deg alone
     dv, da, dc, di = inv_diff(rot_y(b["spool_gear54"], ZS, 0.5), b["spool_gear54"])
     check_true(sec, "negative control: spool turned 0.5 deg alone is detected by the fingerprint", "dCOM > 1e-5 or dI > 1e-7", f"dCOM {dc:.1e}, dI {di:.1e}", dc > 1e-5 or di > 1e-7)
 
 
-def test_04b_pinion18_file(tmp_path):
-    sec = "1 part pinion18"
-    p = STEP + "winch_gear3_pinion18.step"
-    head = open(p, "r", errors="ignore").read(200000)
-    check_true(sec, "STEP length unit", "MILLI METRE", "MILLI METRE" if "SI_UNIT(.MILLI.,.METRE.)" in head else "other", "SI_UNIT(.MILLI.,.METRE.)" in head)
-    w = load_step(p)
-    s = w.val()
-    check_true(sec, "valid BREP (BRepCheck)", True, valid(s), valid(s))
-    check_true(sec, "solid count", 1, len(s.Solids()), len(s.Solids()) == 1)
-    check_true(sec, "shell count", 1, len(s.Shells()), len(s.Shells()) == 1)
-    check_true(sec, "volume > 0", ">0", round(vol(s), 3), vol(s) > 0)
-    bb = tbb(s)
-    check(sec, "axis z: z min = hub start (design y 5.825)", 5.825, bb[4], POS_TOL)
-    check(sec, "axis z: z max = teeth end / shaft end (20.825)", 20.825, bb[5], POS_TOL)
-    check(sec, "tip diameter from bbox y (a tooth tip on the y axis = the line of centres in the design frame: O20)", 20.0, bb[3] - bb[2], POS_TOL)
-    txt = open(p, "r", errors="ignore").read(60000)
+def test_04b_pinion18_print_frame():
+    sec = "1 part pinion18 (print frame)"
+    p = part("pinion18")
+    bb = tbb(p)
+    check(sec, "bed: z min = teeth end face (design y 20.825)", 0.0, bb[4], POS_TOL)
+    check(sec, "top: z max = hub end (design y -0.675): 20.825 + 0.675 = 21.5", 21.5, bb[5], POS_TOL)
+    check(sec, "tip diameter (bbox y = a tooth tip on the print y axis): O20", 20.0, bb[3] - bb[2], POS_TOL)
+    txt = open(STEP + "winch_gear3_pinion18.step", "r", errors="ignore").read(60000)
     check_true(sec, "no stale name pinion20 in the file", "absent", "present" if "pinion20" in txt else "absent", "pinion20" not in txt)
-    tmp = str(tmp_path / "verify_rt_pinion18.step")
-    cq.exporters.export(w, tmp)
-    s2 = load_step(tmp).val()
-    check_le(sec, "STEP round trip: relative volume change", RT_TOL, abs(vol(s2) - vol(s)) / vol(s))
-    check_le(sec, "STEP round trip: relative bbox change", RT_TOL, float(np.max(np.abs(tbb(s2) - tbb(s))) / np.max(np.abs(tbb(s)))))
+    bed = [q for q in plane_faces(p) if abs(q["n"][2] + 1) < 1e-6 and abs(q["loc"][2]) < 1e-6]
+    check_true(sec, "bed face: one planar face at z = 0 facing down (teeth end, chamfered outline)", 1, len(bed), len(bed) == 1)
+    # outline of the bed face reaches R 9.7 at tooth tips (tip 10 minus the 0.3 x 45 deg chamfer)
+    if bed:
+        rec(sec, "bed contact area (mm2, info)", "-", f"{bed[0]['area']:.1f}", "-", True)
+        bbf = bed[0]["bb"]
+        check(sec, "bed face outline: largest extent along the tooth-tip axis (print y), R 9.7 each side", 19.4, bbf[3] - bbf[2], 0.01)
+    # downward-facing planar faces above the bed (need supports when printed this way)
+    over = [(round(float(q["loc"][2]), 3), round(q["area"], 2)) for q in plane_faces(p) if abs(q["n"][2] + 1) < 1e-6 and q["loc"][2] > 1e-3]
+    rec(sec, "downward planar faces above the bed (z, area) - the pocket roof is a cylinder (bridge), the hub-to-teeth step is the only shelf", "info", over, "-", True)
+    # orientation of the features in the print frame: flat and pocket open toward print +y (= design +z)
+    iv = material(p, (0, 0, 17.0), (0, 1, 0), 0, 10)
+    check_true(sec, "D-flat toward print +y: material starts at 2.15 along +y at hub height z 17", "(2.15, 7.0)", [(round(a_, 3), round(b_, 3)) for a_, b_ in iv],
+               len(iv) == 1 and abs(iv[0][0] - BORE_FLAT) < 1e-3 and abs(iv[0][1] - 7.0) < 1e-3)
+    iv = material(p, (0, 0, 17.0), (0, -1, 0), 0, 10)
+    check_true(sec, "round side along print -y: material [2.65, 7.0]", "(2.65, 7.0)", [(round(a_, 3), round(b_, 3)) for a_, b_ in iv],
+               len(iv) == 1 and abs(iv[0][0] - BORE_R) < 1e-3 and abs(iv[0][1] - 7.0) < 1e-3)
 
 
 def test_04c_stale_files_gone():
@@ -515,10 +532,10 @@ def test_04c_stale_files_gone():
     want_step = {"winch_gear3_drive_asm1021.step", "winch_gear3_drive_with_slipin_asm1021.step", "winch_gear3_gears_asm1021.step", "winch_gear3_magnet_cap.step",
                  "winch_gear3_pinion18.step", "winch_gear3_spacer_near.step", "winch_gear3_spool_gear54.step"}
     got_step = {f for f in os.listdir(STEP) if f.startswith("winch_gear3_")}
-    check_true(sec, "exports/step/winch_gear3_* is exactly the 7 revision-B files", sorted(want_step), sorted(got_step), got_step == want_step)
-    want_stl = {"winch_gear3_magnet_cap.stl", "winch_gear3_spacer_near.stl", "winch_gear3_spool_gear54.stl"}
+    check_true(sec, "exports/step/winch_gear3_* is exactly the 7 expected files (pinion18 is the single pinion file)", sorted(want_step), sorted(got_step), got_step == want_step)
+    want_stl = {"winch_gear3_magnet_cap.stl", "winch_gear3_pinion18.stl", "winch_gear3_spacer_near.stl", "winch_gear3_spool_gear54.stl"}
     got_stl = {f for f in os.listdir(STL) if f.startswith("winch_gear3_")}
-    check_true(sec, "exports/stl/winch_gear3_* is exactly the 3 revision-B files", sorted(want_stl), sorted(got_stl), got_stl == want_stl)
+    check_true(sec, "exports/stl/winch_gear3_* is exactly the 4 printable parts (spool, spacer, cap, pinion)", sorted(want_stl), sorted(got_stl), got_stl == want_stl)
 
 
 # =============================================================================== 2. gear stage
@@ -539,6 +556,7 @@ def test_05_gear_teeth_diameters_axes():
                 g.setdefault(round(c["r"], 3), []).append(c)
         return g
     gg, gp = coax(b["spool_gear54"], ZS), coax(b["pinion"], ZM)
+    gp = {r: v for r, v in gp.items() if r > 7.5}                  # drop the D-bore (R2.65) and the hub (R7.0); keep the tooth cylinders
     check_true(sec, f"gear: tip faces (R {RG_TIP}) / root faces (R {RG_ROOT})", "54 / 54", f"{len(gg.get(RG_TIP, []))} / {len(gg.get(RG_ROOT, []))}",
                len(gg.get(RG_TIP, [])) == NG and len(gg.get(RG_ROOT, [])) == NG)
     check_true(sec, f"pinion: tip faces (R {RP_TIP}) / root faces (R {RP_ROOT})", "18 / 18", f"{len(gp.get(RP_TIP, []))} / {len(gp.get(RP_ROOT, []))}",
@@ -546,9 +564,9 @@ def test_05_gear_teeth_diameters_axes():
     check(sec, "gear tip diameter (spec O56), from the tip faces", 2 * RG_TIP, 2 * max(gg), POS_TOL)
     check(sec, "gear root diameter (spec root R 25.75 = 51.5), from the root faces", 2 * RG_ROOT, 2 * min(r for r in gg if r > 20), POS_TOL)
     check(sec, "pinion tip diameter (spec O20), from the tip faces", 2 * RP_TIP, 2 * max(gp), POS_TOL)
-    check(sec, "pinion root diameter (generator root R 7.75 = 15.5), from the root faces", 2 * RP_ROOT, 2 * min(r for r in gp if r > 7), POS_TOL)
+    check(sec, "pinion root diameter (generator root R 7.75 = 15.5), from the root faces", 2 * RP_ROOT, 2 * min(gp), POS_TOL)
     # axes from the bore cylinders
-    pb = [c for c in cyl_faces(b["pinion"]) if abs(c["r"] - 2.5) < 1e-4][0]
+    pb = [c for c in cyl_faces(b["pinion"]) if abs(c["r"] - BORE_R) < 1e-4 and abs(c["dir"][1]) > 0.999][0]
     gb = [c for c in cyl_faces(b["spool_gear54"]) if abs(c["r"] - 3.5) < 1e-4][0]
     ms = [c for c in cyl_faces(b["motor_shaft"]) if abs(c["r"] - 2.5) < 1e-4][0]
     sh = [c for c in cyl_faces(b["shaft"]) if abs(c["r"] - 3.5) < 1e-4][0]
@@ -556,20 +574,22 @@ def test_05_gear_teeth_diameters_axes():
     check(sec, "pinion bore axis z", ZM, pb["loc"][2], POS_TOL)
     check(sec, "motor shaft axis z", ZM, ms["loc"][2], POS_TOL)
     check(sec, "spool bore axis x", 0.0, gb["loc"][0], POS_TOL)
-    check(sec, "spool bore axis z (2.64 - 36.20 = -33.56)", -33.56, gb["loc"][2], POS_TOL)
-    check(sec, "shaft axis z (-33.56)", -33.56, sh["loc"][2], POS_TOL)
+    check(sec, "spool bore axis z (2.64 - 36.30 = -33.66)", -33.66, gb["loc"][2], POS_TOL)
+    check(sec, "shaft axis z (-33.66)", -33.66, sh["loc"][2], POS_TOL)
     check(sec, "shaft axis x", 0.0, sh["loc"][0], POS_TOL)
-    check(sec, "centre distance pinion bore axis to spool bore axis (36.20)", CD, abs(pb["loc"][2] - gb["loc"][2]), 0.001)
-    check(sec, "centre distance minus nominal m (z1 + z2) / 2 = backlash allowance 0.20", 0.20, abs(pb["loc"][2] - gb["loc"][2]) - MOD * (NP + NG) / 2.0, 0.001)
+    check(sec, "centre distance pinion bore axis to spool bore axis (36.30)", CD, abs(pb["loc"][2] - gb["loc"][2]), 0.001)
+    check(sec, "centre distance minus nominal m (z1 + z2) / 2 = backlash allowance 0.30 (revision C)", CD_ALLOW, abs(pb["loc"][2] - gb["loc"][2]) - MOD * (NP + NG) / 2.0, 0.001)
+    check(sec, "centre distance, from the shaft axes (motor shaft to spool shaft)", CD, abs(ms["loc"][2] - sh["loc"][2]), 0.001)
     # tooth faces and shaft end
     ysp = [c for c in cyl_faces(b["spool_gear54"]) if abs(c["r"] - RG_TIP) < 1e-3]
     ypi = [c for c in cyl_faces(b["pinion"]) if abs(c["r"] - RP_TIP) < 1e-3]
-    check(sec, "pinion tip faces y max (teeth face end = shaft end 20.825)", 20.825, max(c["bb"][3] for c in ypi), POS_TOL)
+    check(sec, "pinion tip faces y max (teeth end 20.825 minus the 0.3 chamfer = 20.525)", 20.825 - CH, max(c["bb"][3] for c in ypi), POS_TOL)
     check(sec, "pinion tip faces y min (10.825)", 10.825, min(c["bb"][2] for c in ypi), POS_TOL)
     check(sec, "gear tip faces y max (20.825)", 20.825, max(c["bb"][3] for c in ysp), POS_TOL)
     check(sec, "gear near face y (bed face, teeth start 10.825)", 10.825, tbb(b["spool_gear54"])[2], POS_TOL)
     check(sec, "tip faces of the gear start 0.3 above the bed face (chamfer)", 11.125, min(c["bb"][2] for c in ysp), POS_TOL)
-    check(sec, "pinion face width", 10.0, max(c["bb"][3] for c in ypi) - min(c["bb"][2] for c in ypi), POS_TOL)
+    check(sec, "pinion tip-face width (10.0 face minus the 0.3 chamfer)", 10.0 - CH, max(c["bb"][3] for c in ypi) - min(c["bb"][2] for c in ypi), POS_TOL)
+    check(sec, "pinion teeth end face y (shaft end 20.825)", 20.825, tbb(common(b["pinion"], ring_y(6.5, 12.0, 10.9, 21.0, 0, ZM)))[3], POS_TOL)
     # phasing: a gear tooth SPACE on the line of centres, a pinion tooth on it
     gm = material(b["spool_gear54"], (0, 15.825, ZS), (0, 0, 1), 0, 40)
     pm = material(b["pinion"], (0, 15.825, ZM), (0, 0, -1), 0, 40)
@@ -590,9 +610,9 @@ def test_05_gear_teeth_diameters_axes():
     def thick(shape, az, y0, y1, rr):
         sols = common(shape, ring_y(rr - 0.1, rr + 0.1, y0, y1, 0, az)).Solids()
         return float(np.mean([vol(s) for s in sols]) / (0.2 * (y1 - y0)))
-    tg, tp = thick(g_rim, ZS, 11.3, 20.7, RG_PITCH), thick(p_rim, ZM, 10.9, 20.7, RP_PITCH)
+    tg, tp = thick(g_rim, ZS, 11.3, 20.7, RG_PITCH), thick(p_rim, ZM, 10.9, 20.4, RP_PITCH)
     check(sec, "gear tooth thickness at pitch circle (pi/2 - 0.10 thinning)", math.pi / 2 - 0.10, tg, 0.005)
-    check(sec, "pinion tooth thickness at pitch circle (pi/2, full tooth)", math.pi / 2, tp, 0.005)
+    check(sec, "pinion tooth thickness at pitch circle (pi/2 - 0.10 thinning, revision C printed pinion)", math.pi / 2 - THIN, tp, 0.005)
 
 
 def test_06_gear_matches_repo_generator():
@@ -602,13 +622,13 @@ def test_06_gear_matches_repo_generator():
 
     def station(shape, y0, z0):
         return shape.rotate(cq.Vector(0, 0, 0), cq.Vector(1, 0, 0), -90).translate(cq.Vector(0, y0, z0))
-    # tooth phase read from the STEP tip faces, then rebuilt with the repo generator (module 1, 20 deg, thinning 0.10 / 0, root blend 0.40)
-    for nm, key, n, R, az, thin in [("gear 54T", "spool_gear54", NG, RG_TIP, ZS, 0.10), ("pinion 18T", "pinion", NP, RP_TIP, ZM, 0.0)]:
+    # tooth phase read from the STEP tip faces, then rebuilt with the repo generator (module 1, 20 deg, thinning 0.10 both, root blend 0.40)
+    for nm, key, n, R, az, thin in [("gear 54T", "spool_gear54", NG, RG_TIP, ZS, THIN), ("pinion 18T (revision C: thinned 0.10)", "pinion", NP, RP_TIP, ZM, THIN)]:
         ang = sorted(math.degrees(math.atan2(c["face"].Center().z - az, c["face"].Center().x)) for c in cyl_faces(b[key]) if abs(c["r"] - R) < 1e-3)
         phase_axial = (-ang[0]) % (360.0 / n)                        # axial-frame angle = - station angle (local y = -station z)
         ref = station(G.gear(n, MOD, 10.0, phase=phase_axial, reduction=thin, root_radius=0.40).val(), 10.825, az)
         y0 = 11.3 if n == NG else 10.9
-        zone = ring_y(23.0 if n == NG else 6.5, 40.0, y0, 20.7, 0, az)
+        zone = ring_y(23.0 if n == NG else 6.5, 40.0, y0, 20.7 if n == NG else 20.45, 0, az)       # pinion: stop before its 0.3 chamfer zone (y > 20.525)
         a, c = common(b[key], zone), common(ref, zone)
         sd = abs(vol(a) + vol(c) - 2 * cvol(a, c))
         check_le(sec, f"{nm}: rim solid (STEP) vs repo generator rebuilt independently, symmetric difference (mm3)", 0.01, sd)
@@ -640,14 +660,14 @@ def test_07_mesh_poses():
     rec(sec, "min distance per pose (deg: mm)", "all > 0", "; ".join(f"{t:.3f}:{d:.4f}" for t, v, d in rows), "-", True)
     rec(sec, "overlap volume per pose (deg: mm3)", "all 0", "; ".join(f"{t:.3f}:{v:.5f}" for t, v, d in rows), "-", True)
     # negative control: the same test must see a collision when the gear is turned alone by 0.5 deg
-    ctl = cvol(p_rim, rot_y(g_rim, ZS, 0.5))
-    check_true(sec, "negative control (gear turned 0.5 deg alone) detects overlap", "> 0.1 mm3", round(ctl, 3), ctl > 0.1)
+    ctl = cvol(p_rim, rot_y(g_rim, ZS, 1.0))
+    check_true(sec, "negative control (gear turned 1.0 deg alone; backlash is now +-0.45 deg at the gear) detects overlap", "> 0.1 mm3", round(ctl, 3), ctl > 0.1)
     # which features: tip-to-root clearance
     gg = {round(c["r"], 3) for c in cyl_faces(drive()["spool_gear54"]) if abs(c["dir"][1]) > 0.999 and math.hypot(c["loc"][0], c["loc"][2] - ZS) < 0.01}
-    pg = {round(c["r"], 3) for c in cyl_faces(drive()["pinion"]) if abs(c["dir"][1]) > 0.999 and math.hypot(c["loc"][0], c["loc"][2] - ZM) < 0.01}
-    cd = abs([c for c in cyl_faces(drive()["pinion"]) if abs(c["r"] - 2.5) < 1e-4][0]["loc"][2] - [c for c in cyl_faces(drive()["spool_gear54"]) if abs(c["r"] - 3.5) < 1e-4][0]["loc"][2])
-    check(sec, "tip-to-root clearance, measured (CD - R_tip_gear - R_root_pinion = 36.20 - 28.0 - 7.75)", 0.45, cd - max(gg) - min(r for r in pg if r > 7), 0.002)
-    check(sec, "tip-to-root clearance, other way (CD - R_tip_pinion - R_root_gear = 36.20 - 10.0 - 25.75)", 0.45, cd - max(pg) - min(r for r in gg if r > 20), 0.002)
+    pg = {round(c["r"], 3) for c in cyl_faces(drive()["pinion"]) if abs(c["dir"][1]) > 0.999 and math.hypot(c["loc"][0], c["loc"][2] - ZM) < 0.01 and c["r"] > 7.5}
+    cd = abs([c for c in cyl_faces(drive()["pinion"]) if abs(c["r"] - BORE_R) < 1e-4 and abs(c["dir"][1]) > 0.999][0]["loc"][2] - [c for c in cyl_faces(drive()["spool_gear54"]) if abs(c["r"] - 3.5) < 1e-4][0]["loc"][2])
+    check(sec, "tip-to-root clearance, measured (CD - R_tip_gear - R_root_pinion = 36.30 - 28.0 - 7.75)", CD - 28.0 - 7.75, cd - max(gg) - min(pg), 0.002)
+    check(sec, "tip-to-root clearance, other way (CD - R_tip_pinion - R_root_gear = 36.30 - 10.0 - 25.75)", CD - 10.0 - 25.75, cd - max(pg) - min(r for r in gg if r > 20), 0.002)
 
 
 def test_08_backlash_bisect():
@@ -668,11 +688,13 @@ def test_08_backlash_bisect():
         return 0.5 * (lo + hi)
     dp, dm = find(+1), find(-1)
     tot = dp + dm
-    # analytic transverse backlash: 2 x 0.20 x tan(20 deg) = 0.1456 (centre-distance allowance) + 0.10 (gear tooth thinning) = 0.2456 mm at the pinion pitch circle R9
-    an = math.degrees((2 * 0.20 * math.tan(math.radians(20)) + 0.10) / RP_PITCH)
-    check(sec, f"free pinion rotation, gear fixed: total (deg); analytic 0.2456 mm / 9 mm pitch radius = {an:.3f} deg", an, tot, 0.06)
+    # analytic transverse backlash: 2 x 0.30 x tan(20 deg) = 0.2184 (centre-distance allowance) + 0.10 (gear thinning) + 0.10 (pinion thinning) = 0.4184 mm
+    # at the pinion pitch circle R9 (spec: "about 0.42")
+    an = math.degrees((2 * CD_ALLOW * math.tan(math.radians(20)) + 2 * THIN) / RP_PITCH)
+    check(sec, f"free pinion rotation, gear fixed: total (deg); analytic 0.4184 mm / 9 mm pitch radius = {an:.3f} deg", an, tot, 0.06)
+    check(sec, "backlash transverse at the pinion pitch circle (mm), spec 'about 0.42'", 0.42, math.radians(tot) * RP_PITCH, 0.02)
     check(sec, "backlash symmetric about the reference pose (|+ - -|, deg)", 0.0, abs(dp - dm), 0.02)
-    rec(sec, "backlash transverse at the pinion pitch circle (mm); at the drum (cable mm)", "0.246 / 0.07",
+    rec(sec, "backlash transverse at the pinion pitch circle (mm); at the drum (cable mm)", "0.418 / 0.12",
         f"{math.radians(tot) * RP_PITCH:.4f} / {math.radians(tot / 3) * 7.5:.4f}", "-", True)
     check_ge(sec, "free pinion rotation is positive both ways (no jam), min of the two halves (deg)", 0.3, min(dp, dm))
 
@@ -944,33 +966,161 @@ def test_14_shaft_bearings():
     check_le(sec, "spacer to near bearing distance (touching on the Ø9 land)", 1e-4, d)
 
 
+def _coax_cyl(shape, az, axis=1):
+    return [c for c in cyl_faces(shape) if abs(c["dir"][axis]) > 0.999 and math.hypot(c["loc"][0], c["loc"][2] - az) < 0.01]
+
+
+def _iv(intervals):
+    return [(round(a_, 3), round(b_, 3)) for a_, b_ in intervals]
+
+
+def _near_iv(iv, want, tol=2e-3):
+    return len(iv) == len(want) and all(abs(a_ - w[0]) < tol and abs(b_ - w[1]) < tol for (a_, b_), w in zip(iv, want))
+
+
 def test_15_pinion():
-    sec = "2 pinion"
+    """Revision C printed pinion: hub, D-bore, flat, heat-set pocket, clearance hole, extents (design frame, on the assembly body)."""
+    sec = "2 pinion rev C"
     b = drive()
     pin = b["pinion"]
-    cf = [c for c in cyl_faces(pin) if abs(c["dir"][1]) > 0.999]
-    bore = [c for c in cf if abs(c["r"] - 2.5) < 1e-4][0]
-    hub = [c for c in cf if abs(c["r"] - 7.0) < 1e-4][0]
-    check(sec, "bore diameter (Ø5)", 5.0, 2 * bore["r"], 1e-6)
-    check(sec, "hub diameter (Ø14)", 14.0, 2 * hub["r"], 1e-6)
-    check(sec, "hub y start (5.825)", 5.825, hub["bb"][2], POS_TOL)
-    check(sec, "hub y end (10.825)", 10.825, hub["bb"][3], POS_TOL)
-    check(sec, "hub length (5)", 5.0, hub["bb"][3] - hub["bb"][2], POS_TOL)
-    check(sec, "hub clear of the tab face y 5.0 (0.825)", 0.825, hub["bb"][2] - 5.0, POS_TOL)
-    check(sec, "bore through all (y 5.825 to 20.825)", 20.825, bore["bb"][3], POS_TOL)
-    ss = [c for c in cyl_faces(pin) if abs(c["r"] - 1.5) < 1e-4]
-    check_true(sec, "set-screw hole Ø3.0, radial toward +z (D-flat side), at hub mid-plane y 8.325", "1 hole, dir z, y 8.325",
-               [(round(float(c["loc"][1]), 3), np.round(np.abs(c["dir"]), 2).tolist()) for c in ss],
-               len(ss) == 1 and abs(ss[0]["loc"][1] - 8.325) < POS_TOL and abs(ss[0]["dir"][2]) > 0.999)
-    iv = material(pin, (0, 8.325, ZM), (0, 0, 1), 0, 10)
-    check_true(sec, "set-screw hole is open from the bore to the outside (+z), solid on -z", "empty on +z", iv, iv == [])
-    iv2 = material(pin, (0, 8.325, ZM), (0, 0, -1), 0, 10)
-    check_true(sec, "hub wall on the -z side [2.5, 7.0]", "[(2.5,7.0)]", [(round(a, 3), round(b_, 3)) for a, b_ in iv2], len(iv2) == 1 and abs(iv2[0][1] - 7.0) < 1e-3)
-    # pinion volume against an independent estimate: generator 18T gear (10 mm face, no thinning) + hub O14 x 5 - bore O5 x 15 - set-screw O3 x 4.5 (straight cylinder)
-    vg = vol(generator().gear(NP, MOD, 10.0, phase=0.0, reduction=0.0, root_radius=0.40).val())
-    v_exp = vg + math.pi * 49 * 5 - math.pi * 6.25 * 15 - math.pi * 2.25 * 4.5
-    check(sec, "pinion volume vs independent estimate (generator rim + hub - bore - set screw), mm3", v_exp, vol(pin), 3.0)
-    rec(sec, "pinion steel mass at 7.85 g/cm3 (g), informative", "info", round(vol(pin) * 7.85e-3, 3), "-", True)
+    bb = tbb(pin)
+    check(sec, "pinion y min = hub end (-0.675, 0.5 clear of the pilot boss face y -1.175)", Y_HUB0, bb[2], POS_TOL)
+    check(sec, "pinion y max = teeth end = shaft end (20.825)", 20.825, bb[3], POS_TOL)
+    check(sec, "pinion total length (21.5)", 21.5, bb[3] - bb[2], POS_TOL)
+    cf = _coax_cyl(pin, ZM)
+    hub = [c for c in cf if abs(c["r"] - 7.0) < 1e-4]
+    check_true(sec, "hub: cylinder faces R7.0 coaxial with the motor axis", ">= 1", len(hub), len(hub) >= 1)
+    check(sec, "hub diameter (O14)", 14.0, 2 * hub[0]["r"], 1e-6)
+    check(sec, "hub y start (-0.675)", Y_HUB0, min(c["bb"][2] for c in hub), POS_TOL)
+    check(sec, "hub y end = teeth start (10.825)", 10.825, max(c["bb"][3] for c in hub), POS_TOL)
+    check(sec, "hub length (11.5)", 11.5, max(c["bb"][3] for c in hub) - min(c["bb"][2] for c in hub), POS_TOL)
+    bore = [c for c in cf if abs(c["r"] - BORE_R) < 1e-4]
+    check_true(sec, "D-bore round faces R2.65 coaxial with the motor axis", ">= 1", len(bore), len(bore) >= 1)
+    check(sec, "bore diameter (O5.30)", 5.30, 2 * bore[0]["r"], 1e-6)
+    check(sec, "bore y start (through, -0.675)", Y_HUB0, min(c["bb"][2] for c in bore), POS_TOL)
+    check(sec, "bore y end (through, 20.825)", 20.825, max(c["bb"][3] for c in bore), POS_TOL)
+    # flat: plane facing the axis at z = ZM + 2.15, over the whole length
+    fl = [p for p in plane_faces(pin) if abs(abs(p["n"][2]) - 1) < 1e-6 and abs(p["loc"][2] - (ZM + BORE_FLAT)) < 1e-3]
+    check_true(sec, "bore flat: plane at axis + 2.15 on the +z side (normal toward the axis, -z)", "1+ face(s) at z = 4.79, n = -z",
+               [(round(float(p["loc"][2]), 4), int(round(p["n"][2]))) for p in fl], len(fl) >= 1 and all(p["n"][2] < 0 for p in fl))
+    check(sec, "bore flat y start", Y_HUB0, min(p["bb"][2] for p in fl), POS_TOL)
+    check(sec, "bore flat y end", 20.825, max(p["bb"][3] for p in fl), POS_TOL)
+    flat_other = [p for p in plane_faces(pin) if abs(abs(p["n"][2]) - 1) < 1e-6 and abs(p["loc"][2] - (ZM - BORE_FLAT)) < 1e-3]
+    check_true(sec, "no flat on the -z side (the bore is round there)", "none", len(flat_other), not flat_other)
+    # material probes along the D-bore (hub section y = 3.0, teeth section y = 15.825)
+    for y, hi_up, hi_dn, lab in [(3.0, 7.0, 7.0, "hub y 3.0"), (15.825, RP_TIP, RP_TIP, "teeth y 15.825 (a tooth tip on both sides of the axis)")]:
+        up = material(pin, (0, y, ZM), (0, 0, 1), 0, 12)
+        dn = material(pin, (0, y, ZM), (0, 0, -1), 0, 12)
+        px = material(pin, (0, y, ZM), (1, 0, 0), 0, 12)
+        nx = material(pin, (0, y, ZM), (-1, 0, 0), 0, 12)
+        check_true(sec, f"D-bore {lab}: +z side material starts at the FLAT 2.15", f"[(2.15, {hi_up})]", _iv(up), _near_iv(up, [(BORE_FLAT, hi_up)]))
+        check_true(sec, f"D-bore {lab}: -z side material starts at the round R2.65", f"[(2.65, {hi_dn})]", _iv(dn), _near_iv(dn, [(BORE_R, hi_dn)]))
+        check_true(sec, f"D-bore {lab}: +x and -x material start at R2.65 (round part)", "2.65 / 2.65", (_iv(px), _iv(nx)),
+                   abs(px[0][0] - BORE_R) < 2e-3 and abs(nx[0][0] - BORE_R) < 2e-3)
+    # heat-set pocket O4.0 x 4.5, radial from +z, at y ~ 7.91, hole O3.0 on to the bore
+    pk = [c for c in cyl_faces(pin) if abs(c["r"] - INS_R) < 1e-4 and abs(c["dir"][2]) > 0.999]
+    hl = [c for c in cyl_faces(pin) if abs(c["r"] - SS_R) < 1e-4 and abs(c["dir"][2]) > 0.999]
+    check_true(sec, "pocket: cylinder face(s) R2.0 (O4.0) with axis along z", ">= 1", len(pk), len(pk) >= 1)
+    check_true(sec, "clearance hole: cylinder face(s) R1.5 (O3.0) with axis along z", ">= 1", len(hl), len(hl) >= 1)
+    check(sec, "pocket diameter (O4.0)", 4.0, 2 * pk[0]["r"], 1e-6)
+    check(sec, "hole diameter (O3.0)", 3.0, 2 * hl[0]["r"], 1e-6)
+    check(sec, "pocket axis y (spec ~7.91: middle of tab face 5.0 and teeth 10.825 = 7.9125; spec text also says 7.9)", Y_SS, pk[0]["loc"][1], 0.02)
+    check(sec, "hole axis y (same)", Y_SS, hl[0]["loc"][1], 0.02)
+    check(sec, "pocket axis x (on the motor axis)", 0.0, pk[0]["loc"][0], POS_TOL)
+    check(sec, "pocket axis x/z: hole concentric (x)", 0.0, hl[0]["loc"][0], POS_TOL)
+    z_hi = max(c["bb"][5] for c in pk) - ZM
+    z_lo = min(c["bb"][4] for c in pk) - ZM
+    check(sec, "pocket top at the hub surface (R7.0 above the axis on x = 0)", 7.0, z_hi, POS_TOL)
+    check(sec, "pocket bottom 2.5 from the axis (4.5 deep from the hub surface)", 2.5, z_lo, POS_TOL)
+    check(sec, "pocket depth from the hub surface (4.5)", INS_DEPTH, z_hi - z_lo, POS_TOL)
+    pb_ = [p for p in plane_faces(pin) if abs(abs(p["n"][2]) - 1) < 1e-6 and abs(p["loc"][2] - (ZM + 2.5)) < 1e-3 and p["n"][2] > 0]
+    check_true(sec, "pocket bottom: flat plane at axis + 2.5, facing +z", ">= 1", len(pb_), len(pb_) >= 1)
+    # exposed hub window (tab face y 5.0 .. teeth y 10.825): pocket spans y 5.9125 .. 9.9125
+    y_lo, y_hi = min(c["bb"][2] for c in pk), max(c["bb"][3] for c in pk)
+    check_ge(sec, "pocket clear of the tab-face plane y 5.0 (mm; a key from +z reaches the screw)", 0.5, y_lo - 5.0)
+    check_ge(sec, "pocket clear of the teeth y 10.825 (mm)", 0.5, 10.825 - y_hi)
+    # probes through the pocket (y = 7.9125)
+    ys = Y_SS
+    up0 = material(pin, (0, ys, ZM), (0, 0, 1), 0, 12)
+    check_true(sec, "pocket+hole open from the bore to the outside along +z at the axis (no material)", "[]", _iv(up0), up0 == [])
+    up1 = material(pin, (1.0, ys, ZM), (0, 0, 1), 0, 12)
+    check_true(sec, "hole O3.0 open at x = 1.0 (inside R1.5)", "[]", _iv(up1), up1 == [])
+    x = 1.6
+    up2 = material(pin, (x, ys, ZM), (0, 0, 1), 0, 12)
+    check_true(sec, "pocket floor at x = 1.6 (outside the hole, inside the pocket): [round bore, 2.5]", f"[({math.sqrt(BORE_R**2 - x**2):.3f}, 2.5)]", _iv(up2),
+               _near_iv(up2, [(math.sqrt(BORE_R ** 2 - x ** 2), 2.5)]))
+    up3 = material(pin, (0, ys + 1.7, ZM), (0, 0, 1), 0, 12)
+    check_true(sec, "pocket floor at y +1.7 off the screw axis (flat 2.15 to bottom 2.5): 0.35 mm", "[(2.15, 2.5)]", _iv(up3), _near_iv(up3, [(BORE_FLAT, 2.5)]))
+    x = 2.1
+    up4 = material(pin, (x, ys, ZM), (0, 0, 1), 0, 12)
+    check_true(sec, "outside the pocket (x = 2.1 > R2.0): full wall from the bore to the hub surface", f"[({math.sqrt(BORE_R**2 - x**2):.3f}, {math.sqrt(49 - x**2):.3f})]", _iv(up4),
+               _near_iv(up4, [(math.sqrt(BORE_R ** 2 - x ** 2), math.sqrt(49 - x ** 2))]))
+    dn0 = material(pin, (0, ys, ZM), (0, 0, -1), 0, 12)
+    check_true(sec, "pocket opens only toward +z: the -z wall at the same y is solid [2.65, 7.0]", "[(2.65, 7.0)]", _iv(dn0), _near_iv(dn0, [(BORE_R, 7.0)]))
+    # independent rebuild of the whole pinion from the spec; the STEP must lie inside it and differ by the chamfer only
+    G = generator()
+    ang = sorted(math.degrees(math.atan2(c["face"].Center().z - ZM, c["face"].Center().x)) for c in cyl_faces(pin) if abs(c["r"] - RP_TIP) < 1e-3)
+    phase_axial = (-ang[0]) % (360.0 / NP)
+    gear_ax = G.gear(NP, MOD, 10.0, phase=phase_axial, reduction=THIN, root_radius=0.40).val()
+    gear = gear_ax.rotate(cq.Vector(0, 0, 0), cq.Vector(1, 0, 0), -90).translate(cq.Vector(0, 10.825, ZM))
+    hubs = cq.Solid.makeCylinder(7.0, 10.825 + 0.05 - Y_HUB0, cq.Vector(0, Y_HUB0, ZM), cq.Vector(0, 1, 0))
+    ref = gear.fuse(hubs)
+    bore_c = cq.Solid.makeCylinder(BORE_R, 23, cq.Vector(0, -1.5, ZM), cq.Vector(0, 1, 0))
+    box = cq.Solid.makeBox(10, 23, 5 + BORE_FLAT, cq.Vector(-5, -1.5, ZM - 5))
+    ref = cut(ref, common(bore_c, box))
+    ref = cut(ref, cq.Solid.makeCylinder(INS_R, 6, cq.Vector(0, Y_SS, ZM + 7.0 - INS_DEPTH), cq.Vector(0, 0, 1)))
+    ref = cut(ref, cq.Solid.makeCylinder(SS_R, 3, cq.Vector(0, Y_SS, ZM + 1.0), cq.Vector(0, 0, 1))).clean()
+    vs, vr = vol(pin), vol(ref)
+    check_true(sec, "independent rebuild from the spec (thinned 18T, hub O14 to y -0.675, D-bore O5.30 flat 2.15, pocket O4 x 4.5, hole O3): one valid solid", True,
+               (len(ref.Solids()), valid(ref)), len(ref.Solids()) == 1 and valid(ref))
+    check_le(sec, "STEP material outside the independent rebuild (boolean cut STEP minus rebuild, mm3)", 0.01, vol(cut(pin, ref)))
+    top = [f for f in gear_ax.Faces() if abs(f.Center().z - 10.0) < 1e-6 and abs(f.normalAt().z - 1) < 1e-6][0]
+    per = top.outerWire().Length()
+    rec(sec, f"teeth-end chamfer: removed volume (rebuild minus STEP, mm3) vs perimeter {per:.2f} x 0.3^2 / 2 = {per * CH * CH / 2.0:.3f} (corner-free estimate; info)", "info",
+        round(vr - vs, 4), "-", True)
+    check_le(sec, "teeth-end chamfer: removed volume never exceeds the corner-free estimate (mm3)", per * CH * CH / 2.0 + 0.05, vr - vs)
+    check_ge(sec, "teeth-end chamfer: removed volume at least 90 % of the estimate (a 0.3 x 45 deg chamfer is really there)", 0.9 * per * CH * CH / 2.0, vr - vs)
+    # cross-section area at depth d from the end face against the outline offset inward by (0.3 - d): exact test of a 45 deg chamfer on the whole outline
+    face0 = cq.Face.makeFromWires(top.outerWire())
+    a_bore_d = BORE_R ** 2 * math.pi - (BORE_R ** 2 * math.acos(BORE_FLAT / BORE_R) - BORE_FLAT * math.sqrt(BORE_R ** 2 - BORE_FLAT ** 2))
+    for dz in (0.05, 0.1, 0.2, 0.28, 0.5):
+        inset = max(CH - dz, 0.0)
+        ref_area = (cq.Face.makeFromWires(top.outerWire().offset2D(-inset)[0]).Area() if inset > 0 else face0.Area()) - a_bore_d
+        y0 = 20.825 - dz
+        slab = cq.Solid.makeBox(40, 0.02, 40, cq.Vector(-20, y0 - 0.01, ZM - 20))
+        a_step = vol(common(pin, slab)) / 0.02
+        # tip and root are exact (test_15b); on the involute flanks the built chamfer is about 4 % shallower than an exact perpendicular 0.3 offset
+        # (the 54T spool chamfer matches the exact offset to 0.003 mm2).  Tolerance 2.0 mm2 = 0.018 mm mean flank position over the 112 mm outline.
+        tol = 2.0 if inset > 0 else 0.15
+        check(sec, f"teeth-end chamfer: section area at {dz} mm from the end face vs the outline inset {inset:.2f} (mm2; flank deficit {a_step - ref_area:+.3f} = {(a_step - ref_area) / per * 1000:.1f} um mean)", ref_area, a_step, tol)
+    rec(sec, "pinion volume (mm3) / PETG mass at 1.27 g/cm3 (g), informative", "info", f"{vs:.2f} / {vs * 1.27e-3:.3f}", "-", True)
+
+
+def test_15b_pinion_chamfer_and_thinning():
+    sec = "2 pinion rev C teeth"
+    pin = drive()["pinion"]
+    ang = sorted(math.degrees(math.atan2(c["face"].Center().z - ZM, c["face"].Center().x)) for c in cyl_faces(pin) if abs(c["r"] - RP_TIP) < 1e-3)
+    check_true(sec, "tip faces (R10.0): 18", NP, len(ang), len(ang) == NP)
+    # tooth centre on the line of centres (design -z): tip radius vs distance from the teeth end face y 20.825
+    for dz in [0.001, 0.1, 0.2, 0.3, 1.0]:
+        y = 20.825 - dz
+        tip = material(pin, (0, y, ZM), (0, 0, -1), 0, 14)[-1][1]
+        a = math.radians(180.0 / NP)
+        root = material(pin, (0, y, ZM), (math.sin(a), 0, -math.cos(a)), 0, 14)[-1][1]
+        check(sec, f"teeth-end chamfer: tooth tip radius at {dz} mm from the end face (10.0 - max(0.3 - d, 0))", RP_TIP - max(CH - dz, 0.0), tip, 0.003)
+        check(sec, f"teeth-end chamfer: tooth-space (root) radius at {dz} mm from the end face (7.75 - max(0.3 - d, 0))", RP_ROOT - max(CH - dz, 0.0), root, 0.003)
+    # the hub side of the teeth (y 10.825) is NOT chamfered
+    tip = material(pin, (0, 10.9, ZM), (0, 0, -1), 0, 14)[-1][1]
+    check(sec, "no chamfer on the hub side of the teeth (tip radius at y 10.9)", RP_TIP, tip, 0.003)
+    # end face plane at y 20.825 and its outline
+    ef = [p for p in plane_faces(pin) if abs(p["n"][1] - 1) < 1e-6 and abs(p["loc"][1] - 20.825) < 1e-3]
+    check_true(sec, "teeth end face: one planar face at y 20.825 facing +y", 1, len(ef), len(ef) == 1)
+    check(sec, "end-face outline reaches R 9.7 at the tooth tips (tip 10.0 minus 0.3): extent along z", 19.4, ef[0]["bb"][5] - ef[0]["bb"][4], 0.01)
+    # tooth thickness measured on the solid (ring volume / ring cross-section), pitch circle R9
+    _, p_rim = rims()
+    sols = common(p_rim, ring_y(RP_PITCH - 0.1, RP_PITCH + 0.1, 10.9, 20.4, 0, ZM)).Solids()
+    t = float(np.mean([vol(x) for x in sols]) / (0.2 * (20.4 - 10.9)))
+    check(sec, "pinion tooth thickness at R9 (pi/2 - 0.10 thinning = 1.4708)", math.pi / 2 - THIN, t, 0.005)
 
 
 def test_16_cap_magnet_encoder():
@@ -1036,7 +1186,7 @@ def test_16_cap_magnet_encoder():
     check(sec, "PCB x size (23)", 23.0, pcb[1] - pcb[0], POS_TOL)
     check(sec, "PCB z size (23)", 23.0, pcb[5] - pcb[4], POS_TOL)
     check(sec, "PCB centre x on the axis", 0.0, 0.5 * (pcb[0] + pcb[1]), POS_TOL)
-    check(sec, "PCB centre z on the axis (-33.56)", ZS, 0.5 * (pcb[4] + pcb[5]), POS_TOL)
+    check(sec, "PCB centre z on the axis (-33.66)", ZS, 0.5 * (pcb[4] + pcb[5]), POS_TOL)
     check(sec, "chip centre z on the axis", ZS, 0.5 * (ch[4] + ch[5]), POS_TOL)
     check(sec, "chip centre x on the axis", 0.0, 0.5 * (ch[0] + ch[1]), POS_TOL)
     # cap volume cross-check (bore, pocket removed; ribs add a little)
@@ -1074,7 +1224,7 @@ def test_17b_contacts_and_fits():
     b = drive()
     for a, c in [("motor_front_cap", "fin"), ("spacer_near", "spool_gear54"), ("spacer_near", "bearing_near"), ("spool_gear54", "bearing_far"),
                  ("magnet", "magnet_cap"), ("as5600_chip", "as5600_board"), ("shaft", "spool_gear54"), ("shaft", "bearing_near"), ("shaft", "bearing_far"),
-                 ("shaft", "magnet_cap"), ("pinion", "motor_shaft"), ("motor_shaft", "motor_front_cap")]:
+                 ("shaft", "magnet_cap"), ("motor_shaft", "motor_front_cap")]:
         d, _ = mindist(b[a], b[c])
         check_le(sec, f"{a} touches {c} (distance, mm)", 1e-4, d)
     # radial fits (bore radius minus shaft radius), nominal CAD sizes
@@ -1085,27 +1235,42 @@ def test_17b_contacts_and_fits():
                                        ("bearing_near", 3.4, 3.6, 0.0, "687 ID 7"), ("bearing_far", 3.4, 3.6, 0.0, "687 ID 7"),
                                        ("magnet_cap", 3.4, 3.6, 0.0, "Ø7 cap bore (press fit)"), ("spacer_near", 3.4, 3.7, 0.05, "Ø7.10 slip bore")]:
         check(sec, f"radial fit {body}: bore R - shaft R ({note})", expect, bore_r(body, lo, hi) - shaft_r, 1e-4)
-    check(sec, "radial fit pinion: bore R - motor shaft R (Ø5 on Ø5)", 0.0, bore_r("pinion", 2.4, 2.6) - bore_r("motor_shaft", 2.4, 2.6), 1e-4)
+    ms_r = bore_r("motor_shaft", 2.4, 2.6)
+    check(sec, "radial fit pinion: round bore R2.65 minus motor shaft R2.5 (0.15 clearance)", 0.15, bore_r("pinion", 2.6, 2.7) - ms_r, 1e-4)
+    d_ps, _ = mindist(b["pinion"], b["motor_shaft"])
+    check(sec, "pinion bore to motor shaft: minimum distance (round 0.15, flat 2.15 against 2.0 = 0.15)", 0.15, d_ps, 2e-3)
+    check_le(sec, "pinion x motor shaft overlap volume (mm3): no overlap", 1e-4, cvol(b["pinion"], b["motor_shaft"]))
+    flat_gap = [p["loc"][2] for p in plane_faces(b["pinion"]) if abs(abs(p["n"][2]) - 1) < 1e-6 and abs(p["loc"][2] - (ZM + 2.15)) < 1e-3][0] - [p["loc"][2] for p in plane_faces(b["motor_shaft"]) if abs(p["n"][2] - 1) < 1e-6 and p["area"] > 10][0]
+    check(sec, "pinion flat (axis + 2.15) to motor-shaft flat (axis + 2.0): gap", 0.15, flat_gap, 1e-3)
 
 
 def test_18_clearances():
     sec = "5 clearances"
     b = drive()
     pin, sp = b["pinion"], b["spool_gear54"]
-    hub = common(pin, ring_y(0.0001, 7.6, 5.7, 10.8249, 0, ZM))
-    check(sec, "extracted pinion hub (Ø14 x 5) volume sanity: pi 49 5 - bore - set-screw", math.pi * 49 * 5 - math.pi * 6.25 * 5 - math.pi * 2.25 * 4.5, vol(hub), 3.0)
-    # the spool turns: sweep the gear one tooth pitch (6.667 deg) about its axis; the tightest pose has a tooth tip on the line of centres
+    hub = common(pin, ring_y(0.0001, 7.6, Y_HUB0 - 0.1, 10.8249, 0, ZM))              # hub only (y < teeth start)
+    # volume sanity of the hub (O14 x 11.5, D-bore, pocket, hole), integrated numerically over the pocket disc
+    r, d = BORE_R, BORE_FLAT
+    seg = r * r * math.acos(d / r) - d * math.sqrt(r * r - d * d)
+    a_bore = math.pi * r * r - seg
+    g = np.linspace(-INS_R, INS_R, 801)
+    X, Y = np.meshgrid(g, g)
+    mk = X ** 2 + Y ** 2 <= INS_R ** 2
+    v_pocket = float(np.sum((np.sqrt(49 - X[mk] ** 2) - 2.5)) * (g[1] - g[0]) ** 2)
+    v_hole = math.pi * SS_R ** 2 * (2.5 - BORE_FLAT)
+    v_exp = math.pi * 49 * 11.5 - a_bore * 11.5 - v_pocket - v_hole
+    check(sec, "extracted pinion hub (O14 x 11.5) volume vs analytic (hub - D-bore - pocket - hole), mm3", v_exp, vol(hub), 1.0)
     g_rim, _ = rims()
     sweep = []
     for dg in [0.0, 5.0 / 3.0, 10.0 / 3.0, 5.0]:
         sweep.append((dg, mindist(rot_y(g_rim, ZS, dg), hub)[0]))
     dmin = min(v for _, v in sweep)
     rec(sec, "gear rim to pinion hub over one gear pitch of spool rotation (deg: mm)", "info", "; ".join(f"{a:.3f}:{v:.4f}" for a, v in sweep), "-", True)
-    check_ge(sec, "gear tip to pinion hub, worst pose over one gear tooth pitch (mm, >= 1.0, revision B criterion)", 1.0, dmin)
-    check(sec, "worst-pose gear-to-hub distance = sqrt(1.2^2 + 0.3^2) (tip on the line of centres, 0.3 chamfer), mm", math.hypot(CD - RG_TIP - 7.0, 0.3), dmin, 0.01)
+    check_ge(sec, "gear tip to pinion hub, worst pose over one gear tooth pitch (mm, >= 1.0 spec criterion)", 1.0, dmin)
+    check(sec, "worst-pose gear-to-hub distance = sqrt(1.3^2 + 0.3^2) (tip on the line of centres, 0.3 chamfer), mm", math.hypot(CD - RG_TIP - 7.0, CH), dmin, 0.01)
     d, dd = mindist(sp, hub)
-    check_ge(sec, "gear (whole spool) to pinion hub, reference pose (mm, >= 1.0, revision B criterion)", 1.0, d)
-    check_ge(sec, "gear to pinion hub >= radial bound CD - R_tip - R_hub = 36.20 - 28.0 - 7.0 = 1.2 (mm, consistency; the 0.3 chamfer and the tooth phase only add)", 1.2 - 1e-6, d)
+    check_ge(sec, "gear (whole spool) to pinion hub, reference pose (mm, >= 1.0 spec criterion)", 1.0, d)
+    check_ge(sec, "gear to pinion hub >= radial bound CD - R_tip - R_hub = 36.30 - 28.0 - 7.0 = 1.3 (mm, consistency)", CD - RG_TIP - 7.0 - 1e-6, d)
     p1, p2 = dd.PointOnShape1(1), dd.PointOnShape2(1)
     rec(sec, "gear-to-hub closest points (spool point; hub point; design frame, info)", "info",
         f"({p1.X():.3f},{p1.Y():.3f},{p1.Z():.3f}); ({p2.X():.3f},{p2.Y():.3f},{p2.Z():.3f})", "-", True)
@@ -1114,9 +1279,39 @@ def test_18_clearances():
     for k in ["motor_front_cap", "motor_stator", "motor_winding", "motor_rear_cap", "motor_shaft", "motor_connector", "fin"]:
         d, _ = mindist(sp, b[k])
         check_ge(sec, f"spool_gear54 to {k} (mm, >= 1.5)", 1.5, d)
-    check(sec, "pinion hub to the tab face (y 5.0)", 0.825, tbb(hub)[2] - 5.0, POS_TOL)
+    # printed pinion to the motor: axial to the pilot boss face, >= 0.4 to every motor body except the shaft it sits on
+    cap = tbb(b["motor_front_cap"])
+    check(sec, "motor pilot boss face y (front face -3.175 + 2.0 = -1.175), from the front cap bbox", Y_BOSS, cap[3], POS_TOL)
+    check_ge(sec, "pinion hub end to the pilot boss face, axial (mm, >= 0.4 spec criterion)", 0.4, tbb(pin)[2] - cap[3])
+    check(sec, "pinion hub end to the pilot boss face, axial (0.5 spec)", 0.5, tbb(pin)[2] - cap[3], POS_TOL)
+    for k in ["motor_front_cap", "motor_stator", "motor_winding", "motor_rear_cap", "motor_connector"]:
+        d, _ = mindist(pin, b[k])
+        check_ge(sec, f"pinion to {k} (mm, >= 0.4)", 0.4, d)
     d, _ = mindist(pin, b["fin"])
-    check_ge(sec, "pinion to fin (mm)", 1.5, d)
+    check_ge(sec, "pinion to fin (mm, >= 1.5 radial)", 1.5, d)
+    # radial clearance through the fin's motor hole, measured on the hole cylinder of the fin
+    fh = [c["r"] for c in _coax_cyl(b["fin"], ZM) if 8.0 < c["r"] < 20.0]
+    check_true(sec, "fin motor hole: coaxial cylinder face found", ">= 1", sorted(set(round(x, 3) for x in fh)), len(fh) >= 1)
+    check_ge(sec, "fin motor hole radius minus hub radius R7.0 (mm, >= 1.5 radial)", 1.5, min(fh) - 7.0)
+    # the pinion stays clear of the teeth' own bore etc.
+    check_le(sec, "pinion x fin overlap volume (mm3)", 1e-4, cvol(pin, b["fin"]))
+
+
+def test_18b_pinion_vs_slipin_tab_hole():
+    sec = "5 clearances (slide-in tab hole)"
+    b = drive("drive_with_slipin_asm1021")
+    pin, tab = b["pinion"], b["slipin_mount"]
+    th = [c for c in _coax_cyl(tab, ZM) if 8.0 < c["r"] < 20.0 and c["bb"][2] < 1.0 and c["bb"][3] > 4.0]
+    check_true(sec, "slide-in tab motor hole: coaxial cylinder across the tab (y 0 .. 5)", ">= 1", sorted(set(round(c["r"], 3) for c in th)), len(th) >= 1)
+    r_hole = min(c["r"] for c in th)
+    check(sec, "tab motor hole diameter (spec O22.4)", 22.4, 2 * r_hole, 0.01)
+    check_ge(sec, "tab hole radius minus hub radius R7.0 (mm, >= 1.5 radial)", 1.5, r_hole - 7.0)
+    d, dd = mindist(pin, tab)
+    check_ge(sec, "pinion to the slide-in, whole solid (mm, >= 1.5)", 1.5, d)
+    check_le(sec, "pinion x slide-in overlap volume (mm3)", 1e-4, cvol(pin, tab))
+    rec(sec, "pinion to slide-in minimum distance (mm; build notes 4.20 = 11.2 - 7.0)", "info", round(d, 3), "-", True)
+    d, _ = mindist(pin, b["wall_mount"])
+    check_ge(sec, "pinion to the wall mount (mm, >= 1.5)", 1.5, d)
 
 
 # =============================================================================== 6. interference with Jasper's slide-in and wall mount
@@ -1138,13 +1333,17 @@ def test_19_interference_with_mounts():
     got = {key: round(v, 3) for key, v in allv.items() if v > 1e-3}
     rec(sec, "all (mount, drive body) pairs with overlapping bounding boxes examined", "-", len(allv), "-", True)
     want_set = {("slipin_mount", "spool_gear54"), ("slipin_mount", "spacer_near"), ("wall_mount", "spool_gear54")}
-    rec(sec, "all overlapping (mount, body) pairs found (revision B)", "slipin: spool, spacer; wall: spool", sorted(f"{m}/{k}" for m, k in got),
+    rec(sec, "all overlapping (mount, body) pairs found (revision C)", "slipin: spool, spacer; wall: spool (no pinion)", sorted(f"{m}/{k}" for m, k in got),
         "-", set(got) == want_set)
     assert set(got) == want_set, got
     rec(sec, "overlap volumes (mm3)", "info", {f"{m}/{k}": v for (m, k), v in sorted(got.items())}, "-", True)
+    for m in ("slipin_mount", "wall_mount"):
+        v_pin = allv.get((m, "pinion"), 0.0)
+        check_true(sec, f"{m} x pinion (hub through the tab hole): overlap volume (mm3)", "0", round(v_pin, 5), v_pin < 1e-3)
     # the shaft no longer touches the slide-in: confirm with a distance, not only an empty boolean
     d_sh, _ = mindist(b["slipin_mount"], b["shaft"])
     check_ge(sec, "slipin_mount to shaft: distance (mm) (>= 0: no overlap now; revision A had 54.8 mm3 at the old axis z -37.56)", 0.0, d_sh)
+    check(sec, "slipin_mount to shaft closest approach (notes 0.056; rev B 0.127)", 0.056, d_sh, 0.005)
     check_true(sec, "slipin_mount x shaft overlap volume (mm3)", "0", round(allv[("slipin_mount", "shaft")], 4), allv[("slipin_mount", "shaft")] < 1e-3)
 
     def box(x0, x1, y0, y1, z0, z1):
@@ -1156,13 +1355,13 @@ def test_19_interference_with_mounts():
     C = vol(common(c, box(-21.15, big, -big, big, -42.40, big)))
     rec(sec, "slide-in x spool by region: back plate x < -21.15 / deck block z < -42.4 / above the deck z > -42.4 (mm3)", "info", f"{A:.3f} / {B:.3f} / {C:.3f}", "-", True)
     check(sec, "slide-in x spool: region sum equals total", got[("slipin_mount", "spool_gear54")], A + B + C, 0.01)
-    # comparison with verification/winch_gear3_build_notes.md section 5 (read AFTER these numbers were measured; revision B values)
-    check(sec, "slipin_mount x spool_gear54 volume (build notes rev B 2451.6)", 2451.6, got[("slipin_mount", "spool_gear54")], 1.0)
+    # comparison with verification/winch_gear3_build_notes.md section 5 (revision C table C4; the notes were read by the verifier before this run - the lead handed over the revision C figures - so these are agreement checks, the volumes themselves are measured here)
+    check(sec, "slipin_mount x spool_gear54 volume (build notes rev C 2463.5)", 2463.5, got[("slipin_mount", "spool_gear54")], 1.0)
     check(sec, "slide-in x spool: back plate x < -21.15 (notes 1233.3)", 1233.3, A, 0.5)
-    check(sec, "slide-in x spool: deck block z < -42.4 (notes 1133.2)", 1133.2, B, 0.5)
-    check(sec, "slide-in x spool: above the deck z > -42.4 (notes 85.1 = 72.3 drum in the far cheek + 12.8 teeth)", 85.1, C, 0.5)
-    check(sec, "slipin_mount x spacer_near volume (notes 13.0)", 13.0, got[("slipin_mount", "spacer_near")], 0.2)
-    check(sec, "wall_mount x spool_gear54 volume (notes 27.3)", 27.3, got[("wall_mount", "spool_gear54")], 0.2)
+    check(sec, "slide-in x spool: deck block z < -42.4 (notes 1143.2)", 1143.2, B, 0.5)
+    check(sec, "slide-in x spool: above the deck z > -42.4 (notes 87.0 = 74.2 drum in the far cheek + 12.8 teeth)", 87.0, C, 0.5)
+    check(sec, "slipin_mount x spacer_near volume (notes 14.0)", 14.0, got[("slipin_mount", "spacer_near")], 0.2)
+    check(sec, "wall_mount x spool_gear54 volume (notes 31.0 = 28.4 + 2.5)", 31.0, got[("wall_mount", "spool_gear54")], 0.2)
     pieces = sorted((vol(x), tuple(np.round(tbb(x), 2))) for x in c.Solids())[::-1]
     rec(sec, "slide-in x spool pieces (volume, bbox x0 x1 y0 y1 z0 z1)", "info", [(round(v, 3), [float(x) for x in bb_]) for v, bb_ in pieces], "-", True)
     bsp = common(common(c, box(-21.15, big, -big, big, -big, -42.40)), box(-big, big, 10.8, 20.825, -big, big))
@@ -1172,7 +1371,7 @@ def test_19_interference_with_mounts():
     w = res[("wall_mount", "spool_gear54")]
     wp = sorted((vol(x), tuple(np.round(tbb(x), 2))) for x in w.Solids())[::-1]
     rec(sec, "wall mount x spool pieces (volume, bbox)", "info", [(round(v, 3), [float(x) for x in bb_]) for v, bb_ in wp], "-", True)
-    check_true(sec, "wall mount x spool: 2 pieces 25.8 + 1.5 (notes)", "2 pieces", [round(v, 1) for v, _ in wp], len(wp) == 2 and abs(wp[0][0] - 25.8) < 0.2 and abs(wp[1][0] - 1.5) < 0.2)
+    check_true(sec, "wall mount x spool: 2 pieces 28.4 + 2.5 (notes)", "2 pieces", [round(v, 1) for v, _ in wp], len(wp) == 2 and abs(wp[0][0] - 28.4) < 0.2 and abs(wp[1][0] - 2.5) < 0.2)
     # nearest approach of the bodies that do not overlap (redesign inputs): report distances
     near_list = []
     for m in ("slipin_mount", "wall_mount"):
@@ -1197,12 +1396,12 @@ def test_19_interference_with_mounts():
     info["Spool1011 x pinion"] = round(cvol(old, d0["pinion"]), 3)
     info["Spool1011 x motor_shaft"] = round(cvol(old, d0["motor_shaft"]), 3)
     rec(sec, "informative: shell (Shell_Casing of the original assembly) x drive bodies, and the replaced old spool (mm3)", "info", info, "-", True)
-    check(sec, "Shell_Casing x spool_gear54 (notes 730.4)", 730.4, info["Shell_Casing x spool_gear54"], 1.0)
-    check(sec, "Shell_Casing x as5600_board (notes 32.9)", 32.9, info["Shell_Casing x as5600_board"], 0.5)
+    check(sec, "Shell_Casing x spool_gear54 (notes 736.2)", 736.2, info["Shell_Casing x spool_gear54"], 1.0)
+    check(sec, "Shell_Casing x as5600_board (notes 36.6)", 36.6, info["Shell_Casing x as5600_board"], 0.5)
     check_true(sec, "Shell_Casing x bearings (notes: 0 now, 6.1 each in revision A)", "0 / 0", [info.get("Shell_Casing x bearing_near", 0), info.get("Shell_Casing x bearing_far", 0)],
                "Shell_Casing x bearing_near" not in info and "Shell_Casing x bearing_far" not in info)
-    check(sec, "Spool1011 x pinion (notes 2012.9)", 2012.9, info["Spool1011 x pinion"], 1.0)
-    check(sec, "Spool1011 x motor_shaft (notes 8.4)", 8.4, info["Spool1011 x motor_shaft"], 0.1)
+    check(sec, "Spool1011 x pinion (notes 1994.1; the old spool sits where the new hub and teeth are)", 1994.1, info["Spool1011 x pinion"], 1.0)
+    check(sec, "Spool1011 x motor_shaft (notes 8.35)", 8.35, info["Spool1011 x motor_shaft"], 0.1)
     fin_over = cvol(sh, d0["fin"])
     rec(sec, "NOT caused by the gears: Shell_Casing x fin (1/8 in fin is thicker than the Heat_horn it replaces) mm3", "info", round(fin_over, 3), "-", True)
     # distance of the shell to the bodies it does not overlap
@@ -1218,9 +1417,11 @@ def test_20_params_audit():
     sys.path.insert(0, REPO)
     from cad import params as P   # read-only
     sec = "params WG3_*"
-    want = dict(WG3_MODULE=1.0, WG3_PRESSURE_ANGLE_DEG=20.0, WG3_Z_PINION=18, WG3_Z_GEAR=54, WG3_RATIO=3.0, WG3_CD_NOMINAL=36.0, WG3_CD=36.20, WG3_CD_ALLOW=0.20, WG3_FACE=10.0,
-                WG3_GEAR_TOOTH_THIN=0.10, WG3_Y_TEETH0=10.825, WG3_Y_TEETH1=20.825, WG3_Y_SHAFT_END=20.825, WG3_PINION_BORE_D=5.0, WG3_PINION_HUB_D=14.0,
-                WG3_PINION_HUB_L=5.0, WG3_Y_PINION_HUB0=5.825, WG3_WINDOW_N=6, WG3_WINDOW_D=10.0, WG3_WINDOW_R=17.5, WG3_RIM_MIN=3.0, WG3_WEB_MIN=2.0,
+    want = dict(WG3_MODULE=1.0, WG3_PRESSURE_ANGLE_DEG=20.0, WG3_Z_PINION=18, WG3_Z_GEAR=54, WG3_RATIO=3.0, WG3_CD_NOMINAL=36.0, WG3_CD=36.30, WG3_CD_ALLOW=0.30, WG3_FACE=10.0,
+                WG3_GEAR_TOOTH_THIN=0.10, WG3_PINION_TOOTH_THIN=0.10, WG3_Y_TEETH0=10.825, WG3_Y_TEETH1=20.825, WG3_Y_SHAFT_END=20.825, WG3_PINION_BORE_D=5.30,
+                WG3_PINION_BORE_FLAT_X=2.15, WG3_PINION_HUB_D=14.0, WG3_PINION_HUB_L=11.5, WG3_Y_PINION_HUB0=-0.675, WG3_Y_BOSS_FACE=-1.175,
+                WG3_PINION_INSERT_D=4.0, WG3_PINION_INSERT_DEPTH=4.5, WG3_PINION_SETSCREW_D=3.0, WG3_Y_PINION_SETSCREW=7.9125, WG3_PINION_MIN_CLEAR_MOTOR=0.4,
+                WG3_WINDOW_N=6, WG3_WINDOW_D=10.0, WG3_WINDOW_R=17.5, WG3_RIM_MIN=3.0, WG3_WEB_MIN=2.0,
                 WG3_BED_CHAMFER=0.3, WG3_DRUM_D=15.0, WG3_DRUM_L=16.0, WG3_Y_DRUM1=36.825, WG3_FLANGE_D=36.0, WG3_FLANGE_T=3.0, WG3_Y_FLANGE1=39.825, WG3_HUB_D=12.0,
                 WG3_Y_SPOOL_END=44.0, WG3_LAND_D=9.0, WG3_LAND_PROUD=0.3, WG3_BORE_D=7.0, WG3_TIEOFF_D=1.4, WG3_TIEOFF_OFFSET=5.25, WG3_TIEOFF_Y=28.825,
                 WG3_SPACER_OD=10.0, WG3_SPACER_BORE_D=7.10, WG3_SPACER_Y0=5.0, WG3_SPACER_Y1=10.825, WG3_SHAFT_D=7.0, WG3_SHAFT_Y0=-3.0, WG3_SHAFT_L=55.0,
@@ -1228,8 +1429,8 @@ def test_20_params_audit():
                 WG3_CAP_WEB=0.75, WG3_MAGNET_D=6.0, WG3_MAGNET_T=2.5, WG3_CAP_POCKET_D=6.3, WG3_CAP_POCKET_DEPTH=2.5, WG3_Y_MAGNET0=53.05, WG3_CAP_Y1=55.55,
                 WG3_CHIP_FACE_Y=57.05, WG3_PCB_Y0=58.5, WG3_PCB_Y1=60.1, WG3_MIN_CLEAR=1.5, WG3_MIN_CLEAR_HUB=1.0)
     bad = {k: (v, getattr(P, k, None)) for k, v in want.items() if not (hasattr(P, k) and abs(getattr(P, k) - v) < 1e-9)}
-    check_true(sec, f"WG3_* values equal the revision B spec numbers ({len(want)} checked)", "no mismatch", bad or "no mismatch", not bad)
-    check_true(sec, "spool axis (x, z)", "(0.0, -33.56)", tuple(round(v, 6) for v in P.WG3_SPOOL_XZ), abs(P.WG3_SPOOL_XZ[0]) < 1e-9 and abs(P.WG3_SPOOL_XZ[1] + 33.56) < 1e-9)
+    check_true(sec, f"WG3_* values equal the revision C spec numbers ({len(want)} checked)", "no mismatch", bad or "no mismatch", not bad)
+    check_true(sec, "spool axis (x, z)", "(0.0, -33.66)", tuple(round(v, 6) for v in P.WG3_SPOOL_XZ), abs(P.WG3_SPOOL_XZ[0]) < 1e-9 and abs(P.WG3_SPOOL_XZ[1] + 33.66) < 1e-9)
     dupe = [n for n, v in [("SPOOL_FLANGE_THK", getattr(P, "SPOOL_FLANGE_THK", None)), ("NEMA17T_TAP_D", getattr(P, "NEMA17T_TAP_D", None))] if v == 3.0]
     rec(sec, "WG3_FLANGE_T = 3.0 and WG3_PINION_SETSCREW_D = 3.0 are literals; equal values exist as", "info", dupe, "-", True)
 
@@ -1243,7 +1444,7 @@ def test_21_renders_exist():
     got = sorted(os.listdir(RENDERS))
     check_true(sec, "renders/winch_gear3 holds exactly the 8 expected files (no stale ones)", [f"winch_gear3_{n}.png" for n in sorted(names)], got,
                got == sorted(f"winch_gear3_{n}.png" for n in names))
-    # not older than the revision B exports (rendered after the STEP files were regenerated)
+    # not older than the revision C exports (rendered after the STEP files were regenerated)
     t_step = os.path.getmtime(STEP + "winch_gear3_drive_asm1021.step")
     older = [n for n in names if os.path.getmtime(RENDERS + f"winch_gear3_{n}.png") < t_step - 60]
     check_true(sec, "no render is more than 60 s older than drive_asm1021.step", "none older", older or "none older", not older)

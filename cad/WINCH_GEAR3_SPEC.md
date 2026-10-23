@@ -99,14 +99,13 @@ path, print frame and the separate near spacer (section 3 and 4 tables).
 
 ## 7. For Jasper's mount (lead, 10/23, after the verification and the calculation check)
 
-*Revision B: the seat loads and the interference volumes below are the 20T/60T values; they are refreshed from the revision B
-build notes and calculation once those are rerun.*
+*Revision B (18T/54T): seat loads from the rerun `calculations/winch_gear3.md`, interferences from the revision B build notes.*
 
 The drive train passed independent verification (`verification/winch_gear3_verification.md`, 26 tests, 0 failures). Inputs
 for the slide-in, far cheek and shell he redesigns (numbers from `calculations/winch_gear3.md`, at 1.0 A):
 
 - **Bearing seats:** Ø14 seats for the two 687s, the near one in the extended motor tab (y 0 to 5), the far one in a cheek
-  (y 44 to 49). They must hold **130 N (near) and 160 N (far) radial and 87 N axial** (1.5 x the motor's upper slip force
+  (y 44 to 49). They must hold **133 N (near) and 161 N (far) radial and 87 N axial** (1.5 x the motor's upper slip force
   case). Fillets on the roots of the tab and the cheek.
 - **Axial location:** the stack between the bearing faces is exactly 39.000 mm (spacer 5.825 + spool 33.175), with no float.
   Put a shoulder on the **outboard** face of each bearing (near: the motor side at y 0; far: the encoder side at y 49) and set
@@ -120,8 +119,9 @@ for the slide-in, far cheek and shell he redesigns (numbers from `calculations/w
   the bore; not sintered or brass. Torque-slip test it on the bench.
 - **Spool:** keep 3 dead wraps on the drum (the Ø1.4 tie-off is not rated for the full line pull).
 - **Interferences with the current parts** (redesign inputs, `verification/winch_gear3_build_notes.md`, confirmed by the
-  verifier): slide-in against the spool 3953 mm³ (back plate 2003, deck block 1861, lug cheek 89), against the shaft 55 mm³
-  (lug cheeks), against the spacer 35 mm³; wall mount against the spool 697 mm³; shell against the spool 1165 mm³.
+  verifier): slide-in against the spool 2452 mm³ (back plate 1233, deck block 1133, far cheek and deck top 85), against the
+  spacer 13 mm³, no longer against the shaft; wall mount against the spool 27 mm³; shell against the spool 730 mm³ and the
+  AS5600 board 33 mm³ (revision A: 3953, 55, 35, 697, 1165 mm³).
 
 The export bullet in section 5 ("print frame: drum axis +z, the gear's near face on the bed") was aligned with section 3 by the
 implementer in 609aff7; the lead confirms it.

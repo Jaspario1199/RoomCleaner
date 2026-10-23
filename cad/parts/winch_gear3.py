@@ -422,39 +422,55 @@ def mass_g(name: str, shape: cq.Shape) -> float:
 
 REFERENCE_PARTS = ("Slipin_mount_piecev3", "Wall_Mount_v3", "Shell_Casing", "Spool1011")    # Jasper's STEPs that the drive is checked against (read only)
 MESH_POSES_DEG = tuple(float(a) for a in range(0, 21))                                       # pinion rotation, one pinion pitch (360 / 18 = 20 deg); the gear turns -1/3 of it
+MESH_SLAB_T = 1.0                                                                            # mm, thickness of the tooth-face slab used for flank distances (spur teeth are prismatic along y)
 CONTACT_TOL_MM = 1.0e-3                                                                      # flank distance that counts as tooth contact in the backlash search
+BACKLASH_BRACKET_DEG = 4.0                                                                   # pinion rotation within which each flank contact must be found
+BACKLASH_RESOLUTION_DEG = 1.0e-3                                                             # bisection stops at this bracket width (0.00016 mm at the pinion pitch circle)
 
 
-def _rotated_pair(bodies: dict, pinion_deg: float, gear_deg: float) -> tuple:
-    """(pinion, gear) rotated about their own axes (parallel to y, station frame) by the given angles."""
+def mesh_slabs(bodies: dict) -> tuple:
+    """(pinion slab, gear slab, pinion axis point, gear axis point) in the station frame: the two tooth faces cut to MESH_SLAB_T around the middle of the teeth.  The teeth are
+    prismatic along y, so the flank distance of the slabs is that of the whole faces, at a sixth of the cost of a distance between the full bodies."""
     pin, gear = bodies[PINION], bodies[SPOOL]
     pa, ga = bore_axis_xz(pin, P.WG3_PINION_BORE_D / 2.0), bore_axis_xz(gear, P.WG3_BORE_D / 2.0)
+    y_mid = residual()[1] + (P.WG3_Y_TEETH0 + P.WG3_Y_TEETH1) / 2.0
+    box = cq.Solid.makeBox(400.0, MESH_SLAB_T, 400.0, cq.Vector(-200.0, y_mid - MESH_SLAB_T / 2.0, -200.0))
+    return pin.intersect(box), gear.intersect(box), cq.Vector(pa[0], 0, pa[1]), cq.Vector(ga[0], 0, ga[1])
+
+
+def _rotated_pair(slabs: tuple, pinion_deg: float, gear_deg: float) -> tuple:
+    """(pinion, gear) of mesh_slabs (or of full bodies packed the same way) rotated about their own axes (parallel to y) by the given angles."""
+    pin, gear, po, go = slabs
     y_axis = cq.Vector(0, 1, 0)
-    po, go = cq.Vector(pa[0], 0, pa[1]), cq.Vector(ga[0], 0, ga[1])
     return pin.rotate(po, po + y_axis, pinion_deg), gear.rotate(go, go + y_axis, gear_deg)
 
 
 def mesh_sweep(bodies: dict, poses_deg=MESH_POSES_DEG) -> list:
-    """[(pinion angle deg, overlap mm3, flank distance mm)] with the gear turning -1/3 of the pinion angle (ratio 3:1, opposite sense)."""
+    """[(pinion angle deg, overlap mm3, flank distance mm)] of the tooth-face slabs, the gear turning -1/3 of the pinion angle (ratio 3:1, opposite sense)."""
+    slabs = mesh_slabs(bodies)
     out = []
     for th in poses_deg:
-        pr, gr = _rotated_pair(bodies, th, -th / P.WG3_RATIO)
+        pr, gr = _rotated_pair(slabs, th, -th / P.WG3_RATIO)
         out.append((th, pr.intersect(gr).Volume(), pr.distance(gr)))
     return out
 
 
 def backlash_measured(bodies: dict) -> dict:
-    """Free play measured on the solids: the gear is held at the reference pose and the pinion is turned each way until the flanks touch (distance < CONTACT_TOL_MM,
-    bisection to 1e-4 deg).  Returns the contact angles (deg), the total free play at the pinion (deg) and the transverse backlash at the pinion pitch circle (mm)."""
+    """Free play measured on the solids: the gear is held at the reference pose and the pinion is turned each way until the flanks touch (slab distance < CONTACT_TOL_MM,
+    bisection to BACKLASH_RESOLUTION_DEG).  Returns the contact angles (deg), the total free play at the pinion (deg), the transverse backlash at the pinion pitch circle (mm)
+    and the formula value 2 dCD tan(alpha) + both thinnings."""
     pitch_r = P.WG3_MODULE * P.WG3_Z_PINION / 2.0
+    slabs = mesh_slabs(bodies)
 
     def contact(sign: float) -> float:
-        lo, hi = 0.0, 6.0                                                           # no contact at lo, contact (or overlap) at hi
-        pr, gr = _rotated_pair(bodies, sign * hi, 0.0)
-        assert pr.distance(gr) < CONTACT_TOL_MM, "no tooth contact within 6 deg of pinion rotation"
-        while hi - lo > 1.0e-4:
+        lo, hi = 0.0, BACKLASH_BRACKET_DEG                                           # no contact at lo, contact (or overlap) at hi
+        pr, gr = _rotated_pair(slabs, 0.0, 0.0)
+        assert pr.distance(gr) > CONTACT_TOL_MM, "teeth already touch at the reference pose"
+        pr, gr = _rotated_pair(slabs, sign * hi, 0.0)
+        assert pr.distance(gr) < CONTACT_TOL_MM, f"no tooth contact within {hi} deg of pinion rotation"
+        while hi - lo > BACKLASH_RESOLUTION_DEG:
             mid = 0.5 * (lo + hi)
-            pr, gr = _rotated_pair(bodies, sign * mid, 0.0)
+            pr, gr = _rotated_pair(slabs, sign * mid, 0.0)
             lo, hi = (mid, hi) if pr.distance(gr) > CONTACT_TOL_MM else (lo, mid)
         return sign * 0.5 * (lo + hi)
     minus, plus = contact(-1.0), contact(1.0)

@@ -490,6 +490,15 @@ def test_mesh_has_no_overlap_through_a_tooth_pitch(drive):
         assert pr.distance(gr) > 0.1, (th, pr.distance(gr))                                   # revision C measured minimum flank gap 0.20 (revision B 0.117)
 
 
+def test_mesh_sweep_in_one_degree_steps_has_no_overlap_and_a_constant_flank_gap(drive):
+    """21 poses over one pinion pitch (0 to 20 deg in 1 deg steps, gear -1/3) on the tooth-face slabs: zero overlap, flank gap constant at 0.1997 (revision B 0.1168)."""
+    sweep = W.mesh_sweep(drive)
+    assert len(sweep) == 21
+    assert max(v for _, v, _ in sweep) <= LIMIT
+    gaps = [d for _, _, d in sweep]
+    assert min(gaps) > 0.15 and max(gaps) - min(gaps) < 0.01, (min(gaps), max(gaps))        # a conjugate pair: the same gap at every pose
+
+
 def test_gear_space_faces_the_pinion_tooth_at_the_mesh_point(drive):
     """Phasing rule (spec section 2): at the reference pose a gear tooth SPACE is centred on the line of centres toward the pinion and a pinion TOOTH stands in it."""
     gear, pin = drive["spool_gear54"], drive["pinion"]

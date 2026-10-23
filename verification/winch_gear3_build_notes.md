@@ -1,4 +1,101 @@
-# Winch 3:1 spur drive train: build notes (implementer, 10/23; revision B: 18T/54T, D41)
+# Winch 3:1 spur drive train: build notes (implementer, 10/23; revision C: printed PETG pinion, D42; revision B: 18T/54T, D41)
+
+**Revision C (D42, `cad/WINCH_GEAR3_SPEC.md` revision C note: "I'm printing it").** The pinion is a printed PETG part, not a bought steel one. Everything below this
+section (sections 1 to 7) is the **revision B record**; where the two differ (pinion, centre distance, spool axis z, masses, interference volumes, the `pinion18` STEP) this
+section governs, and the stale lines are marked "(rev B)". Rev B values are quoted as "rev B" for comparison.
+
+    cd /home/user/RoomCleaner && xvfb-run -a -s "-screen 0 1600x1200x24" /usr/bin/python3 -m cad.parts.winch_gear3    # exports, report, interference tables, renders
+    cd /home/user/RoomCleaner && /usr/bin/python3 -m pytest -q -p no:cacheprovider tests/test_winch_gear3.py
+
+## C1. What changed
+
+- `cad/params.py` WG3_* block: `WG3_CD_ALLOW` 0.20 -> **0.30** (CD 36.30 and spool axis z -33.66 still derive); `WG3_PINION_TOOTH_THIN = WG3_GEAR_TOOTH_THIN` (0.10);
+  pinion hub start derived `WG3_Y_PINION_HUB0 = WG3_Y_BOSS_FACE + WG3_PINION_BOSS_CLEAR` = -1.175 + 0.5 = **-0.675** (`WG3_Y_BOSS_FACE = WG3_Y_MOTOR_FRONT + NEMA17T_PILOT_H`),
+  `WG3_PINION_HUB_L = WG3_Y_TEETH0 - WG3_Y_PINION_HUB0` = **11.5**; `WG3_PINION_BORE_D` / `WG3_PINION_BORE_FLAT_X` import `ENC1021_BORE_D` / `ENC1021_BORE_FLAT_X` (5.30 / 2.15);
+  `WG3_PINION_INSERT_D` 4.0, `WG3_PINION_INSERT_DEPTH` 4.5, `WG3_PINION_SETSCREW_D` 3.0, `WG3_Y_PINION_SETSCREW = (WG3_Y_TAB1 + WG3_Y_TEETH0) / 2` = **7.9125** (spec: "y 7.9");
+  `WG3_PINION_MIN_CLEAR_MOTOR` 0.4 (spec criterion). The bed chamfer reuses `WG3_BED_CHAMFER`; comments quoting the old values were updated.
+- `cad/parts/winch_gear3.py`: `make_pinion()` builds the printed pinion (thinned 18T with the 0.3 x 45 deg chamfer on the y 20.825 tooth edges, Ø14 hub y -0.675 .. 10.825, D-bore through,
+  radial Ø4.0 x 4.5 pocket + Ø3.0 hole toward +z at y 7.9125). `print_parts()` now has four parts; `to_print_frame()` turns the pinion 180 deg about x so the teeth end is on the bed
+  (print z = 20.825 - design y). `export_parts()` writes `winch_gear3_pinion18.step/.stl`; the separate axis-z pinion export was removed from `export_gears()` (one pinion18 file; the pinion
+  body keeps the name `pinion`). `density("pinion")` is PETG. New report helpers (`mesh_sweep`, `backlash_measured`, `clearance_report`, `print_reference_interference`) are printed by `main()`.
+  Every body name, `gears_asm1021`, both drive assemblies and all other geometry are unchanged (the spool and its bodies sit 0.10 mm lower with the spool axis).
+- `tests/test_winch_gear3.py`: revision C, **34 tests, all pass (296 s)**; new or rewritten: parameters, printable pinion, teeth and thinning (thickness measured on the solid), bed chamfer, hub / D-bore / flat side / set-screw pocket and hole, backlash measured on the solids, 21-pose mesh sweep, clearances (boss 0.4, fin and tab hole radial 1.5), the pinion STEP in its print frame, one pinion file.
+- One wording point in the assignment: the hub start "boss face minus 0.5" is **boss face + 0.5** (y -1.175 + 0.5 = -0.675: the hub starts on the teeth side of the boss face, as the spec says
+  "0.5 mm clear of the motor's pilot boss face at y -1.175" and "y -0.675").
+
+## C2. Measured values (from the built solids; rev B in brackets)
+
+| Item | Rev C | (rev B) |
+|---|---|---|
+| Centre distance (bore axes) | **36.3000** (36.00 + 0.30) | 36.2000 |
+| Spool axis, design frame | x 0.0000, z **-33.6600** | z -33.56 |
+| Backlash at the pinion pitch circle, transverse | formula 2 x 0.30 x tan 20 + 0.10 + 0.10 = **0.418 mm**; measured on the solids **0.423 mm** (the gear held, the pinion turned to flank contact each way: -1.346 / +1.346 deg, free play 2.692 deg at the pinion = 0.898 deg at the spool = 0.118 mm of line at the Ø15 core, about 10 AS5600 counts at 4096/rev); normal 0.397 mm | 0.246 |
+| Mesh, 21 poses over one pinion pitch (0 to 20 deg, gear -1/3) | overlap **0.0000 mm3** at every pose; **minimum flank distance 0.1997 mm**, the same at every pose (conjugate pair) | 0, 0.1168 |
+| Gear tip to pinion hub (solid distance) | **1.460 mm** (>= 1.0; radial 36.30 - 28.0 - 7.0 = 1.3 on the tooth line, nearest tip a half pitch off) | 1.364 |
+| Gear to fin / front cap / stator / winding / rear cap / motor shaft / connector | 10.83 / 12.00 / 22.0 / 22.0 / 44.0 / 5.93 / 46.6 mm (all >= 1.5) | 10.83 / 12.00 / 22.0 / 22.0 / 44.0 / 5.83 / 46.6 |
+| **Pinion** to the motor front cap (pilot boss face) | **0.500 mm** (axial; >= 0.4) | n/a |
+| Pinion to stator / winding / rear cap / connector | 14.50 / 11.42 / 32.50 / 37.29 mm (>= 0.4) | n/a |
+| Pinion to the motor shaft it sits on | 0.150 mm (Ø5.30 bore on the Ø5 shaft; bore flat 2.15 against the shaft flat 2.0) | 0 (touching) |
+| Pinion to the fin | **4.250 mm** (the fin's motor hole R 11.25, hub R 7.0; >= 1.5 radial) | n/a |
+| Pinion to Jasper's slide-in (tab motor hole R 11.2) | **4.200 mm** (hub R 7.0; >= 1.5 radial); zero overlap | 0 |
+| Pinion hub / bore / teeth | hub Ø14 y -0.675 .. 10.825 (11.5 long); Ø5.30 D-bore through y -0.675 .. 20.825, flat 2.15 from the axis on the +z side; teeth y 10.825 .. 20.825, tip Ø20 / root Ø15.5, 18 of each | hub y 5.825 .. 10.825, Ø5 bore |
+| Pinion tooth thickness on R9 | 1.4708 mm = pi/2 - 0.10 (measured on the solid, same as the gear at R27) | 1.5708 (steel) |
+| Pinion bed chamfer | outline on the y 20.825 face reaches R 9.7 (tip 10 minus 0.3); tip faces end at y 20.525 | none |
+| Pinion V / mass | V = 3 701.1 mm3, **4.70 g PETG** (1.27 g/cm3; no insert or screw) | 2 928.1 mm3, 23.0 g steel |
+| Drive train without motor and fin | **61.0 g** | 79.3 g |
+| Print-frame bbox of `pinion` | x +-9.894, y +-10.000, z 0 .. 21.500 (bed face z = 0) | (axial frame, z -0.675 .. 20.825 in the old file: replaced) |
+
+Spool, spacer, cap, shaft, bearings and encoder bodies are the same solids as rev B (spool V = 22 987.9 mm3, 29.19 g), moved 0.10 mm lower with the spool axis.
+The magnet cap / magnet pair still overlaps 0.4125 mm3 by design; every other pair of drive bodies is <= 0.01 mm3.
+
+## C3. The pinion, as built, and print notes
+
+- **Set screw.** Pocket Ø4.0 (R 2.0) from the hub surface (R 7.0) down to R 2.5 (4.5 deep), flat bottom, opening toward +z; Ø3.0 clearance hole from the pocket bottom to the bore flat.
+  Both axes at y 7.9125 on the motor axis x. The pocket spans y 5.9125 .. 9.9125: 0.91 mm clear of the tab-face plane (y 5.0) and 0.91 mm short of the teeth (y 10.825), so a key from
+  +z reaches the screw above the exposed hub. The pocket does **not** break into the bore: 0.35 mm floor between the pocket bottom (R 2.5) and the bore flat (R 2.15), and at the pocket edge
+  (x +-2.0) the bore circle only reaches R 1.74, so the nearest wall to the round bore is 0.76 mm. The Ø3.0 hole opens through the flat: the flat is 3.098 wide (chord of R 2.65 at 2.15), so about
+  0.05 mm of flat is left either side of the hole (a sliver the slicer will not print; no effect on function).
+- **D-bore.** Round part R 2.65 (Ø5.30), flat on the +z side 2.15 from the axis (material beyond). The motor's shaft flat is at 2.0, so the set screw has the 0.15 gap plus the screw's own travel to close;
+  the round side clears the shaft by 0.15 as well. The bore values are Jasper's 10/21 printed-spool values, not re-derived.
+- **Set-screw length (assumption, for Jasper to confirm).** With a 4 mm insert flush at the hub surface its bottom sits at R 3.0 (0.5 mm above the pocket floor), and the cup point must reach the shaft
+  flat at R 2.0, so an M3 x 5 is flush with the hub at the tip contact (4 mm engaged); an M3 x 4 sits 1 mm below the surface. The insert is not modelled.
+- **Print frame (`winch_gear3_pinion18.step/.stl`).** Axis +z, **teeth end (design y 20.825) on the bed**, the Ø14 hub builds on top, 21.5 mm tall (print z = 20.825 - design y). The 0.3 x 45 deg chamfer on the
+  bed-face teeth is in the model. The D-bore is vertical (Jasper's proven printed bore size). The Ø4.0 pocket and the Ø3.0 hole are horizontal (they open toward +y of the print frame):
+  a 4 mm and a 3 mm bridge over the roof, no supports needed with the slicer's bridge setting; orient the seam away from the opening. Teeth and hub are solid PETG: print the teeth with at least 4 perimeters
+  (or 100 % infill): the tooth strength estimate in D42 relies on it (recommendation, not a modelled value).
+
+## C4. Interferences with Jasper's current slide-in, wall mount and shell (redesign inputs, not failures)
+
+Design-frame coordinates (residual removed), volumes of the boolean intersection (pieces under 0.01 mm3 dropped), from `python -m cad.parts.winch_gear3` (`interference ...` lines).
+**Rev C (CD 36.30, spool axis z -33.66) next to rev B (z -33.56).** The pinion's new hub (y -0.675 .. 5.0 through the tab's R 11.2 hole and the fin's R 11.25 hole) touches neither.
+
+| Jasper part | Drive body | Rev C mm3 | Rev B mm3 | Where (rev C) |
+|---|---|---|---|---|
+| `Slipin_mount_piecev3` | `spool_gear54` | **2463.5** | 2451.6 | three regions: |
+| | back plate (x < -21.15) | 1233.3 | 1233.3 | x -28.00 to -21.15, y 10.82 to 20.83, z -51.92 to -15.40 (1225.2 + two 4.0 pieces of tooth tips at x -21.67 to -21.15, z -51.92 to -50.45 and -16.87 to -15.40) |
+| | deck block (x > -21.15, z < -42.40) | 1143.2 | 1133.2 | x -21.15 to 13.85, y 10.82 to 20.83, z -52.38 to -42.40 |
+| | above the deck top (z > -42.40) | 87.0 | 85.1 | 74.2 (rev B 72.3) is the Ø15 drum through the 2 mm far cheek wall (x -7.50 to 2.15, y 23.56 to 25.56, z -41.16 to -31.51); 12.8 (12.8) is gear teeth just above the deck top (y 10.82 to 20.83, z -42.40 to -40.38) |
+| `Slipin_mount_piecev3` | `shaft` | **0** | 0 | none; closest approach 0.056 mm (rev B 0.127): the shaft is nearer the lug cheeks with the axis 0.1 mm lower, still clear |
+| `Slipin_mount_piecev3` | `spacer_near` | **14.0** | 13.0 | x -5.00 to -0.03, y 5.56 to 7.56, z -38.66 to -33.69 (near cheek) |
+| `Slipin_mount_piecev3` | `pinion` | **0** | 0 | none; nearest 4.20 mm = tab motor hole R 11.2 minus hub R 7.0 |
+| `Wall_Mount_v3` | `spool_gear54` | **31.0** | 27.3 | two pieces: 28.4 (rev B 25.8) at x -14.29 to -8.47, y 10.82 to 20.83, z -59.50 to -55.91 (bottom of the gear in the wall mount's lower part, top face z -55.91); 2.5 (1.5) at x -16.99 to -15.77, z -56.32 to -55.91 (tooth tips) |
+| `Shell_Casing` (information) | `spool_gear54` | **736.2** | 730.4 | two pieces: 372.9 (369.0) the Ø36 flange, x -14.62 to 14.62, y 36.83 to 39.83, z -50.08 to -44.17; 363.3 (361.4) gear teeth in the shell wall, x 14.09 to 25.17, y 10.82 to 20.83, z -49.17 to -44.17 |
+| `Shell_Casing` (information) | `as5600_board` | **36.6** | 32.9 | x -11.50 to 11.50, y 58.50 to 60.10, z -45.16 to -44.17 |
+| `Shell_Casing` (information) | `bearing_near`, `bearing_far` | **0** | 0 | none; bearing bottoms z -40.66 against the shell top -44.17: 3.51 mm |
+| `Spool1011` (the part being replaced) | `pinion` | 1994.1 | 2012.9 | x -7.50 to 7.50, y 7.00 to 20.83, z -4.86 to 10.14 (it sits on the motor shaft, as before) |
+| `Spool1011` | `motor_shaft` | 8.35 | 8.4 | x 2.15 to 2.50, y 7.00 to 20.83, z 1.36 to 3.92 (unchanged) |
+
+No overlap with the slip-in or the wall mount: `pinion`, all `motor_*`, `shaft`, `bearing_near`, `bearing_far`, `magnet_cap`, `magnet`, `as5600_chip`, `as5600_board`. Zero overlap of the pinion with the fin and with
+every motor body (`drive_overlaps`). `test_interference_with_current_slipin_and_wall_mount` still asserts exactly three interfering pairs: (`spool_gear54`, slip-in), (`spacer_near`, slip-in),
+(`spool_gear54`, wall mount). What the mount has to do is the rev B list in section 5, shifted 0.1 mm down at the spool, plus **keep the tab's motor hole at least Ø16 (now Ø22.4) so the pinion hub passes**.
+
+## C5. Open points and findings (not fixed here: outside the assignment)
+
+1. **`calculations/winch_gear3.py` line 243 backlash formula subtracts the pinion thinning** (`... + WG3_GEAR_TOOTH_THIN - WG3_PINION_TOOTH_THIN`). With both thinned by 0.10 it returns 0.218 mm, but the true transverse backlash is
+   2 dCD tan 20 + gear thinning + pinion thinning = 0.418 mm (measured 0.423 mm on the solids, above). The calculation needs the sign fixed and the encoder budget rerun (the lead's D42 estimate "about 0.42 mm" is the correct one).
+2. `tests/test_winch_gear3_verify.py` and `calculations/winch_gear3.py` still describe the steel pinion, CD 36.20 and `WG3_PINION_HUB_L = 5.0` / `WG3_Y_PINION_HUB0 = 5.825` / bore Ø5.0 (the verifier's parameter table); they will fail until rerun for revision C.
+3. Sections 1 to 7 below are rev B: in particular the section 2 `pinion18` row, the "pinion (purchased steel)" paragraph, the mass table and the section 5 interference table are superseded by C1 to C4 above.
+4. The insert, set screw and heat-set process are not modelled; only the pocket and the hole are. Pinion mass excludes them (about 0.3 g of brass insert).
 
 **Revision B (D41, `cad/WINCH_GEAR3_SPEC.md` revision note).** The spur pair went from 20T/60T to **18T/54T at module 1**. Centre distance 36.00 + 0.20 =
 36.20, spool axis z -33.56 (4 mm higher). Everything else is unchanged: every axial position, drum, flange, hubs, bore, shaft, bearings, spacer, magnet cap,
@@ -33,7 +130,7 @@ the drive-body name are derived from the tooth count: `SPOOL = f"spool_gear{WG3_
 | `exports/step/winch_gear3_magnet_cap.step`, `.stl` | printable magnet cap (body `magnet_cap_w3`; geometry unchanged) |
 | `exports/step/winch_gear3_drive_asm1021.step` | 17 named bodies: `motor_front_cap, motor_stator, motor_winding, motor_rear_cap, motor_shaft, motor_connector, fin, pinion, spool_gear54, shaft, bearing_near, bearing_far, spacer_near, magnet_cap, magnet, as5600_chip, as5600_board` |
 | `exports/step/winch_gear3_drive_with_slipin_asm1021.step` | the same plus `slipin_mount`, `wall_mount` |
-| `exports/step/winch_gear3_pinion18.step` | the purchased pinion alone (body `pinion`, axial frame, axis z, hub y 5.825 .. 10.825, teeth to 20.825) |
+| `exports/step/winch_gear3_pinion18.step` | (rev B: the purchased pinion alone, axial frame; **rev C: the printable pinion, print frame, teeth end on the bed, body `pinion`**, see C1) |
 | `exports/step/winch_gear3_gears_asm1021.step` | `pinion` + `spool_gear54` in mesh, assembly coordinates |
 | `renders/winch_gear3/winch_gear3_{front,side,top,iso,mesh,section_axis,section_cap,section_tieoff}.png` | front (from +x), side (end view from +y), top (from +z), iso, mesh close-up (section y 15.827), section through the spool axis, zoom on the encoder end, section at the drum mid-plane (tie-off). Front, side, iso, mesh and section_axis looked at after the rebuild. |
 
@@ -71,7 +168,7 @@ within 0.1 % (tests `test_step_round_trip_*`, `test_gear_step_files_*`).
 | Bore | Ø7.00 through, on the axis (unchanged) |
 | Tie-off | Ø1.4 chord hole, axis 5.25 mm off the spool axis toward +x, along z, at y 28.825; ligaments 1.05 mm to the bore, 1.55 mm to the core surface (unchanged, probed in the solid by the test) |
 
-**pinion** (purchased steel, 18T): V = 2 928.1 mm3, 23.0 g steel (rev A 27.6 g). Ø5 bore, M3 set-screw hole at the hub mid-plane y 8.325 toward +z (D-flat), unchanged.
+**pinion** (rev B: purchased steel, 18T; superseded by C2/C3): V = 2 928.1 mm3, 23.0 g steel (rev A 27.6 g). Ø5 bore, M3 set-screw hole at the hub mid-plane y 8.325 toward +z (D-flat).
 
 **spacer_near_w3**: y 5.0 to 10.825 (5.825 long), Ø10 body, Ø7.10 bore, Ø9 lands 0.3 proud on both ends (flat end faces: prints on either), V = 217.9 mm3, 0.28 g (unchanged).
 

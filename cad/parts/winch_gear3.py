@@ -775,8 +775,8 @@ def main(render: bool = True) -> None:
     for k, v in clearance_report(bodies).items():
         print(f"clearance {k}: {v:.4f} mm")
     sweep = mesh_sweep(bodies)
-    print(f"mesh sweep, {len(sweep)} poses over one pinion pitch: max overlap {max(r[1] for r in sweep):.4f} mm3, minimum flank distance {min(r[2] for r in sweep):.4f} mm "
-          f"(at {min(sweep, key=lambda r: r[2])[0]:.0f} deg)")
+    print(f"mesh sweep, {len(sweep)} poses over one pinion pitch: max overlap {max(r[1] for r in sweep):.4f} mm3, flank distance min {min(r[2] for r in sweep):.4f} / "
+          f"max {max(r[2] for r in sweep):.4f} mm (conjugate pair: the same at every pose)")
     bl = backlash_measured(bodies)
     print(f"backlash: contact at {bl['minus_deg']:.4f} / {bl['plus_deg']:.4f} deg of the pinion, free play {bl['play_deg']:.4f} deg = {bl['backlash_mm']:.4f} mm at the pitch circle "
           f"(formula 2 dCD tan(20) + thinning of both gears = {bl['formula_mm']:.4f} mm)")

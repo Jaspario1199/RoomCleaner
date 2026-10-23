@@ -1,22 +1,24 @@
 """
 WINCH GEAR 3 -- 3:1 spur reduction of the winch station: drive-train reference that Jasper designs his mount around.
 
-Spec: cad/WINCH_GEAR3_SPEC.md (D40, revision B / D41: 18T/54T).  Parameters: cad/params.py block WG3_* (plus NEMA17T_*, FIN1021_*, GRIPV7 bearing sizes, ENC1021 values it reuses).
+Spec: cad/WINCH_GEAR3_SPEC.md (D40, revision B / D41: 18T/54T, revision C / D42: printed PETG pinion).  Parameters: cad/params.py block WG3_* (plus NEMA17T_*, FIN1021_*, GRIPV7 bearing sizes, ENC1021 values it reuses).
 Build notes / measured results / interferences with the current slide-in: verification/winch_gear3_build_notes.md.  Tests: tests/test_winch_gear3.py.
 
 Drive train (station_1021 frame: motor axis x = 0, z = +2.64; +y along the motor shaft toward the spool; +x out of the wall; +z up):
 
-    motor (NEMA 17, front face y -3.175 behind the 1/8 in fin)  ->  steel M1 18T pinion on the Ø5 shaft (D-flat, set screw)
-        teeth y 10.825 .. 20.825, hub Ø14 y 5.825 .. 10.825
-    printed 54T gear (part of `spool_gear54`) on its own Ø7 shaft, axis x 0, z -33.56 (centre distance 36.20 = 36.00 + 0.20 backlash allowance)
+    motor (NEMA 17, front face y -3.175 behind the 1/8 in fin)  ->  printed PETG M1 18T pinion (`pinion18`) on the Ø5 shaft (printed D-bore Ø5.30 / flat 2.15, M3 set screw in a heat-set insert)
+        teeth y 10.825 .. 20.825 (0.10 thinning, 0.3 x 45 deg chamfer on the y 20.825 tooth edges), hub Ø14 y -0.675 .. 10.825 (through the fin's and the tab's motor holes,
+        0.5 mm clear of the motor's pilot boss face at y -1.175), radial insert pocket Ø4.0 x 4.5 + Ø3.0 hole toward +z at y 7.9125
+    printed 54T gear (part of `spool_gear54`) on its own Ø7 shaft, axis x 0, z -33.66 (centre distance 36.30 = 36.00 + 0.30 backlash allowance, printed against printed)
         spool_gear54  y 10.825 .. 44.0: gear 10.825 .. 20.825 (six Ø10 windows on R17.5, 0.3 x 45 deg chamfer on the bed-face teeth), drum Ø15 to 36.825,
                       Ø36 x 3 outer flange, Ø12 far hub with a Ø9 land 0.3 proud, Ø7.00 bore, Ø1.4 chord tie-off hole at y 28.825
         spacer_near_w3 Ø10 / Ø7.10, y 5.0 .. 10.825, Ø9 lands (0.3 proud) on both ends
         shaft Ø7 x 55 (y -3 .. 52), 687 bearings y 0 .. 5 and 44 .. 49, magnet_cap_w3 y 49.3 .. 55.55 (Ø7 bore 3.0 deep, 0.75 web, Ø6.3 x 2.5 pocket with 3 crush
         ribs), Ø6 x 2.5 magnet, AS5600: chip face y 57.05, chip 1.45 tall, PCB 23 x 23 x 1.6 at y 58.5 .. 60.1
 
-Frames.  Parts are built in an AXIAL frame: axis = local z = station y, local x = station x, local y = -station z.  That is also the print frame (axis up):
-spool_gear54 prints with its near gear face (y 10.825) on the bed, magnet_cap_w3 on its bearing-side face (magnet face up), spacer_near_w3 on either end face.
+Frames.  Parts are built in an AXIAL frame: axis = local z = station y, local x = station x, local y = -station z.  The print frame is that frame with the axis up
+and the bed face at z = 0: spool_gear54 prints with its near gear face (y 10.825) on the bed, magnet_cap_w3 on its bearing-side face (magnet face up), spacer_near_w3 on
+either end face, and pinion18 teeth end down (y 20.825 on the bed, hub up): the axial frame turned 180 deg about x, then shifted so the bed face is z = 0.
 Part STEP / STL files are in the print frame (z = 0 on the bed face).  The assemblies are in assembly coordinates (asm1021 = station_1021 + O, the repo's
 convention: they drop into Assem_laundry_v3_step_1021 at the origin) and carry the extraction residual ENC1021_REF_RESIDUAL (0.004 mm), so the drive bodies
 coincide with Jasper's STEP files and with exports/step/heat_fin1021_1p8_asm1021.step.  In-memory builders (`build_drive`) use the station_1021 frame.
@@ -51,12 +53,13 @@ FIN_STEP = os.path.join(STEP_DIR, "heat_fin1021_1p8_asm1021.step")
 NAME = "winch_gear3"
 
 SPOOL = f"spool_gear{P.WG3_Z_GEAR}"                  # printable gear body, part file stem and drive-body name: follow the tooth count (revision B: spool_gear54)
-PINION_FILE = f"pinion{P.WG3_Z_PINION}"              # pinion-alone export stem (revision B: pinion18)
+PINION = "pinion"                                    # printable pinion body name (print part, drive body, STEP body name)
+PINION_FILE = f"pinion{P.WG3_Z_PINION}"              # its export file stem (revision B/C: pinion18)
 SPACER, CAP = "spacer_near_w3", "magnet_cap_w3"
 BODY_ORDER = tuple(f"motor_{b}" for b in P.NEMA17T_BODIES) + ("fin", "pinion", SPOOL, "shaft", "bearing_near", "bearing_far", "spacer_near",
                                                                 "magnet_cap", "magnet", "as5600_chip", "as5600_board")
 COLORS = {"motor_front_cap": (0.72, 0.74, 0.78), "motor_stator": (0.18, 0.18, 0.20), "motor_winding": (0.80, 0.45, 0.18), "motor_rear_cap": (0.72, 0.74, 0.78),
-          "motor_shaft": (0.45, 0.45, 0.50), "motor_connector": (0.15, 0.30, 0.65), "fin": (0.80, 0.82, 0.88), "pinion": (0.55, 0.57, 0.62),
+          "motor_shaft": (0.45, 0.45, 0.50), "motor_connector": (0.15, 0.30, 0.65), "fin": (0.80, 0.82, 0.88), "pinion": (0.55, 0.45, 0.80),
           SPOOL: (0.93, 0.62, 0.25), "shaft": (0.38, 0.40, 0.45), "bearing_near": (0.62, 0.64, 0.68), "bearing_far": (0.62, 0.64, 0.68),
           "spacer_near": (0.35, 0.65, 0.85), "magnet_cap": (0.35, 0.75, 0.50), "magnet": (0.75, 0.15, 0.15), "as5600_chip": (0.10, 0.10, 0.12),
           "as5600_board": (0.10, 0.45, 0.25), "slipin_mount": (0.85, 0.75, 0.55), "wall_mount": (0.70, 0.62, 0.50)}
@@ -133,18 +136,40 @@ def _toothed(n: int, phase_deg: float, thin: float) -> cq.Solid:
 
 
 # =============================================================================================================================
-# the printable parts and the purchased pinion (axial frame, design values, no residual)
+# the printable parts (axial frame, design values, no residual)
 # =============================================================================================================================
+def _tooth_end_edges(g: cq.Solid) -> list:
+    """Edges of the toothed solid lying in its far face z = WG3_FACE (the outer tooth outline: that face has no other wire before the bore is cut)."""
+    return [e for e in g.Edges() if e.BoundingBox().zmin > P.WG3_FACE - 1.0e-6]
+
+
+def _d_bore_cutter(z0: float, z1: float) -> cq.Solid:
+    """Printed D-bore cutter, axial frame, z0 .. z1: Ø WG3_PINION_BORE_D round bore cut off by the flat WG3_PINION_BORE_FLAT_X from the axis on the +z STATION side
+    (= axial -y: material beyond the flat, on the -y side), the motor shaft's flat (2.0 from the axis) facing it."""
+    r = P.WG3_PINION_BORE_D / 2.0
+    keep_from = -P.WG3_PINION_BORE_FLAT_X                                                           # axial y of the flat
+    keep = cq.Solid.makeBox(2.0 * (r + CONSTRUCTION_OVERSHOOT), (r + CONSTRUCTION_OVERSHOOT) - keep_from, z1 - z0, cq.Vector(-(r + CONSTRUCTION_OVERSHOOT), keep_from, z0))
+    return _one(_cyl(r, z0, z1).intersect(keep), "D-bore cutter")
+
+
 def make_pinion() -> cq.Solid:
-    """Purchased steel M1 18T pinion: teeth y 10.825 .. 20.825, hub Ø14 y 5.825 .. 10.825, Ø5 bore (round: touches the round part of the shaft, the D-flat side is
-    closed by the set screw), M3 set-screw hole (plain Ø3.0) radial toward the D-flat (+z station = -y axial) at the hub mid-plane.  Axis on the z axis."""
-    teeth = _toothed(P.WG3_Z_PINION, pinion_phase_deg(), P.WG3_PINION_TOOTH_THIN).translate(cq.Vector(0, 0, P.WG3_Y_TEETH0))
+    """Printed PETG M1 18T pinion (revision C / D42), axial frame, axis on the z axis (axial z = station y):
+    teeth y 10.825 .. 20.825 with the gear's 0.10 thinning and a 0.3 x 45 deg chamfer on the tooth edges of the y 20.825 end face (the print bed face);
+    hub Ø14 from y -0.675 (0.5 mm clear of the motor's pilot boss face) to the teeth; D-bore (Ø5.30, flat 2.15 from the axis on the +z station side) through;
+    radial pocket Ø4.0 x 4.5 deep from the hub surface for the M3 heat-set insert, and a Ø3.0 hole from the pocket bottom to the bore, both toward +z station
+    (= axial -y, the D-flat side) on the axis y 7.9125."""
+    teeth = _toothed(P.WG3_Z_PINION, pinion_phase_deg(), P.WG3_PINION_TOOTH_THIN)
+    teeth = teeth.chamfer(P.WG3_BED_CHAMFER, None, _tooth_end_edges(teeth)).translate(cq.Vector(0, 0, P.WG3_Y_TEETH0))      # relief on the tooth edges of the bed face
     hub = _cyl(P.WG3_PINION_HUB_D / 2.0, P.WG3_Y_PINION_HUB0, P.WG3_Y_TEETH0)
     body = teeth.fuse(hub).clean()
-    body = body.cut(_cyl(P.WG3_PINION_BORE_D / 2.0, P.WG3_Y_PINION_HUB0 - CONSTRUCTION_OVERSHOOT, P.WG3_Y_TEETH1 + CONSTRUCTION_OVERSHOOT))
-    y_set = P.WG3_Y_PINION_HUB0 + P.WG3_PINION_HUB_L / 2.0
-    screw = cq.Solid.makeCylinder(P.WG3_PINION_SETSCREW_D / 2.0, P.WG3_PINION_HUB_D / 2.0 + CONSTRUCTION_OVERSHOOT, cq.Vector(0, 0, y_set), cq.Vector(0, -1, 0))
-    return _one(body.cut(screw), "pinion")
+    body = body.cut(_d_bore_cutter(P.WG3_Y_PINION_HUB0 - CONSTRUCTION_OVERSHOOT, P.WG3_Y_TEETH1 + CONSTRUCTION_OVERSHOOT))
+    r_hub = P.WG3_PINION_HUB_D / 2.0
+    r_pocket_bottom = r_hub - P.WG3_PINION_INSERT_DEPTH
+    toward_plus_z = cq.Vector(0, -1, 0)                                                              # axial -y = station +z
+    pocket = cq.Solid.makeCylinder(P.WG3_PINION_INSERT_D / 2.0, P.WG3_PINION_INSERT_DEPTH + CONSTRUCTION_OVERSHOOT,
+                                   cq.Vector(0, -r_pocket_bottom, P.WG3_Y_PINION_SETSCREW), toward_plus_z)
+    hole = cq.Solid.makeCylinder(P.WG3_PINION_SETSCREW_D / 2.0, r_pocket_bottom + CONSTRUCTION_OVERSHOOT, cq.Vector(0, 0, P.WG3_Y_PINION_SETSCREW), toward_plus_z)
+    return _one(body.cut(pocket).cut(hole), PINION)
 
 
 def _bed_face_edges(g: cq.Solid) -> list:
@@ -292,9 +317,13 @@ def to_assembly(bodies: dict) -> dict:
 # =============================================================================================================================
 # print poses
 # =============================================================================================================================
-PART_FILE = {SPOOL: SPOOL, SPACER: "spacer_near", CAP: "magnet_cap"}     # printable part -> file stem and COLORS key
-PRINT_BED_Y = {SPOOL: P.WG3_Y_TEETH0, SPACER: P.WG3_SPACER_Y0, CAP: P.WG3_CAP_Y0}
-PRINT_NOTE = {SPOOL: "near gear face (y 10.825, chamfered tooth edges) on the bed, axis up; the far hub builds on top of the Ø36 flange; the flange's inner face "
+PART_FILE = {PINION: PINION_FILE, SPOOL: SPOOL, SPACER: "spacer_near", CAP: "magnet_cap"}     # printable part -> export file stem
+PART_COLOR = {PINION: "pinion", SPOOL: SPOOL, SPACER: "spacer_near", CAP: "magnet_cap"}      # printable part -> COLORS key
+PRINT_BED_Y = {PINION: P.WG3_Y_TEETH1, SPOOL: P.WG3_Y_TEETH0, SPACER: P.WG3_SPACER_Y0, CAP: P.WG3_CAP_Y0}      # design y of the bed face
+PRINT_FLIPPED = {PINION}                                                    # the bed face is the part's HIGHEST-y face: turned 180 deg about x (hub up)
+PRINT_NOTE = {PINION: "teeth end (y 20.825, 0.3 x 45 deg chamfered tooth edges) on the bed, axis up, hub up; the Ø14 hub, the D-bore and the radial Ø4.0 insert pocket + Ø3.0 hole "
+                      "(horizontal, opening to +y of the print frame) need no supports with bridging; heat-set an M3 x 4 insert in the pocket, M3 cup-point set screw onto the D-flat",
+              SPOOL: "near gear face (y 10.825, chamfered tooth edges) on the bed, axis up; the far hub builds on top of the Ø36 flange; the flange's inner face "
                      "(y 36.825) overhangs the Ø15 drum by 10.5 mm: PRINTED ON SUPPORTS, sand that face smooth where the line touches it",
               SPACER: "either end face (both are Ø9 lands) on the bed, axis up; no supports",
               CAP: "bearing-side face (y 49.3, the Ø7 bore opening) on the bed, magnet pocket up: magnet-face up; no supports (the web closes the bore under the pocket)"}
@@ -302,8 +331,15 @@ PRINT_NOTE = {SPOOL: "near gear face (y 10.825, chamfered tooth edges) on the be
 
 def print_parts() -> dict:
     """name -> solid in the print frame (axial frame translated so the bed face is z = 0)."""
-    made = {SPOOL: make_spool_gear(), SPACER: make_spacer_near(), CAP: make_magnet_cap()}
-    return {k: v.translate(cq.Vector(0, 0, -PRINT_BED_Y[k])) for k, v in made.items()}
+    made = {PINION: make_pinion(), SPOOL: make_spool_gear(), SPACER: make_spacer_near(), CAP: make_magnet_cap()}
+    return {k: to_print_frame(k, v) for k, v in made.items()}
+
+
+def to_print_frame(name: str, shape: cq.Shape) -> cq.Shape:
+    """Axial frame -> print frame: bed face at z = 0, axis up.  Flipped parts (pinion: bed face = highest y) are turned 180 deg about the x axis first (z -> -z, y -> -y)."""
+    if name in PRINT_FLIPPED:
+        return shape.rotate(cq.Vector(0, 0, 0), cq.Vector(1, 0, 0), 180.0).translate(cq.Vector(0, 0, PRINT_BED_Y[name]))
+    return shape.translate(cq.Vector(0, 0, -PRINT_BED_Y[name]))
 
 
 # =============================================================================================================================
@@ -369,7 +405,7 @@ def density(name: str) -> float:
     d = dict(P.THERMAL_DENSITY_G_CM3)
     if name in P.NEMA17T_BODIES or name.startswith("motor_"):
         return N.material(name.replace("motor_", ""))[3]
-    if name in ("spacer_near", "magnet_cap", SPOOL, SPACER, CAP):
+    if name in (PINION, "spacer_near", "magnet_cap", SPOOL, SPACER, CAP):
         return d["petg"]
     if name == "fin":
         return d["aluminium"]
@@ -377,24 +413,95 @@ def density(name: str) -> float:
         return P.WG3_MAGNET_G_CM3
     if name in ("as5600_chip", "as5600_board"):
         return 0.0                                                               # envelopes: no mass claimed
-    return d["steel"]                                                            # pinion, shaft, bearings (solid ring envelope: heavier than a real 687)
+    return d["steel"]                                                            # shaft, bearings (solid ring envelope: heavier than a real 687)
 
 
 def mass_g(name: str, shape: cq.Shape) -> float:
     return shape.Volume() * density(name) / 1000.0
 
 
+REFERENCE_PARTS = ("Slipin_mount_piecev3", "Wall_Mount_v3", "Shell_Casing", "Spool1011")    # Jasper's STEPs that the drive is checked against (read only)
+MESH_POSES_DEG = tuple(float(a) for a in range(0, 21))                                       # pinion rotation, one pinion pitch (360 / 18 = 20 deg); the gear turns -1/3 of it
+CONTACT_TOL_MM = 1.0e-3                                                                      # flank distance that counts as tooth contact in the backlash search
+
+
+def _rotated_pair(bodies: dict, pinion_deg: float, gear_deg: float) -> tuple:
+    """(pinion, gear) rotated about their own axes (parallel to y, station frame) by the given angles."""
+    pin, gear = bodies[PINION], bodies[SPOOL]
+    pa, ga = bore_axis_xz(pin, P.WG3_PINION_BORE_D / 2.0), bore_axis_xz(gear, P.WG3_BORE_D / 2.0)
+    y_axis = cq.Vector(0, 1, 0)
+    po, go = cq.Vector(pa[0], 0, pa[1]), cq.Vector(ga[0], 0, ga[1])
+    return pin.rotate(po, po + y_axis, pinion_deg), gear.rotate(go, go + y_axis, gear_deg)
+
+
+def mesh_sweep(bodies: dict, poses_deg=MESH_POSES_DEG) -> list:
+    """[(pinion angle deg, overlap mm3, flank distance mm)] with the gear turning -1/3 of the pinion angle (ratio 3:1, opposite sense)."""
+    out = []
+    for th in poses_deg:
+        pr, gr = _rotated_pair(bodies, th, -th / P.WG3_RATIO)
+        out.append((th, pr.intersect(gr).Volume(), pr.distance(gr)))
+    return out
+
+
+def backlash_measured(bodies: dict) -> dict:
+    """Free play measured on the solids: the gear is held at the reference pose and the pinion is turned each way until the flanks touch (distance < CONTACT_TOL_MM,
+    bisection to 1e-4 deg).  Returns the contact angles (deg), the total free play at the pinion (deg) and the transverse backlash at the pinion pitch circle (mm)."""
+    pitch_r = P.WG3_MODULE * P.WG3_Z_PINION / 2.0
+
+    def contact(sign: float) -> float:
+        lo, hi = 0.0, 6.0                                                           # no contact at lo, contact (or overlap) at hi
+        pr, gr = _rotated_pair(bodies, sign * hi, 0.0)
+        assert pr.distance(gr) < CONTACT_TOL_MM, "no tooth contact within 6 deg of pinion rotation"
+        while hi - lo > 1.0e-4:
+            mid = 0.5 * (lo + hi)
+            pr, gr = _rotated_pair(bodies, sign * mid, 0.0)
+            lo, hi = (mid, hi) if pr.distance(gr) > CONTACT_TOL_MM else (lo, mid)
+        return sign * 0.5 * (lo + hi)
+    minus, plus = contact(-1.0), contact(1.0)
+    play = plus - minus
+    return {"minus_deg": minus, "plus_deg": plus, "play_deg": play, "backlash_mm": math.radians(play) * pitch_r,
+            "formula_mm": 2.0 * P.WG3_CD_ALLOW * math.tan(math.radians(P.WG3_PRESSURE_ANGLE_DEG)) + P.WG3_GEAR_TOOTH_THIN + P.WG3_PINION_TOOTH_THIN}
+
+
+def pinion_hub_solid() -> cq.Solid:
+    """The pinion's Ø14 hub alone (no bore), station frame with the residual: what the gear tip must clear."""
+    return axial_to_station(_cyl(P.WG3_PINION_HUB_D / 2.0, P.WG3_Y_PINION_HUB0, P.WG3_Y_TEETH0), P.WG3_MOTOR_XZ)
+
+
+def clearance_report(bodies: dict) -> dict:
+    """Solid-to-solid distances (mm) of the revision C criteria: gear tip to the pinion hub, gear to motor and fin, the pinion to the motor bodies (the shaft it sits on is
+    reported apart), to the fin and to the slide-in (whose motor hole is R 11.2)."""
+    gear, pin = bodies[SPOOL], bodies[PINION]
+    motor = [k for k in bodies if k.startswith("motor_")]
+    out = {"gear_hub": gear.distance(pinion_hub_solid())}
+    out.update({f"gear_{k}": gear.distance(bodies[k]) for k in motor + ["fin"]})
+    out.update({f"pinion_{k}": pin.distance(bodies[k]) for k in motor + ["fin"]})
+    out["pinion_slipin"] = pin.distance(reference("Slipin_mount_piecev3"))
+    return out
+
+
+def print_reference_interference(bodies: dict) -> list:
+    """Overlap of every drive body with Jasper's slide-in, wall mount, shell and the old spool (design-frame boxes; pieces under 0.01 mm3 dropped)."""
+    dx, dy, dz = residual()
+    rows = reference_interference(bodies, {n: reference(n) for n in REFERENCE_PARTS})
+    for r in sorted(rows, key=lambda r: (REFERENCE_PARTS.index(r["ref"]), -r["volume"])):
+        print(f"interference {r['ref']} - {r['body']}: {r['volume']:.2f} mm3 in {len(r['pieces'])} piece(s)")
+        for v, bb in r["pieces"][:12]:
+            print(f"    {v:10.2f} mm3  x[{bb.xmin - dx:8.2f},{bb.xmax - dx:8.2f}] y[{bb.ymin - dy:8.2f},{bb.ymax - dy:8.2f}] z[{bb.zmin - dz:8.2f},{bb.zmax - dz:8.2f}]")
+    return rows
+
+
 # =============================================================================================================================
 # exports
 # =============================================================================================================================
 def export_parts(step_dir: str = STEP_DIR, stl_dir: str = STL_DIR) -> dict:
-    """Print-frame STEP (named, one component) and STL of spool_gear54, magnet_cap_w3 and spacer_near_w3."""
+    """Print-frame STEP (named, one component) and STL of pinion (file pinion18), spool_gear54, magnet_cap_w3 and spacer_near_w3."""
     os.makedirs(step_dir, exist_ok=True)
     os.makedirs(stl_dir, exist_ok=True)
     out = {}
     for name, shape in print_parts().items():
         file = PART_FILE[name]
-        step = N.export_named_step({name: shape}, os.path.join(step_dir, f"{NAME}_{file}.step"), assembly_name=f"{NAME}_{file}", colors={name: COLORS[file]})
+        step = N.export_named_step({name: shape}, os.path.join(step_dir, f"{NAME}_{file}.step"), assembly_name=f"{NAME}_{file}", colors={name: COLORS[PART_COLOR[name]]})
         stl = os.path.join(stl_dir, f"{NAME}_{file}.stl")
         cq.exporters.export(_wp(shape), stl, tolerance=0.01, angularTolerance=0.1)
         out[name] = {"step": step, "stl": stl}
@@ -415,15 +522,12 @@ def export_assemblies(step_dir: str = STEP_DIR) -> dict:
 
 
 def export_gears(step_dir: str = STEP_DIR) -> dict:
-    """The two gears as their own STEP files: the purchased pinion alone (its axial frame, axis z) and the pinion + spool_gear54 in mesh
-    (assembly coordinates of the drive assembly, same colours)."""
-    pair = ("pinion", SPOOL)
+    """The pinion + spool_gear54 pair in mesh as one STEP (assembly coordinates of the drive assembly, same colours).  The pinion alone is the printable part
+    `winch_gear3_pinion18.step` (export_parts, print frame); there is no second pinion file."""
+    pair = (PINION, SPOOL)
     asm = to_assembly(build_drive())
-    out = {"pinion": N.export_named_step({"pinion": make_pinion()}, os.path.join(step_dir, f"{NAME}_{PINION_FILE}.step"),
-                                         assembly_name=f"{NAME}_{PINION_FILE}", colors={"pinion": COLORS["pinion"]}),
-           "gears": N.export_named_step({k: asm[k] for k in pair}, os.path.join(step_dir, f"{NAME}_gears_asm1021.step"),
-                                        assembly_name=f"{NAME}_gears_asm1021", colors={k: COLORS[k] for k in pair})}
-    return out
+    return {"gears": N.export_named_step({k: asm[k] for k in pair}, os.path.join(step_dir, f"{NAME}_gears_asm1021.step"),
+                                         assembly_name=f"{NAME}_gears_asm1021", colors={k: COLORS[k] for k in pair})}
 
 
 # =============================================================================================================================
@@ -606,7 +710,7 @@ def render_all(out_dir: str = RENDER_DIR) -> list:
     mesh_items = [(bodies[k], COLORS[k]) for k in ("pinion", SPOOL, "motor_shaft")]
     paths.append(render_scene(mesh_items, os.path.join(out_dir, f"{NAME}_mesh.png"), (mx, y_mesh, mz - P.WG3_MODULE * P.WG3_Z_PINION / 2.0), (0, 1, 0), (0, 0, 1), 14.0,
                               f"{NAME}: mesh close-up, section y = {y_mesh:.3f} seen from +y",
-                              f"{P.WG3_Z_PINION}T steel pinion above, {P.WG3_Z_GEAR}T printed gear below, centre distance {P.WG3_CD:.2f}: a pinion tooth stands in a gear space on the line of centres; +x to the left", section=(1, y_mesh, True)))
+                              f"{P.WG3_Z_PINION}T printed pinion above, {P.WG3_Z_GEAR}T printed gear below, centre distance {P.WG3_CD:.2f}: a pinion tooth stands in a gear space on the line of centres; +x to the left", section=(1, y_mesh, True)))
     # section through the spool axis (plane x = axis): spool, spacer, pinion, shaft, bearings, cap, magnet, chip, board
     sec_items = [(bodies[k], COLORS[k]) for k in BODY_ORDER if k not in ("fin",)]
     paths.append(render_scene(sec_items, os.path.join(out_dir, f"{NAME}_section_axis.png"), (sx, yc, zc), (1, 0, 0), (0, 0, 1), 58.0,
@@ -646,12 +750,21 @@ def main(render: bool = True) -> None:
         m = mass_g(k, s)
         tot += m if k not in ("fin",) and not k.startswith("motor_") else 0.0
         print(f"{k:<16} valid={s.isValid()} vol={s.Volume():10.2f} mm3 mass={m:8.2f} g  x[{bb.xmin:8.3f},{bb.xmax:8.3f}] y[{bb.ymin:8.3f},{bb.ymax:8.3f}] z[{bb.zmin:8.3f},{bb.zmax:8.3f}]")
-    print(f"drive train without motor and fin: {tot:.1f} g")
+    print(f"drive train without motor and fin: {tot:.1f} g (no heat-set insert, set screw or magnet-glue mass)")
     dx, dy, dz = residual()
-    pin, spo = bore_axis_xz(bodies["pinion"], P.WG3_PINION_BORE_D / 2.0), bore_axis_xz(bodies[SPOOL], P.WG3_BORE_D / 2.0)
+    pin, spo = bore_axis_xz(bodies[PINION], P.WG3_PINION_BORE_D / 2.0), bore_axis_xz(bodies[SPOOL], P.WG3_BORE_D / 2.0)
     print(f"centre distance {math.hypot(pin[0] - spo[0], pin[1] - spo[1]):.4f} (spool axis x {spo[0] - dx:.4f}, z {spo[1] - dz:.4f} in the design frame)")
     for k, v in sorted(drive_overlaps(bodies).items(), key=lambda kv: -kv[1]):
         print(f"overlap {k[0]} - {k[1]}: {v:.4f} mm3")
+    for k, v in clearance_report(bodies).items():
+        print(f"clearance {k}: {v:.4f} mm")
+    sweep = mesh_sweep(bodies)
+    print(f"mesh sweep, {len(sweep)} poses over one pinion pitch: max overlap {max(r[1] for r in sweep):.4f} mm3, minimum flank distance {min(r[2] for r in sweep):.4f} mm "
+          f"(at {min(sweep, key=lambda r: r[2])[0]:.0f} deg)")
+    bl = backlash_measured(bodies)
+    print(f"backlash: contact at {bl['minus_deg']:.4f} / {bl['plus_deg']:.4f} deg of the pinion, free play {bl['play_deg']:.4f} deg = {bl['backlash_mm']:.4f} mm at the pitch circle "
+          f"(formula 2 dCD tan(20) + thinning of both gears = {bl['formula_mm']:.4f} mm)")
+    print_reference_interference(bodies)
     for k, p in export_assemblies().items():
         print("exported assembly", k, p)
     for k, p in export_gears().items():

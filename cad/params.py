@@ -807,9 +807,10 @@ NEMA17T_MATERIALS = (                  # body -> (suggested material, k W/m.K, d
 
 
 # =============================================================================
-# WINCH GEAR 3 (WG3_*): 3:1 spur reduction of the winch station: purchased steel M1 18T pinion on the NEMA 17 shaft, printed 54T gear that is
-# part of the spool, spool on its own Ø7 shaft in two 687 bearings 36.20 mm below the motor axis.      cad/WINCH_GEAR3_SPEC.md (D40, revision B / D41: 18T/54T)
-# cad/parts/winch_gear3.py builds the printable spool_gear54 / spacer_near_w3 / magnet_cap_w3, the reference bodies and the assemblies.
+# WINCH GEAR 3 (WG3_*): 3:1 spur reduction of the winch station: printed PETG M1 18T pinion on the NEMA 17 shaft, printed 54T gear that is
+# part of the spool, spool on its own Ø7 shaft in two 687 bearings 36.30 mm below the motor axis.      cad/WINCH_GEAR3_SPEC.md (D40, revision B / D41: 18T/54T,
+# revision C / D42: printed pinion, CD 36.30)
+# cad/parts/winch_gear3.py builds the printable pinion18 / spool_gear54 / spacer_near_w3 / magnet_cap_w3, the reference bodies and the assemblies.
 # DESIGN FRAME = station_1021 without the extraction residual: motor axis x = 0, z = +2.64; +y along the motor shaft toward the spool; +x out of the wall;
 # +z up; PETG motor tab y 0 .. 5; 1/8 in fin y -3.175 .. 0.  The builder adds ENC1021_REF_RESIDUAL to every body it places so the bodies coincide with
 # Jasper's STEP files and with exports/step/heat_fin1021_1p8_asm1021.step.  Parts are built in an AXIAL frame (axis = local z = station y, local x =
@@ -828,21 +829,27 @@ WG3_Z_PINION = 18                                    # revision B / D41 (was 20)
 WG3_Z_GEAR = 54                                      # revision B / D41 (was 60)
 WG3_RATIO = WG3_Z_GEAR / WG3_Z_PINION                # 3.0
 WG3_CD_NOMINAL = WG3_MODULE * (WG3_Z_PINION + WG3_Z_GEAR) / 2.0   # 36.00
-WG3_CD_ALLOW = 0.20                                  # backlash allowance, steel against printed (claw gears: +0.30 printed against printed)
-WG3_CD = WG3_CD_NOMINAL + WG3_CD_ALLOW               # 36.20
+WG3_CD_ALLOW = 0.30                                  # backlash allowance, printed against printed (as the claw gears); revision C / D42 (was 0.20, steel pinion)
+WG3_CD = WG3_CD_NOMINAL + WG3_CD_ALLOW               # 36.30
 WG3_FACE = 10.0                                      # both teeth faces
 WG3_GEAR_TOOTH_THIN = 0.10                           # printed gear: generator default
-WG3_PINION_TOOTH_THIN = 0.0                          # purchased steel pinion: nominal full tooth (ASSUMED: the spec gives thinning only for the gear)
+WG3_PINION_TOOTH_THIN = WG3_GEAR_TOOTH_THIN          # printed pinion (revision C / D42): the gear's thinning (was 0.0, purchased steel)
 WG3_ROOT_FILLET_R = GRIPV7_ROOT_FILLET_R             # root blend radius of the generator
-WG3_SPOOL_XZ = (WG3_MOTOR_XZ[0], WG3_MOTOR_XZ[1] - WG3_CD)   # spool / shaft axis (x, z) = (0, -33.56), directly below the motor
+WG3_SPOOL_XZ = (WG3_MOTOR_XZ[0], WG3_MOTOR_XZ[1] - WG3_CD)   # spool / shaft axis (x, z) = (0, -33.66), directly below the motor
 WG3_Y_TEETH0 = WG3_Y_SHAFT_END - WG3_FACE            # 10.825: teeth of pinion and gear start here (the gear's near face = the print bed face)
 WG3_Y_TEETH1 = WG3_Y_SHAFT_END                       # 20.825: flush with the motor shaft end
-# --- pinion (purchased, steel)
-WG3_PINION_BORE_D = NEMA17T_SHAFT_D                  # Ø5 (round, touches the round part of the shaft)
+# --- printed pinion (revision C / D42): Ø14 hub back through the slide-in tab's motor hole to 0.5 mm clear of the motor's pilot boss, printed D-bore, M3 set screw in a heat-set insert
+WG3_Y_BOSS_FACE = WG3_Y_MOTOR_FRONT + NEMA17T_PILOT_H   # -1.175: end face of the motor's pilot boss
+WG3_PINION_BOSS_CLEAR = 0.5                          # axial clearance from the pilot boss face to the pinion's hub end
+WG3_Y_PINION_HUB0 = WG3_Y_BOSS_FACE + WG3_PINION_BOSS_CLEAR   # -0.675: hub end, on the teeth side of the boss face
 WG3_PINION_HUB_D = 14.0
-WG3_PINION_HUB_L = 5.0                               # on the tab side
-WG3_PINION_SETSCREW_D = 3.0                          # M3 set screw, modelled as a plain Ø3.0 hole (as NEMA17T_TAP_D), radial toward +z = onto the shaft D-flat
-WG3_Y_PINION_HUB0 = WG3_Y_TEETH0 - WG3_PINION_HUB_L  # 5.825 (0.825 clear of the tab face)
+WG3_PINION_HUB_L = WG3_Y_TEETH0 - WG3_Y_PINION_HUB0  # 11.5: from the hub end to the teeth (through the fin's and the tab's motor holes, then 5.825 exposed)
+WG3_PINION_BORE_D = ENC1021_BORE_D                   # Ø5.30: Jasper's proven printed D-bore on this shaft (the 10/21 spool values)
+WG3_PINION_BORE_FLAT_X = ENC1021_BORE_FLAT_X         # 2.15: bore flat this far from the axis, on the +z side (the motor shaft's flat is at 2.0); material beyond it
+WG3_PINION_INSERT_D = 4.0                            # radial pocket for the M3 heat-set insert, opens toward +z (the D-flat side)
+WG3_PINION_INSERT_DEPTH = 4.5                        # pocket depth measured from the hub surface toward the axis (pocket bottom at R 7.0 - 4.5 = 2.5)
+WG3_PINION_SETSCREW_D = 3.0                          # clearance hole from the pocket bottom to the bore (M3 cup-point set screw through the insert onto the D-flat)
+WG3_Y_PINION_SETSCREW = (WG3_Y_TAB1 + WG3_Y_TEETH0) / 2.0   # 7.9125: axis of the pocket and hole, the middle of the exposed hub between the tab face and the teeth (spec: y 7.9)
 # --- spool_gear54 (one printed PETG part, y 10.825 .. 44.0)
 WG3_WINDOW_N = 6
 WG3_WINDOW_D = 10.0                                  # outer edge R22.5: rim 3.25 below the root R25.75; inner edge R12.5, 2.5 outside the 10 mm full-spool line radius
@@ -898,5 +905,6 @@ WG3_PCB_Y0 = WG3_CHIP_FACE_Y + ENC1021_CHIP_H        # 58.5
 WG3_PCB_Y1 = WG3_PCB_Y0 + ENC1021_PCB_THICK          # 60.1
 # --- acceptance limits
 WG3_MIN_CLEAR = 1.5                                  # gear to motor body and to the fin
-WG3_MIN_CLEAR_HUB = 1.0                              # gear tip to pinion hub (spec section 5, revision B: the Ø14 hub ends at the gear's face plane, radial gap 36.20 - 28.0 - 7.0 = 1.2)
+WG3_MIN_CLEAR_HUB = 1.0                              # gear tip to pinion hub (spec section 5, revision B: the Ø14 hub ends at the gear's face plane, radial gap 36.30 - 28.0 - 7.0 = 1.3)
+WG3_PINION_MIN_CLEAR_MOTOR = 0.4                     # printed pinion to the motor bodies (revision C: the pilot boss face is axial, 0.5 built); the shaft it sits on is excluded
 WG3_RT_TOL = 1.0e-3                                  # STEP round trip: volume and bounding box within 0.1 %

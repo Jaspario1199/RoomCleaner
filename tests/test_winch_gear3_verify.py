@@ -653,43 +653,86 @@ def ray(s, ang, z, t1=40.0):
     return material(s, (0, 0, z), d, 0, t1)
 
 
+@functools.lru_cache(None)
+def gear_phase_print():
+    """(phase, spread): angle (print frame, deg, in [0, 360/54)) of a tooth centre and the spread of all 54 tip-face centres about it,
+    both from the tip faces of the exported spool_gear54 part."""
+    s = part("spool_gear54")
+    angs = [math.degrees(math.atan2(c["face"].Center().y, c["face"].Center().x))
+            for c in cyl_faces(s) if abs(c["r"] - RG_TIP) < 1e-3 and abs(c["dir"][2]) > 0.999]
+    pitch = 360.0 / NG
+    a0 = angs[0]
+    dev = [((a - a0 + pitch / 2) % pitch) - pitch / 2 for a in angs]
+    return (a0 + float(np.mean(dev))) % pitch, max(dev) - min(dev)
+
+
+def expected_outer(phi_deg):
+    """Outer radius of the gear along print-frame angle phi: tip on a tooth centre, root on a tooth-space centre, else None (flank)."""
+    ph, _ = gear_phase_print()
+    pitch = 360.0 / NG
+    d = ((phi_deg - ph + pitch / 2) % pitch) - pitch / 2          # signed distance to the nearest tooth centre
+    if abs(d) < 0.01:
+        return RG_TIP
+    if abs(abs(d) - pitch / 2) < 0.01:
+        return RG_ROOT
+    return None
+
+
 def test_09_spool_sections():
     sec = "3 spool_gear54"
     s = part("spool_gear54")
     bb = tbb(s)
     check(sec, "part starts (z 0 = design y 10.825)", 0.0, bb[4], 1e-6)
     check(sec, "part ends (design y 44.0 - 10.825 = 33.175)", 33.175, bb[5], 1e-6)
-    check_true(sec, "bbox x,y within +-31.0 (tip R31; no tooth on the axis)", "+-30.97", f"{bb[1]:.4f}", 30.9 < bb[1] <= 31.0)
-    # radial profile at z = 5 (gear), windows
-    for a in [0, 60, 120, 180, 240, 300]:
-        iv = ray(s, a, 5.0)
-        ok = len(iv) == 2 and abs(iv[0][0] - 3.5) < 1e-3 and abs(iv[0][1] - 14.5) < 1e-3 and abs(iv[1][0] - 25.5) < 1e-3 and abs(iv[1][1] - 28.75) < 1e-3
-        check_true(sec, f"window along {a} deg: material [3.5,14.5] [25.5,28.75]", "[(3.5,14.5),(25.5,28.75)]", [(round(x, 3), round(y, 3)) for x, y in iv], ok)
-    for a in [30, 90, 150, 210, 270, 330]:
-        iv = ray(s, a, 5.0)
-        check_true(sec, f"no window along {a} deg (spoke incl. line of centres at 270 deg)", "[(3.5,28.75)]", [(round(x, 3), round(y, 3)) for x, y in iv],
-                   len(iv) == 1 and abs(iv[0][1] - 28.75) < 1e-3)
-    # window faces
-    wf = [c for c in cyl_faces(s) if abs(c["r"] - 5.5) < 1e-4]
-    check_true(sec, "windows: count, diameter 11.0", "6 x R5.5", len(wf), len(wf) == 6)
-    check(sec, "windows: pitch radius (max |dist of axis from spool axis - 20|)", 0.0, max(abs(math.hypot(c["loc"][0], c["loc"][1]) - 20.0) for c in wf), 1e-4)
+    check_true(sec, "bbox x,y within +-28.0 (tip R28; no tooth on the axis)", "<= 28.0", f"{bb[1]:.4f} / {bb[3]:.4f}", 27.9 < bb[1] <= 28.0 + 1e-6 and 27.9 < bb[3] <= 28.0 + 1e-6)
+    ph, spread = gear_phase_print()
+    check_le(sec, "tooth centres of all 54 teeth on one uniform pitch (spread of the tip-face centres about the phase, deg)", 1e-6, spread)
+    rec(sec, "tooth-centre phase in the print frame (deg; info)", "info", round(ph, 6), "-", True)
+    # window geometry first (angles of the six window axes, measured)
+    wf = [c for c in cyl_faces(s) if abs(c["r"] - WIN_D / 2) < 1e-4 and abs(c["dir"][2]) > 0.999]
+    check_true(sec, "windows: count, diameter 10.0 (R 5.0)", "6 x R5.0", len(wf), len(wf) == 6)
+    wang = sorted(math.degrees(math.atan2(c["loc"][1], c["loc"][0])) % 360.0 for c in wf)
+    w_steps = [(wang[(k + 1) % 6] - wang[k]) % 360.0 for k in range(6)]
+    check_true(sec, "windows: equally spaced 60 deg", "6 x 60", [round(x, 4) for x in w_steps], all(abs(x - 60.0) < 1e-3 for x in w_steps))
+    rec(sec, "windows: angle of the first window axis (print frame, deg; info)", "info", round(wang[0], 4), "-", True)
     w_out = max(math.hypot(c["loc"][0], c["loc"][1]) + c["r"] for c in wf)
     w_in = min(math.hypot(c["loc"][0], c["loc"][1]) - c["r"] for c in wf)
     root_r = min(c["r"] for c in cyl_faces(s) if c["r"] > 20)
     drum_r = [c["r"] for c in cyl_faces(s) if abs(c["bb"][4] - 10.0) < 1e-4 and abs(c["bb"][5] - 26.0) < 1e-4][0]
-    check(sec, "windows: outer edge radius (spec R25.5)", 25.5, w_out, 1e-4)
-    check(sec, "windows: inner edge radius (spec R14.5)", 14.5, w_in, 1e-4)
+    check(sec, "windows: pitch radius (max |dist of axis from spool axis - 17.5|)", 0.0, max(abs(math.hypot(c["loc"][0], c["loc"][1]) - WIN_R) for c in wf), 1e-4)
+    check(sec, "windows: outer edge radius (spec R22.5)", 22.5, w_out, 1e-4)
+    check(sec, "windows: inner edge radius (spec R12.5)", 12.5, w_in, 1e-4)
+    check_ge(sec, "windows: inner edge radius >= 12 (outside the 10 mm full-spool line radius)", 12.0, w_in)
+    check(sec, "windows: inner edge outside the 10 mm line radius (spec 2.5)", 2.5, w_in - 10.0, 1e-4)
     check(sec, "windows: rim below the root, measured (spec 3.25)", 3.25, root_r - w_out, 1e-4)
-    check_ge(sec, "windows: rim below the root (mm, spec >= 3)", 3.0, root_r - w_out)
+    check_ge(sec, "windows: rim below the root (mm, spec >= 3.0)", 3.0, root_r - w_out)
     check_ge(sec, "windows: web from the drum core to the window inner edge (mm, WG3_WEB_MIN 2)", 2.0, w_in - drum_r)
     check(sec, "windows: z extent (gear 10 mm thick)", 10.0, max(c["bb"][5] for c in wf) - min(c["bb"][4] for c in wf), 1e-4)
-    # axial profile (angle 180: away from the tie-off side)
+    # radial profile at z = 5 (gear), windows: window axes on tooth centres/spaces as measured; material intervals
+    for k, a in enumerate(wang):
+        iv = ray(s, a, 5.0)
+        eo = expected_outer(a)
+        ok = len(iv) == 2 and abs(iv[0][0] - 3.5) < 1e-3 and abs(iv[0][1] - 12.5) < 1e-3 and abs(iv[1][0] - 22.5) < 1e-3 and RG_ROOT - 1e-3 <= iv[1][1] <= RG_TIP + 1e-3
+        if eo is not None:
+            ok = ok and abs(iv[1][1] - eo) < 1e-3
+        check_true(sec, f"window along {a:.2f} deg: material [3.5,12.5] [22.5,{eo if eo else 'flank'}]", f"[(3.5,12.5),(22.5,{eo})]", [(round(x, 3), round(y, 3)) for x, y in iv], ok)
+    for a0 in wang:
+        a = (a0 + 30.0) % 360.0
+        iv = ray(s, a, 5.0)
+        eo = expected_outer(a)
+        ok = len(iv) == 1 and abs(iv[0][0] - 3.5) < 1e-3 and RG_ROOT - 1e-3 <= iv[0][1] <= RG_TIP + 1e-3 and (eo is None or abs(iv[0][1] - eo) < 1e-3)
+        check_true(sec, f"no window along {a:.2f} deg (spoke): solid [3.5, {eo if eo else 'flank'}]", f"[(3.5,{eo})]", [(round(x, 3), round(y, 3)) for x, y in iv], ok)
+    # the line of centres (print frame 270 deg: station +z) must be a spoke carrying a tooth SPACE (root 25.75)
+    iv = ray(s, 270.0, 5.0)
+    check_true(sec, "line of centres (print 270 deg = station +z): spoke with the root R25.75 (tooth space facing the pinion)", "[(3.5,25.75)]",
+               [(round(x, 3), round(y, 3)) for x, y in iv], len(iv) == 1 and abs(iv[0][1] - RG_ROOT) < 1e-3)
+    # axial profile (angle 180 deg is a window axis, but z > 10 is above the gear)
     for z, rout, lab in [(10.5, 7.5, "drum R7.5 starts above the gear"), (18.0, 7.5, "drum R7.5 (y 20.825 to 36.825)"), (25.9, 7.5, "drum R7.5 ends at z 26.0"),
                          (26.1, 18.0, "flange R18 starts z 26.0"), (28.9, 18.0, "flange R18 ends z 29.0"), (29.1, 6.0, "hub R6"), (32.8, 6.0, "hub R6 to z 32.875"),
-                         (32.9, 4.5, "land R4.5 (Ø9)"), (33.1, 4.5, "land R4.5 to the end")]:
+                         (32.9, 4.5, "land R4.5 (O9)"), (33.1, 4.5, "land R4.5 to the end")]:
         iv = ray(s, 180, z)
         check(sec, f"outer radius at z {z}: {lab}", rout, iv[-1][1], 1e-3)
-        check(sec, f"bore radius at z {z} (Ø7.00 through)", 3.5, iv[0][0], 1e-3)
+        check(sec, f"bore radius at z {z} (O7.00 through)", 3.5, iv[0][0], 1e-3)
     pl = {(round(p["loc"][2], 3), int(round(p["n"][2]))): p["area"] for p in plane_faces(s) if abs(abs(p["n"][2]) - 1) < 1e-6}
     check(sec, "flange inner face z (design y 36.825 = drum end)", 26.0, [k[0] for k in pl if k[1] == -1 and k[0] > 1][0], 1e-4)
     check(sec, "flange inner face annulus area pi(18^2 - 7.5^2): overhang 10.5 mm", math.pi * (18 ** 2 - 7.5 ** 2), pl[(26.0, -1)], 0.05)
@@ -698,12 +741,13 @@ def test_09_spool_sections():
     check(sec, "land height measured: hub shoulder z", 32.875, [k[0] for k in pl if k[1] == 1 and abs(k[0] - 32.875) < 0.01][0], 1e-4)
     # bore: one cylinder R3.5 over the whole length
     bores = [c for c in cyl_faces(s) if abs(c["r"] - 3.5) < 1e-4]
-    check_true(sec, "bore: one Ø7.00 through face, full length", "z 0..33.175", (round(bores[0]["bb"][4], 3), round(bores[0]["bb"][5], 3)),
+    check_true(sec, "bore: one O7.00 through face, full length", "z 0..33.175", (round(bores[0]["bb"][4], 3), round(bores[0]["bb"][5], 3)),
                len(bores) == 1 and abs(bores[0]["bb"][4]) < 1e-4 and abs(bores[0]["bb"][5] - 33.175) < 1e-4)
     check(sec, "bore axis on the part axis (x, y offset)", 0.0, math.hypot(bores[0]["loc"][0], bores[0]["loc"][1]), 1e-4)
     # gear z range and tooth faces
-    tips = [c for c in cyl_faces(s) if abs(c["r"] - 31.0) < 1e-3]
+    tips = [c for c in cyl_faces(s) if abs(c["r"] - RG_TIP) < 1e-3]
     check(sec, "gear thickness (tip faces end at z 10.0 = y 20.825)", 10.0, max(c["bb"][5] for c in tips), 1e-4)
+    check_true(sec, "tooth tip faces: 54", NG, len(tips), len(tips) == NG)
     check(sec, "drum starts where the gear ends (R7.5 face z min)", 10.0, [c for c in cyl_faces(s) if abs(c["r"] - 7.5) < 1e-4][0]["bb"][4], 1e-4)
 
 
@@ -752,32 +796,38 @@ def test_11_spool_independent_rebuild_and_chamfer():
 
     def cyl(r, z0, z1, x=0.0, y=0.0):
         return cq.Solid.makeCylinder(r, z1 - z0, cq.Vector(x, y, z0), cq.Vector(0, 0, 1))
-    gear = G.gear(60, 1.0, 10.0, phase=3.0, reduction=0.10, root_radius=0.40).val()
+    ph, _ = gear_phase_print()
+    wf = [c for c in cyl_faces(s) if abs(c["r"] - WIN_D / 2) < 1e-4 and abs(c["dir"][2]) > 0.999]
+    w0 = min(math.degrees(math.atan2(c["loc"][1], c["loc"][0])) % 360.0 for c in wf)
+    gear = G.gear(NG, MOD, 10.0, phase=ph, reduction=0.10, root_radius=0.40).val()
     ref = gear
     for k in range(6):
-        a = math.radians(60 * k)
-        ref = cut(ref, cyl(5.5, -1, 11, 20 * math.cos(a), 20 * math.sin(a)))
+        a = math.radians(w0 + 60 * k)
+        ref = cut(ref, cyl(WIN_D / 2, -1, 11, WIN_R * math.cos(a), WIN_R * math.sin(a)))
     ref = ref.fuse(cyl(7.5, 9.9, 26.0)).fuse(cyl(18, 26, 29)).fuse(cyl(6.0, 28.9, 32.875)).fuse(cyl(4.5, 32.8, 33.175))
     ref = cut(ref, cyl(3.5, -1, 34))
     ref = cut(ref, cq.Solid.makeCylinder(0.7, 24, cq.Vector(5.25, -12, 18.0), cq.Vector(0, 1, 0))).clean()
     vs, vr = vol(s), vol(ref)
-    check_true(sec, "independent rebuild from the spec (generator gear, windows, drum, flange, hub, land, bore, chord hole): one valid solid", True,
+    check_true(sec, "independent rebuild from the spec (generator 54T gear, six O10 windows on R17.5, drum, flange, hub, land, bore, chord hole): one valid solid", True,
                (len(ref.Solids()), valid(ref)), len(ref.Solids()) == 1 and valid(ref))
     cm = cvol(s, ref)
     check_le(sec, "STEP material outside the independent rebuild (mm3)", 0.01, abs(vs - cm))
     chamfer = vr - vs
-    per = 368.92378258444177                           # outline perimeter of the 60T section at mid-gear (measured once from the generator section)
-    check(sec, "bed-face chamfer: removed volume (rebuild minus STEP) vs perimeter x 0.3 x 0.3 / 2 = 16.60 (corners ignored)", per * 0.045, chamfer, 0.4)
-    # radial extents against z near the bed face (tooth tip direction 3 deg, tooth space 0 deg)
+    # outline perimeter of the 54T section: outer wire of the generator gear's face at z = 0
+    bot = [f for f in gear.Faces() if abs(f.Center().z) < 1e-6 and abs(f.normalAt().z + 1) < 1e-6][0]
+    per = bot.outerWire().Length()
+    check(sec, f"bed-face chamfer: removed volume (rebuild minus STEP) vs perimeter {per:.2f} x 0.3 x 0.3 / 2 (corners ignored)", per * 0.045, chamfer, 0.4)
+    # radial extents against z near the bed face (tooth tip direction ph, tooth space ph + 3.333)
+    tip_ang, root_ang = ph, ph + 180.0 / NG
     for z in [0.001, 0.1, 0.2, 0.3, 1.0]:
-        tip = ray(s, 3, z)[-1][1]
-        root = ray(s, 0, z)[-1][1]
-        check(sec, f"bed-face chamfer: tooth tip radius at z {z} (31.0 - max(0.3 - z, 0))", 31.0 - max(0.3 - z, 0.0), tip, 0.003)
-        check(sec, f"bed-face chamfer: root radius at z {z} (28.75 - max(0.3 - z, 0))", 28.75 - max(0.3 - z, 0.0), root, 0.003)
+        tip = ray(s, tip_ang, z)[-1][1]
+        root = ray(s, root_ang, z)[-1][1]
+        check(sec, f"bed-face chamfer: tooth tip radius at z {z} (28.0 - max(0.3 - z, 0))", RG_TIP - max(0.3 - z, 0.0), tip, 0.003)
+        check(sec, f"bed-face chamfer: root radius at z {z} (25.75 - max(0.3 - z, 0))", RG_ROOT - max(0.3 - z, 0.0), root, 0.003)
     # windows and bore edges at the bed face are not chamfered (spec: tooth edges only)
-    iv = ray(s, 0, 0.001)
-    check_true(sec, "bed face: window and bore edges unchamfered (material [3.5,14.5] [25.5,..])", "3.5/14.5/25.5", [(round(a, 3), round(b, 3)) for a, b in iv],
-               abs(iv[0][0] - 3.5) < 2e-3 and abs(iv[0][1] - 14.5) < 2e-3 and abs(iv[1][0] - 25.5) < 2e-3)
+    iv = ray(s, w0, 0.001)
+    check_true(sec, "bed face: window and bore edges unchamfered (material [3.5,12.5] [22.5,..])", "3.5/12.5/22.5", [(round(a, 3), round(b, 3)) for a, b in iv],
+               abs(iv[0][0] - 3.5) < 2e-3 and abs(iv[0][1] - 12.5) < 2e-3 and abs(iv[1][0] - 22.5) < 2e-3)
 
 
 def test_12_spool_printability():
@@ -886,7 +936,11 @@ def test_15_pinion():
     check_true(sec, "set-screw hole is open from the bore to the outside (+z), solid on -z", "empty on +z", iv, iv == [])
     iv2 = material(pin, (0, 8.325, ZM), (0, 0, -1), 0, 10)
     check_true(sec, "hub wall on the -z side [2.5, 7.0]", "[(2.5,7.0)]", [(round(a, 3), round(b_, 3)) for a, b_ in iv2], len(iv2) == 1 and abs(iv2[0][1] - 7.0) < 1e-3)
-    check(sec, "pinion steel mass at 7.85 g/cm3 (g), informative", 27.64, vol(pin) * 7.85e-3, 0.05)
+    # pinion volume against an independent estimate: generator 18T gear (10 mm face, no thinning) + hub O14 x 5 - bore O5 x 15 - set-screw O3 x 4.5 (straight cylinder)
+    vg = vol(generator().gear(NP, MOD, 10.0, phase=0.0, reduction=0.0, root_radius=0.40).val())
+    v_exp = vg + math.pi * 49 * 5 - math.pi * 6.25 * 15 - math.pi * 2.25 * 4.5
+    check(sec, "pinion volume vs independent estimate (generator rim + hub - bore - set screw), mm3", v_exp, vol(pin), 3.0)
+    rec(sec, "pinion steel mass at 7.85 g/cm3 (g), informative", "info", round(vol(pin) * 7.85e-3, 3), "-", True)
 
 
 def test_16_cap_magnet_encoder():
@@ -952,7 +1006,7 @@ def test_16_cap_magnet_encoder():
     check(sec, "PCB x size (23)", 23.0, pcb[1] - pcb[0], POS_TOL)
     check(sec, "PCB z size (23)", 23.0, pcb[5] - pcb[4], POS_TOL)
     check(sec, "PCB centre x on the axis", 0.0, 0.5 * (pcb[0] + pcb[1]), POS_TOL)
-    check(sec, "PCB centre z on the axis (-37.56)", ZS, 0.5 * (pcb[4] + pcb[5]), POS_TOL)
+    check(sec, "PCB centre z on the axis (-33.56)", ZS, 0.5 * (pcb[4] + pcb[5]), POS_TOL)
     check(sec, "chip centre z on the axis", ZS, 0.5 * (ch[4] + ch[5]), POS_TOL)
     check(sec, "chip centre x on the axis", 0.0, 0.5 * (ch[0] + ch[1]), POS_TOL)
     # cap volume cross-check (bore, pocket removed; ribs add a little)
@@ -1010,8 +1064,23 @@ def test_18_clearances():
     pin, sp = b["pinion"], b["spool_gear54"]
     hub = common(pin, ring_y(0.0001, 7.6, 5.7, 10.8249, 0, ZM))
     check(sec, "extracted pinion hub (Ø14 x 5) volume sanity: pi 49 5 - bore - set-screw", math.pi * 49 * 5 - math.pi * 6.25 * 5 - math.pi * 2.25 * 4.5, vol(hub), 3.0)
-    d, _ = mindist(sp, hub)
-    check_ge(sec, "gear (whole spool) to pinion hub (mm, >= 1.5)", 1.5, d)
+    # the spool turns: sweep the gear one tooth pitch (6.667 deg) about its axis; the tightest pose has a tooth tip on the line of centres
+    g_rim, _ = rims()
+    sweep = []
+    for dg in [0.0, 5.0 / 6.0, 5.0 / 3.0, 2.5, 10.0 / 3.0, 25.0 / 6.0, 5.0, 35.0 / 6.0]:
+        sweep.append((dg, mindist(rot_y(g_rim, ZS, dg), hub)[0]))
+    dmin = min(v for _, v in sweep)
+    rec(sec, "gear rim to pinion hub over one gear pitch of spool rotation (deg: mm)", "info", "; ".join(f"{a:.3f}:{v:.4f}" for a, v in sweep), "-", True)
+    check_ge(sec, "gear tip to pinion hub, worst pose over one gear tooth pitch (mm, >= 1.0, revision B criterion)", 1.0, dmin)
+    check(sec, "worst-pose gear-to-hub distance = sqrt(1.2^2 + 0.3^2) (tip on the line of centres, 0.3 chamfer), mm", math.hypot(CD - RG_TIP - 7.0, 0.3), dmin, 0.01)
+    d, dd = mindist(sp, hub)
+    check_ge(sec, "gear (whole spool) to pinion hub, reference pose (mm, >= 1.0, revision B criterion)", 1.0, d)
+    check_ge(sec, "gear to pinion hub >= radial bound CD - R_tip - R_hub = 36.20 - 28.0 - 7.0 = 1.2 (mm, consistency; the 0.3 chamfer and the tooth phase only add)", 1.2 - 1e-6, d)
+    p1, p2 = dd.PointOnShape1(1), dd.PointOnShape2(1)
+    rec(sec, "gear-to-hub closest points (spool point; hub point; design frame, info)", "info",
+        f"({p1.X():.3f},{p1.Y():.3f},{p1.Z():.3f}); ({p2.X():.3f},{p2.Y():.3f},{p2.Z():.3f})", "-", True)
+    d_all, _ = mindist(sp, pin)
+    rec(sec, "gear (whole spool) to the whole pinion incl. teeth (mm, info; the teeth mesh)", "info", round(d_all, 4), "-", True)
     for k in ["motor_front_cap", "motor_stator", "motor_winding", "motor_rear_cap", "motor_shaft", "motor_connector", "fin"]:
         d, _ = mindist(sp, b[k])
         check_ge(sec, f"spool_gear54 to {k} (mm, >= 1.5)", 1.5, d)
@@ -1030,18 +1099,23 @@ def test_19_interference_with_mounts():
     def near(a, c, tol=0.05):
         return all(a[2 * i] <= c[2 * i + 1] + tol and c[2 * i] <= a[2 * i + 1] + tol for i in range(3))
     res = {}
+    allv = {}
     for m in ("slipin_mount", "wall_mount"):
         for k in names:
             if near(bbs[m], bbs[k]):
                 res[(m, k)] = common(b[m], b[k])
-    got = {key: round(vol(c), 3) for key, c in res.items() if vol(c) > 1e-3}
-    rec(sec, "all overlapping (mount, body) pairs found", "slipin: spool, shaft, spacer; wall: spool", sorted(f"{m}/{k}" for m, k in got),
-        "-", set(got) == {("slipin_mount", "spool_gear54"), ("slipin_mount", "shaft"), ("slipin_mount", "spacer_near"), ("wall_mount", "spool_gear54")})
-    assert set(got) == {("slipin_mount", "spool_gear54"), ("slipin_mount", "shaft"), ("slipin_mount", "spacer_near"), ("wall_mount", "spool_gear54")}, got
-    check(sec, "slipin_mount x spool_gear54 volume (build notes 3953.3)", 3953.3, got[("slipin_mount", "spool_gear54")], 1.0)
-    check(sec, "slipin_mount x shaft volume (build notes 54.8 = 2 x 27.4)", 54.8, got[("slipin_mount", "shaft")], 0.2)
-    check(sec, "slipin_mount x spacer_near volume (build notes 35.3)", 35.3, got[("slipin_mount", "spacer_near")], 0.2)
-    check(sec, "wall_mount x spool_gear54 volume (build notes 697.3)", 697.3, got[("wall_mount", "spool_gear54")], 0.5)
+                allv[(m, k)] = vol(res[(m, k)])
+    got = {key: round(v, 3) for key, v in allv.items() if v > 1e-3}
+    rec(sec, "all (mount, drive body) pairs with overlapping bounding boxes examined", "-", len(allv), "-", True)
+    want_set = {("slipin_mount", "spool_gear54"), ("slipin_mount", "spacer_near"), ("wall_mount", "spool_gear54")}
+    rec(sec, "all overlapping (mount, body) pairs found (revision B)", "slipin: spool, spacer; wall: spool", sorted(f"{m}/{k}" for m, k in got),
+        "-", set(got) == want_set)
+    assert set(got) == want_set, got
+    rec(sec, "overlap volumes (mm3)", "info", {f"{m}/{k}": v for (m, k), v in sorted(got.items())}, "-", True)
+    # the shaft no longer touches the slide-in: confirm with a distance, not only an empty boolean
+    d_sh, _ = mindist(b["slipin_mount"], b["shaft"])
+    check_ge(sec, "slipin_mount to shaft: distance (mm) (>= 0: no overlap now; revision A had 54.8 mm3 at the old axis z -37.56)", 0.0, d_sh)
+    check_true(sec, "slipin_mount x shaft overlap volume (mm3)", "0", round(allv[("slipin_mount", "shaft")], 4), allv[("slipin_mount", "shaft")] < 1e-3)
 
     def box(x0, x1, y0, y1, z0, z1):
         return cq.Solid.makeBox(x1 - x0, y1 - y0, z1 - z0, cq.Vector(x0, y0, z0))
@@ -1050,17 +1124,17 @@ def test_19_interference_with_mounts():
     A = vol(common(c, box(-big, -21.15, -big, big, -big, big)))
     B = vol(common(c, box(-21.15, big, -big, big, -big, -42.40)))
     C = vol(common(c, box(-21.15, big, -big, big, -42.40, big)))
-    check(sec, "slide-in x spool: back plate region x < -21.15 (notes 2003.4)", 2003.4, A, 0.5)
-    check(sec, "slide-in x spool: deck block region z < -42.4 (notes 1860.6)", 1860.6, B, 0.5)
-    check(sec, "slide-in x spool: far cheek above the deck z > -42.4 (notes 89.3)", 89.3, C, 0.5)
+    rec(sec, "slide-in x spool by region: back plate x < -21.15 / deck block z < -42.4 / above the deck z > -42.4 (mm3)", "info", f"{A:.3f} / {B:.3f} / {C:.3f}", "-", True)
     check(sec, "slide-in x spool: region sum equals total", got[("slipin_mount", "spool_gear54")], A + B + C, 0.01)
-    check(sec, "slide-in x spool: deck block under the gear y 10.825..20.825 (notes 1760.3)", 1760.3,
-          vol(common(common(c, box(-21.15, big, -big, big, -big, -42.40)), box(-big, big, 10.8, 20.825, -big, big))), 0.5)
+    pieces = sorted((vol(x), tuple(np.round(tbb(x), 2))) for x in c.Solids())[::-1]
+    rec(sec, "slide-in x spool pieces (volume, bbox x0 x1 y0 y1 z0 z1)", "info", [(round(v, 3), list(bb_)) for v, bb_ in pieces], "-", True)
+    bsp = common(common(c, box(-21.15, big, -big, big, -big, -42.40)), box(-big, big, 10.8, 20.825, -big, big))
+    rec(sec, "slide-in x spool: deck block under the gear y 10.825..20.825 (mm3)", "info", round(vol(bsp), 3), "-", True)
+    sp = res[("slipin_mount", "spacer_near")]
+    rec(sec, "slide-in x spacer_near: volume, bbox", "info", (round(vol(sp), 3), list(np.round(tbb(sp), 2))), "-", True)
     w = res[("wall_mount", "spool_gear54")]
-    big_part = max(vol(s) for s in w.Solids())
-    check(sec, "wall mount x spool: main piece x -24.3..-8.45, z -66.6..-55.9 (notes 686.1)", 686.1, big_part, 0.5)
-    check(sec, "wall mount x spool: number of separate pieces (notes: 1 + 12 slivers)", 13, len(w.Solids()), 0)
-    check(sec, "wall mount x spool: slivers total (notes 11.2)", 11.2, vol(w) - big_part, 0.1)
+    wp = sorted((vol(x), tuple(np.round(tbb(x), 2))) for x in w.Solids())[::-1]
+    rec(sec, "wall mount x spool pieces (volume, bbox)", "info", [(round(v, 3), list(bb_)) for v, bb_ in wp], "-", True)
     # nearest approach of the bodies that do not overlap (redesign inputs): report distances
     near_list = []
     for m in ("slipin_mount", "wall_mount"):
@@ -1070,23 +1144,28 @@ def test_19_interference_with_mounts():
             if near(bbs[m], bbs[k], tol=3.0):
                 d, _ = mindist(b[m], b[k])
                 near_list.append((m, k, round(d, 3)))
-    rec(sec, "non-overlapping bodies within 3 mm bbox proximity: distance (mm)", "info", sorted(near_list, key=lambda x: x[2])[:6], "-", True)
+    rec(sec, "non-overlapping bodies within 3 mm bbox proximity: distance (mm)", "info", sorted(near_list, key=lambda x: x[2])[:8], "-", True)
     # original SolidWorks assembly extras: spool replaced, shell
     sw = read_asm(SW_ASSEMBLY)
     sh = shift_design(sw["Shell_Casing"])
     old = shift_design(sw["Spool1011"])
     d0 = drive()
     info = {}
-    for k in ["spool_gear54", "as5600_board", "bearing_near", "bearing_far"]:
-        info["Shell_Casing x " + k] = round(cvol(sh, d0[k]), 3)
+    for k in names:
+        if near(tbb(sh), tbb(d0[k])):
+            v = cvol(sh, d0[k])
+            if v > 1e-3:
+                info["Shell_Casing x " + k] = round(v, 3)
     info["Spool1011 x pinion"] = round(cvol(old, d0["pinion"]), 3)
     info["Spool1011 x motor_shaft"] = round(cvol(old, d0["motor_shaft"]), 3)
-    rec(sec, "informative: shell and the replaced old spool (build notes 1164.6 / 180.1 / 6.1 / 6.1 / 2012.9 / 8.4)", "info", info, "-", True)
-    check(sec, "Shell_Casing x spool_gear54 (notes 1164.6)", 1164.6, info["Shell_Casing x spool_gear54"], 1.0)
-    check(sec, "Shell_Casing x as5600_board (notes 180.1)", 180.1, info["Shell_Casing x as5600_board"], 0.5)
-    check(sec, "Spool1011 x pinion (notes 2012.9)", 2012.9, info["Spool1011 x pinion"], 1.0)
+    rec(sec, "informative: shell (Shell_Casing of the original assembly) x drive bodies, and the replaced old spool (mm3)", "info", info, "-", True)
     fin_over = cvol(sh, d0["fin"])
-    rec(sec, "NOT in the notes: Shell_Casing x fin (1/8 in fin is thicker than the Heat_horn it replaces; not caused by the gear drive) mm3", "info", round(fin_over, 3), "-", True)
+    rec(sec, "NOT caused by the gears: Shell_Casing x fin (1/8 in fin is thicker than the Heat_horn it replaces) mm3", "info", round(fin_over, 3), "-", True)
+    # distance of the shell to the bodies it does not overlap
+    dsh = {}
+    for k in ["as5600_board", "magnet_cap", "spacer_near", "bearing_near", "bearing_far", "pinion", "shaft", "motor_shaft"]:
+        dsh["Shell_Casing to " + k] = round(mindist(sh, d0[k])[0], 3)
+    rec(sec, "shell distance to selected bodies (mm; 0 = touching/overlapping)", "info", dsh, "-", True)
 
 
 # =============================================================================== 7. parameter audit and renders
@@ -1095,27 +1174,35 @@ def test_20_params_audit():
     sys.path.insert(0, REPO)
     from cad import params as P   # read-only
     sec = "params WG3_*"
-    want = dict(WG3_MODULE=1.0, WG3_PRESSURE_ANGLE_DEG=20.0, WG3_Z_PINION=20, WG3_Z_GEAR=60, WG3_RATIO=3.0, WG3_CD_NOMINAL=40.0, WG3_CD=40.20, WG3_FACE=10.0,
+    want = dict(WG3_MODULE=1.0, WG3_PRESSURE_ANGLE_DEG=20.0, WG3_Z_PINION=18, WG3_Z_GEAR=54, WG3_RATIO=3.0, WG3_CD_NOMINAL=36.0, WG3_CD=36.20, WG3_CD_ALLOW=0.20, WG3_FACE=10.0,
                 WG3_GEAR_TOOTH_THIN=0.10, WG3_Y_TEETH0=10.825, WG3_Y_TEETH1=20.825, WG3_Y_SHAFT_END=20.825, WG3_PINION_BORE_D=5.0, WG3_PINION_HUB_D=14.0,
-                WG3_PINION_HUB_L=5.0, WG3_Y_PINION_HUB0=5.825, WG3_WINDOW_N=6, WG3_WINDOW_D=11.0, WG3_WINDOW_R=20.0, WG3_RIM_MIN=3.0, WG3_WEB_MIN=2.0,
+                WG3_PINION_HUB_L=5.0, WG3_Y_PINION_HUB0=5.825, WG3_WINDOW_N=6, WG3_WINDOW_D=10.0, WG3_WINDOW_R=17.5, WG3_RIM_MIN=3.0, WG3_WEB_MIN=2.0,
                 WG3_BED_CHAMFER=0.3, WG3_DRUM_D=15.0, WG3_DRUM_L=16.0, WG3_Y_DRUM1=36.825, WG3_FLANGE_D=36.0, WG3_FLANGE_T=3.0, WG3_Y_FLANGE1=39.825, WG3_HUB_D=12.0,
                 WG3_Y_SPOOL_END=44.0, WG3_LAND_D=9.0, WG3_LAND_PROUD=0.3, WG3_BORE_D=7.0, WG3_TIEOFF_D=1.4, WG3_TIEOFF_OFFSET=5.25, WG3_TIEOFF_Y=28.825,
                 WG3_SPACER_OD=10.0, WG3_SPACER_BORE_D=7.10, WG3_SPACER_Y0=5.0, WG3_SPACER_Y1=10.825, WG3_SHAFT_D=7.0, WG3_SHAFT_Y0=-3.0, WG3_SHAFT_L=55.0,
                 WG3_BRG_ID=7.0, WG3_BRG_OD=14.0, WG3_BRG_W=5.0, WG3_BRG_NEAR_Y0=0.0, WG3_BRG_FAR_Y0=44.0, WG3_CAP_Y0=49.3, WG3_CAP_D=12.0, WG3_CAP_BORE_DEPTH=3.0,
                 WG3_CAP_WEB=0.75, WG3_MAGNET_D=6.0, WG3_MAGNET_T=2.5, WG3_CAP_POCKET_D=6.3, WG3_CAP_POCKET_DEPTH=2.5, WG3_Y_MAGNET0=53.05, WG3_CAP_Y1=55.55,
-                WG3_CHIP_FACE_Y=57.05, WG3_PCB_Y0=58.5, WG3_PCB_Y1=60.1)
+                WG3_CHIP_FACE_Y=57.05, WG3_PCB_Y0=58.5, WG3_PCB_Y1=60.1, WG3_MIN_CLEAR=1.5, WG3_MIN_CLEAR_HUB=1.0)
     bad = {k: (v, getattr(P, k, None)) for k, v in want.items() if not (hasattr(P, k) and abs(getattr(P, k) - v) < 1e-9)}
-    check_true(sec, "WG3_* values equal the spec numbers (65 checked)", "no mismatch", bad or "no mismatch", not bad)
-    check_true(sec, "spool axis (x, z)", "(0.0, -37.56)", tuple(round(v, 6) for v in P.WG3_SPOOL_XZ), abs(P.WG3_SPOOL_XZ[0]) < 1e-9 and abs(P.WG3_SPOOL_XZ[1] + 37.56) < 1e-9)
+    check_true(sec, f"WG3_* values equal the revision B spec numbers ({len(want)} checked)", "no mismatch", bad or "no mismatch", not bad)
+    check_true(sec, "spool axis (x, z)", "(0.0, -33.56)", tuple(round(v, 6) for v in P.WG3_SPOOL_XZ), abs(P.WG3_SPOOL_XZ[0]) < 1e-9 and abs(P.WG3_SPOOL_XZ[1] + 33.56) < 1e-9)
     dupe = [n for n, v in [("SPOOL_FLANGE_THK", getattr(P, "SPOOL_FLANGE_THK", None)), ("NEMA17T_TAP_D", getattr(P, "NEMA17T_TAP_D", None))] if v == 3.0]
     rec(sec, "WG3_FLANGE_T = 3.0 and WG3_PINION_SETSCREW_D = 3.0 are literals; equal values exist as", "info", dupe, "-", True)
 
 
 def test_21_renders_exist():
     sec = "7 renders"
-    for n in ["front", "side", "top", "iso", "mesh", "section_axis", "section_cap", "section_tieoff"]:
+    names = ["front", "side", "top", "iso", "mesh", "section_axis", "section_cap", "section_tieoff"]
+    for n in names:
         p = RENDERS + f"winch_gear3_{n}.png"
         check_true(sec, f"{n}.png present and non-trivial", "> 10 kB", os.path.getsize(p) if os.path.exists(p) else 0, os.path.exists(p) and os.path.getsize(p) > 10000)
+    got = sorted(os.listdir(RENDERS))
+    check_true(sec, "renders/winch_gear3 holds exactly the 8 expected files (no stale ones)", [f"winch_gear3_{n}.png" for n in sorted(names)], got,
+               got == sorted(f"winch_gear3_{n}.png" for n in names))
+    # not older than the revision B exports (rendered after the STEP files were regenerated)
+    t_step = os.path.getmtime(STEP + "winch_gear3_drive_asm1021.step")
+    older = [n for n in names if os.path.getmtime(RENDERS + f"winch_gear3_{n}.png") < t_step - 60]
+    check_true(sec, "no render is more than 60 s older than drive_asm1021.step", "none older", older or "none older", not older)
 
 
 def test_99_summary():

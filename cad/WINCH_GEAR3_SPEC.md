@@ -91,3 +91,29 @@ path, print frame and the separate near spacer (section 3 and 4 tables).
 - Do not modify Jasper's reference STEP files, the encoder1021 parts, the heat fin parts, or any existing export.
 - Do not design the mount, the far cheek or the shell (Jasper does); only report where they must change.
 - Do not change software or configs.
+
+## 7. For Jasper's mount (lead, 10/23, after the verification and the calculation check)
+
+The drive train passed independent verification (`verification/winch_gear3_verification.md`, 26 tests, 0 failures). Inputs
+for the slide-in, far cheek and shell he redesigns (numbers from `calculations/winch_gear3.md`, at 1.0 A):
+
+- **Bearing seats:** Ø14 seats for the two 687s, the near one in the extended motor tab (y 0 to 5), the far one in a cheek
+  (y 44 to 49). They must hold **130 N (near) and 160 N (far) radial and 87 N axial** (1.5 x the motor's upper slip force
+  case). Fillets on the roots of the tab and the cheek.
+- **Axial location:** the stack between the bearing faces is exactly 39.000 mm (spacer 5.825 + spool 33.175), with no float.
+  Put a shoulder on the **outboard** face of each bearing (near: the motor side at y 0; far: the encoder side at y 49) and set
+  the two shoulders **49.2 mm apart** (0.2 mm end play), or shim to it. The fleeted line pushes the spool either way (58 N), so
+  each direction has one shoulder.
+- **687 land:** the spacer and the spool's far hub touch the bearing with a Ø9 land, meant for the inner race only. Check the
+  687 datasheet's inner-ring shoulder; if it is under Ø9, reprint the lands at Ø8.4 so they clear the shields.
+- **Cable exit:** keep the line leaving the drum on the room side (+x), hanging down, through the cable hole under the drum.
+  The `drive.step_sign` flip in D40 assumes this exit.
+- **Pinion (purchase):** steel M1 20T, Ø5 bore, two set screws (one on the D-flat) or one set screw plus retaining compound on
+  the bore; not sintered or brass. Torque-slip test it on the bench.
+- **Spool:** keep 3 dead wraps on the drum (the Ø1.4 tie-off is not rated for the full line pull).
+- **Interferences with the current parts** (redesign inputs, `verification/winch_gear3_build_notes.md`, confirmed by the
+  verifier): slide-in against the spool 3953 mm³ (back plate 2003, deck block 1861, lug cheek 89), against the shaft 55 mm³
+  (lug cheeks), against the spacer 35 mm³; wall mount against the spool 697 mm³; shell against the spool 1165 mm³.
+
+The export bullet in section 5 ("print frame: drum axis +z, the gear's near face on the bed") was aligned with section 3 by the
+implementer in 609aff7; the lead confirms it.

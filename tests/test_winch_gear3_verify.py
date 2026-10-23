@@ -3,10 +3,11 @@
 Contract: cad/WINCH_GEAR3_SPEC.md.  This file measures the EXPORTED files only (exports/step/winch_gear3_*.step, exports/stl/winch_gear3_*.stl).
 It does not import the implementer's builder (cad/parts/winch_gear3.py) or the implementer's tests.  The only repository code it loads is
   * the spec-mandated involute generator cad/gripper_v3_fit_review_20261018/gears.py (to rebuild the gear independently), and
-  * cad/params.py (read-only, for the parameter audit in test_23).
+  * cad/params.py (read-only, for the parameter audit in test_20).
 Spec numbers are hard-coded below (from the spec text), not read from the implementer's parameters.
 
-Run (about 5 min):   cd /home/user/RoomCleaner && /usr/bin/python3 -m pytest -q -s -p no:cacheprovider tests/test_winch_gear3_verify.py
+Run (about 6 min, 26 tests, 341 recorded checks):
+    cd /home/user/RoomCleaner && /usr/bin/python3 -m pytest -q -s -p no:cacheprovider tests/test_winch_gear3_verify.py
 The -s run prints a summary table (item, expected, measured, tolerance, status) at the end (test_99_summary).
 
 Frames.  Assembly STEPs are station_1021 + O (O = 1269.08, 738.76, 927.56) plus the 0.004 mm extraction residual RES that the builder deliberately

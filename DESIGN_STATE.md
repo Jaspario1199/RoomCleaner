@@ -617,3 +617,28 @@ slack_probe default (keep false until probe H1/M2 are closed).
   sits beside the switch pocket (6.65 × 20.3 × 9 deep on a 1 mm ledge with a lever window). It is probably the cable hole under
   the spool, not a heat-set insert pocket as `THERMAL_INSERTS` ("deck") and the first manufacturing slide assumed. The slide no
   longer calls it an insert pocket; Jasper to confirm what the hole is for.
+
+## Winch 3:1 spur reduction (D40) — drive train built and verified, calculation checked (10/23, lead)
+- Jasper (10/23) chose spur gears for a 3:1 winch reduction (lead advised against bevels). Spec `cad/WINCH_GEAR3_SPEC.md`,
+  parameters `cad/params.py` WG3_*, builder `cad/parts/winch_gear3.py` (cad-implementer, 609aff7). Steel 20T M1 pinion on the
+  motor, printed PETG 60T gear in one piece with the spool, spool on a Ø7 × 55 shaft in two 687s, 40.20 mm below the motor.
+- Exports `exports/step|stl/winch_gear3_*` (spool_gear60, spacer_near, magnet_cap, drive_asm1021, drive_with_slipin_asm1021),
+  renders `renders/winch_gear3/` (8 views). Builder tests `tests/test_winch_gear3.py` (25) and independent verification
+  `tests/test_winch_gear3_verify.py` (26, geometry-verifier, exported files only): **51 passed** (lead run, 10/23).
+  Report `verification/winch_gear3_verification.md`: PASS, 0 failures; centre distance 40.2000, zero mesh overlap at 7 poses,
+  minimum flank gap 0.117 mm, STEP round trip exact; observations N1 (no axial float in the bearing stack) and N3 (Ø9 land vs
+  the 687 inner ring) turned into mount notes in the spec section 7.
+- Calculation `calculations/winch_gear3.py/.json/.md`, independently checked (`verification/winch_gear3_calc_check.md`,
+  F1 to F12, all applied). At 1.0 A (Vref 0.80 V): capacity 1.98 to 2.80 kg (+32 % to +87 % on 1.50 kg; direct drive today
+  1.10 to 1.56 kg), heat 1.80 W, the motor pulls at most 132 N before it slips so the station is sized for 198 N. Every link
+  passes 1.5 x except the pinion set screw, 1.10 to 2.92 (MARGINAL at low steel-on-steel friction; a slip there is still caught
+  by the spool encoder). At 1.5 A the set screw may give first and the knot (1.35) and tooth contact (1.48) are marginal, so
+  1.0 A is the recommendation.
+- Mount inputs for Jasper (spec section 7): seats 130 N / 160 N radial, 87 N axial; outboard shoulders 49.2 mm apart; steel
+  pinion with two set screws or retaining compound; 3 dead wraps; the interference list against his slide-in, wall mount and
+  shell.
+- Config when the gearbox is installed (D40): `full_steps_per_rev` 600, `max_step_rate_hz` about 800, `tracking_tol_counts`
+  60 (same 0.69 mm of line as direct drive), `drive.step_sign` flipped (cable on the room side), `encoder.sign` re-measured.
+  No config changed yet.
+- Next: Jasper redesigns the slide-in, far cheek and shell around `winch_gear3_drive_asm1021.step`; then the D39 pull test at
+  50 mm/s on the geared station (replaces the 0.90 efficiency and the 0.7 running fraction).

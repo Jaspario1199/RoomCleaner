@@ -64,6 +64,8 @@ at less than half the heat, so 1.0 A is the recommendation.
 | `full_steps_per_rev` (motor steps per spool turn) | **600** | 200 x 3; the software uses it per spool revolution, so only the config changes |
 | 50 mm/s at the core | 637 full steps/s, motor 191 rpm; `max_step_rate_hz` about 800 | |
 | Cable per full step at the core | 0.079 mm | was 0.236 mm |
+| `drive.step_sign` | **flip** (or swap one motor coil pair) | the spur pair turns the spool opposite to the motor |
+| `encoder.sign` | **measure again** on the bench | the magnet moves to the far end of the spool shaft |
 
 Change the configs only when the gearbox is installed; until then the direct-drive values stay.
 

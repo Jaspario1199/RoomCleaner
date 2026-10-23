@@ -395,6 +395,8 @@ a parallel-axis stage: bevels need their cone apexes held to about 0.1 mm, push 
 - **Motor configuration (lead's recommendation; Jasper to confirm the current):** 1.0 A, Vref 0.80 V on the R100 carriers
   (within the 3.3 V logic range, no VDD change); `drive.full_steps_per_rev` 600 (200 motor steps × 3); hardware
   `faults.tracking_tol_counts` 20 (one skipped step is 27 counts at the spool); `drive.max_step_rate_hz` about 800 (50 mm/s
-  needs about 640 at the empty core). Configs change only when the gearbox is installed.
+  needs about 640 at the empty core); `drive.step_sign` flips (the spur pair turns the spool opposite to the motor; or swap one
+  coil pair) and `encoder.sign` is measured again on the bench (the magnet moves to the spool shaft's far end). Configs change
+  only when the gearbox is installed.
 - **Consequence for D39:** the most the motor can pull before it slips rises from 59 N to about 130 N at the cable (1.0 A,
   40 N·cm motor, fleeted cable, back-driven through the stage), so the new station is sized for about 200 N (1.5 ×).

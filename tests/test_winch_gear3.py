@@ -465,3 +465,80 @@ def test_assembly_bodies_sit_in_assembly_coordinates(drive):
     assert abs(asm["fin"].BoundingBox().ymin - fin.BoundingBox().ymin) < 1e-6
     assert abs(asm["motor_front_cap"].BoundingBox().ymax - P.NEMA17T_PILOT_H - fin.BoundingBox().ymin) < 1e-6
     assert abs((asm["spool_gear60"].BoundingBox().zmin + asm["spool_gear60"].BoundingBox().zmax) / 2 - (O[2] - 37.56 + RES[2])) < 0.5
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# the gears as their own STEP files (export_gears): the pinion alone, and the pinion + spool_gear60 pair in assembly coordinates
+# ---------------------------------------------------------------------------------------------------------------------
+GEAR_REL_TOL = 1.0e-6                                            # volume agreement between files written by the same exporter (relative)
+GEAR_BB_TOL = 1.0e-6                                             # mm, bounding-box agreement between those files
+GEAR_DIM_TOL = 0.01                                              # mm, measured tip diameter / bore diameter
+PINION_STEP = os.path.join(W.STEP_DIR, "winch_gear3_pinion20.step")
+GEARS_STEP = os.path.join(W.STEP_DIR, "winch_gear3_gears_asm1021.step")
+DRIVE_STEP = os.path.join(W.STEP_DIR, "winch_gear3_drive_asm1021.step")
+
+
+@pytest.fixture(scope="module")
+def pinion_file():
+    return N.read_named_step(PINION_STEP)
+
+
+@pytest.fixture(scope="module")
+def gears_file():
+    return N.read_named_step(GEARS_STEP)
+
+
+@pytest.fixture(scope="module")
+def drive_file():
+    return N.read_named_step(DRIVE_STEP)
+
+
+def _bb_close(a: cq.Shape, b: cq.Shape, tol: float = GEAR_BB_TOL):
+    ba, bb = a.BoundingBox(), b.BoundingBox()
+    for u, v in ((ba.xmin, bb.xmin), (ba.xmax, bb.xmax), (ba.ymin, bb.ymin), (ba.ymax, bb.ymax), (ba.zmin, bb.zmin), (ba.zmax, bb.zmax)):
+        assert abs(u - v) <= tol, (u, v)
+
+
+def test_gear_step_files_reimport_with_names_and_one_valid_solid_each(pinion_file, gears_file):
+    assert os.path.isfile(PINION_STEP) and os.path.isfile(GEARS_STEP)
+    assert list(pinion_file) == ["pinion"]
+    assert list(gears_file) == ["pinion", "spool_gear60"]
+    assert sum(len(s.Solids()) for s in pinion_file.values()) == 1
+    assert sum(len(s.Solids()) for s in gears_file.values()) == 2
+    for body in (*pinion_file.values(), *gears_file.values()):
+        assert body.isValid() and len(body.Solids()) == 1 and body.Solids()[0].isValid() and body.Volume() > 0
+
+
+def test_gears_assembly_bodies_equal_those_of_the_drive_assembly(gears_file, drive_file, drive):
+    for k in ("pinion", "spool_gear60"):
+        ref, got = drive_file[k], gears_file[k]
+        assert abs(got.Volume() - ref.Volume()) <= GEAR_REL_TOL * ref.Volume(), (k, got.Volume(), ref.Volume())
+        _bb_close(got, ref)
+        _same(W.to_assembly(drive)[k], got)                                                   # and both are what the builder makes now
+
+
+def test_standalone_pinion_matches_the_assembly_pinion_and_the_spec(pinion_file, gears_file):
+    pin = pinion_file["pinion"]
+    ref = gears_file["pinion"]
+    assert abs(pin.Volume() - ref.Volume()) <= GEAR_REL_TOL * ref.Volume(), (pin.Volume(), ref.Volume())
+    # axial frame as the builder makes it: bore axis through the origin, along z; hub y 5.825 .. 10.825, teeth to 20.825
+    b = pin.BoundingBox()
+    assert abs(b.zmin - P.WG3_Y_PINION_HUB0) < TOL and abs(b.zmax - (P.WG3_Y_TEETH0 + P.WG3_FACE)) < TOL
+    # tip and bore diameters measured on the cylindrical faces whose axis is the z axis through the origin
+    radii = sorted({round(r, 6) for r in _z_axis_cylinder_radii(pin)})
+    assert abs(2.0 * radii[-1] - 22.0) <= GEAR_DIM_TOL, radii
+    assert abs(2.0 * radii[0] - 5.0) <= GEAR_DIM_TOL, radii
+    assert len(_cyl_faces(pin, radii[-1], "z")) == 20 and len(_cyl_faces(pin, radii[0], "z")) >= 1            # 20 tip lands, a Ø5 bore
+
+
+def _z_axis_cylinder_radii(shape):
+    from OCP.BRepAdaptor import BRepAdaptor_Surface
+    from OCP.GeomAbs import GeomAbs_Cylinder
+    for f in shape.Faces():
+        a = BRepAdaptor_Surface(f.wrapped)
+        if a.GetType() != GeomAbs_Cylinder:
+            continue
+        ax = a.Cylinder().Axis()
+        loc, d = ax.Location(), ax.Direction()
+        if abs(abs(d.Z()) - 1.0) < 1e-9 and math.hypot(loc.X(), loc.Y()) < 1e-4:
+            yield a.Cylinder().Radius()

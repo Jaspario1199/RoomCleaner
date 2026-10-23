@@ -640,5 +640,8 @@ slack_probe default (keep false until probe H1/M2 are closed).
 - Config when the gearbox is installed (D40): `full_steps_per_rev` 600, `max_step_rate_hz` about 800, `tracking_tol_counts`
   60 (same 0.69 mm of line as direct drive), `drive.step_sign` flipped (cable on the room side), `encoder.sign` re-measured.
   No config changed yet.
+- Gear-only STEP files (10/23, cad-implementer, `export_gears()`): `exports/step/winch_gear3_pinion20.step` (the purchased pinion
+  alone, axis z) and `winch_gear3_gears_asm1021.step` (pinion + spool_gear60 in mesh, drive-assembly coordinates); both bodies
+  equal the verified drive assembly's (volume difference 0, lead re-check); `tests/test_winch_gear3.py` 28 passed.
 - Next: Jasper redesigns the slide-in, far cheek and shell around `winch_gear3_drive_asm1021.step`; then the D39 pull test at
   50 mm/s on the geared station (replaces the 0.90 efficiency and the 0.7 running fraction).

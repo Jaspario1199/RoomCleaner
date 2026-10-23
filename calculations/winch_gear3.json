@@ -51,12 +51,12 @@
   "withdrawal_design": 308.6092797026401,
   "head_punch_per_screw": 3165.8488904681594,
   "withdrawal": {
-   "f": 370.586302858826,
+   "f": 390.80655073116736,
    "case": "D3",
    "y": 36.825
   },
   "head_punch": {
-   "f": 3762.583148977442,
+   "f": 3967.8804395834613,
    "case": "D3",
    "y": 36.825
   },
@@ -80,7 +80,7 @@
   "full_step_counts": 6.826666666666667,
   "skip_counts_direct": 81.92,
   "backlash_mm": 0.24558809370648094,
-  "backlash_counts": 5.3366181994362245,
+  "backlash_counts": 5.92957577715136,
   "tol": 60,
   "dwell_s": 0.15,
   "count_mm": 0.011504855909142308,
@@ -104,8 +104,8 @@
    },
    {
     "item": "Gear backlash after a reversal",
-    "lo": 5.3366181994362245,
-    "hi": 5.3366181994362245
+    "lo": 5.92957577715136,
+    "hi": 5.92957577715136
    },
    {
     "item": "AS5600 nonlinearity as mounted",
@@ -113,11 +113,11 @@
     "hi": 11.377777777777778
    }
   ],
-  "budget_lo": 24.67884042165845,
-  "budget_hi": 30.367729310547336,
-  "margin_lo": 1.975781573473153,
-  "margin_hi": 2.431232544756976,
-  "headroom": 29.632270689452664
+  "budget_lo": 25.271797999373582,
+  "budget_hi": 30.960686888262472,
+  "margin_lo": 1.9379415003465779,
+  "margin_hi": 2.3741880178643098,
+  "headroom": 29.039313111737528
  },
  "eta_table": {
   "rows": [
@@ -161,54 +161,54 @@
  },
  "teeth": {
   "1.0 A": {
-   "f_t": 29.629629629629633,
-   "f_t_pinion_side": 26.666666666666664,
-   "f_r": 10.784303237517108,
-   "sigma_gear": 7.021239248727402,
+   "f_t": 32.92181069958848,
+   "f_t_pinion_side": 29.629629629629626,
+   "f_r": 11.982559152796785,
+   "sigma_gear": 7.948288435439033,
    "allow": 19.125,
-   "sf": 2.7238781249999993,
+   "sf": 2.40617840625,
    "kf": 1.8,
    "thin_factor": 1.1406034500859037,
-   "sigma_root": 14.415209479758659,
+   "sigma_root": 16.318521381131372,
    "allow_fail": 38.25,
-   "ratio": 2.653447392055546,
-   "pinion_sigma": 9.25925925925926,
+   "ratio": 2.343962366849447,
+   "pinion_sigma": 10.654307669769734,
    "pinion_allow": 150.0,
-   "pinion_util": 0.0617283950617284
+   "pinion_util": 0.0710287177984649
   },
   "1.5 A": {
-   "f_t": 44.44444444444445,
-   "f_t_pinion_side": 40.00000000000001,
-   "f_r": 16.17645485627566,
-   "sigma_gear": 10.531858873091103,
+   "f_t": 49.38271604938272,
+   "f_t_pinion_side": 44.44444444444445,
+   "f_r": 17.97383872919518,
+   "sigma_gear": 11.922432653158552,
    "allow": 19.125,
-   "sf": 1.8159187499999996,
+   "sf": 1.6041189374999998,
    "kf": 1.8,
    "thin_factor": 1.1406034500859037,
-   "sigma_root": 21.622814219637988,
+   "sigma_root": 24.477782071697064,
    "allow_fail": 38.25,
-   "ratio": 1.7689649280370308,
-   "pinion_sigma": 13.88888888888889,
+   "ratio": 1.562641577899631,
+   "pinion_sigma": 15.981461504654604,
    "pinion_allow": 150.0,
-   "pinion_util": 0.0925925925925926
+   "pinion_util": 0.10654307669769736
   }
  },
  "hertz": {
   "1.0 A": {
-   "f_n": 31.531193258545546,
-   "rho": 2.5651510749425155,
+   "f_n": 35.03465917616172,
+   "rho": 2.308635967448264,
    "e_star": 2083.8398221790017,
-   "p_max": 28.55426327056896,
+   "p_max": 31.726959189521068,
    "allow": 42.5,
-   "ratio": 2.2153173115668414
+   "ratio": 1.7944070223691415
   },
   "1.5 A": {
-   "f_n": 47.29678988781832,
-   "rho": 2.5651510749425155,
+   "f_n": 52.55198876424258,
+   "rho": 2.308635967448264,
    "e_star": 2083.8398221790017,
-   "p_max": 34.97168749699456,
+   "p_max": 38.85743055221617,
    "allow": 42.5,
-   "ratio": 1.476878207711227
+   "ratio": 1.1962713482460945
   }
  },
  "setscrew": {
@@ -270,13 +270,13 @@
  "shaft": {
   "1.0 A": {
    "span": 44.0,
-   "mesh_t": 29.629629629629633,
-   "mesh_r": 10.784303237517108,
-   "moment": 1537.3864148478726,
-   "sigma": 45.65507122852313,
-   "ratio": 7.666180132500518,
-   "r_near": 86.98777536669735,
-   "r_far": 106.56084617888096,
+   "mesh_t": 32.92181069958848,
+   "mesh_r": 11.982559152796785,
+   "moment": 1548.6810346193029,
+   "sigma": 45.990482459677246,
+   "ratio": 7.610270240301721,
+   "r_near": 88.36762551316585,
+   "r_far": 107.01072460057759,
    "worst_near": {
     "y": 20.825,
     "theta": 0.0
@@ -290,26 +290,26 @@
     "theta": 0.0
    },
    "midplane": {
-    "r_near": 63.94172650982781,
-    "r_far": 82.68435550314778,
-    "moment": 1461.4459835181374
+    "r_near": 65.50139969795855,
+    "r_far": 83.15873679723154,
+    "moment": 1469.8306728910673
    },
    "axial": 57.944398824499274,
-   "p0": 106.56084617888096,
-   "brg_ratio": 5.630585918891779,
-   "seat_near_need": 130.48166305004602,
-   "seat_far_need": 159.84126926832144,
+   "p0": 107.01072460057759,
+   "brg_ratio": 5.606914654951897,
+   "seat_near_need": 132.55143826974876,
+   "seat_far_need": 160.51608690086638,
    "seat_axial_need": 86.91659823674891
   },
   "1.5 A": {
    "span": 44.0,
-   "mesh_t": 44.44444444444445,
-   "mesh_r": 16.17645485627566,
-   "moment": 2306.079622271809,
-   "sigma": 68.4826068427847,
-   "ratio": 5.110786755000344,
-   "r_near": 130.481663050046,
-   "r_far": 159.84126926832144,
+   "mesh_t": 49.38271604938272,
+   "mesh_r": 17.97383872919518,
+   "moment": 2323.0215519289554,
+   "sigma": 68.9857236895159,
+   "ratio": 5.073513493534478,
+   "r_near": 132.5514382697488,
+   "r_far": 160.51608690086638,
    "worst_near": {
     "y": 20.825,
     "theta": 0.0
@@ -323,15 +323,15 @@
     "theta": 0.0
    },
    "midplane": {
-    "r_near": 95.91258976474168,
-    "r_far": 124.02653325472173,
-    "moment": 2192.1689752772054
+    "r_near": 98.25209954693787,
+    "r_far": 124.7381051958473,
+    "moment": 2204.746009336602
    },
    "axial": 86.91659823674892,
-   "p0": 159.84126926832144,
-   "brg_ratio": 3.753723945927853,
-   "seat_near_need": 195.722494575069,
-   "seat_far_need": 239.76190390248217,
+   "p0": 160.51608690086638,
+   "brg_ratio": 3.737943103301265,
+   "seat_near_need": 198.82715740462316,
+   "seat_far_need": 240.77413035129956,
    "seat_axial_need": 130.37489735512338
   }
  },
@@ -384,50 +384,50 @@
  "motor_radial": {
   "1.0 A": {
    "arm_mm": 19.0,
-   "f_slip": 28.378073932690985,
-   "f_run": 6.385545514853086,
+   "f_slip": 31.53119325854554,
+   "f_run": 7.095050572058984,
    "catalogue": 28.0,
    "catalogue_arm": 20.0,
-   "slip_vs_catalogue": 1.0135026404532494,
-   "run_vs_catalogue": 0.22805519695903878,
+   "slip_vs_catalogue": 1.126114044948055,
+   "run_vs_catalogue": 0.25339466328782084,
    "lever": 22.0,
    "z": 10.288606529467591,
-   "sigma": 60.68048425518985,
-   "shaft_ratio": 5.767917054321552,
-   "brg_reaction": 49.188661483331046,
+   "sigma": 67.42276028354428,
+   "shaft_ratio": 5.191125348889398,
+   "brg_reaction": 54.65406831481227,
    "brg_c0": 380.0,
-   "brg_ratio": 7.725357603576459
+   "brg_ratio": 6.952821843218813
   },
   "1.5 A": {
    "arm_mm": 19.0,
-   "f_slip": 42.56711089903649,
-   "f_run": 6.385545514853086,
+   "f_slip": 47.29678988781832,
+   "f_run": 7.095050572058984,
    "catalogue": 28.0,
    "catalogue_arm": 20.0,
-   "slip_vs_catalogue": 1.5202539606798748,
-   "run_vs_catalogue": 0.22805519695903878,
+   "slip_vs_catalogue": 1.6891710674220828,
+   "run_vs_catalogue": 0.25339466328782084,
    "lever": 22.0,
    "z": 10.288606529467591,
-   "sigma": 91.02072638278482,
-   "shaft_ratio": 3.8452780362143666,
-   "brg_reaction": 73.78299222499659,
+   "sigma": 101.13414042531645,
+   "shaft_ratio": 3.4607502325929307,
+   "brg_reaction": 81.98110247221842,
    "brg_c0": 380.0,
-   "brg_ratio": 5.150238402384304
+   "brg_ratio": 4.635214562145874
   }
  },
  "links": {
   "1.0 A": [
    {
-    "link": "Printed 60T teeth (UTS, Kf, thinning)",
-    "load": "F_t 29.6 N, 14.4 MPa vs 38.25",
-    "ratio": 2.653447392055546,
+    "link": "Printed 54T teeth (UTS, Kf, thinning)",
+    "load": "F_t 32.9 N, 16.3 MPa vs 38.25",
+    "ratio": 2.343962366849447,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
     "link": "Tooth contact, steel on PETG (Hertz)",
-    "load": "p 28.6 MPa vs 42.5",
-    "ratio": 2.2153173115668414,
+    "load": "p 31.7 MPa vs 42.5",
+    "ratio": 1.7944070223691415,
     "ratio_hi": null,
     "verdict": "PASS"
    },
@@ -447,29 +447,29 @@
    },
    {
     "link": "Spool shaft \u00d87, bending",
-    "load": "1537 N.mm, 45.7 MPa",
-    "ratio": 7.666180132500518,
+    "load": "1549 N.mm, 46.0 MPa",
+    "ratio": 7.610270240301721,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
     "link": "687 bearings, static",
-    "load": "87.0 N near, 106.6 N far",
-    "ratio": 5.630585918891779,
+    "load": "88.4 N near, 107.0 N far",
+    "ratio": 5.606914654951897,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
     "link": "Motor shaft, bending at the D-flat",
-    "load": "28.4 N at 22 mm, 60.7 MPa",
-    "ratio": 5.767917054321552,
+    "load": "31.5 N at 22 mm, 67.4 MPa",
+    "ratio": 5.191125348889398,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
     "link": "Motor front bearing, static",
-    "load": "49 N vs C0 380",
-    "ratio": 7.725357603576459,
+    "load": "55 N vs C0 380",
+    "ratio": 6.952821843218813,
     "ratio_hi": null,
     "verdict": "PASS"
    },
@@ -482,15 +482,15 @@
    },
    {
     "link": "Wall screws, one stud column",
-    "load": "371 N of line puts the top screw at design withdrawal (D3, cable y 36.8)",
-    "ratio": 2.8090691049299683,
+    "load": "391 N of line puts the top screw at design withdrawal (D3, cable y 36.8)",
+    "ratio": 2.962339944013997,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
     "link": "Wall plate, screw head pulls through",
-    "load": "3166 N per screw at 3763 N of line (D3, cable y 36.8)",
-    "ratio": 28.520633377399857,
+    "load": "3166 N per screw at 3968 N of line (D3, cable y 36.8)",
+    "ratio": 30.076800650497614,
     "ratio_hi": null,
     "verdict": "PASS"
    },
@@ -511,16 +511,16 @@
   ],
   "1.5 A": [
    {
-    "link": "Printed 60T teeth (UTS, Kf, thinning)",
-    "load": "F_t 44.4 N, 21.6 MPa vs 38.25",
-    "ratio": 1.7689649280370308,
+    "link": "Printed 54T teeth (UTS, Kf, thinning)",
+    "load": "F_t 49.4 N, 24.5 MPa vs 38.25",
+    "ratio": 1.562641577899631,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
     "link": "Tooth contact, steel on PETG (Hertz)",
-    "load": "p 35.0 MPa vs 42.5",
-    "ratio": 1.476878207711227,
+    "load": "p 38.9 MPa vs 42.5",
+    "ratio": 1.1962713482460945,
     "ratio_hi": null,
     "verdict": "MARGINAL"
    },
@@ -540,29 +540,29 @@
    },
    {
     "link": "Spool shaft \u00d87, bending",
-    "load": "2306 N.mm, 68.5 MPa",
-    "ratio": 5.110786755000344,
+    "load": "2323 N.mm, 69.0 MPa",
+    "ratio": 5.073513493534478,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
     "link": "687 bearings, static",
-    "load": "130.5 N near, 159.8 N far",
-    "ratio": 3.753723945927853,
+    "load": "132.6 N near, 160.5 N far",
+    "ratio": 3.737943103301265,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
     "link": "Motor shaft, bending at the D-flat",
-    "load": "42.6 N at 22 mm, 91.0 MPa",
-    "ratio": 3.8452780362143666,
+    "load": "47.3 N at 22 mm, 101.1 MPa",
+    "ratio": 3.4607502325929307,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
     "link": "Motor front bearing, static",
-    "load": "74 N vs C0 380",
-    "ratio": 5.150238402384304,
+    "load": "82 N vs C0 380",
+    "ratio": 4.635214562145874,
     "ratio_hi": null,
     "verdict": "PASS"
    },
@@ -575,15 +575,15 @@
    },
    {
     "link": "Wall screws, one stud column",
-    "load": "371 N of line puts the top screw at design withdrawal (D3, cable y 36.8)",
-    "ratio": 1.8727127366199787,
+    "load": "391 N of line puts the top screw at design withdrawal (D3, cable y 36.8)",
+    "ratio": 1.9748932960093308,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
     "link": "Wall plate, screw head pulls through",
-    "load": "3166 N per screw at 3763 N of line (D3, cable y 36.8)",
-    "ratio": 19.013755584933236,
+    "load": "3166 N per screw at 3968 N of line (D3, cable y 36.8)",
+    "ratio": 20.051200433665073,
     "ratio_hi": null,
     "verdict": "PASS"
    },

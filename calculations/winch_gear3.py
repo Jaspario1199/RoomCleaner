@@ -4,6 +4,7 @@ part of the new drive train outlasts the motor.
 Drive train: `cad/WINCH_GEAR3_SPEC.md`, parameters `cad/params.py` WG3_* (built by `cad/parts/winch_gear3.py`). Motor, spool
 radii, running fraction, skip margin and the tension-per-weight factor are the repo's (simulation_loads, D37, Lift budget).
 Rule from D39: every link >= 1.5 x the most the motor can pull before it slips (`lift_chain_weakest_link.py` = WL).
+Revision B (D41): spur pair 18T/54T at module 1, centres 36.20 mm; geometry is read from params, only the Lewis table gained 18T and 54T.
 
 Revised 10/23 after the independent check (verification/winch_gear3_calc_check.md, F1 to F12) with the lead's decisions:
 capacity as a range (A4988 full-step vector); wall screws at the new load point; shaft and bearings over the whole drum width
@@ -40,7 +41,7 @@ NEEDED_KG = WL.NEEDED_KG              # claw 0.60 + jeans 0.90 [REPO Lift budget
 R_SENSE = S.R_SENSE                   # 0.100 ohm, red R100 A4988 [REPO D29/D30]
 CURRENTS = (1.0, 1.5)                 # A: recommended (D40) and today's setting (D37)
 MOTOR_FULL_STEPS = 200                # full steps per motor turn [REPO NEMA 17, 1.8 deg]
-Y_LEWIS = {20: 0.320, 60: 0.422}      # Lewis form factors, 20 deg full depth [SRC standard table]
+Y_LEWIS = {18: 0.309, 20: 0.320, 54: 0.4142, 60: 0.422}   # Lewis form factors, 20 deg full depth [SRC Shigley's table; 54T interpolated between 50T 0.409 and 60T 0.422]
 PETG_ALLOW = S.Z_STRENGTH * WL.WARM["design"]   # MPa: Lewis allowable = half the in-plane UTS, warm [REPO review R5, D39; warm ASSUMED in WL]
 PETG_UTS = S.PETG["uts"]              # MPa, in-plane tensile strength; Z_STRENGTH is half of it [REPO SIMULATION_GUIDE.md via S]
 KF_ROOT = 1.8                         # root fillet stress concentration of a printed tooth [ASSUMED, 1.5 to 2.0]
@@ -86,7 +87,7 @@ def direct_drive() -> dict:
 
 
 def gear_teeth(c: dict) -> dict:
-    """Printed 60T teeth at the most torque the motor puts through the stage (it slips above that), on the spool-side tangential
+    """Printed gear teeth (WG3_Z_GEAR) at the most torque the motor puts through the stage (it slips above that), on the spool-side tangential
     force (back-driven: slip torque x ratio / eta / gear pitch radius), the same force the shaft check uses.
     (a) Lewis SF against the half-UTS allowable. (b) the D39 ratio on a failure basis: the teeth print flat, so they bend along
     the layers (in-plane UTS, warm), root stress x Kf and x the thinning of the root section (t / (t - thin))^2 [approximation:
@@ -107,7 +108,7 @@ def gear_teeth(c: dict) -> dict:
 
 
 def hertz(t: dict) -> dict:
-    """Steel pinion on the printed gear at the pitch point (line contact, nominal 20 deg, 40.0 mm centres): p_max against a warm
+    """Steel pinion on the printed gear at the pitch point (line contact, nominal 20 deg, 36.0 mm centres): p_max against a warm
     compressive strength. p goes with sqrt(F), so the force ratio is (allow / p)^2."""
     phi = math.radians(P.WG3_PRESSURE_ANGLE_DEG)
     r_p, r_g = P.WG3_MODULE * P.WG3_Z_PINION / 2.0, P.WG3_MODULE * P.WG3_Z_GEAR / 2.0
@@ -286,7 +287,7 @@ def link_rows(c: dict, wl: dict, parts: dict) -> list:
     def add(name: str, load: str, lo: float, hi: float | None = None) -> None:
         rows.append(dict(link=name, load=load, ratio=lo, ratio_hi=hi, verdict=WL.verdict(lo, hi)))
 
-    add("Printed 60T teeth (UTS, Kf, thinning)", f"F_t {t['f_t']:.1f} N, {t['sigma_root']:.1f} MPa vs {t['allow_fail']:.2f}", t["ratio"])
+    add(f"Printed {P.WG3_Z_GEAR}T teeth (UTS, Kf, thinning)", f"F_t {t['f_t']:.1f} N, {t['sigma_root']:.1f} MPa vs {t['allow_fail']:.2f}", t["ratio"])
     add("Tooth contact, steel on PETG (Hertz)", f"p {h['p_max']:.1f} MPa vs {h['allow']:.1f}", h["ratio"])
     add("Pinion set screw, steel on steel D-flat", f"{pin['torque_lo']:.2f} to {pin['torque_hi']:.2f} N.m vs {c['hold_hi']:.2f}", pin["ratio_lo"], pin["ratio_hi"])
     add("Spool body, drum core torque", f"{body['torque']:.2f} N.m, {body['tau']:.1f} MPa vs {body['allow']:.1f}", body["ratio"])

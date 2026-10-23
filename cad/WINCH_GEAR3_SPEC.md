@@ -37,27 +37,34 @@ Along y, on the spool axis (x 0, z −37.56):
 
 | Section | y range | Size |
 |---|---|---|
-| Near hub (rotates) | 5.0 to 10.825 | Ø12; end face at y 5.0 is a Ø9 land 0.3 mm proud (touches only the 687 inner race) |
-| Gear | 10.825 to 20.825 | 60T, m 1.0 (tip Ø62); six lightening windows Ø12 on R 20 (keep ≥ 3 mm rim below the root and ≥ 2 mm web to the hub) |
+| Gear | 10.825 to 20.825 | 60T, m 1.0 (tip Ø62, root R 28.75); six lightening windows **Ø11 on R 20** (outer edge R 25.5: rim 3.25 mm below the root; inner edge R 14.5); 0.3 mm × 45° chamfer on the tooth edges of the bed face (y 10.825) against elephant foot |
 | Drum | 20.825 to 36.825 | Ø15 core (7.5 mm radius, as Spoolv3, so the calibration's core radius stays); the gear's side face is the inner flange |
 | Outer flange | 36.825 to 39.825 | Ø36 × 3 (as Spoolv3) |
 | Far hub | 39.825 to 44.0 | Ø12; end face Ø9 land 0.3 mm proud |
 | Bore | through | Ø7.00 (prints about 6.9: press fit on the Ø7 shaft; the shaft carries no torque, only the encoder magnet) |
-| Tie-off | axial Ø1.4 through the drum at r = 5.5 mm | 1.3 mm ligaments to the bore and the core |
+
+The part runs y 10.825 to 44.0. **Print frame: the gear's near face (y 10.825) on the bed**; the far hub builds on top of the flange.
+The outer flange's inner face (y 36.825) overhangs the Ø15 drum by 10.5 mm and is printed on supports (record it in the build
+notes; the line touches that face, so it is sanded smooth). The near hub is a separate part (`spacer_near_w3`, below).
+| Tie-off | Ø1.4 chord hole through the drum core, perpendicular to the axis, 5.25 mm off the axis, at the drum mid-plane y 28.825; both ends open on the winding surface (as Spool1011) | ligaments: 1.05 mm to the Ø7 bore, 0.85 mm to the core surface at the chord's closest point |
 
 ## 4. Purchased and reference bodies (assembly only)
 
 | Body | Placement |
 |---|---|
-| Shaft, Ø7 × 50 steel dowel | y 0 to 50 on the spool axis |
+| Shaft, Ø7 × 55 steel dowel | y −3.0 to 52.0 on the spool axis (the 3 mm behind the tab is below the motor and the fin) |
+| Near spacer (printed, `spacer_near_w3`) | y 5.0 to 10.825 on the shaft: Ø10 OD, Ø7.10 bore (slip), both end faces Ø9 lands (it touches only the 687 inner race and the gear face); prints on either end face |
 | 687 bearing (7 × 14 × 5), near | y 0 to 5 (seat in the motor tab, which Jasper extends down to the spool axis) |
 | 687 bearing, far | y 44 to 49 (seat in a far cheek Jasper adds) |
-| Magnet cap (printed, `magnet_cap_w3`) | on the shaft end: Ø12 × 3.0, y 49.3 to 52.3; Ø7 bore 2.0 deep from the bearing side; Ø6.3 × 2.5 magnet pocket on the outer face with 3 crush ribs (the ENC1021_V2 rule: 0.15 per side + 0.12 crush) |
-| Magnet | Ø6 × 2.5 diametric, in the cap |
-| AS5600 board envelope | 23 × 23 × 1.6 board, centred on the axis, chip side facing the magnet, 1.5 mm air gap: board y 53.8 to 55.4 |
+| Magnet cap (printed, `magnet_cap_w3`) | on the shaft end: Ø12, **y 49.3 to 55.55 (6.25 thick)**; Ø7 bore y 49.3 to 52.3 (3.0 deep; the shaft end at 52.0 leaves 0.3 mm); web y 52.3 to 53.05 (0.75, `ENC1021_CAP_FLOOR_MIN`); Ø6.3 × 2.5 magnet pocket y 53.05 to 55.55 with 3 crush ribs (the ENC1021_V2 rule: 0.15 per side + 0.12 crush); prints magnet-face up |
+| Magnet | Ø6 × 2.5 diametric, y 53.05 to 55.55 (face flush with the cap) |
+| AS5600 board envelope | follow the `encoder1021` convention: chip face 1.5 mm from the magnet face, **chip face y 57.05**, chip `ENC1021_CHIP_H` tall, PCB 23 × 23 × 1.6 behind it (y 58.5 to 60.1), centred on the axis |
 | Pinion (purchased) | section 2 |
 | Motor | `cad/parts/nema17_thermal.py` bodies at front face y −3.175 (or the block motor of `thermal_station1021`) |
 | 1/8 in fin | `exports/step/heat_fin1021_1p8_asm1021.step` (as is) |
+
+Lead revision 10/23 after the implementer's stop report: cap thickness and shaft length, window size, board position, tie-off
+path, print frame and the separate near spacer (section 3 and 4 tables).
 
 ## 5. Deliverables
 
@@ -67,9 +74,9 @@ Along y, on the spool axis (x 0, z −37.56):
 - Exports:
   - `exports/step/winch_gear3_spool_gear60.step` / `exports/stl/winch_gear3_spool_gear60.stl` (print frame: drum axis +z, far
     flange face down; record which face goes on the bed);
-  - `exports/step/winch_gear3_magnet_cap.step` / `.stl`;
+  - `exports/step/winch_gear3_magnet_cap.step` / `.stl`, and `exports/step/winch_gear3_spacer_near.step` / `.stl`;
   - `exports/step/winch_gear3_drive_asm1021.step`: every body named (`motor_*`, `fin`, `pinion`, `spool_gear60`, `shaft`,
-    `bearing_near`, `bearing_far`, `magnet_cap`, `magnet`, `as5600_board`), in the station_1021 frame;
+    `bearing_near`, `bearing_far`, `spacer_near`, `magnet_cap`, `magnet`, `as5600_chip`, `as5600_board`), in the station_1021 frame;
   - `exports/step/winch_gear3_drive_with_slipin_asm1021.step`: the same plus Jasper's current slide-in and wall mount, for him to
     see what has to change.
 - Renders `renders/winch_gear3/`: front, side, top, iso of the drive; the mesh close-up; and a section through the spool axis.

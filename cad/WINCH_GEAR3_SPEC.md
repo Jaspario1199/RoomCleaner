@@ -1,4 +1,9 @@
-# Winch station, 3:1 spur reduction: drive-train reference (spec, lead, 10/23)
+# Winch station, 3:1 spur reduction: drive-train reference (spec, lead, 10/23; revision B: 18T/54T)
+
+**Revision B (Jasper, 10/23: "can we make the radius of both gears just a little smaller", D41).** The pair is 18T/54T at module 1
+(was 20T/60T): both gears about 10 % smaller, ratio still 3.00, same tooth size and pinion family. Centre distance 36.20, spool axis
+z −33.56. Every axial position, the drum, flange, hubs, shaft, bearings, cap and encoder are unchanged. Part and file names follow
+the tooth counts (`spool_gear54`, `pinion18`); the 20T/60T exports are removed. Numbers below are revision B.
 
 Jasper (10/23): "lets go with spur gears" (3:1, after "I want to use a bevel gear system on the motor mounts to increase torque
 3:1"; the lead advised a parallel-axis stage instead of bevels). Recorded as D40. Jasper designs the mount, cheeks and shell in
@@ -21,23 +26,23 @@ into his assembly.
 | Item | Value | Why |
 |---|---|---|
 | Module, pressure angle | 1.0, 20° | the common module for off-the-shelf steel pinions on 5 mm shafts |
-| Pinion (purchased, steel) | 20 teeth, Ø5 bore, set screw on the D-flat; teeth 10 mm face; hub Ø14 × 5 mm on the tab side | steel set screw on the steel flat replaces the printed set-screw joint that may slip before the motor (weakest-link study) |
-| Gear (printed PETG, part of the spool) | 60 teeth, face 10 mm, tooth thinning 0.10 mm (generator default) | ratio 3.00 |
-| Centre distance | nominal m (20 + 60) / 2 = 40.00; **built 40.20** (+0.20 backlash allowance, steel against printed) | claw gears use +0.30 for printed against printed |
-| Spool axis | x = 0, z = 2.64 − 40.20 = **−37.56** (directly below the motor) | shortest bracket from the deck; the cable still leaves downward; the cable hole stays under the drum |
+| Pinion (purchased, steel) | 18 teeth (tip Ø20), Ø5 bore, set screw on the D-flat; teeth 10 mm face; hub Ø14 × 5 mm on the tab side | steel set screw on the steel flat replaces the printed set-screw joint that may slip before the motor (weakest-link study) |
+| Gear (printed PETG, part of the spool) | 54 teeth (tip Ø56), face 10 mm, tooth thinning 0.10 mm (generator default) | ratio 3.00 |
+| Centre distance | nominal m (18 + 54) / 2 = 36.00; **built 36.20** (+0.20 backlash allowance, steel against printed) | claw gears use +0.30 for printed against printed |
+| Spool axis | x = 0, z = 2.64 − 36.20 = **−33.56** (directly below the motor) | shortest bracket from the deck; the cable still leaves downward; the cable hole stays under the drum |
 | Pinion position | teeth y 10.825 to 20.825 (flush with the shaft end); hub y 5.825 to 10.825 | 0.825 mm clear of the tab face |
 | Gear position | teeth y 10.825 to 20.825, aligned with the pinion | |
 
 Use the repo's involute generator `cad/gripper_v3_fit_review_20261018/gears.py` `gear(n, module, width, phase, reduction,
 root_radius)`. Phase the gear so a gear tooth space faces the pinion tooth at the mesh point (no overlap at the reference pose).
 
-## 3. Spool on its own shaft (one printed PETG part, `spool_gear60`)
+## 3. Spool on its own shaft (one printed PETG part, `spool_gear54`)
 
-Along y, on the spool axis (x 0, z −37.56):
+Along y, on the spool axis (x 0, z −33.56):
 
 | Section | y range | Size |
 |---|---|---|
-| Gear | 10.825 to 20.825 | 60T, m 1.0 (tip Ø62, root R 28.75); six lightening windows **Ø11 on R 20** (outer edge R 25.5: rim 3.25 mm below the root; inner edge R 14.5); 0.3 mm × 45° chamfer on the tooth edges of the bed face (y 10.825) against elephant foot |
+| Gear | 10.825 to 20.825 | 54T, m 1.0 (tip Ø56, root R 25.75); six lightening windows **Ø10 on R 17.5** (outer edge R 22.5: rim 3.25 mm below the root; inner edge R 12.5, 2.5 mm outside the 10 mm full-spool line radius so the line cannot drop into a window); 0.3 mm × 45° chamfer on the tooth edges of the bed face (y 10.825) against elephant foot |
 | Drum | 20.825 to 36.825 | Ø15 core (7.5 mm radius, as Spoolv3, so the calibration's core radius stays); the gear's side face is the inner flange |
 | Outer flange | 36.825 to 39.825 | Ø36 × 3 (as Spoolv3) |
 | Far hub | 39.825 to 44.0 | Ø12; end face Ø9 land 0.3 mm proud |
@@ -70,17 +75,17 @@ path, print frame and the separate near spacer (section 3 and 4 tables).
 
 - `cad/params.py`: new block `WG3_*` (every number above, one definition each; nothing duplicated from other blocks: import
   NEMA17T_*, FIN1021_*, GRIPV7 bearing sizes where they already exist).
-- `cad/parts/winch_gear3.py`: builds the printable `spool_gear60` and `magnet_cap_w3`, the reference bodies, and the assembly.
+- `cad/parts/winch_gear3.py`: builds the printable `spool_gear54` and `magnet_cap_w3`, the reference bodies, and the assembly.
 - Exports:
-  - `exports/step/winch_gear3_spool_gear60.step` / `exports/stl/winch_gear3_spool_gear60.stl` (print frame: drum axis +z, the gear's near face on the bed, section 3);
+  - `exports/step/winch_gear3_spool_gear54.step` / `exports/stl/winch_gear3_spool_gear54.stl` (print frame: drum axis +z, the gear's near face on the bed, section 3);
   - `exports/step/winch_gear3_magnet_cap.step` / `.stl`, and `exports/step/winch_gear3_spacer_near.step` / `.stl`;
-  - `exports/step/winch_gear3_drive_asm1021.step`: every body named (`motor_*`, `fin`, `pinion`, `spool_gear60`, `shaft`,
+  - `exports/step/winch_gear3_drive_asm1021.step`: every body named (`motor_*`, `fin`, `pinion`, `spool_gear54`, `shaft`,
     `bearing_near`, `bearing_far`, `spacer_near`, `magnet_cap`, `magnet`, `as5600_chip`, `as5600_board`), in the station_1021 frame;
   - `exports/step/winch_gear3_drive_with_slipin_asm1021.step`: the same plus Jasper's current slide-in and wall mount, for him to
     see what has to change.
 - Renders `renders/winch_gear3/`: front, side, top, iso of the drive; the mesh close-up; and a section through the spool axis.
-- `tests/test_winch_gear3.py`: valid solids, counts, the key dimensions above, centre distance 40.20, ratio 3, no overlap between
-  any two drive bodies (≤ 0.01 mm³), gear tip to pinion hub ≥ 1.5 mm, gear to motor body and to the fin ≥ 1.5 mm, STEP
+- `tests/test_winch_gear3.py`: valid solids, counts, the key dimensions above, centre distance 36.20, ratio 3, no overlap between
+  any two drive bodies (≤ 0.01 mm³), gear tip to pinion hub ≥ 1.0 mm (revision B: the Ø14 hub ends at the gear's face plane, so the gap is radial, 36.20 − 28.0 − 7.0 = 1.2 mm; the 0.2 mm end play cannot close it), gear to motor body and to the fin ≥ 1.5 mm, STEP
   round trip (volume and bounding box within 0.1 %).
 - `verification/winch_gear3_build_notes.md`: what was built, measured values, and the **interferences with Jasper's current
   slide-in** (expected: the spool and gear cut through the lower lug and deck region; list each with its volume and location).
@@ -93,6 +98,9 @@ path, print frame and the separate near spacer (section 3 and 4 tables).
 - Do not change software or configs.
 
 ## 7. For Jasper's mount (lead, 10/23, after the verification and the calculation check)
+
+*Revision B: the seat loads and the interference volumes below are the 20T/60T values; they are refreshed from the revision B
+build notes and calculation once those are rerun.*
 
 The drive train passed independent verification (`verification/winch_gear3_verification.md`, 26 tests, 0 failures). Inputs
 for the slide-in, far cheek and shell he redesigns (numbers from `calculations/winch_gear3.md`, at 1.0 A):
@@ -108,7 +116,7 @@ for the slide-in, far cheek and shell he redesigns (numbers from `calculations/w
   687 datasheet's inner-ring shoulder; if it is under Ø9, reprint the lands at Ø8.4 so they clear the shields.
 - **Cable exit:** keep the line leaving the drum on the room side (+x), hanging down, through the cable hole under the drum.
   The `drive.step_sign` flip in D40 assumes this exit.
-- **Pinion (purchase):** steel M1 20T, Ø5 bore, two set screws (one on the D-flat) or one set screw plus retaining compound on
+- **Pinion (purchase):** steel M1 18T, Ø5 bore, two set screws (one on the D-flat) or one set screw plus retaining compound on
   the bore; not sintered or brass. Torque-slip test it on the bench.
 - **Spool:** keep 3 dead wraps on the drum (the Ø1.4 tie-off is not rated for the full line pull).
 - **Interferences with the current parts** (redesign inputs, `verification/winch_gear3_build_notes.md`, confirmed by the

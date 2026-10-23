@@ -404,3 +404,16 @@ a parallel-axis stage: bevels need their cone apexes held to about 0.1 mm, push 
   40 N·cm motor, fleeted cable, back-driven through the stage), so the new station is sized for about 200 N (1.5 ×). Bearing seats (Jasper): 130 N near, 160 N far radial, 87 N axial.
   Pinion: steel (not sintered or brass), two set screws or retaining compound (one set screw at low friction is marginal; a
   pinion slip is still caught by the spool encoder). Three dead wraps stay on the drum.
+
+D41. **Winch gears 18T/54T** (Jasper, 10/23: "can we make the radius of both gears just a little smaller"). Supersedes the tooth
+counts in D40; everything else in D40 stands.
+- **Pair:** steel M1 18T pinion (tip Ø20, was 20T Ø22) and printed 54T gear (tip Ø56, was 60T Ø62): about 10 % smaller, ratio
+  still 3.00, same module and pinion family, the smallest step that keeps both (19T/57T is 5 % but an odd pinion is harder to buy;
+  module 0.8 would be 20 % smaller but drops the tooth contact below 1.5 x). Centre distance 36.00 + 0.20 = **36.20**; spool axis
+  z −33.56 (4 mm higher). 18 teeth is above the 17-tooth undercut limit at 20°.
+- **Margins (lead estimate, scaled from `calculations/winch_gear3.md`, to be rerun):** printed teeth 2.65 → about 2.3, tooth contact
+  2.21 → about 1.8, both still above 1.5; the set screw and the motor-side numbers do not change (same motor torque).
+- **Geometry rules:** windows Ø10 on R 17.5 (rim 3.25 under the root as before; inner edge 2.5 mm outside the full-spool line).
+  Gear tip to pinion hub is 1.2 mm radial (criterion relaxed from 1.5 to 1.0: the hub ends at the gear's face plane).
+- Files renamed by tooth count (`winch_gear3_spool_gear54`, `winch_gear3_pinion18`); the 20T/60T exports are removed.
+

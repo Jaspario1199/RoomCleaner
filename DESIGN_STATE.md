@@ -671,4 +671,4 @@ slack_probe default (keep false until probe H1/M2 are closed).
   gear tip to hub 1.33 worst pose, pinion to boss 0.50 / fin 4.25 / tab hole 4.20.
 - Calculation at 1.0 A: pinion teeth 1.75 (weakest tooth), insert set screw 1.50–3.32, PETG contact 3.55; all pass. At 1.5 A
   pinion teeth 1.17 and set screw low end 1.00 are marginal: stay at 1.0 A. Backlash formula fixed (0.418 mm, 10 counts).
-- Open: Jasper to choose 18/54 (current) or 18/45 (2.5:1, gear Ø47) if smaller is still wanted.
+- Jasper (10/23): keep 18/54 ("it works"); 18/45 not needed.

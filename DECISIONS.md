@@ -417,3 +417,19 @@ counts in D40; everything else in D40 stands.
   Gear tip to pinion hub is 1.2 mm radial (criterion relaxed from 1.5 to 1.0: the hub ends at the gear's face plane).
 - Files renamed by tooth count (`winch_gear3_spool_gear54`, `winch_gear3_pinion18`); the 20T/60T exports are removed.
 
+D42. **Winch pinion printed in PETG** (Jasper, 10/23: "I'm printing it", after the lead's note that the pinion was specified as
+bought steel). Supersedes the purchased steel pinion of D40/D41; the 54T gear and everything else stand.
+- **Pinion (`pinion18`, printed):** 18T m1, face 10 (y 10.825 to 20.825), tooth thinning 0.10 like the gear; the hub Ø14 now
+  runs back through the slide-in tab's Ø22.4 motor hole and the fin's 7/8 in hole to y −0.675 (0.5 mm clear of the motor's pilot
+  boss), 11.5 mm long. Bore: Jasper's proven printed D-bore on this shaft (Ø5.30 round, flat 2.15 from the axis, the 10/21 spool
+  values `ENC1021_BORE_*`). Set screw: M3 cup point onto the D-flat through a short M3 heat-set insert (4 mm long, pocket Ø4.0 x
+  4.5 deep, radial from +z) at y 7.9, the middle of the exposed hub, so a key reaches it from above. Prints teeth-end down, hub up.
+- **Centre distance:** printed against printed uses the claw gears' +0.30 allowance: 36.00 + 0.30 = **36.30**, spool axis
+  z −33.66 (0.1 mm lower than revision B).
+- **Why it is acceptable (lead estimate, to be rerun):** printed 18T teeth about 1.7 x the motor's slip force (the pinion is now the
+  weakest tooth, above 1.5); the set screw in a metal insert holds 0.40 to 0.88 N·m against the motor's 0.27 (1.5 to 3.3 x, the
+  weakest-link study's metal-insert model); a pinion slip is still caught by the spool encoder (TRACKING fault), and the D-flat
+  takes over after the bore clearance closes. Tooth contact improves (PETG on PETG is softer). Backlash grows to about 0.42 mm at
+  the pitch circle (about 10 encoder counts, inside the 60-count tolerance).
+- **Interface for Jasper:** keep the tab's motor hole at Ø22.4 (at least Ø16) so the pinion hub passes through it.
+

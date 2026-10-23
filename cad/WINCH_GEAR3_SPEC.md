@@ -2,7 +2,20 @@
 
 **Revision B (Jasper, 10/23: "can we make the radius of both gears just a little smaller", D41).** The pair is 18T/54T at module 1
 (was 20T/60T): both gears about 10 % smaller, ratio still 3.00, same tooth size and pinion family. Centre distance 36.20, spool axis
-z −33.56. Every axial position, the drum, flange, hubs, shaft, bearings, cap and encoder are unchanged. Part and file names follow
+z −33.56. Every axial position, the drum, flange, hubs, shaft, bearings, cap and encoder are unchanged.
+
+**Revision C (Jasper, 10/23: "I'm printing it", D42).** The pinion is printed PETG, not bought steel. It gets the gear's
+0.10 tooth thinning and a 0.3 × 45° bed chamfer on the teeth end (y 20.825), which prints on the bed. Its Ø14 hub runs back
+through the slide-in tab's Ø22.4 motor hole to **y −0.675** (0.5 mm clear of the motor's pilot boss face at y −1.175), so the
+pinion spans y −0.675 to 20.825. The bore is the proven printed D-bore on this shaft: `ENC1021_BORE_D` Ø5.30, flat at
+`ENC1021_BORE_FLAT_X` 2.15 from the axis on the +z side (the motor's flat is at +2.0). The set screw is an M3 cup point onto
+the flat. It goes through a short M3 heat-set insert in a radial pocket **Ø4.0 × 4.5 deep from the hub surface toward the
+axis**, opening to +z, with a Ø3.0 hole from the pocket bottom to the bore. Its axis is at **y 7.9**, the middle of the exposed
+hub between the tab face (y 5.0) and the teeth (y 10.825). The centre-distance allowance becomes **+0.30** (printed against
+printed, as the claw gears): CD **36.30**, spool axis **z −33.66**. The pinion is a printable part: export it in its print
+frame (axis +z, teeth end on the bed) as STEP + STL. Criteria: the gear-tip to pinion-hub, gear-to-motor and gear-to-fin rules of
+revision B stay; pinion to the motor boss ≥ 0.4 mm axial and to the fin and tab holes ≥ 1.5 mm radial. In the tables below the
+revision B numbers stand unless this note changes them. Part and file names follow
 the tooth counts (`spool_gear54`, `pinion18`); the 20T/60T exports are removed. Numbers below are revision B.
 
 Jasper (10/23): "lets go with spur gears" (3:1, after "I want to use a bevel gear system on the motor mounts to increase torque

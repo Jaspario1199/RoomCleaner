@@ -63,7 +63,9 @@ VECTOR_LOW = 1.0 / math.sqrt(2.0)            # x0.707: A4988 current vector at a
 FLEET_DEG = S.fleet_limit_deg()              # 26.1 deg: largest fleet angle before the line scrubs a flange [REPO]
 FLEET_K = 1.0 / math.cos(math.radians(FLEET_DEG))
 DESIGN_FORCE = T15["work_margin"]            # 16.8 N: running pull at a full spool / 1.5 skip margin [REPO D37]
-JEANS_PEAK = 1.50 * 1.101 * G                # N: claw 0.60 + jeans 0.90 kg, worst tension per weight 1.101 (+2 m/s2) [REPO Lift budget]
+K_TENSION = 1.101                            # worst line tension per unit weight, +2 m/s2 included [REPO Lift budget]
+NEEDED_KG = 1.50                             # claw 0.60 + jeans 0.90 kg [REPO Lift budget]
+JEANS_PEAK = NEEDED_KG * K_TENSION * G       # N: worst tension for the whole payload [REPO Lift budget]
 FIN_T = P.FIN1021_T_PRODUCTION_MM            # 3.175 mm: the motor sits this far behind the tab's back face (D38)
 WARM = dict(design=0.85, prototype=S.HOT_DERATE)   # PETG strength factor near the motor [ASSUMED / REPO]
 

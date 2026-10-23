@@ -389,14 +389,18 @@ a parallel-axis stage: bevels need their cone apexes held to about 0.1 mm, push 
   own Ø7 × 55 steel shaft in two 687 bearings, 40.20 mm directly below the motor axis (40.00 + 0.20 backlash allowance). The
   encoder magnet moves to a cap on the spool shaft's far end. Jasper redesigns the slide-in (tab extended down to the near
   bearing, a far cheek, the cable hole and switch lug under the drum) and the shell in SolidWorks.
-- **Why:** lift capacity 1.56 kg (4 % margin on jeans, inside the uncertainty) rises to about 2.8 kg at 1.0 A; motor heat falls
+- **Why:** lift capacity 1.10 to 1.56 kg (full-step vector to rated torque; -27 % to +4 % on 1.50 kg) rises to 1.98 to 2.80 kg at 1.0 A
+  (+32 % to +87 %; `calculations/winch_gear3.md`, revised after `verification/winch_gear3_calc_check.md`); motor heat falls
   from 4.05 W to 1.8 W; the printed set-screw joint that may slip before the motor goes away; the cable load leaves the motor
   shaft (its bearing now sees only the gear mesh).
 - **Motor configuration (lead's recommendation; Jasper to confirm the current):** 1.0 A, Vref 0.80 V on the R100 carriers
   (within the 3.3 V logic range, no VDD change); `drive.full_steps_per_rev` 600 (200 motor steps × 3); hardware
-  `faults.tracking_tol_counts` 20 (one skipped step is 27 counts at the spool); `drive.max_step_rate_hz` about 800 (50 mm/s
-  needs about 640 at the empty core); `drive.step_sign` flips (the spur pair turns the spool opposite to the motor; or swap one
-  coil pair) and `encoder.sign` is measured again on the bench (the magnet moves to the spool shaft's far end). Configs change
+  `faults.tracking_tol_counts` 60 (revised from 20 after the check: counts are at the spool, so 60 is the same 0.69 mm of line
+  as direct drive; a continuous slip trips it within 3 skips, 0.94 mm, 19 ms; 60 is about 2 x the error budget); `drive.max_step_rate_hz` about 800 (50 mm/s
+  needs about 640 at the empty core); `drive.step_sign` flips (the spur pair turns the spool opposite to the motor; holds while the cable
+  still leaves the drum on the room side; or swap one coil pair; the first bench move confirms it) and `encoder.sign` is measured again on the bench (the magnet moves to the spool shaft's far end). Configs change
   only when the gearbox is installed.
 - **Consequence for D39:** the most the motor can pull before it slips rises from 59 N to about 130 N at the cable (1.0 A,
-  40 N·cm motor, fleeted cable, back-driven through the stage), so the new station is sized for about 200 N (1.5 ×).
+  40 N·cm motor, fleeted cable, back-driven through the stage), so the new station is sized for about 200 N (1.5 ×). Bearing seats (Jasper): 130 N near, 160 N far radial, 87 N axial.
+  Pinion: steel (not sintered or brass), two set screws or retaining compound (one set screw at low friction is marginal; a
+  pinion slip is still caught by the spool encoder). Three dead wraps stay on the drum.

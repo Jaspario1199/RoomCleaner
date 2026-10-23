@@ -4,12 +4,13 @@ part of the new drive train outlasts the motor.
 Drive train: `cad/WINCH_GEAR3_SPEC.md`, parameters `cad/params.py` WG3_* (built by `cad/parts/winch_gear3.py`). Motor, spool
 radii, running fraction, skip margin and the tension-per-weight factor are the repo's (simulation_loads, D37, Lift budget).
 Rule from D39: every link >= 1.5 x the most the motor can pull before it slips (`lift_chain_weakest_link.py` = WL).
-Revision B (D41): spur pair 18T/54T at module 1, centres 36.20 mm; geometry is read from params, only the Lewis table gained 18T and 54T.
+Revision C (D42): the 18T pinion is printed PETG (not steel) and the centre distance is 36.30 mm (allowance 0.30); revisions A/B in git history.
+Geometry is read from params; the pinion teeth are a link of their own, the set screw runs through a metal insert in a printed hub.
 
 Revised 10/23 after the independent check (verification/winch_gear3_calc_check.md, F1 to F12) with the lead's decisions:
 capacity as a range (A4988 full-step vector); wall screws at the new load point; shaft and bearings over the whole drum width
-plus the axial thrust; printed teeth on the spool-side force with a failure basis (in-plane UTS, Kf, thinning) and a Hertz
-check; set-screw friction range for a steel hub; tracking tolerance 60 counts with an error budget; efficiency sensitivity;
+plus the axial thrust; printed teeth (gear and pinion) on the spool-side force with a failure basis (in-plane UTS, Kf, thinning) and a Hertz
+check; set-screw joint in a metal insert (WL model); tracking tolerance 60 counts with an error budget; efficiency sensitivity;
 motor-shaft static checks; spool body and tie-off.
 
 Tags: [REPO] recorded in the repo, [ASSUMED] to be replaced by a measurement, [SRC] published value. Units N, mm, MPa, N.m.
@@ -46,9 +47,6 @@ PETG_ALLOW = S.Z_STRENGTH * WL.WARM["design"]   # MPa: Lewis allowable = half th
 PETG_UTS = S.PETG["uts"]              # MPa, in-plane tensile strength; Z_STRENGTH is half of it [REPO SIMULATION_GUIDE.md via S]
 KF_ROOT = 1.8                         # root fillet stress concentration of a printed tooth [ASSUMED, 1.5 to 2.0]
 PETG_COMPRESSIVE = 50.0               # MPa, PETG compressive strength [ASSUMED typical, not in the repo]
-STEEL_E, STEEL_NU = 200000.0, 0.30    # MPa, steel pinion [SRC handbook]
-STEEL_ALLOW = 150.0                   # MPa, bending allowable of a carbon-steel pinion (UTS >= 450 / 3); sintered or brass is lower [ASSUMED]
-MU_STEEL_HUB = (0.10, 0.15, 0.20)     # tip and bore friction, steel set screw / steel shaft in a steel hub, dry to oiled [ASSUMED]
 C0_687 = 600.0                        # N, static rating of a 687 (7 x 14 x 5) bearing [ASSUMED, check the datasheet]
 SHAFT_SY = 350.0                      # MPa, Ø7 dowel (hardened dowels are much higher) [ASSUMED; same value as WL.SHAFT_SY[0], other part]
 MOTOR_RADIAL_N = WL.RADIAL_RATING     # N at 20 mm from the face, 17HS4401 listing [SRC, via WL; check Jasper's motor]
@@ -100,20 +98,25 @@ def gear_teeth(c: dict) -> dict:
     sig = f_t / (P.WG3_FACE * P.WG3_MODULE * Y_LEWIS[P.WG3_Z_GEAR])
     sig_root = sig * KF_ROOT * thin
     allow_fail = PETG_UTS * WL.WARM["design"]
+    # printed pinion (revision C): same mesh force, same failure basis, its own Lewis Y and thinning
     sig_pin = f_t / (P.WG3_FACE * P.WG3_MODULE * Y_LEWIS[P.WG3_Z_PINION])
+    thin_pin = (t_tooth / (t_tooth - P.WG3_PINION_TOOTH_THIN)) ** 2
+    sig_pin_root = sig_pin * KF_ROOT * thin_pin
     return dict(f_t=f_t, f_t_pinion_side=c["hold_hi"] / r_p, f_r=f_t * math.tan(math.radians(P.WG3_PRESSURE_ANGLE_DEG)),
                 sigma_gear=sig, allow=PETG_ALLOW, sf=PETG_ALLOW / sig, kf=KF_ROOT, thin_factor=thin, sigma_root=sig_root,
                 allow_fail=allow_fail, ratio=allow_fail / sig_root,
-                pinion_sigma=sig_pin, pinion_allow=STEEL_ALLOW, pinion_util=sig_pin / STEEL_ALLOW)
+                pinion_sigma=sig_pin, pinion_allow_lewis=PETG_ALLOW, pinion_sf=PETG_ALLOW / sig_pin, pinion_thin_factor=thin_pin,
+                pinion_sigma_root=sig_pin_root, pinion_ratio=allow_fail / sig_pin_root,
+                pinion_weakest_tooth=allow_fail / sig_pin_root < allow_fail / sig_root)
 
 
 def hertz(t: dict) -> dict:
-    """Steel pinion on the printed gear at the pitch point (line contact, nominal 20 deg, 36.0 mm centres): p_max against a warm
+    """Printed PETG pinion on the printed PETG gear at the pitch point (line contact, nominal 20 deg, 36.0 mm nominal centres): p_max against a warm
     compressive strength. p goes with sqrt(F), so the force ratio is (allow / p)^2."""
     phi = math.radians(P.WG3_PRESSURE_ANGLE_DEG)
     r_p, r_g = P.WG3_MODULE * P.WG3_Z_PINION / 2.0, P.WG3_MODULE * P.WG3_Z_GEAR / 2.0
     rho = 1.0 / (1.0 / (r_p * math.sin(phi)) + 1.0 / (r_g * math.sin(phi)))     # relative radius of curvature, mm
-    e_star = 1.0 / ((1 - STEEL_NU ** 2) / STEEL_E + (1 - S.PETG["nu"] ** 2) / S.PETG["E"])
+    e_star = 1.0 / (2 * (1 - S.PETG["nu"] ** 2) / S.PETG["E"])      # both PETG
     f_n = t["f_t"] / math.cos(phi)
     p = math.sqrt(f_n / P.WG3_FACE * e_star / (math.pi * rho))
     allow = PETG_COMPRESSIVE * WL.WARM["design"]
@@ -121,19 +124,15 @@ def hertz(t: dict) -> dict:
 
 
 def pinion_setscrew(c: dict) -> dict:
-    """The purchased pinion's M3 set screw in a steel hub on the steel D-flat: WL.setscrew_joint's structure (lever = mu_tip r_flat +
-    mu_bore r_bore, seat force from 3 to 4 in-lb, cup bite), with steel-hub friction mu_tip = mu_bore over MU_STEEL_HUB."""
+    """The printed pinion's M3 cup-point set screw through a short M3 heat-set insert in a printed hub, onto the steel D-flat: WL's
+    metal-insert model unchanged (WL.setscrew_joint: lever = mu_tip r_flat + mu_bore r_bore with the PETG-bore friction MU_BORE 0.25,
+    steel seat force 3 to 4 in-lb limited by the insert pull-out, cup bite 1.15). The D-flat is a backup that takes over after the bore
+    clearance closes; a slip is caught by the spool encoder (TRACKING fault)."""
     ss = WL.setscrew_joint()
-    r_flat, r_bore = ss["r_flat"], WL.SHAFT_D / 2
-    torque = lambda f, mu: WL.CUP_BITE * f * (mu * r_flat + mu * r_bore) * 1e-3
-    by_mu = {f"{mu:.2f}": dict(torque_lo=torque(ss["f_seat_steel"][0], mu), torque_hi=torque(ss["f_seat_steel"][1], mu),
-                               ratio_lo=torque(ss["f_seat_steel"][0], mu) / c["hold_hi"], ratio_hi=torque(ss["f_seat_steel"][1], mu) / c["hold_hi"])
-             for mu in MU_STEEL_HUB}
-    lo, hi = by_mu[f"{min(MU_STEEL_HUB):.2f}"], by_mu[f"{max(MU_STEEL_HUB):.2f}"]
-    assert math.isclose(WL.MU_TIP * r_flat + WL.MU_BORE * r_bore, ss["lever_mm"])      # same lever model as WL
-    wl_t = WL.CUP_BITE * ss["f_seat_steel"][0] * ss["lever_mm"] * 1e-3                 # WL's own friction (PETG-bore 0.25), the old basis
-    return dict(by_mu=by_mu, torque_lo=lo["torque_lo"], torque_hi=hi["torque_hi"], ratio_lo=lo["ratio_lo"], ratio_hi=hi["ratio_hi"],
-                ratio_wl_friction=wl_t / c["hold_hi"])
+    lo, hi = ss["torque_insert"]
+    return dict(torque_lo=lo, torque_hi=hi, ratio_lo=lo / c["hold_hi"], ratio_hi=hi / c["hold_hi"], lever_mm=ss["lever_mm"],
+                f_seat_insert=ss["f_seat_insert"], f_seat_steel=ss["f_seat_steel"], mu_tip=WL.MU_TIP, mu_bore=WL.MU_BORE, cup_bite=WL.CUP_BITE,
+                dflat=ss["dflat_now"])
 
 
 def spool_shaft(c: dict) -> dict:
@@ -240,7 +239,7 @@ def encoder(sp: dict) -> dict:
     skip_counts = SKIP_FULL_STEPS * full_step
     r_gear = P.WG3_MODULE * P.WG3_Z_GEAR / 2.0
     backlash_mm = (2 * P.WG3_CD_ALLOW * math.tan(math.radians(P.WG3_PRESSURE_ANGLE_DEG))
-                   + P.WG3_GEAR_TOOTH_THIN - P.WG3_PINION_TOOTH_THIN)          # at the pitch circle
+                   + P.WG3_GEAR_TOOTH_THIN + P.WG3_PINION_TOOTH_THIN)          # at the pitch circle: thinning of either gear adds backlash
     backlash_counts = backlash_mm / r_gear / (2 * math.pi) * CPR
     inl = [d / 360.0 * CPR for d in AS5600_INL_DEG]
     budget = [("Command quantisation (one full step)", full_step, full_step),
@@ -288,8 +287,9 @@ def link_rows(c: dict, wl: dict, parts: dict) -> list:
         rows.append(dict(link=name, load=load, ratio=lo, ratio_hi=hi, verdict=WL.verdict(lo, hi)))
 
     add(f"Printed {P.WG3_Z_GEAR}T teeth (UTS, Kf, thinning)", f"F_t {t['f_t']:.1f} N, {t['sigma_root']:.1f} MPa vs {t['allow_fail']:.2f}", t["ratio"])
-    add("Tooth contact, steel on PETG (Hertz)", f"p {h['p_max']:.1f} MPa vs {h['allow']:.1f}", h["ratio"])
-    add("Pinion set screw, steel on steel D-flat", f"{pin['torque_lo']:.2f} to {pin['torque_hi']:.2f} N.m vs {c['hold_hi']:.2f}", pin["ratio_lo"], pin["ratio_hi"])
+    add(f"Printed {P.WG3_Z_PINION}T pinion teeth (UTS, Kf, thinning)", f"F_t {t['f_t']:.1f} N, {t['pinion_sigma_root']:.1f} MPa vs {t['allow_fail']:.2f}", t["pinion_ratio"])
+    add("Tooth contact, PETG on PETG (Hertz)", f"p {h['p_max']:.1f} MPa vs {h['allow']:.1f}", h["ratio"])
+    add("Pinion set screw, metal insert in printed hub, steel D-flat", f"{pin['torque_lo']:.2f} to {pin['torque_hi']:.2f} N.m vs {c['hold_hi']:.2f}", pin["ratio_lo"], pin["ratio_hi"])
     add("Spool body, drum core torque", f"{body['torque']:.2f} N.m, {body['tau']:.1f} MPa vs {body['allow']:.1f}", body["ratio"])
     add("Spool shaft Ø7, bending", f"{s['moment']:.0f} N.mm, {s['sigma']:.1f} MPa", s["ratio"])
     add("687 bearings, static", f"{s['r_near']:.1f} N near, {s['r_far']:.1f} N far", s["brg_ratio"])
@@ -324,7 +324,7 @@ def build() -> dict:
 
 
 def report(r: dict) -> None:
-    print("WINCH WITH THE 3:1 SPUR REDUCTION (D40)")
+    print("WINCH WITH THE 3:1 SPUR REDUCTION (D40, revision C)")
     print(f"  ratio {r['ratio']:.1f}, stage efficiency {r['eta']} (assumed, each direction)")
     d = r["direct_drive"]
     print(f"  direct drive today at 1.5 A: capacity {d['capacity_low_kg']:.2f} to {d['capacity_kg']:.2f} kg ({d['margin_low']*100:+.0f} to {d['margin']*100:+.0f} % on 1.50 kg), "
@@ -338,11 +338,10 @@ def report(r: dict) -> None:
         print(f"  teeth at {k}: spool-side F_t {t['f_t']:.1f} N (pinion side {t['f_t_pinion_side']:.1f}), F_r {t['f_r']:.1f} N; Lewis {t['sigma_gear']:.2f} MPa vs {t['allow']:.1f} "
               f"(SF {t['sf']:.2f} on the half-UTS allowable); root {t['sigma_root']:.1f} MPa (Kf {t['kf']}, thinning x{t['thin_factor']:.3f}) vs {t['allow_fail']:.2f} warm UTS "
               f"-> D39 ratio {t['ratio']:.2f}")
-        print(f"      steel pinion: Lewis {t['pinion_sigma']:.1f} MPa = {t['pinion_util']*100:.1f} % of {t['pinion_allow']:.0f} MPa; "
+        print(f"      printed pinion: Lewis {t['pinion_sigma']:.2f} MPa (SF {t['pinion_sf']:.2f}), root {t['pinion_sigma_root']:.1f} MPa (thinning x{t['pinion_thin_factor']:.3f}) -> ratio {t['pinion_ratio']:.2f}; "
               f"Hertz p_max {h['p_max']:.1f} MPa (F_n {h['f_n']:.1f} N, rho {h['rho']:.2f} mm, E* {h['e_star']:.0f} MPa) vs {h['allow']:.1f}, force ratio {h['ratio']:.2f}")
     for k, s in r["setscrew"].items():
-        print(f"  pinion set screw at {k}: {s['torque_lo']:.2f} to {s['torque_hi']:.2f} N.m, ratio {s['ratio_lo']:.2f} to {s['ratio_hi']:.2f}; per mu (low seat): " +
-              ", ".join(f"{mu} {v['ratio_lo']:.2f}" for mu, v in s["by_mu"].items()) + f"; WL's PETG-bore friction gave {s['ratio_wl_friction']:.2f}")
+        print(f"  pinion set screw at {k}: {s['torque_lo']:.2f} to {s['torque_hi']:.2f} N.m, ratio {s['ratio_lo']:.2f} to {s['ratio_hi']:.2f} (lever {s['lever_mm']:.3f} mm, seat {s['f_seat_insert'][0]:.0f} to {s['f_seat_insert'][1]:.0f} N)")
     for k, s in r["shaft"].items():
         print(f"  shaft at {k}: span {s['span']:.0f} mm, mesh {s['mesh_t']:.0f} N tangential + {s['mesh_r']:.0f} N radial; envelope bearings {s['r_near']:.1f} N near "
               f"(cable y {s['worst_near']['y']:.1f}, {s['worst_near']['theta']:.0f} deg) / {s['r_far']:.1f} N far (y {s['worst_far']['y']:.1f}, {s['worst_far']['theta']:.0f} deg); "

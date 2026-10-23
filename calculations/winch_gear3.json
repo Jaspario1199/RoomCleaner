@@ -51,12 +51,12 @@
   "withdrawal_design": 308.6092797026401,
   "head_punch_per_screw": 3165.8488904681594,
   "withdrawal": {
-   "f": 390.80655073116736,
+   "f": 390.2741888510959,
    "case": "D3",
    "y": 36.825
   },
   "head_punch": {
-   "f": 3967.8804395834613,
+   "f": 3962.475340086631,
    "case": "D3",
    "y": 36.825
   },
@@ -79,8 +79,8 @@
   "skip_counts": 27.30666666666667,
   "full_step_counts": 6.826666666666667,
   "skip_counts_direct": 81.92,
-  "backlash_mm": 0.24558809370648094,
-  "backlash_counts": 5.92957577715136,
+  "backlash_mm": 0.41838214055972145,
+  "backlash_counts": 10.101583382216678,
   "tol": 60,
   "dwell_s": 0.15,
   "count_mm": 0.011504855909142308,
@@ -104,8 +104,8 @@
    },
    {
     "item": "Gear backlash after a reversal",
-    "lo": 5.92957577715136,
-    "hi": 5.92957577715136
+    "lo": 10.101583382216678,
+    "hi": 10.101583382216678
    },
    {
     "item": "AS5600 nonlinearity as mounted",
@@ -113,11 +113,11 @@
     "hi": 11.377777777777778
    }
   ],
-  "budget_lo": 25.271797999373582,
-  "budget_hi": 30.960686888262472,
-  "margin_lo": 1.9379415003465779,
-  "margin_hi": 2.3741880178643098,
-  "headroom": 29.039313111737528
+  "budget_lo": 29.4438056044389,
+  "budget_hi": 35.13269449332779,
+  "margin_lo": 1.707810939789855,
+  "margin_hi": 2.0377800616559734,
+  "headroom": 24.86730550667221
  },
  "eta_table": {
   "rows": [
@@ -173,8 +173,12 @@
    "allow_fail": 38.25,
    "ratio": 2.343962366849447,
    "pinion_sigma": 10.654307669769734,
-   "pinion_allow": 150.0,
-   "pinion_util": 0.0710287177984649
+   "pinion_allow_lewis": 19.125,
+   "pinion_sf": 1.79504859375,
+   "pinion_thin_factor": 1.1406034500859037,
+   "pinion_sigma_root": 21.874212155548914,
+   "pinion_ratio": 1.7486344069446624,
+   "pinion_weakest_tooth": true
   },
   "1.5 A": {
    "f_t": 49.38271604938272,
@@ -189,82 +193,84 @@
    "allow_fail": 38.25,
    "ratio": 1.562641577899631,
    "pinion_sigma": 15.981461504654604,
-   "pinion_allow": 150.0,
-   "pinion_util": 0.10654307669769736
+   "pinion_allow_lewis": 19.125,
+   "pinion_sf": 1.1966990624999998,
+   "pinion_thin_factor": 1.1406034500859037,
+   "pinion_sigma_root": 32.81131823332338,
+   "pinion_ratio": 1.1657562712964413,
+   "pinion_weakest_tooth": true
   }
  },
  "hertz": {
   "1.0 A": {
    "f_n": 35.03465917616172,
    "rho": 2.308635967448264,
-   "e_star": 2083.8398221790017,
-   "p_max": 31.726959189521068,
+   "e_star": 1051.8934081346424,
+   "p_max": 22.541465630762627,
    "allow": 42.5,
-   "ratio": 1.7944070223691415
+   "ratio": 3.554786807763548
   },
   "1.5 A": {
    "f_n": 52.55198876424258,
    "rho": 2.308635967448264,
-   "e_star": 2083.8398221790017,
-   "p_max": 38.85743055221617,
+   "e_star": 1051.8934081346424,
+   "p_max": 27.6075444249263,
    "allow": 42.5,
-   "ratio": 1.1962713482460945
+   "ratio": 2.3698578718423646
   }
  },
  "setscrew": {
   "1.0 A": {
-   "by_mu": {
-    "0.10": {
-     "torque_lo": 0.2923875,
-     "torque_hi": 0.3898499999999999,
-     "ratio_lo": 1.096453125,
-     "ratio_hi": 1.4619374999999997
-    },
-    "0.15": {
-     "torque_lo": 0.43858125000000003,
-     "torque_hi": 0.5847749999999998,
-     "ratio_lo": 1.6446796875,
-     "ratio_hi": 2.192906249999999
-    },
-    "0.20": {
-     "torque_lo": 0.584775,
-     "torque_hi": 0.7796999999999998,
-     "ratio_lo": 2.19290625,
-     "ratio_hi": 2.9238749999999993
-    }
-   },
-   "torque_lo": 0.2923875,
-   "torque_hi": 0.7796999999999998,
-   "ratio_lo": 1.096453125,
-   "ratio_hi": 2.9238749999999993,
-   "ratio_wl_friction": 2.4974765624999997
+   "torque_lo": 0.40077499999999994,
+   "torque_hi": 0.8840624999999998,
+   "ratio_lo": 1.5029062499999999,
+   "ratio_hi": 3.3152343749999993,
+   "lever_mm": 1.025,
+   "f_seat_insert": [
+    340.0,
+    750.0
+   ],
+   "f_seat_steel": [
+    565.0,
+    753.3333333333333
+   ],
+   "mu_tip": 0.2,
+   "mu_bore": 0.25,
+   "cup_bite": 1.15,
+   "dflat": {
+    "gap": 0.2999999999999998,
+    "turn_deg": 13.795979580213029,
+    "lever_mm": 0.9797958971132716,
+    "contact_force_at_hold": 367.42346141747663,
+    "across_flat": 4.8,
+    "bore": 5.3
+   }
   },
   "1.5 A": {
-   "by_mu": {
-    "0.10": {
-     "torque_lo": 0.2923875,
-     "torque_hi": 0.3898499999999999,
-     "ratio_lo": 0.73096875,
-     "ratio_hi": 0.9746249999999996
-    },
-    "0.15": {
-     "torque_lo": 0.43858125000000003,
-     "torque_hi": 0.5847749999999998,
-     "ratio_lo": 1.0964531249999998,
-     "ratio_hi": 1.4619374999999992
-    },
-    "0.20": {
-     "torque_lo": 0.584775,
-     "torque_hi": 0.7796999999999998,
-     "ratio_lo": 1.4619375,
-     "ratio_hi": 1.9492499999999993
-    }
-   },
-   "torque_lo": 0.2923875,
-   "torque_hi": 0.7796999999999998,
-   "ratio_lo": 0.73096875,
-   "ratio_hi": 1.9492499999999993,
-   "ratio_wl_friction": 1.6649843749999995
+   "torque_lo": 0.40077499999999994,
+   "torque_hi": 0.8840624999999998,
+   "ratio_lo": 1.0019374999999997,
+   "ratio_hi": 2.210156249999999,
+   "lever_mm": 1.025,
+   "f_seat_insert": [
+    340.0,
+    750.0
+   ],
+   "f_seat_steel": [
+    565.0,
+    753.3333333333333
+   ],
+   "mu_tip": 0.2,
+   "mu_bore": 0.25,
+   "cup_bite": 1.15,
+   "dflat": {
+    "gap": 0.2999999999999998,
+    "turn_deg": 13.795979580213029,
+    "lever_mm": 0.9797958971132716,
+    "contact_force_at_hold": 367.42346141747663,
+    "across_flat": 4.8,
+    "bore": 5.3
+   }
   }
  },
  "shaft": {
@@ -425,18 +431,25 @@
     "verdict": "PASS"
    },
    {
-    "link": "Tooth contact, steel on PETG (Hertz)",
-    "load": "p 31.7 MPa vs 42.5",
-    "ratio": 1.7944070223691415,
+    "link": "Printed 18T pinion teeth (UTS, Kf, thinning)",
+    "load": "F_t 32.9 N, 21.9 MPa vs 38.25",
+    "ratio": 1.7486344069446624,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
-    "link": "Pinion set screw, steel on steel D-flat",
-    "load": "0.29 to 0.78 N.m vs 0.27",
-    "ratio": 1.096453125,
-    "ratio_hi": 2.9238749999999993,
-    "verdict": "MARGINAL"
+    "link": "Tooth contact, PETG on PETG (Hertz)",
+    "load": "p 22.5 MPa vs 42.5",
+    "ratio": 3.554786807763548,
+    "ratio_hi": null,
+    "verdict": "PASS"
+   },
+   {
+    "link": "Pinion set screw, metal insert in printed hub, steel D-flat",
+    "load": "0.40 to 0.88 N.m vs 0.27",
+    "ratio": 1.5029062499999999,
+    "ratio_hi": 3.3152343749999993,
+    "verdict": "PASS"
    },
    {
     "link": "Spool body, drum core torque",
@@ -482,15 +495,15 @@
    },
    {
     "link": "Wall screws, one stud column",
-    "load": "391 N of line puts the top screw at design withdrawal (D3, cable y 36.8)",
-    "ratio": 2.962339944013997,
+    "load": "390 N of line puts the top screw at design withdrawal (D3, cable y 36.8)",
+    "ratio": 2.958304605151187,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
     "link": "Wall plate, screw head pulls through",
-    "load": "3166 N per screw at 3968 N of line (D3, cable y 36.8)",
-    "ratio": 30.076800650497614,
+    "load": "3166 N per screw at 3962 N of line (D3, cable y 36.8)",
+    "ratio": 30.03582963271177,
     "ratio_hi": null,
     "verdict": "PASS"
    },
@@ -518,18 +531,25 @@
     "verdict": "PASS"
    },
    {
-    "link": "Tooth contact, steel on PETG (Hertz)",
-    "load": "p 38.9 MPa vs 42.5",
-    "ratio": 1.1962713482460945,
+    "link": "Printed 18T pinion teeth (UTS, Kf, thinning)",
+    "load": "F_t 49.4 N, 32.8 MPa vs 38.25",
+    "ratio": 1.1657562712964413,
     "ratio_hi": null,
     "verdict": "MARGINAL"
    },
    {
-    "link": "Pinion set screw, steel on steel D-flat",
-    "load": "0.29 to 0.78 N.m vs 0.40",
-    "ratio": 0.73096875,
-    "ratio_hi": 1.9492499999999993,
-    "verdict": "MAY GIVE FIRST"
+    "link": "Tooth contact, PETG on PETG (Hertz)",
+    "load": "p 27.6 MPa vs 42.5",
+    "ratio": 2.3698578718423646,
+    "ratio_hi": null,
+    "verdict": "PASS"
+   },
+   {
+    "link": "Pinion set screw, metal insert in printed hub, steel D-flat",
+    "load": "0.40 to 0.88 N.m vs 0.40",
+    "ratio": 1.0019374999999997,
+    "ratio_hi": 2.210156249999999,
+    "verdict": "MARGINAL"
    },
    {
     "link": "Spool body, drum core torque",
@@ -575,15 +595,15 @@
    },
    {
     "link": "Wall screws, one stud column",
-    "load": "391 N of line puts the top screw at design withdrawal (D3, cable y 36.8)",
-    "ratio": 1.9748932960093308,
+    "load": "390 N of line puts the top screw at design withdrawal (D3, cable y 36.8)",
+    "ratio": 1.972203070100791,
     "ratio_hi": null,
     "verdict": "PASS"
    },
    {
     "link": "Wall plate, screw head pulls through",
-    "load": "3166 N per screw at 3968 N of line (D3, cable y 36.8)",
-    "ratio": 20.051200433665073,
+    "load": "3166 N per screw at 3962 N of line (D3, cable y 36.8)",
+    "ratio": 20.023886421807845,
     "ratio_hi": null,
     "verdict": "PASS"
    },

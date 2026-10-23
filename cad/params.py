@@ -804,3 +804,98 @@ NEMA17T_MATERIALS = (                  # body -> (suggested material, k W/m.K, d
     ("shaft", "Carbon steel", 50.0, 7.85, "bare steel shaft", "Ø5, no D-flat in this model; exposed 24 mm beyond the front face"),
     ("connector", "PBT", 0.25, 1.40, "plastic connector", "housing only, no pins"),
 )
+
+
+# =============================================================================
+# WINCH GEAR 3 (WG3_*): 3:1 spur reduction of the winch station: purchased steel M1 20T pinion on the NEMA 17 shaft, printed 60T gear that is
+# part of the spool, spool on its own Ø7 shaft in two 687 bearings 40.20 mm below the motor axis.      cad/WINCH_GEAR3_SPEC.md (D40)
+# cad/parts/winch_gear3.py builds the printable spool_gear60 / spacer_near_w3 / magnet_cap_w3, the reference bodies and the assemblies.
+# DESIGN FRAME = station_1021 without the extraction residual: motor axis x = 0, z = +2.64; +y along the motor shaft toward the spool; +x out of the wall;
+# +z up; PETG motor tab y 0 .. 5; 1/8 in fin y -3.175 .. 0.  The builder adds ENC1021_REF_RESIDUAL to every body it places so the bodies coincide with
+# Jasper's STEP files and with exports/step/heat_fin1021_1p8_asm1021.step.  Parts are built in an AXIAL frame (axis = local z = station y, local x =
+# station x, local y = -station z), which is also the print frame (axis up).  Units mm.
+# =============================================================================
+# --- fixed geometry (do not change)
+WG3_MOTOR_XZ = FIN1021_AXIS_XZ                       # motor axis (x, z)
+WG3_Y_MOTOR_FRONT = -FIN1021_T_PRODUCTION_MM         # motor front face, behind the 1/8 in fin (D38)
+WG3_Y_TAB0, WG3_Y_TAB1 = 0.0, THERMAL_TAB_T          # PETG motor tab of the slide-in
+WG3_Y_SHAFT_END = WG3_Y_MOTOR_FRONT + NEMA17T_SHAFT_PROUD   # 20.825
+WG3_SHAFT_FLAT_DEPTH = 0.5                           # motor shaft D-flat on the +z side (Motor_Reference: flat at z = axis + 2.0), from the boss end to the shaft end
+# --- gear stage (spur, 3:1)
+WG3_MODULE = 1.0
+WG3_PRESSURE_ANGLE_DEG = 20.0                        # fixed inside cad/gripper_v3_fit_review_20261018/gears.py; recorded here
+WG3_Z_PINION = 20
+WG3_Z_GEAR = 60
+WG3_RATIO = WG3_Z_GEAR / WG3_Z_PINION                # 3.0
+WG3_CD_NOMINAL = WG3_MODULE * (WG3_Z_PINION + WG3_Z_GEAR) / 2.0   # 40.00
+WG3_CD_ALLOW = 0.20                                  # backlash allowance, steel against printed (claw gears: +0.30 printed against printed)
+WG3_CD = WG3_CD_NOMINAL + WG3_CD_ALLOW               # 40.20
+WG3_FACE = 10.0                                      # both teeth faces
+WG3_GEAR_TOOTH_THIN = 0.10                           # printed gear: generator default
+WG3_PINION_TOOTH_THIN = 0.0                          # purchased steel pinion: nominal full tooth (ASSUMED: the spec gives thinning only for the gear)
+WG3_ROOT_FILLET_R = GRIPV7_ROOT_FILLET_R             # root blend radius of the generator
+WG3_SPOOL_XZ = (WG3_MOTOR_XZ[0], WG3_MOTOR_XZ[1] - WG3_CD)   # spool / shaft axis (x, z) = (0, -37.56), directly below the motor
+WG3_Y_TEETH0 = WG3_Y_SHAFT_END - WG3_FACE            # 10.825: teeth of pinion and gear start here (the gear's near face = the print bed face)
+WG3_Y_TEETH1 = WG3_Y_SHAFT_END                       # 20.825: flush with the motor shaft end
+# --- pinion (purchased, steel)
+WG3_PINION_BORE_D = NEMA17T_SHAFT_D                  # Ø5 (round, touches the round part of the shaft)
+WG3_PINION_HUB_D = 14.0
+WG3_PINION_HUB_L = 5.0                               # on the tab side
+WG3_PINION_SETSCREW_D = 3.0                          # M3 set screw, modelled as a plain Ø3.0 hole (as NEMA17T_TAP_D), radial toward +z = onto the shaft D-flat
+WG3_Y_PINION_HUB0 = WG3_Y_TEETH0 - WG3_PINION_HUB_L  # 5.825 (0.825 clear of the tab face)
+# --- spool_gear60 (one printed PETG part, y 10.825 .. 44.0)
+WG3_WINDOW_N = 6
+WG3_WINDOW_D = 11.0                                  # outer edge R25.5: rim 3.25 below the root R28.75
+WG3_WINDOW_R = 20.0
+WG3_WINDOW_PHASE_DEG = 0.0                           # windows at 0, 60 .. 300 deg of the axial frame: a spoke (not a window) sits on the line of centres
+WG3_RIM_MIN = 3.0                                    # rim below the root, at least
+WG3_WEB_MIN = 2.0                                    # web to the hub / drum, at least
+WG3_BED_CHAMFER = 0.3                                # 45 deg on the tooth edges of the bed face (elephant foot)
+WG3_DRUM_D = 15.0                                    # 7.5 mm radius as Spoolv3 (the calibration's core radius)
+WG3_DRUM_L = 16.0
+WG3_Y_DRUM1 = WG3_Y_TEETH1 + WG3_DRUM_L              # 36.825
+WG3_FLANGE_D = ENC1021_SPOOL_FLANGE_D                # Ø36 as Spoolv3
+WG3_FLANGE_T = 3.0
+WG3_Y_FLANGE1 = WG3_Y_DRUM1 + WG3_FLANGE_T           # 39.825
+WG3_HUB_D = 12.0                                     # far hub
+WG3_Y_SPOOL_END = 44.0
+WG3_LAND_D = 9.0                                     # end-face lands touch only the 687 inner race / the gear face
+WG3_LAND_PROUD = 0.3
+WG3_BORE_D = 7.00                                    # prints about 6.9: press fit on the Ø7 shaft
+WG3_TIEOFF_D = 1.4                                   # chord hole through the drum core, perpendicular to the axis, along z, open on the winding surface at both ends
+WG3_TIEOFF_OFFSET = 5.25                             # axis of the hole off the spool axis, toward +x (as Spool1011)
+WG3_TIEOFF_Y = (WG3_Y_TEETH1 + WG3_Y_DRUM1) / 2.0    # drum mid-plane 28.825
+# --- spacer_near_w3 (printed, on the shaft between the near bearing and the gear)
+WG3_SPACER_OD = 10.0
+WG3_SPACER_BORE_D = 7.10                             # slip on the Ø7 shaft
+WG3_SPACER_Y0 = WG3_Y_TAB1                           # 5.0: lands on the near bearing's inner race
+WG3_SPACER_Y1 = WG3_Y_TEETH0                         # 10.825: land on the gear's bed face
+# --- shaft and bearings
+WG3_SHAFT_D = GRIPV7_PIN_D                           # Ø7 steel dowel
+WG3_SHAFT_Y0 = -3.0                                  # the 3 mm behind the tab are below the motor and the fin
+WG3_SHAFT_L = 55.0                                   # y -3.0 .. 52.0
+WG3_BRG_ID, WG3_BRG_OD, WG3_BRG_W = GRIPV7_BRG_ID, GRIPV7_BRG_OD, GRIPV7_BRG_W   # 687: 7 x 14 x 5, modelled as a plain ring (envelope)
+WG3_BRG_NEAR_Y0 = WG3_Y_TAB0                         # y 0 .. 5, seat in the motor tab
+WG3_BRG_FAR_Y0 = WG3_Y_SPOOL_END                     # y 44 .. 49, seat in the far cheek
+# --- magnet cap (printed, prints magnet-face up) and magnet
+WG3_CAP_GAP = 0.3                                    # cap bearing-side face above the far bearing's outer face
+WG3_CAP_D = 12.0
+WG3_CAP_Y0 = WG3_BRG_FAR_Y0 + WG3_BRG_W + WG3_CAP_GAP   # 49.3
+WG3_CAP_BORE_D = WG3_SHAFT_D
+WG3_CAP_BORE_DEPTH = 3.0                             # y 49.3 .. 52.3; the shaft end at 52.0 leaves 0.3
+WG3_CAP_WEB = ENC1021_CAP_FLOOR_MIN                  # 0.75 solid between the bore and the magnet pocket
+WG3_MAGNET_D = 6.0                                   # diametric (the encoder1021 magnet is the measured Ø4: this station uses Ø6)
+WG3_MAGNET_T = 2.5
+WG3_CAP_POCKET_D = WG3_MAGNET_D + ENC1021_V2_CAP_POCKET_CLEAR_D   # 6.3: 0.15 per side
+WG3_CAP_POCKET_DEPTH = WG3_MAGNET_T                  # magnet face flush with the cap
+WG3_MAGNET_RIB_PHASE_DEG = 90.0                      # first of the ENC1021_V2_MAGNET_RIB_N crush ribs, axial-frame angle (ribs tip at pocket r - (0.15 + ENC1021_V2_MAGNET_RIB_CRUSH))
+WG3_Y_MAGNET0 = WG3_CAP_Y0 + WG3_CAP_BORE_DEPTH + WG3_CAP_WEB   # 53.05
+WG3_CAP_Y1 = WG3_Y_MAGNET0 + WG3_CAP_POCKET_DEPTH    # 55.55 (magnet face)
+WG3_MAGNET_G_CM3 = 7.5                               # NdFeB, typical (mass report only)
+# --- AS5600 board (encoder1021 convention: chip face ENC1021_AIR_GAP from the magnet face, chip ENC1021_CHIP_H tall, PCB behind it)
+WG3_CHIP_FACE_Y = WG3_CAP_Y1 + ENC1021_AIR_GAP       # 57.05
+WG3_PCB_Y0 = WG3_CHIP_FACE_Y + ENC1021_CHIP_H        # 58.5
+WG3_PCB_Y1 = WG3_PCB_Y0 + ENC1021_PCB_THICK          # 60.1
+# --- acceptance limits
+WG3_MIN_CLEAR = 1.5                                  # gear tip to pinion hub; gear to motor body and to the fin
+WG3_RT_TOL = 1.0e-3                                  # STEP round trip: volume and bounding box within 0.1 %

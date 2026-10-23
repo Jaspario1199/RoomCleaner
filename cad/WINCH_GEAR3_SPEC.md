@@ -72,8 +72,7 @@ path, print frame and the separate near spacer (section 3 and 4 tables).
   NEMA17T_*, FIN1021_*, GRIPV7 bearing sizes where they already exist).
 - `cad/parts/winch_gear3.py`: builds the printable `spool_gear60` and `magnet_cap_w3`, the reference bodies, and the assembly.
 - Exports:
-  - `exports/step/winch_gear3_spool_gear60.step` / `exports/stl/winch_gear3_spool_gear60.stl` (print frame: drum axis +z, far
-    flange face down; record which face goes on the bed);
+  - `exports/step/winch_gear3_spool_gear60.step` / `exports/stl/winch_gear3_spool_gear60.stl` (print frame: drum axis +z, the gear's near face on the bed, section 3);
   - `exports/step/winch_gear3_magnet_cap.step` / `.stl`, and `exports/step/winch_gear3_spacer_near.step` / `.stl`;
   - `exports/step/winch_gear3_drive_asm1021.step`: every body named (`motor_*`, `fin`, `pinion`, `spool_gear60`, `shaft`,
     `bearing_near`, `bearing_far`, `spacer_near`, `magnet_cap`, `magnet`, `as5600_chip`, `as5600_board`), in the station_1021 frame;

@@ -28,3 +28,5 @@ Technical Presentation — v2 draft"). Suggested placement:
 | 24 | printed station shell (electrical housing) mounted on the wall (Jasper, 10/22) | deck v8 "Final Wall Station" |
 | 25 | the claw assembled: four-bar jaws, gear train, tube, electrical housing (Jasper, 10/22) | deck v8 project picture |
 | 26 | slicing PETG parts for the Creality K1: 0.4 mm nozzle, 0.20 mm standard, supports at 30° (Jasper, 10/18) | deck v8 "Build" |
+| 27 | station shell (red PETG) on its wall mount, the aluminium fin rising through the slot in the top, vents on the side (Jasper, 10/23) | website "Building it" (wall stations) |
+| 28 | slide-in assembled: NEMA 17 bolted behind the tall aluminium fin, red spool on the shaft, switch lug below (Jasper, 10/23) | website "Building it" (wall stations) |

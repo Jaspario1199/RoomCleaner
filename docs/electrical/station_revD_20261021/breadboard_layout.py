@@ -254,8 +254,45 @@ def draw():
     ax.annotate("12 V IN - (black) -> i21", xy=xy("i21"), xytext=(22.5, -5.6), fontsize=8, arrowprops=dict(arrowstyle="->"))
     ax.annotate("MOTOR 2B 2A 1A 1B -> j22..j25\n(never unplug with power on)", xy=xy("j23"), xytext=(27.5, -6.6), fontsize=8,
                 arrowprops=dict(arrowstyle="->"))
-    ax.annotate("ENCODER  SDA -> a9, SCL -> a10,\nVCC -> T+, GND -> T-", xy=xy("a9"), xytext=(10.5, 13.6), fontsize=8,
-                arrowprops=dict(arrowstyle="->"))
+    # AS5600 encoder board (J5), drawn off the board above the top rail, with its four wires and the DIR-to-GND link
+    ex0, ey0, ew, eh = 26.4, 13.3, 7.6, 2.0
+    ax.add_patch(FancyBboxPatch((ex0, ey0), ew, eh, boxstyle="round,pad=0.05", fc="#5b2a86", ec="#111", zorder=6))
+    ax.add_patch(_Circle((ex0 + ew / 2, ey0 + eh / 2 + 0.25), 0.38, fc="#222", ec="#999", zorder=6.5))   # the chip under the magnet
+    ax.text(ex0 + ew / 2, ey0 + eh - 0.3, "AS5600 encoder (J5), at the spool", color="white", fontsize=7.5, weight="bold",
+            ha="center", va="center", zorder=7)
+    epin = {}
+    for i, name in enumerate(("VCC", "GND", "DIR", "SCL", "SDA", "OUT", "GPO")):
+        px = ex0 + 0.6 + i * 1.07
+        epin[name] = px
+        ax.add_patch(Rectangle((px - 0.17, ey0 - 0.32), 0.34, 0.32, fc="#d4af37", ec="#111", zorder=6.5))
+        ax.text(px, ey0 + 0.25, name, color="white", fontsize=6.3, weight="bold", ha="center", va="bottom", zorder=7)
+    py = ey0 - 0.32
+
+    def enc_wire(pin, hole, colr, row=None, drop=0.0):
+        """Encoder pin straight down, across above the rails, then down into its hole."""
+        hx, hy = xy(hole, row)
+        x0 = epin[pin]
+        yy = rail_y["T+"] + 0.75 + drop
+        ax.plot([x0, x0, hx, hx], [py, yy, yy, hy], color=colr, lw=2.2, zorder=7.5, solid_capstyle="round")
+        ax.plot(hx, hy, "o", ms=6, mfc=colr, mec="#111", zorder=9)
+    enc_wire("VCC", "T+", "#ff7f0e", row=27)
+    enc_wire("GND", "T-", "#222222", row=28, drop=-0.25)
+    enc_wire("SCL", "a10", "#7f7f7f", drop=0.45)
+    enc_wire("SDA", "a9", "#e377c2", drop=0.15)
+    for hole, lab, colr in (("a9", "ENC SDA", "#e377c2"), ("a10", "ENC SCL", "#7f7f7f")):
+        hx, hy = xy(hole)
+        left = hole == "a9"
+        ax.text(hx + (-0.4 if left else 0.4), hy, lab, fontsize=6.3, weight="bold", color=colr,
+                ha="right" if left else "left", va="center", zorder=10, bbox=dict(fc="white", ec=colr, lw=0.5, pad=0.3))
+    # DIR tied to the board's own GND pin (a short link on the encoder board)
+    ax.plot([epin["DIR"], epin["DIR"], epin["GND"], epin["GND"]], [py, py - 0.35, py - 0.35, py], color="#222222", lw=1.6,
+            ls=(0, (2, 1.2)), zorder=7.6)
+    for name in ("OUT", "GPO"):
+        ax.text(epin[name], py - 0.35, "nc", fontsize=6, ha="center", va="top", color="#555", zorder=7)
+    ax.text(ex0 + ew + 0.3, ey0 + eh / 2,
+            "SDA (pink) -> a9: meets XIAO D4 SDA at d9\nSCL (grey) -> a10: meets XIAO D5 SCL at d10\nVCC -> T+ (3V3),  GND -> T-\n"
+            "DIR -> GND (dashed link): must not float\nOUT, GPO: leave unconnected\nPin order differs between boards: read YOUR silkscreen",
+            fontsize=6.8, ha="left", va="center", zorder=7, bbox=dict(fc="#f3ecfa", ec="#5b2a86", lw=0.6, pad=0.6))
     # KW12-3 homing microswitch, drawn off the board with its three terminals and the two wires that go to the board
     sx0, sy0, sw, sh = 0.6, -7.9, 5.4, 1.5                      # body (drawing units: 1 = one breadboard row)
     ax.add_patch(FancyBboxPatch((sx0, sy0), sw, sh, boxstyle="round,pad=0.05", fc="#2b2b2b", ec="#111", zorder=6))
@@ -290,9 +327,9 @@ def draw():
             "NC is used on purpose: at rest NC-COM is closed, so D10 reads LOW; the bead opens it and R4 pulls D10 HIGH.\n"
             "A broken wire also reads HIGH = STOP (fail-safe). Check with a meter: NC-COM beeps at rest, opens when pressed.",
             fontsize=6.8, ha="left", va="center", zorder=7, bbox=dict(fc="#fffbe8", ec="#bbb", lw=0.5, pad=0.6))
-    ax.text(24, 13.6, "12 V is ONLY in row 20 (f-j) and the red wire j20 -> j36.  Both + rails are 3V3, both - rails are GND.",
+    ax.text(12.0, -9.9, "12 V is ONLY in row 20 (f-j) and the red wire j20 -> j36.  Both + rails are 3V3, both - rails are GND.",
             fontsize=9, color="#c2352b", weight="bold")
-    ax.set_xlim(-6, RMAX + 3.5); ax.set_ylim(-10.6, 14.6); ax.set_aspect("equal"); ax.axis("off")
+    ax.set_xlim(-6, RMAX + 3.5); ax.set_ylim(-10.6, 16.2); ax.set_aspect("equal"); ax.axis("off")
     ax.set_title("RoomCleaner winch station Rev D on a breadboard (full-size 830). Same nets as the perfboard and KiCad schematic.",
                  fontsize=11, loc="left")
     for ext in ("png", "pdf"):

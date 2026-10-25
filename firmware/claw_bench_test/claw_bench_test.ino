@@ -16,7 +16,14 @@
 #include <ESP32Servo.h>
 #include "esp_camera.h"
 #include "esp_http_server.h"
+#if __has_include("secrets.h")
 #include "secrets.h"                         // WIFI_SSID, WIFI_PASS
+#define HAVE_SECRETS 1
+#else
+#define HAVE_SECRETS 0                       // no secrets.h yet: everything except the camera page still works
+#define WIFI_SSID ""
+#define WIFI_PASS ""
+#endif
 
 #if !defined(CONFIG_IDF_TARGET_ESP32S3)
 #error "claw_bench_test: select Tools > Board > esp32 > XIAO_ESP32S3 (and PSRAM: OPI PSRAM)"
@@ -187,6 +194,11 @@ void webStart() {
 }
 
 void wifiStart() {
+  if (!HAVE_SECRETS) {
+    Serial.println("wifi: no secrets.h in the sketch folder, so no Wi-Fi and no camera page. Add a tab named secrets.h\n"
+                   "      (see secrets.example.h) and upload again. All serial tests work without it.");
+    return;
+  }
   WiFi.mode(WIFI_STA);
   WiFi.setHostname("roomcleaner-claw-test");
   WiFi.setSleep(false);

@@ -9,14 +9,15 @@
 
 #include <Wire.h>
 
-#if CONFIG_IDF_TARGET_ESP32C3        // Seeed XIAO ESP32-C3
+#include <Arduino.h>                 // brings in sdkconfig.h, which defines CONFIG_IDF_TARGET_*
+#if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(ARDUINO_XIAO_ESP32C3)    // Seeed XIAO ESP32-C3
 constexpr int STEP_PIN = 3, DIR_PIN = 4, EN_PIN = 5, HOME_PIN = 10, SDA_PIN = 6, SCL_PIN = 7;
 const char* BOARD = "XIAO ESP32-C3";
-#elif CONFIG_IDF_TARGET_ESP32        // ELEGOO ESP32 DevKit (ESP-WROOM-32)
+#elif defined(CONFIG_IDF_TARGET_ESP32) || defined(ARDUINO_ESP32_DEV) || (defined(ESP32) && !defined(CONFIG_IDF_TARGET_ESP32S3))   // ELEGOO ESP32 DevKit (ESP-WROOM-32)
 constexpr int STEP_PIN = 25, DIR_PIN = 26, EN_PIN = 27, HOME_PIN = 32, SDA_PIN = 21, SCL_PIN = 22;
 const char* BOARD = "ELEGOO ESP32 DevKit";
 #else
-#error "station_bench_test: build for XIAO_ESP32C3 or ESP32 Dev Module"
+#error "station_bench_test: no ESP32 board selected. Tools > Board > esp32 > ESP32 Dev Module (install esp32 by Espressif in Boards Manager)"
 #endif
 
 constexpr uint8_t AS5600_ADDR = 0x36;

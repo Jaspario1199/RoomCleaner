@@ -44,12 +44,12 @@
 
 using namespace roomcleaner::winch;
 
-#if CONFIG_IDF_TARGET_ESP32C3        // Seeed XIAO ESP32-C3
+#if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(ARDUINO_XIAO_ESP32C3)    // Seeed XIAO ESP32-C3
 constexpr int STEP_PIN = 3, DIR_PIN = 4, EN_PIN = 5, HOME_PIN = 10, SDA_PIN = 6, SCL_PIN = 7;
-#elif CONFIG_IDF_TARGET_ESP32        // ELEGOO ESP32 DevKit (ESP-WROOM-32)
+#elif defined(CONFIG_IDF_TARGET_ESP32) || defined(ARDUINO_ESP32_DEV) || (defined(ESP32) && !defined(CONFIG_IDF_TARGET_ESP32S3))   // ELEGOO ESP32 DevKit (ESP-WROOM-32)
 constexpr int STEP_PIN = 25, DIR_PIN = 26, EN_PIN = 27, HOME_PIN = 32, SDA_PIN = 21, SCL_PIN = 22;
 #else
-#error "winch_station: build for XIAO_ESP32C3 or ESP32 Dev Module"
+#error "winch_station: no ESP32 board selected. Tools > Board > esp32 > ESP32 Dev Module (install esp32 by Espressif in Boards Manager)"
 #endif
 constexpr uint16_t UDP_PORT = 8771;          // stations listen here
 constexpr uint16_t HOST_PORT = 8770;         // host transport binds here

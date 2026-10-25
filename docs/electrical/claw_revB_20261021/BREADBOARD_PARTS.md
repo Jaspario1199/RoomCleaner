@@ -25,7 +25,7 @@ One row per label on [breadboard_layout_claw.png](breadboard_layout_claw.png). V
 | C2, C3, C4 | Ceramic capacitor | **100 nF**, marked "104", ≥ 16 V | [search](https://www.amazon.com/s?k=100nF+104+ceramic+capacitor+50V) (the ELEGOO kit has some) |
 | R1 | Metal-film resistor | **200 kΩ 1 %** (red-black-black-orange-brown) | [search](https://www.amazon.com/s?k=200k+ohm+1%25+metal+film+resistor) |
 | R2 | Metal-film resistor | **100 kΩ 1 %** (brown-black-black-orange-brown) | own (ELEGOO kit) · [search](https://www.amazon.com/s?k=100k+ohm+1%25+metal+film+resistor) |
-| WAGO 1, WAGO 2 | Lever nuts, 3- or 5-conductor (221-413 / 221-415) | WAGO 1 takes 4 wires, WAGO 2 takes 5. Use a 5-way for both | [search](https://www.amazon.com/s?k=WAGO+221-415+lever+nut) |
+| WAGO 1, 2, 3 | Lever nuts: two 5-way (221-415), one 3-way (221-413) | WAGO 1 (VBAT) takes 4 wires, WAGO 2 (GND) takes 5, WAGO 3 (fuse / charger / switch joint) takes 3. See [offboard_wiring_claw.png](offboard_wiring_claw.png) | [search 5-way](https://www.amazon.com/s?k=WAGO+221-415+lever+nut) · [search 3-way](https://www.amazon.com/s?k=WAGO+221-413+lever+nut) |
 | Board | Full-size 830-point breadboard + jumper wires | | own (ELEGOO starter kit) |
 | Pack-side wire | 18-20 AWG silicone wire, red + black | For the battery, fuse, switch and WAGO leads | [search](https://www.amazon.com/s?k=18+AWG+silicone+wire+red+black) |
 

@@ -216,13 +216,25 @@ def draw():
     lead("j3", "i11", "", "#555555", lw=4.2, bend=-0.35)
     ax.text(7, ypos["j"] - 0.75, "D1 1N5819: stripe at j3 (5V row),\nplain end at i11 (buck row)", fontsize=6.6, ha="center",
             va="top", zorder=9, bbox=dict(fc="white", ec="#555", lw=0.5, pad=0.5))
-    lead("i3", "i4", "", "#c9a227", lw=3.2, z=8)
-    ax.text(3.5, ypos["i"] - 0.2, "C3", fontsize=6.4, ha="center", weight="bold", zorder=9, color="#7a5c00")
+
+    def ceramic(a, b, name, row_b=None, at=0.5):
+        """A ceramic capacitor: two thin legs meeting an orange disc, so it never reads as a wire (it blocks DC)."""
+        (xa, ya), (xb, yb) = xy(a), xy(b, row_b)
+        cx, cy = xa + (xb - xa) * at, ya + (yb - ya) * at
+        for x, y in ((xa, ya), (xb, yb)):
+            ax.plot([x, cx], [y, cy], color="#8a8a8a", lw=1.1, zorder=7)
+            ax.plot(x, y, "o", ms=4.2, color="#e08a1e", mec="#111", mew=0.5, zorder=8)
+        ax.add_patch(Circle((cx, cy), 0.34, fc="#e08a1e", ec="#7a4a00", lw=0.8, zorder=8.5))
+        ax.text(cx, cy, name, fontsize=5.6, ha="center", va="center", weight="bold", color="white", zorder=9)
+
+    ceramic("i3", "i4", "C3")
+    ax.annotate("C3 100 nF capacitor, NOT a wire:\none leg i3 (5V row), one leg i4 (GND row)", xy=(3.5, ypos["i"] - 0.3),
+                xytext=(-5.8, -6.2), fontsize=6.6, arrowprops=dict(arrowstyle="->", color="#7a4a00"),
+                color="#7a4a00", weight="bold", zorder=10)
     lead("h14", "h18", "R1 200k", "#8c564b", lab_t=20)
-    lead("j14", "B-", "R2 100k", "#8c564b", row_b=14, lab_t=18)
-    lead("i14", "B-", "C4", "#c9a227", row_b=15.4, lw=2.0, lab_t=36)
-    lead("g22", "g23", "", "#c9a227", lw=3.2, z=8)
-    ax.text(22.5, ypos["g"] + 0.45, "C2", fontsize=6.4, ha="center", weight="bold", zorder=9, color="#7a5c00")
+    lead("j14", "B-", "R2 100k", "#8c564b", row_b=14, lab_t=30)
+    ceramic("i14", "B-", "C4", row_b=15.6, at=0.45)
+    ceramic("g22", "g23", "C2")
     # C1 electrolytic can between its legs h22 (-) and h23 (+)
     (x22, yh), (x23, _) = xy("h22"), xy("h23")
     can_x, can_y = 25.6, yh - 0.1

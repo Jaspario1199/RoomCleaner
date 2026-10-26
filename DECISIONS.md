@@ -442,3 +442,14 @@ assumed Ø6 although Jasper had measured Ø4.0 on 10/22 (`ENC1021_MAGNET_D`).
   and the chip face 1.5 mm from the magnet face.
 - **Open:** the magnet's thickness is still assumed to be 2.5 mm. If it is thinner, its face sits below the cap face and the
   air gap grows. The AS5600 still reads up to about 3 mm; check the `magnet DETECTED` / AGC line in the bench test.
+
+D44. **The robot scans its own workspace into a stored, updating height map** (Jasper, 10/26: "using the vision to actually
+create a real-time model that's stored and edited to update, so that the robot knows the sandbox it's playing in"; "yes
+write the spec and start with the map tab"). This is the "later" half of D35, specified in `docs/ROOM_SCAN_SPEC.md`.
+- **How it builds the map:** plane-sweep stereo from the claw camera at **known** poses (the cable model plus the floor
+  board, no SLAM). The result is a 2.5D height map, a photo mosaic, proposed shapes in the Map tab, and partial re-scans
+  with change detection. A 3D mesh export (COLMAP) is optional.
+- **Safety rule:** a scan only adds keep-out. Taller or new objects apply at once; anything that would free space waits for
+  the user to accept it. Unknown cells count as obstacles.
+- **Order:** the Map tab (D35 "now", `docs/ROOM_MAP_SPEC.md` §1 to 5) is built first, then phases S1 to S5. Each phase is
+  independently verified.

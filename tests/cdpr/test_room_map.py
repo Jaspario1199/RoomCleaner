@@ -324,8 +324,12 @@ def ready_robot(tmp_path_factory):
 def test_ready_put_refused_when_the_claw_pose_or_its_lowering_would_be_invalid(ready_robot):
     r, svc, c = ready_robot
     p = svc.ctx.model.pose_from_positions(svc.ctx.co.positions())[0]
-    # a pedestal right under the claw: the pose itself is fine (above it), lowering straight down is not
-    under = {"name": "Table", "shape": "box", "x": float(p[0]), "y": float(p[1]), "length_m": 0.5, "width_m": 0.5, "height_m": 0.4}
+    # a pedestal right under the claw, its top 0.25 m below the claw's lowest point (clear of the 0.10 m margin): the pose itself
+    # is fine, lowering straight down is not
+    low = p[2] + float(svc.ctx.cfg.claw.lowest_point_body_m[2])
+    assert low > 0.35, p
+    under = {"name": "Table", "shape": "box", "x": float(p[0]), "y": float(p[1]), "length_m": 0.5, "width_m": 0.5,
+             "height_m": round(low - 0.25, 3)}
     res = put(c, {"obstacles": [under]})
     assert res.status_code == 409 and "lowering the claw straight down" in res.get_json()["error"], res.get_json()
     # a tall cabinet where the claw is: the pose itself is refused
@@ -365,11 +369,15 @@ def test_three_station_startup_with_a_shape_near_the_start_point_reaches_ready_a
     from roomcleaner.cdpr.supervisor import Supervisor
 
     from .test_three_station import fast3
-    cfg0 = fast3()
-    sx, sy = cfg0.start_point_xy()
-    lamp = {"name": "Lamp", "shape": "cylinder", "x": float(sx + 0.55), "y": float(sy + 0.25), "diameter_m": 0.25, "height_m": 1.3}
-    cfg = fast3(obstacles=[lamp])
+    cfg = fast3()
     r = SimRobot(cfg, seed=0, data_dir=tmp_path, camera_kw={"board": WFB.nominal(0.15)})
+    # a lamp near the start point: 0.45 m from where the claw rests (clear of its body + the margin for the straight lift), on the
+    # side of the room centre so the calibration poses have to go around it
+    cx, cy = r.world.p[:2]
+    d = np.array([1.0, 0.45]) / np.hypot(1.0, 0.45)
+    lamp = {"id": "o1", "name": "Lamp", "shape": "cylinder", "x": float(cx + 0.45 * d[0]), "y": float(cy + 0.45 * d[1]),
+            "diameter_m": 0.25, "z_low_m": 0.0, "height_m": 1.3}
+    cfg.obstacles = [lamp]                                     # what PUT /api/room_map does before a start
     w = r.world
     seen = []
     step = w.step
@@ -388,8 +396,10 @@ def test_three_station_startup_with_a_shape_near_the_start_point_reaches_ready_a
         for i in range(3):
             assert not segment_hits_obstacle(w.anchors[i], pts[i], cfg.obstacles[0]), p
         assert not (np.hypot(p[0] - lamp["x"], p[1] - lamp["y"]) <= lamp["diameter_m"] / 2 and low <= lamp["height_m"]), p
-    # and no calibration pose violates it with the planning margin
-    ws, geo = r.ctx.ws, r.ctx.model.geometry
+    # and no calibration pose (measured, final model) puts a cable or the claw body into the lamp. The poses were planned with the
+    # 0.10 m margin on the model of the moment; the measured poses of the final model differ by a few cm, which the margin absorbs
+    from dataclasses import replace
+    ws, geo = replace(r.ctx.ws, obstacle_margin_m=0.0), r.ctx.model.geometry
     assert len(r.ctx.samples) >= 6
     for s in r.ctx.samples:
-        assert ws.obstacle_violations(geo, to_room(r.ctx.T_R_M, s.p)) == []
+        assert ws.obstacle_violations(geo, to_room(r.ctx.T_R_M, s.p)) == [], (s.kind, to_room(r.ctx.T_R_M, s.p), lamp)

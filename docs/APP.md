@@ -23,6 +23,7 @@ full-screen app (web manifest + icon).
 | Home | State in large text with plain-language detail, trust level and its reasons, stations A-D (online, fault, state, reference), claw (battery V and low flag, grip, camera), busy indicator, last error, recent events |
 | Camera | The frame the host already fetched from the claw, about 5 fps (MJPEG, still-JPEG fallback), frame age, marker/board detection status. `--sim`: the simulator's claw view |
 | Setup | (a) room and anchors, (b) unmeasured configuration per stage, (c) pre-start safety checklist, (d) Start and live startup steps with reasons, recovery buttons only where the supervisor allows them (Resume, Acknowledge, Recover, Lower, Disarm with the typed `claw_supported`), (e) calibration result and trust |
+| Map | Top view of the room (walls, anchors A-D, usable area, start point, hamper). Tap **Square**, **Rectangle** or **Circle** (or drag one onto the map) to add furniture the robot must keep away from; drag to move (snaps to 1 in and flush to a wall within 5 cm), drag the handles to resize, Turn 90&deg; for rectangles. The shape's card under the map has the name chips, size and height (ft-in or metres: `5'6"`, `66 in`, `1.68 m`, `168 cm`); its "More" holds exact position, angle and "hangs from the ceiling". The page's "More" holds undo (20), units, hamper place and rim height, and "Show where it can pick things up" (10 cm grid from `POST /api/room_map/preview`; tap a cell for the reason). **Save map** (`PUT /api/room_map`; refused while busy, and in READY/PAUSED if the claw or its straight-down lowering would be inside a new shape). Spec: `docs/ROOM_MAP_SPEC.md` |
 | Chat | Rule-based "talk to the robot" (no cloud AI, no API key); optional mic and "speak replies" where the browser has speech recognition/synthesis (often only on https or localhost; typing always works) |
 
 PAUSE (hold position) and the line "Emergency stop = the switched power strip. It drops the claw: nobody under the
@@ -45,11 +46,13 @@ command worker.
 `POST /api/say {text, checklist?}` -> `{reply, pending_confirm, command_run, goto, chips}`, `GET /api/frame.jpg` (+
 `X-Frame-Age-S`), `GET /api/stream.mjpg?token=` (~5 fps, at most 4 open), `/api/status` extended with `stations[*].online`,
 `claw`, `camera`, `state_text`, `anchors_m`, `allowed`, `chips`. Pages: `/` (app), `/v1`, `/manifest.webmanifest`,
-`/icon.png`. The camera routes serve the frame thread's cache (`claw_link.ThreadedFrameSource.latest_frame()`): they never
+`/icon.png`. Room map (docs/ROOM_MAP_SPEC.md): `GET /api/room_map`, `POST /api/room_map/preview`, `PUT /api/room_map`. The camera routes serve the frame thread's cache (`claw_link.ThreadedFrameSource.latest_frame()`): they never
 fetch from the claw and never touch the host loop. Claw telemetry for `/api/status` is polled every 2 s by a background
 thread, not by requests.
 
-Tests: `tests/cdpr/test_phone_app.py` (Flask test client in `--sim`, pure chat tests, claw frame cache against a fake claw).
+Tests: `tests/cdpr/test_phone_app.py` (Flask test client in `--sim`, pure chat tests, claw frame cache against a fake claw);
+Map tab: `tests/cdpr/test_room_map.py` (model, planner, API, startup) and `tests/cdpr/test_room_map_app.py` (Playwright, 360 x 740 and
+1280 x 800). Map screenshots: `docs/app_screenshots/map_*.png`.
 
 ---
 

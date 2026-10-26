@@ -403,3 +403,114 @@ def test_three_station_startup_with_a_shape_near_the_start_point_reaches_ready_a
     assert len(r.ctx.samples) >= 6
     for s in r.ctx.samples:
         assert ws.obstacle_violations(geo, to_room(r.ctx.T_R_M, s.p)) == [], (s.kind, to_room(r.ctx.T_R_M, s.p), lamp)
+
+
+# ============================================================================================ verification round 1 (H-1, H-2, M-1, M-2, L-7)
+def test_messages_use_plain_words_and_names_never_keys_or_ids():
+    bad = [dict(SHELF, length_m=6.1), dict(SHELF, z_low_m=1.9), dict(FAN, height_m=3.5), {**SHELF, "name": "", "x": 9.0}]
+    _out, errs = validate_obstacles(bad, ROOM)
+    text = " ".join(errs)
+    assert errs and "the Shelf" in text and "the 4th shape on the map (a rectangle)" in text, errs
+    for word in ("length_m", "width_m", "height_m", "z_low_m", "diameter_m", "shape 4", "o1"):
+        assert word not in text, (word, errs)
+
+
+def test_room_size_change_that_the_map_no_longer_fits_is_refused(tmp_path):
+    cfgp = tmp_path / "robot.json"
+    cfgp.write_text(Path(SIM).read_text())
+    r, svc, c, app = make(tmp_path / "d", config_path=cfgp)
+    assert put(c, {"obstacles": [dict(SHELF, x=3.1, y=2.5, height_m=2.6)]}).status_code == 200
+    res = c.post("/api/room", json={"width_m": 3.0, "depth_m": 2.4, "height_m": 2.4})
+    assert res.status_code == 400 and "Map" in res.get_json()["error"] and "the Shelf" in res.get_json()["error"]
+    assert list(svc.ctx.cfg.room_m) == pytest.approx(list(ROOM))
+    load_config(cfgp)                                                         # the file still loads
+    assert c.post("/api/room", json={"width_m": 3.4, "depth_m": 2.8, "height_m": 2.8}).status_code == 200
+
+
+def test_a_hamper_inside_a_shape_and_a_shape_over_the_landing_spot_are_refused(tmp_path):
+    r, svc, c, app = make(tmp_path)
+    res = put(c, {"obstacles": [dict(SHELF, height_m=0.75)], "hamper": {"x": 0.83, "y": 0.68, "height_m": 0.5}})
+    assert res.status_code == 400 and "hamper is inside the Shelf" in res.get_json()["error"]
+    sx, sy = svc.ctx.cfg.start_point_xy()
+    ott = {"name": "Ottoman", "shape": "box", "x": float(sx) + 0.2, "y": float(sy), "length_m": 0.4, "width_m": 0.4, "height_m": 0.4}
+    for st in ("DISARMED", "PARKED"):
+        svc.sup.state = st
+        res = put(c, {"obstacles": [ott]})
+        assert res.status_code == 409 and "The Ottoman covers the claw's landing spot" in res.get_json()["error"], res.get_json()
+    assert svc.ctx.cfg.obstacles == []
+    g = c.get("/api/room_map").get_json()
+    assert g["landing_m"] and g["landing_m"][0] == pytest.approx([sx, sy], abs=1e-3)
+
+
+def test_a_move_can_start_from_a_pose_one_microstep_outside_the_workspace_top_and_detour_apexes_are_inset():
+    """H-1: a claw stopped at a bound reads micrometres outside it; the next move from there must be accepted. The detour's
+    apex is never closer than motion.waypoint_inset_m to the top, and the move after every apex plans."""
+    import itertools
+    from types import SimpleNamespace
+
+    from roomcleaner.cdpr.startup import StartupSequencer
+    from roomcleaner.cdpr.trajectory import limits_from_config, model_from, plan_line, plan_line_from
+    cfg, geo, ws = cfg_ws([])
+    model = model_from(geo, cfg, {s.id: 3.0 for s in cfg.stations})
+    lim = limits_from_config(cfg)
+    top = float(ws.hi[2])
+    P_top = np.round(model.positions_for(np.array([1.5, 1.2, top])))
+    for d in itertools.product([-1, 0, 1], repeat=4):
+        plan_line_from(model, P_top + np.array(d), np.array([2.0, 1.2, 1.0]), lim, ws=ws, label="next")
+    # the detour height search, against a 0.6 m post between two allowed calibration poses
+    post = {"id": "p", "name": "Post", "shape": "cylinder", "x": 1.6, "y": 1.3, "diameter_m": 0.1, "z_low_m": 0.0, "height_m": 0.6}
+    cfg, geo, ws = cfg_ws([post])
+    model = model_from(geo, cfg, {s.id: 3.0 for s in cfg.stations})
+    fake = SimpleNamespace(ctx=SimpleNamespace(model=model, ws=ws, lim=lim), cfg=cfg)
+    for here, q in (((1.2, 1.3, 0.9), (2.0, 1.3, 0.9)), ((1.6, 0.9, 0.85), (1.6, 1.7, 1.0)), ((1.25, 1.0, 1.0), (1.95, 1.6, 0.9))):
+        here, q = np.array(here), np.array(q)
+        assert ws.violations(geo, here) == [] and ws.violations(geo, q) == [], (here, q)
+        z, err = StartupSequencer._detour_height(fake, here, q)
+        assert z is not None, err
+        assert z <= top - cfg.motion.waypoint_inset_m + 1e-9 and z > max(here[2], q[2])
+        apex = np.array([q[0], q[1], z])
+        P = np.round(model.positions_for(apex))
+        for d in itertools.product([-1, 0, 1], repeat=4):                # the move down from the apex, from the rounded positions
+            plan_line_from(model, P + np.array(d), q, lim, ws=ws, label="down")
+        with pytest.raises(Exception):
+            plan_line(model, here, q, lim, ws=ws)                        # the straight line was blocked: the detour was needed
+
+
+def test_lowering_never_descends_into_a_shape_and_says_which_one(ready_robot):
+    """H-2: a shape over the landing spot (put straight into the live workspace: PUT refuses it) makes lower() refuse with the
+    shape's name and keep holding, or lower somewhere clear; never the old blind packets into it."""
+    from roomcleaner.cdpr.perception import to_room
+    from roomcleaner.cdpr.supervisor import CommandRefused
+    r, svc, c = ready_robot
+    if svc.sup.state != "READY":
+        pytest.skip(f"not READY ({svc.sup.state})")
+    mk = to_room(svc.ctx.T_R_M, [0, 0, 0])[:2]
+    ott = {"id": "l1", "name": "Ottoman", "shape": "box", "x": float(mk[0]), "y": float(mk[1]), "length_m": 0.5, "width_m": 0.5,
+           "yaw_deg": 0.0, "z_low_m": 0.0, "height_m": 0.30}
+    res = put(c, {"obstacles": [ott]})
+    assert res.status_code == 409 and "Ottoman covers the claw's landing spot" in res.get_json()["error"]
+    svc.ctx.ws.obstacles = [ott]
+    w = r.world
+    seen, step = [], w.step
+
+    def rec(t_us, dt_s):
+        out = step(t_us, dt_s)
+        seen.append((w.p.copy(), w.lowest_z()))
+        return out
+    w.step = rec
+    try:
+        svc.sup.lower()
+        landed = True
+    except CommandRefused as e:
+        landed = False
+        assert "Can't lower" in str(e) and "Ottoman" in str(e) and "Map" in str(e), e
+    finally:
+        w.step = step
+        svc.ctx.ws.obstacles = []
+    from roomcleaner.cdpr.kinematics import claw_hits_obstacle
+    for p, low in seen:
+        assert not claw_hits_obstacle(p[:2], low, p[2], ott, 0.0, svc.ctx.cfg.claw.body_radius_m), (p, low)
+    if landed:
+        assert svc.sup.state == "PARKED"
+    else:
+        assert svc.sup.state == "READY"

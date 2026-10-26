@@ -1133,8 +1133,8 @@ def test_16_cap_magnet_encoder():
     bore = [c for c in cf if abs(c["r"] - 3.5) < 1e-4][0]
     check(sec, "bore diameter (Ø7)", 7.0, 2 * bore["r"], 1e-6)
     check(sec, "bore depth (3.0)", 3.0, bore["bb"][5] - bb[4], 1e-4)
-    pk = [c for c in cf if abs(c["r"] - 3.15) < 1e-4]
-    check_true(sec, "pocket Ø6.3 (R3.15)", ">= 1 face", len(pk), len(pk) >= 1)
+    pk = [c for c in cf if abs(c["r"] - 2.15) < 1e-4]
+    check_true(sec, "pocket Ø4.3 (R2.15)", ">= 1 face", len(pk), len(pk) >= 1)
     check(sec, "pocket depth (2.5)", 2.5, bb[5] - min(c["bb"][4] for c in pk), 1e-4)
     axial = material(cap, (0.0, 0.0, -1.0), (0, 0, 1), 0, 8.5)
     check_true(sec, "web between bore floor and pocket floor (0.75): material z [3.0, 3.75] on the axis", "(3.0, 3.75)",
@@ -1146,24 +1146,24 @@ def test_16_cap_magnet_encoder():
         return material(cap, (0, 0, z), d, 0, 8)[0][0]
     on = [first_r(a) for a in (90, 210, 330)]
     off = [first_r(a) for a in (30, 150, 270, 0, 45)]
-    check_true(sec, "3 crush ribs equally spaced (rib tips at 90, 210, 330 deg: R 2.88), pocket wall R3.15 elsewhere", "2.88 x3 / 3.15", f"{np.round(on, 3)} / {np.round(off, 3)}",
-               all(abs(r - 2.88) < 2e-3 for r in on) and all(abs(r - 3.15) < 2e-3 for r in off))
-    check(sec, "rib protrusion (pocket R3.15 - tip R2.88 = 0.15 per side + 0.12 crush)", 0.27, 3.15 - float(np.mean(on)), 2e-3)
+    check_true(sec, "3 crush ribs equally spaced (rib tips at 90, 210, 330 deg: R 1.88), pocket wall R2.15 elsewhere", "1.88 x3 / 2.15", f"{np.round(on, 3)} / {np.round(off, 3)}",
+               all(abs(r - 1.88) < 2e-3 for r in on) and all(abs(r - 2.15) < 2e-3 for r in off))
+    check(sec, "rib protrusion (pocket R2.15 - tip R1.88 = 0.15 per side + 0.12 crush)", 0.27, 2.15 - float(np.mean(on)), 2e-3)
     arcs = []
     prev = False
     for a in np.arange(0, 360.01, 0.1):
-        inn = is_inside(cap, (2.95 * math.cos(math.radians(a)), 2.95 * math.sin(math.radians(a)), 5.0))
+        inn = is_inside(cap, (2.0 * math.cos(math.radians(a)), 2.0 * math.sin(math.radians(a)), 5.0))
         if inn and not prev:
             arcs.append(a)
         prev = inn
-    check_true(sec, "rib count (material arcs at R2.95 inside the pocket)", 3, len(arcs), len(arcs) == 3)
-    a_in = [a for a in np.arange(80.0, 100.0, 0.05) if is_inside(cap, (2.9 * math.cos(math.radians(a)), 2.9 * math.sin(math.radians(a)), 5.0))]
-    w29 = math.radians(max(a_in) - min(a_in) + 0.05) * 2.9
-    check(sec, "rib width at R2.9 (0.02 behind the tip; ENC1021_V2 tip width 0.45), arc mm from an angular scan", 0.45, w29, 0.05)
+    check_true(sec, "rib count (material arcs at R2.0 inside the pocket)", 3, len(arcs), len(arcs) == 3)
+    a_in = [a for a in np.arange(80.0, 100.0, 0.05) if is_inside(cap, (1.9 * math.cos(math.radians(a)), 1.9 * math.sin(math.radians(a)), 5.0))]
+    w29 = math.radians(max(a_in) - min(a_in) + 0.05) * 1.9
+    check(sec, "rib width at R1.9 (0.02 behind the tip; ENC1021_V2 tip width 0.45), arc mm from an angular scan", 0.45, w29, 0.05)
     # in the assembly
     b = drive()
     mg = tbb(b["magnet"])
-    check(sec, "magnet diameter (Ø6)", 6.0, mg[1] - mg[0], POS_TOL)
+    check(sec, "magnet diameter (Ø4.0, D43)", 4.0, mg[1] - mg[0], POS_TOL)
     check(sec, "magnet thickness (2.5)", 2.5, mg[3] - mg[2], POS_TOL)
     check(sec, "magnet y min (53.05)", 53.05, mg[2], POS_TOL)
     check(sec, "magnet face y (55.55 = cap face, flush)", 55.55, mg[3], POS_TOL)
@@ -1190,7 +1190,7 @@ def test_16_cap_magnet_encoder():
     check(sec, "chip centre z on the axis", ZS, 0.5 * (ch[4] + ch[5]), POS_TOL)
     check(sec, "chip centre x on the axis", 0.0, 0.5 * (ch[0] + ch[1]), POS_TOL)
     # cap volume cross-check (bore, pocket removed; ribs add a little)
-    base = math.pi * (36 * 6.25 - 12.25 * 3.0 - 3.15 ** 2 * 2.5)
+    base = math.pi * (36 * 6.25 - 12.25 * 3.0 - 2.15 ** 2 * 2.5)
     check_true(sec, "cap volume = cylinder - bore - pocket + ribs (ribs 0..3 mm3)", f"{base:.2f}..{base + 3:.2f}", round(vol(cap), 3), base < vol(cap) < base + 3.0)
     ribs_v = cvol(drive()["magnet_cap"], drive()["magnet"])
     check_true(sec, "cap-rib / magnet interference volume (by design, 3 ribs x 0.12 crush)", "0.2 .. 0.6 mm3", round(ribs_v, 4), 0.2 < ribs_v < 0.6)
@@ -1426,7 +1426,7 @@ def test_20_params_audit():
                 WG3_Y_SPOOL_END=44.0, WG3_LAND_D=9.0, WG3_LAND_PROUD=0.3, WG3_BORE_D=7.0, WG3_TIEOFF_D=1.4, WG3_TIEOFF_OFFSET=5.25, WG3_TIEOFF_Y=28.825,
                 WG3_SPACER_OD=10.0, WG3_SPACER_BORE_D=7.10, WG3_SPACER_Y0=5.0, WG3_SPACER_Y1=10.825, WG3_SHAFT_D=7.0, WG3_SHAFT_Y0=-3.0, WG3_SHAFT_L=55.0,
                 WG3_BRG_ID=7.0, WG3_BRG_OD=14.0, WG3_BRG_W=5.0, WG3_BRG_NEAR_Y0=0.0, WG3_BRG_FAR_Y0=44.0, WG3_CAP_Y0=49.3, WG3_CAP_D=12.0, WG3_CAP_BORE_DEPTH=3.0,
-                WG3_CAP_WEB=0.75, WG3_MAGNET_D=6.0, WG3_MAGNET_T=2.5, WG3_CAP_POCKET_D=6.3, WG3_CAP_POCKET_DEPTH=2.5, WG3_Y_MAGNET0=53.05, WG3_CAP_Y1=55.55,
+                WG3_CAP_WEB=0.75, WG3_MAGNET_D=4.0, WG3_MAGNET_T=2.5, WG3_CAP_POCKET_D=4.3, WG3_CAP_POCKET_DEPTH=2.5, WG3_Y_MAGNET0=53.05, WG3_CAP_Y1=55.55,
                 WG3_CHIP_FACE_Y=57.05, WG3_PCB_Y0=58.5, WG3_PCB_Y1=60.1, WG3_MIN_CLEAR=1.5, WG3_MIN_CLEAR_HUB=1.0)
     bad = {k: (v, getattr(P, k, None)) for k, v in want.items() if not (hasattr(P, k) and abs(getattr(P, k) - v) < 1e-9)}
     check_true(sec, f"WG3_* values equal the revision C spec numbers ({len(want)} checked)", "no mismatch", bad or "no mismatch", not bad)

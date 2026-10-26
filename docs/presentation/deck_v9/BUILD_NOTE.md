@@ -67,3 +67,12 @@ Slide 23's three-station plan is drawn with shapes from `docs/THREE_STATION_MODE
 - Nothing dropped. Photo 34 and photo 30 are unused (see the table). The outline's "v8 About Me collage (unchanged)" and the
   v8 figures are reused as specified; the floor-board chart (v8 appendix) stands in for the camera-calibration figure on
   slide 14 because v9 slide 10 already uses the bead-homing chart.
+
+## Panel feedback applied (2026-10-26, evening)
+
+The SpaceX panel's 16 items on deck v8 are answered from the record in `docs/presentation/PANEL_FEEDBACK_ANSWERS_20261026.md`
+and added to the matching v9 slides' "If asked" notes. One-line versions on the slides: budget and schedule limits (4), what bead
+homing is and the floor-area share (10), how to read the margins (12), power loss (13, Faults row), the fin's role (15), narrow
+grabs and the cost total (24). Placeholders for Jasper in the notes of slides 15 (fin paint and alloy), 16 (claw infill behind
+the 0.86 kg estimate), 18 (source of the 0.3 friction coefficient) and 20 (how the 3.3 V fault was found). Both files
+re-validated (PASS); slides 4, 10, 12, 13, 15 and 24 re-rendered and inspected; contact sheets regenerated.

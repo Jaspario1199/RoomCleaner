@@ -684,11 +684,11 @@ section("Final design"); ACT = "Act 4 of 5: Final design (October 7-21)";
   figure(sl, { sheet: "heat_fin", tab: "Heat fin; Incropera, ch. 3" }, fx, fy + fh / 2 + 0.05, fw, fh / 2 - 0.05);
   bullets(sl, [
     "1.5 A doubles motor heat to 4.05 W; the PETG mount must stay below 60 °C",
-    "The fin conducts heat off the motor flange and out of the shell into room air; it carries 35–50 % of the 4.05 W",
+    "The fin conducts heat off the motor flange and out of the shell to room air: 35–50 % of the 4.05 W",
     "Vented shell and fin: 56–59 °C with the 0.019 in prototype, 45–49 °C with the 1/8 in design",
-    "The thin sheet stops gaining by 136 mm; the 1/8 in plate keeps gaining to 349 mm",
-  ], bx, 1.35, bw, 2.05, 14, { space: 5, name: "cooling bullets" });
-  label(sl, "If the fin alone carried all 4.05 W (painted 6061, 44 mm wide)", bx, 3.4, bw, 0.26, { size: 11, bold: true, color: HEX.navy });
+    "Thin sheet stops gaining by 136 mm; 1/8 in plate keeps gaining to 349 mm",
+  ], bx, 1.35, bw, 1.9, 12, { space: 4, name: "cooling bullets" });
+  label(sl, "If the fin alone carried all 4.05 W (painted 6061, 44 mm wide)", bx, 3.26, bw, 0.24, { size: 11, bold: true, color: HEX.navy });
   table(sl, ["Thickness", "Mass", "Shortest for ≤ 60 °C"], [
     ["0.019 in (prototype)", "14 g", "None (2.0 W max)"],
     ["1/16 in", "47 g", "None (3.6 W max)"],
@@ -696,7 +696,7 @@ section("Final design"); ACT = "Act 4 of 5: Final design (October 7-21)";
     ["1/8 in (design)", "94 g", "145–185 mm"],
     ["3/16 in", "141 g", "125–140 mm"],
     ["1/4 in", "189 g", "115–125 mm"],
-  ], bx, 3.68, bw, [0.42, 0.18, 0.4], { size: 10, rowH: 0.26, name: "fin sizing" });
+  ], bx, 3.5, bw, [0.42, 0.18, 0.4], { size: 10, rowH: 0.25, name: "fin sizing" });
   eqBox(sl, { title: "Motor heat, P = I² R", lines: ["At 1.06 A: (1.06 A)² × 1.8 Ω = 2.0 W", "At 1.5 A: (1.5 A)² × 1.8 Ω = **4.05 W**"] }, bx, 6.75 - eqHeight({ lines: [1, 2] }), bw);
   sl.addNotes("Talk track (55 s): Raising the drivers to the motor's rated 1.5 A doubles the heat to 4.05 W per motor, and the motor sits in a printed PETG " +
               "mount that softens at 60 °C. A sealed shell would cook it. The answer is a vented shell and an aluminium fin bolted to the motor face and out " +
@@ -933,7 +933,7 @@ section("Results and close"); ACT = "";
     ["Accuracy", "≤ 2 mm cable mismatch", "40 ms skew budget gives 2 mm", "Not measured", "To be tested"],
     ["Obstacle map in the app", "Drawn shapes kept out of every path", "Built; two findings being fixed", "Simulated", "Planned"],
     ["First three-station lift", "Self-check, calibration, short move", "Not yet run", "None", "Planned"],
-    ["Cost", "Hobby budget", "[[total]]", "Receipts", "Open"],
+    ["Cost", "Hobby budget", "About $640 ordered; $220–260 in the robot (3–4 stations), prices partly estimated", "Receipts", "Met"],
   ], M, 1.3, W - 2 * M, [0.17, 0.22, 0.3, 0.12, 0.19], { size: 11, rowH: 0.34 });
   sl.addNotes("Talk track (55 s): Back to the targets, with the evidence for each. Measured so far: the claw mass, the two bench tests and the wiring. Three are not " +
               "met: grip for jeans at narrow grabs, claw mass at 0.60 against 0.45, and the weakest link, which has two cheap fixes. Two are marginal and the next " +
@@ -941,7 +941,8 @@ section("Results and close"); ACT = "";
               "map of obstacles in the phone app is built and under independent verification, with two findings being fixed before it runs on hardware; and the " +
               "first three-station lift, which is the next milestone. If asked about the map: the user draws shapes on a top view of the room and every cable and " +
               "the claw body are checked against them before a move; the two findings are a descent that could enter a refused shape and a calibration detour that " +
-              "strands the claw at the top of the workspace. [[total cost]] " +
+              "strands the claw at the top of the workspace. Cost: about $640 ordered in total, $220 to $260 of it in the robot as parts for three or four " +
+              "stations, plus $40 to $50 of filament; prices partly recorded, partly typical, so say 'about'. " +
               "If asked what narrow grabs are: a grip where the jaw tips are close together when the pads meet the cloth, a thin fold rather than a bunched " +
               "handful. The hands ride on a gear crank, so the lever arm from the crank to the pad is longest at a small gap, 59 mm at 10 mm, and shortest at " +
               "a wide one, 33 mm at 70 mm; with a fixed stall torque the pad force is 13.3 N at the narrowest grab and 25 N at 70 mm. Jeans at a friction of 0.3 " +

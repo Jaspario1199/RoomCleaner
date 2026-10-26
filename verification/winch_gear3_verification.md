@@ -129,3 +129,40 @@ cd /home/user/RoomCleaner
 ```
 Final result: 12 + 5 + 17 passed (the summary test runs in each part), 121 + 52 + 330 = 503 recorded checks, 0 FAIL. Two earlier runs of this update failed on my own test errors, both fixed in the test file: (a) a boolean-noise measure (0.066 mm3 from a common of coincident surfaces) replaced by a cut volume (0.000 mm3); (b) a corner-free chamfer volume estimate that is 5 % too high for an 18T outline, replaced by exact cross-section areas against the inset outline (observation O1). No part failure was found.
 The test file writes nothing into the repository.
+
+## 2026-10-26 D43 Ø4 magnet cap (magnet_cap_w3)
+
+Scope: magnet cap `exports/step/winch_gear3_magnet_cap.step` / `exports/stl/winch_gear3_magnet_cap.stl` and the `magnet_cap` / `magnet` bodies in `exports/step/winch_gear3_drive_asm1021.step`. Only the magnet-cap checks in `tests/test_winch_gear3_verify.py` were changed (test_16 pocket R2.15, rib tip R1.88, rib scan radii R2.0 / R1.9, magnet Ø4.0, cap volume hand calculation with pocket R2.15; test_20 table WG3_MAGNET_D=4.0, WG3_CAP_POCKET_D=4.3). No tolerance was loosened.
+
+Full run: `/usr/bin/python3 -m pytest -q tests/test_winch_gear3_verify.py` gave 30 passed, 2 failed (371 s). The only failing check is test_21 "no render is more than 60 s older than drive_asm1021.step": all 8 renders in `renders/winch_gear3/` predate the regenerated STEP. This is a stale-render item (re-render needed), not a geometry failure; test_99 fails only because it aggregates that one record. All 502 other recorded checks pass, including every section 4 and section 5 check.
+
+Independent reimport of the cap STEP (CadQuery/OCC) and STL, probed by point classification, expected vs measured:
+
+| Item | Expected | Measured | Tol | Result |
+|---|---|---|---|---|
+| Solid count / validity | 1 / valid | 1 / valid | - | PASS |
+| Bounding box (print frame) | 12 x 12 x 6.25, z 0..6.25 | 12.000 x 12.000 x 6.250, z 0..6.250 | 1e-3 | PASS |
+| Bore | Ø7, z 0..3.0 | R3.501 at z=1 (probe step 0.001), solid on axis from 3.005 (probe step 0.005) | 0.005 | PASS |
+| Web | 0.75, z 3.0..3.75 | on-axis material z 3.005..3.75 (probe step) ; test_16 exact (3.0, 3.75) | 0.005 | PASS |
+| Pocket depth | 2.5 (z 3.75..6.25) | 2.5000 (test_16) | 1e-4 | PASS |
+| Pocket wall radius | 2.15 | 2.1505 at 5 angles (probe step 0.0005) | 0.001 | PASS |
+| Rib tip radius (90/210/330 deg) | 1.88 | 1.8805 all three | 0.002 | PASS |
+| Rib protrusion | 0.27 | 0.2700 | 0.002 | PASS |
+| Rib width at R1.9 | 0.45 | 0.4593 | 0.05 | PASS |
+| Lead-in at mouth | 45 deg | tip r 1.88 up to z=5.9, 1.90 at z=6.0, 2.00 at z=6.1, 2.10 at z=6.2 (dr/dz = 1, 45 deg) | - | PASS |
+| STEP volume | hand 555.10 (pi (36 x 6.25 - 12.25 x 3.0 - 2.15^2 x 2.5)) + ribs 0..3 | 556.222 (ribs add 1.12) | - | PASS |
+| STL vs STEP volume | within 0.1 % | 555.990 vs 556.222 (0.042 %) | 0.1 % | PASS |
+| STL bbox | 12 x 12 x 6.25 | 12.000 x 11.996 x 6.250 (tessellation) | 0.01 | PASS |
+
+Drive assembly (test_16/test_17 and independent XCAF read):
+
+| Item | Expected | Measured | Result |
+|---|---|---|---|
+| Magnet size | Ø4.0 x 2.5 (vol 31.416) | Ø4.000 x 2.500, vol 31.416 | PASS |
+| Magnet y range | 53.05..55.55 | 53.050..55.550 | PASS |
+| Cap y range | 49.3..55.55 | 49.300..55.550 | PASS |
+| Cap / magnet overlap | only the designed rib crush, about 3 x 0.45 x 0.12 x 2.4 = 0.39 mm3 | 0.4035 mm3 (independent boolean 0.4035); test band 0.4125 +- 0.01 | PASS |
+| Other pairwise overlaps > 0.01 mm3 | none | none | PASS |
+| Magnet vs AS5600 chip | no contact, gap 1.5 | boolean overlap 0.000, distance 1.500; chip face y 57.05, magnet face y 55.55 | PASS |
+
+Result: PASS for D43 (geometry, interfaces, exports). Open item for the lead: regenerate the 8 renders in `renders/winch_gear3/` so test_21 passes. Observation: comments in `cad/params.py` (WG3_CAP_POCKET_D line "6.3: 0.15 per side", ENC1021_V2 "Ø6.3 ... Ø6.0 magnet" header) are stale text; the values are correct (4.3). No CAD source, params, spec, exports or builder test was edited.

@@ -433,3 +433,12 @@ bought steel). Supersedes the purchased steel pinion of D40/D41; the 54T gear an
   the pitch circle (about 10 encoder counts, inside the 60-count tolerance).
 - **Interface for Jasper:** keep the tab's motor hole at Ø22.4 (at least Ø16) so the pinion hub passes through it.
 
+
+D43. **Winch encoder magnet on the spool shaft is the measured Ø4.0 magnet** (Jasper, 10/26: "the magnet is much smaller than
+originally thought"). Supersedes the Ø6 × 2.5 magnet written into `cad/WINCH_GEAR3_SPEC.md` for `magnet_cap_w3`. That spec
+assumed Ø6 although Jasper had measured Ø4.0 on 10/22 (`ENC1021_MAGNET_D`).
+- **Geometry:** `WG3_MAGNET_D = ENC1021_MAGNET_D` (4.0), one definition. The pocket becomes Ø4.3 × 2.5 with the same three
+  crush ribs (0.15 per side + 0.12 crush). Unchanged: the cap's Ø12 outside, the Ø7 bore and web, every axial position,
+  and the chip face 1.5 mm from the magnet face.
+- **Open:** the magnet's thickness is still assumed to be 2.5 mm. If it is thinner, its face sits below the cap face and the
+  air gap grows. The AS5600 still reads up to about 3 mm; check the `magnet DETECTED` / AGC line in the bench test.

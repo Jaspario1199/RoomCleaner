@@ -13,8 +13,8 @@ Drive train (station_1021 frame: motor axis x = 0, z = +2.64; +y along the motor
         spool_gear54  y 10.825 .. 44.0: gear 10.825 .. 20.825 (six Ø10 windows on R17.5, 0.3 x 45 deg chamfer on the bed-face teeth), drum Ø15 to 36.825,
                       Ø36 x 3 outer flange, Ø12 far hub with a Ø9 land 0.3 proud, Ø7.00 bore, Ø1.4 chord tie-off hole at y 28.825
         spacer_near_w3 Ø10 / Ø7.10, y 5.0 .. 10.825, Ø9 lands (0.3 proud) on both ends
-        shaft Ø7 x 55 (y -3 .. 52), 687 bearings y 0 .. 5 and 44 .. 49, magnet_cap_w3 y 49.3 .. 55.55 (Ø7 bore 3.0 deep, 0.75 web, Ø6.3 x 2.5 pocket with 3 crush
-        ribs), Ø6 x 2.5 magnet, AS5600: chip face y 57.05, chip 1.45 tall, PCB 23 x 23 x 1.6 at y 58.5 .. 60.1
+        shaft Ø7 x 55 (y -3 .. 52), 687 bearings y 0 .. 5 and 44 .. 49, magnet_cap_w3 y 49.3 .. 55.55 (Ø7 bore 3.0 deep, 0.75 web, Ø4.3 x 2.5 pocket with 3 crush
+        ribs), Ø4.0 x 2.5 magnet (D43), AS5600: chip face y 57.05, chip 1.45 tall, PCB 23 x 23 x 1.6 at y 58.5 .. 60.1
 
 Frames.  Parts are built in an AXIAL frame: axis = local z = station y, local x = station x, local y = -station z.  The print frame is that frame with the axis up
 and the bed face at z = 0: spool_gear54 prints with its near gear face (y 10.825) on the bed, magnet_cap_w3 on its bearing-side face (magnet face up), spacer_near_w3 on
@@ -213,7 +213,7 @@ def magnet_rib_geometry() -> dict:
 
 
 def _magnet_ribs() -> cq.Solid:
-    """3 crush ribs in the magnet pocket with a 45 deg lead-in at the mouth (the cad/parts/encoder1021.py construction, here for the Ø6 magnet)."""
+    """3 crush ribs in the magnet pocket with a 45 deg lead-in at the mouth (the cad/parts/encoder1021.py construction, here for the Ø4.0 magnet (D43))."""
     g = magnet_rib_geometry()
     z0, z1 = P.WG3_Y_MAGNET0 - RIB_FUSE, P.WG3_CAP_Y1
     ribs = None
@@ -229,7 +229,7 @@ def _magnet_ribs() -> cq.Solid:
 
 
 def make_magnet_cap() -> cq.Solid:
-    """magnet_cap_w3, axial frame, y 49.3 .. 55.55: Ø12; Ø7 bore y 49.3 .. 52.3; 0.75 web; Ø6.3 x 2.5 magnet pocket (y 53.05 .. 55.55) with 3 crush ribs."""
+    """magnet_cap_w3, axial frame, y 49.3 .. 55.55: Ø12; Ø7 bore y 49.3 .. 52.3; 0.75 web; Ø4.3 x 2.5 magnet pocket (y 53.05 .. 55.55) with 3 crush ribs (D43: Ø4.0 magnet)."""
     cap = _cyl(P.WG3_CAP_D / 2.0, P.WG3_CAP_Y0, P.WG3_CAP_Y1)
     cap = cap.cut(_cyl(P.WG3_CAP_BORE_D / 2.0, P.WG3_CAP_Y0 - CONSTRUCTION_OVERSHOOT, P.WG3_CAP_Y0 + P.WG3_CAP_BORE_DEPTH))
     cap = cap.cut(_cyl(P.WG3_CAP_POCKET_D / 2.0, P.WG3_Y_MAGNET0, P.WG3_CAP_Y1 + CONSTRUCTION_OVERSHOOT))

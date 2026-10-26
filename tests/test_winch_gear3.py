@@ -140,8 +140,8 @@ def test_parameters_are_the_spec_values():
     assert (P.WG3_SPACER_OD, P.WG3_SPACER_BORE_D, P.WG3_SPACER_Y0) == (10.0, 7.10, 5.0) and abs(P.WG3_SPACER_Y1 - 10.825) < 1e-9
     assert (P.WG3_SHAFT_D, P.WG3_SHAFT_Y0, P.WG3_SHAFT_L) == (7.0, -3.0, 55.0)
     assert (P.WG3_CAP_D, P.WG3_CAP_Y0, P.WG3_CAP_BORE_DEPTH, P.WG3_CAP_WEB) == (12.0, 49.3, 3.0, 0.75)
-    assert abs(P.WG3_Y_MAGNET0 - 53.05) < 1e-9 and abs(P.WG3_CAP_Y1 - 55.55) < 1e-9 and abs(P.WG3_CAP_POCKET_D - 6.3) < 1e-9
-    assert (P.WG3_MAGNET_D, P.WG3_MAGNET_T) == (6.0, 2.5)
+    assert abs(P.WG3_Y_MAGNET0 - 53.05) < 1e-9 and abs(P.WG3_CAP_Y1 - 55.55) < 1e-9 and abs(P.WG3_CAP_POCKET_D - 4.3) < 1e-9
+    assert (P.WG3_MAGNET_D, P.WG3_MAGNET_T) == (4.0, 2.5)            # D43: the measured Ø4.0 magnet
     assert abs(P.WG3_CHIP_FACE_Y - 57.05) < 1e-9 and abs(P.WG3_PCB_Y0 - 58.5) < 1e-9 and abs(P.WG3_PCB_Y1 - 60.1) < 1e-9
 
 
@@ -253,7 +253,7 @@ def test_magnet_cap_geometry(parts):
     assert abs(z0) < TOL and abs(z1 - 6.25) < TOL and abs(x1 - 6.0) < TOL                    # Ø12 x 6.25 (y 49.3 .. 55.55)
     assert _cyl_faces(s, 3.5, "z") and abs(max(c[1].zmax for c in _cyl_faces(s, 3.5, "z")) - 3.0) < TOL           # Ø7 bore 3.0 deep from the bearing side
     pocket = _cyl_faces(s, 3.15, "z")
-    assert pocket and abs(min(c[1].zmin for c in pocket) - 3.75) < TOL and abs(max(c[1].zmax for c in pocket) - 6.25) < TOL   # Ø6.3 pocket 2.5 deep
+    assert pocket and abs(min(c[1].zmin for c in pocket) - 3.75) < TOL and abs(max(c[1].zmax for c in pocket) - 6.25) < TOL   # Ø4.3 pocket 2.5 deep (D43)
     inside = _inside(s)
     assert inside((0, 0, 3.375)) and not inside((0, 0, 2.9)) and not inside((0, 0, 3.8)) and not inside((0, 0, 6.2))   # web 0.75 between bore floor 3.0 and pocket floor 3.75
     rg = W.magnet_rib_geometry()
@@ -266,7 +266,7 @@ def test_magnet_cap_geometry(parts):
 
 
 def test_magnet_cap_crush_ribs_overlap_the_magnet_only_by_the_designed_crush(drive):
-    """The only drive pair that may overlap: 3 crush ribs bite 0.12 mm into the Ø6 magnet (ENC1021_V2 rule)."""
+    """The only drive pair that may overlap: 3 crush ribs bite 0.12 mm into the Ø4 magnet (ENC1021_V2 rule)."""
     v = drive["magnet_cap"].intersect(drive["magnet"]).Volume()
     g = W.magnet_rib_geometry()
     crush = P.ENC1021_V2_MAGNET_RIB_CRUSH

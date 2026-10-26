@@ -74,8 +74,8 @@ notes; the line touches that face, so it is sanded smooth). The near hub is a se
 | Near spacer (printed, `spacer_near_w3`) | y 5.0 to 10.825 on the shaft: Ø10 OD, Ø7.10 bore (slip), both end faces Ø9 lands (it touches only the 687 inner race and the gear face); prints on either end face |
 | 687 bearing (7 × 14 × 5), near | y 0 to 5 (seat in the motor tab, which Jasper extends down to the spool axis) |
 | 687 bearing, far | y 44 to 49 (seat in a far cheek Jasper adds) |
-| Magnet cap (printed, `magnet_cap_w3`) | on the shaft end: Ø12, **y 49.3 to 55.55 (6.25 thick)**; Ø7 bore y 49.3 to 52.3 (3.0 deep; the shaft end at 52.0 leaves 0.3 mm); web y 52.3 to 53.05 (0.75, `ENC1021_CAP_FLOOR_MIN`); Ø6.3 × 2.5 magnet pocket y 53.05 to 55.55 with 3 crush ribs (the ENC1021_V2 rule: 0.15 per side + 0.12 crush); prints magnet-face up |
-| Magnet | Ø6 × 2.5 diametric, y 53.05 to 55.55 (face flush with the cap) |
+| Magnet cap (printed, `magnet_cap_w3`) | on the shaft end: Ø12, **y 49.3 to 55.55 (6.25 thick)**; Ø7 bore y 49.3 to 52.3 (3.0 deep; the shaft end at 52.0 leaves 0.3 mm); web y 52.3 to 53.05 (0.75, `ENC1021_CAP_FLOOR_MIN`); Ø4.3 × 2.5 magnet pocket y 53.05 to 55.55 with 3 crush ribs (D43, 10/26: was Ø6.3) (the ENC1021_V2 rule: 0.15 per side + 0.12 crush); prints magnet-face up |
+| Magnet | Ø4.0 × 2.5 diametric (D43: the measured magnet; thickness assumed), y 53.05 to 55.55 (face flush with the cap) |
 | AS5600 board envelope | follow the `encoder1021` convention: chip face 1.5 mm from the magnet face, **chip face y 57.05**, chip `ENC1021_CHIP_H` tall, PCB 23 × 23 × 1.6 behind it (y 58.5 to 60.1), centred on the axis |
 | Pinion (purchased) | section 2 |
 | Motor | `cad/parts/nema17_thermal.py` bodies at front face y −3.175 (or the block motor of `thermal_station1021`) |

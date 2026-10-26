@@ -358,7 +358,7 @@ function threeStationPlan(sl, x, y, w, h) {
   label(sl, "B (3.30, 0.05)", X(B[0]) - 1.5, Y(B[1]) + 0.12, 1.6, 0.26, { size: 11, bold: true, color: HEX.navy, align: "right" });
   label(sl, "C (1.68, 2.69), mid-wall", X(C[0]) - 1.2, Y(C[1]) - 0.4, 2.4, 0.26, { size: 11, bold: true, color: HEX.navy, align: "center" });
   label(sl, "D: not mounted", X(D[0]) - 0.1, Y(D[1]) - 0.4, 1.6, 0.26, { size: 11, color: HEX.grey });
-  label(sl, "Start (1.68, 0.93): the centroid", X(S[0]) + 0.15, Y(S[1]) - 0.13, 2.6, 0.26, { size: 11, bold: true, color: HEX.red });
+  label(sl, "Start (1.68, 0.93), the centroid", X(S[0]) - 1.3, Y(S[1]) + 0.12, 2.6, 0.26, { size: 11, bold: true, color: HEX.red, align: "center" });
   label(sl, "3.25 m", X((A[0] + B[0]) / 2) - 0.5, Y(A[1]) - 0.3, 1.0, 0.24, { size: 10, color: HEX.navy2, align: "center" });
   label(sl, "3.10 m", X((A[0] + C[0]) / 2) - 0.95, Y((A[1] + C[1]) / 2) - 0.12, 0.8, 0.24, { size: 10, color: HEX.navy2, align: "right" });
   label(sl, "3.10 m", X((B[0] + C[0]) / 2) + 0.15, Y((B[1] + C[1]) / 2) - 0.12, 0.8, 0.24, { size: 10, color: HEX.navy2 });
@@ -683,7 +683,7 @@ section("Final design"); ACT = "Act 4 of 5: Final design (October 7-21)";
   const cw = 3.55, g = 0.12;
   // renders cropped of their text strips (deck_v9/fig, from renders/winch_gear3)
   const r1 = fitImage(sl, path.join(__dirname, "fig", "winch_gear3_iso_crop.png"), fx, fy, cw, 2.35, "Winch gear stage, isometric render", { alignTop: true });
-  caption(sl, "1  Pinion on the motor; the gear and spool are one part", r1.x, r1.y + r1.h + 0.03, cw + 0.3);
+  caption(sl, "1  Pinion on the motor; gear and spool in one part", r1.x, r1.y + r1.h + 0.03, cw + 0.3);
   const r2 = fitImage(sl, path.join(__dirname, "fig", "winch_gear3_mesh_crop.png"), fx, fy + 2.75, cw, 2.35, "Gear mesh close-up render", { alignTop: true });
   caption(sl, "2  Mesh: module 1, 36.3 mm centres", r2.x, r2.y + r2.h + 0.03, cw);
   const px = fx + cw + g, pw = (fh - 0.3) * 1932 / 2576;
@@ -726,7 +726,7 @@ section("Build and bring-up"); ACT = "Act 5 of 5: Build and bring-up (October 22
 {
   const sl = blank("Printing and machining: fits came from coupons, not guesses", ["MEASURED"]);
   const fx = M, fy = 1.3, fh = 5.45, g = 0.12, cw = 2.6;
-  const col = [[PH("26_slicer_k1_petg_supports.jpg"), "Slicing PETG: 0.4 mm nozzle, 0.2 mm layers"], [V8FIG + "/snap_dovetail.png", "Slide-in rib in the wall-mount dovetail"],
+  const col = [[PH("26_slicer_k1_petg_supports.jpg"), "Slicing PETG, 0.2 mm layers"], [V8FIG + "/snap_dovetail.png", "Slide-in rib in the dovetail"],
                [V8FIG + "/snap_gear_lip.png", "Gear: Ø14.000 entry lip, 8 T-slots"]];
   let cy = fy;
   col.forEach(([f, cap], i) => {

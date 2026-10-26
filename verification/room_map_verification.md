@@ -276,13 +276,13 @@ below. Conditions for hardware: see "Conditions" at the end.
 
 | id | round 1 | round 2 expected | measured | status |
 |---|---|---|---|---|
-| H-2 | lowering descended into a refused shape | a shape over the landing column is refused at save (every state, named); a shape NEAR the column makes the lowering land on a clear spot or refuse holding; never cable packets through the map; true claw never inside a shape | `PUT` DISARMED/PARKED/READY: 409 "The Ottoman covers the claw's landing spot at the floor marker (x, y m), where it is lowered to the floor. Move the Ottoman away from it on the Map"; a stool 5 mm inside the inflated column refused, a chair 1 cm outside and a fan above the transit height accepted. Lowering with a 5 cm floor lamp beside the column (cable A crossing the planned descent over the marker): __FOUR_LOWER__ | fixed |
+| H-2 | lowering descended into a refused shape | a shape over the landing column is refused at save (every state, named); a shape NEAR the column makes the lowering land on a clear spot or refuse holding; never cable packets through the map; true claw never inside a shape | `PUT` DISARMED/PARKED/READY: 409 "The Ottoman covers the claw's landing spot at the floor marker (x, y m), where it is lowered to the floor. Move the Ottoman away from it on the Map"; a stool 5 mm inside the inflated column refused, a chair 1 cm outside and a fan above the transit height accepted. Lowering with a 5 cm floor lamp beside the column (cable A crossing the planned descent over the marker): the marker spot was refused by the planner ("cable A would cross the Floor lamp"), the log says "lowering at (1.68, 1.37) instead" (the start point, 0.24 m from the marker), the claw was lowered there with 8 packets and ended on the floor, PARKED; the true claw body stayed 0.15 m from the lamp; no "using cable packets" fallback | fixed |
 | H-1 | detour stranded the claw at the top | pole near the start point reaches READY; no detour apex above `ws.hi[z] - 0.03`; no move refused "above" | sim3 pole 0.25 m: **READY** (10 blocked poses skipped and logged, 0 detour legs needed in this run); sim3 shelf 0.55 m: READY; sim3 shelf 0.33 m: READY. No "workspace: z= ... above" in any log. Deterministic: 0 of 81 (sim) and 0 of 27 (sim3) station positions at the top refuse the next move; the `_detour_height` apex of a dry detour over a 1.2 m shelf is the lowest 0.1 m step that clears it and is <= hi - inset; a shelf to the ceiling gives (None, reason) | fixed |
 | M-1 | room edit broke the map file | refused naming the shapes, nothing changed | 409 "The new room size does not fit the saved Map: the Shelf: ... Move or resize those shapes on the Map first"; room unchanged; file loads | fixed |
 | M-2 | jargon in refusals | plain words, user's units, no ids | field: "Length: 20'0" is longer than the room (11'0" x 9'0")", "Height: 12'0" is above the ceiling (9'0")", "Height: 0" is not a height: give the real height of the furniture."; cell: "cable A would cross the Square" | fixed (residual: L-9) |
 | M-3 | hamper only by its ring | drag by the middle | moved 0.29-0.35 m by the middle, all 4 configurations | fixed |
 | M-4 | labels overlap | none overlap, none clipped | 0 overlaps and 0 clipped labels in all 5 recorded states x 4 configurations (incl. the lead's circle-on-hamper case: the circle's label moves beside it, "Hamper" keeps its pill) | fixed |
-| M-5 | a blocked startup did not name the map | names the shape and says to edit the Map | the shelf 0.33 m case now reaches READY (the landing-column rule pushed it 1 cm further); the message path is covered by the builder's unit test; the lift refusal and calibration abort texts name the shape ("edit the Map") by inspection | fixed |
+| M-5 | a blocked startup did not name the map | names the shape and says to edit the Map | the shelf 0.33 m case now reaches READY (with the landing-column rule the nearest allowed placement moved a little); the abort text path (`calibrate` wraps `_calibrate`, names `_map_blocked`) and the lift refusal ("edit the Map") verified by reading; the builder's unit test covers the message | fixed (message path not exercised by a verifier sim) |
 | L-1 | units not saved | units part of the map | toggling units alone: dirty, Save enabled; `GET` returns "m"; undo restores them | fixed |
 | L-2 | thin shapes not grabbable | >= 44 px grab area | 5 cm pole, 40 cm lamp: grab area 44 px at 360 and 1280 px | fixed |
 | L-3 | Hamper label contrast | >= 4.5 | 5.34 light / >= 5 dark, on shapes and on the overlay tint (pill) | fixed |
@@ -309,10 +309,10 @@ below. Conditions for hardware: see "Conditions" at the end.
 | sim3, 1.8 m shelf 0.55 m from the start | READY | +3.7 mm | cable 65 mm, body 98 mm |
 | sim3, 5 cm pole 0.25 m from the start (round-1 H-1 case) | **READY** | +16.5 mm | cable 62 mm, body 80 mm |
 | sim3, 1.8 m shelf 0.33 m from the start (round-1 M-5 case) | **READY** | +1.0 mm | cable 68 mm, body 158 mm |
-| sim4, dresser + pole saved while DISARMED | __FOUR_STARTUP__ |
-| sim4 task: 5 cm floor lamp 0.12 m from item 0 | __FOUR_TASK1__ |
-| sim4 task: ottoman 0.45 m behind item 0 | __FOUR_TASK2__ |
-| sim4 lowering, floor lamp beside the landing column | __FOUR_LOWER2__ |
+| sim4, dresser + pole saved while DISARMED | READY | +39 mm | 162 mm |
+| sim4 task: 5 cm floor lamp 0.12 m from item 0 | both items refused before any move towards them ("unreachable: ... would cross the Floor lamp"), summary "0 delivered, 2 could not be picked up (...)" | (scan moves only) | no contact |
+| sim4 task: ottoman 0.45 m behind item 0 | **2 delivered** (approach, descend, lift, verify shift, raise, transport) | +47 mm | no contact |
+| sim4 lowering, floor lamp beside the landing column | landed at the start point, PARKED | descent planned (no packets through the map) | body 150 mm from the lamp |
 
 No planned pose of any executed plan entered an inflated shape; the true cables and claw never touched a real shape. `PUT` while
 the startup runs: 409 "busy" every time.

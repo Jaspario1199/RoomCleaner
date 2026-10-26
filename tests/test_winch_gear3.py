@@ -252,17 +252,17 @@ def test_magnet_cap_geometry(parts):
     x0, x1, y0, y1, z0, z1 = _bb(s)
     assert abs(z0) < TOL and abs(z1 - 6.25) < TOL and abs(x1 - 6.0) < TOL                    # Ø12 x 6.25 (y 49.3 .. 55.55)
     assert _cyl_faces(s, 3.5, "z") and abs(max(c[1].zmax for c in _cyl_faces(s, 3.5, "z")) - 3.0) < TOL           # Ø7 bore 3.0 deep from the bearing side
-    pocket = _cyl_faces(s, 3.15, "z")
+    pocket = _cyl_faces(s, 2.15, "z")
     assert pocket and abs(min(c[1].zmin for c in pocket) - 3.75) < TOL and abs(max(c[1].zmax for c in pocket) - 6.25) < TOL   # Ø4.3 pocket 2.5 deep (D43)
     inside = _inside(s)
     assert inside((0, 0, 3.375)) and not inside((0, 0, 2.9)) and not inside((0, 0, 3.8)) and not inside((0, 0, 6.2))   # web 0.75 between bore floor 3.0 and pocket floor 3.75
     rg = W.magnet_rib_geometry()
-    assert abs(rg["r_tip"] - 2.88) < 1e-9 and abs(rg["h"] - 0.27) < 1e-9 and rg["n"] == 3
+    assert abs(rg["r_tip"] - 1.88) < 1e-9 and abs(rg["h"] - 0.27) < 1e-9 and rg["n"] == 3
     for k in range(3):                                                                         # a rib on each of three directions, voids in between
         a = math.radians(P.WG3_MAGNET_RIB_PHASE_DEG + 120 * k)
-        assert inside((3.0 * math.cos(a), 3.0 * math.sin(a), 4.5))
+        assert inside((2.0 * math.cos(a), 2.0 * math.sin(a), 4.5))                           # r 2.0: between rib tip 1.88 and wall 2.15
         b = a + math.radians(60)
-        assert not inside((3.0 * math.cos(b), 3.0 * math.sin(b), 4.5))
+        assert not inside((2.0 * math.cos(b), 2.0 * math.sin(b), 4.5))
 
 
 def test_magnet_cap_crush_ribs_overlap_the_magnet_only_by_the_designed_crush(drive):
@@ -451,7 +451,7 @@ def test_shaft_bearings_cap_stack_levels(drive):
     cp = y("magnet_cap")
     assert abs(cp[0] - 49.3) < 2e-3 and abs(cp[1] - 55.55) < 2e-3
     mg = y("magnet")
-    assert abs(mg[0] - 53.05) < 2e-3 and abs(mg[1] - 55.55) < 2e-3 and abs(drive["magnet"].BoundingBox().xlen - 6.0) < 2e-3
+    assert abs(mg[0] - 53.05) < 2e-3 and abs(mg[1] - 55.55) < 2e-3 and abs(drive["magnet"].BoundingBox().xlen - 4.0) < 2e-3
     chip, board = y("as5600_chip"), y("as5600_board")
     assert abs(chip[0] - 57.05) < 2e-3 and abs(chip[1] - 58.5) < 2e-3                         # chip face 57.05, chip 1.45 tall
     assert abs(board[0] - 58.5) < 2e-3 and abs(board[1] - 60.1) < 2e-3                        # PCB 1.6 thick behind it

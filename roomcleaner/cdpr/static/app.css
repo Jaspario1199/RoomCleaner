@@ -195,14 +195,13 @@ label input { margin-top: 2px; }
 .insp summary { min-height: 44px; display: flex; align-items: center; font-weight: 700; cursor: pointer; color: var(--ink); }
 #map { display: block; width: 100%; height: auto; touch-action: none; user-select: none; -webkit-user-select: none; background: var(--page); border-radius: 10px; }
 #map .floor { fill: var(--floor); stroke: var(--wall); }
-#map .usable { fill: none; stroke: var(--usable); stroke-dasharray: 4 3; opacity: .8; }
+#map .usable { fill: none; stroke: var(--usable); opacity: .8; }
 #map .anchor { fill: var(--wall); }
 #map .anchor.off { fill: var(--anchor-off); }
 #map .alabel { fill: var(--ink); font-weight: 800; }
 #map .alabel.off { fill: var(--muted); }
 #map .start { fill: none; stroke: var(--accent); }
 #map .shape { fill: var(--shape-fill); stroke: var(--shape-stroke); cursor: grab; }
-#map .shape.hang { stroke-dasharray: 5 3; }
 #map .shape.sel { stroke: var(--sel); }
 #map .slabel { fill: var(--shape-ink); font-weight: 700; pointer-events: none; }
 #map .hamper { fill: none; stroke: var(--hamper); cursor: grab; }
@@ -218,9 +217,9 @@ label input { margin-top: 2px; }
 .mapmsg { min-height: 1.4em; margin: 6px 0; color: var(--ink); overflow-wrap: anywhere; }
 .mapmsg.bad { color: var(--bad); font-weight: 600; } .mapmsg.good { color: var(--good); font-weight: 600; }
 .mapsave .btn { flex: 1; }
-.insp {
-  position: sticky; bottom: -20px; z-index: 5; margin: 10px 0 0; padding: 12px 14px 14px; background: var(--surface);
-  border: 1px solid var(--border); border-radius: 16px 16px 0 0; box-shadow: 0 -4px 18px rgba(0, 0, 0, .14); max-height: 58vh; overflow-y: auto;
+.insp {                         /* flows under the map (never over it, so the selected shape stays draggable) */
+  margin: 10px 0 0; padding: 12px 14px 14px; background: var(--surface);
+  border: 2px solid var(--sel); border-radius: 14px; box-shadow: var(--shadow);
 }
 .insp h3 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .insp h3 .btn { width: auto; min-height: 44px; padding: 6px 12px; font-size: 14px; }

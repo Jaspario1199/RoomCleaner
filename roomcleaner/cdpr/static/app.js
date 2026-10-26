@@ -638,14 +638,16 @@ function mapRender() {
   const W = roomW(), D = roomD(), pad = 0.16;
   svg.setAttribute("viewBox", `${-pad} ${-pad} ${W + 2 * pad} ${D + 2 * pad}`);
   M.px = (svg.clientWidth || 320) / (W + 2 * pad);
-  const fs = 12.5 / M.px, sw = 1.5 / M.px;
+  const fs = 12.5 / M.px, sw = 1.5 / M.px, dash = `${5 / M.px} ${4 / M.px}`;      // dashes in screen px, not metres
   svg.replaceChildren();
   el("rect", {class: "floor", x: 0, y: 0, width: W, height: D, "stroke-width": 3 / M.px}, svg);
-  const cov = el("g", {class: "cov"}, svg);
+  const clip = el("clipPath", {id: "roomClip"}, el("defs", {}, svg));
+  el("rect", {x: 0, y: 0, width: W, height: D}, clip);
+  const cov = el("g", {class: "cov", "clip-path": "url(#roomClip)"}, svg);
   if (M.covOn && M.cov) drawCoverage(cov);
   const ub = M.info.usable_box;
-  if (M.info.usable_triangle) el("polygon", {class: "usable", points: M.info.usable_triangle.map(p => `${p[0]},${sy(p[1])}`).join(" "), "stroke-width": sw}, svg);
-  else el("rect", {class: "usable", x: ub[0][0], y: sy(ub[1][1]), width: ub[1][0] - ub[0][0], height: ub[1][1] - ub[0][1], "stroke-width": sw}, svg);
+  if (M.info.usable_triangle) el("polygon", {class: "usable", points: M.info.usable_triangle.map(p => `${p[0]},${sy(p[1])}`).join(" "), "stroke-width": sw, "stroke-dasharray": dash}, svg);
+  else el("rect", {class: "usable", x: ub[0][0], y: sy(ub[1][1]), width: ub[1][0] - ub[0][0], height: ub[1][1] - ub[0][1], "stroke-width": sw, "stroke-dasharray": dash}, svg);
   const sp = M.info.start_point_m;
   el("circle", {class: "start", cx: sp[0], cy: sy(sp[1]), r: 6 / M.px, "stroke-width": sw}, svg);
   for (const [id, a] of Object.entries(M.info.anchors).sort()) {
@@ -655,6 +657,7 @@ function mapRender() {
       "text-anchor": ax < W / 2 ? "start" : "end", "font-size": fs}, svg);
     t.textContent = a.active ? id : id + " (not used)";
   }
+  for (const o of M.shapes) drawShape(svg, o, fs);
   if (M.hamper) {
     const hp = el("circle", {class: "hamper" + (M.sel === "hamper" ? " sel" : ""), cx: M.hamper.x, cy: sy(M.hamper.y),
       r: M.hamper.radius_m || 0.2, "stroke-width": 3 / M.px, "data-hamper": "1", "fill": "transparent"}, svg);
@@ -662,7 +665,6 @@ function mapRender() {
     const t = el("text", {class: "hlabel", x: M.hamper.x, y: sy(M.hamper.y) + fs / 3, "text-anchor": "middle", "font-size": fs}, svg);
     t.textContent = "Hamper";
   }
-  for (const o of M.shapes) drawShape(svg, o, fs);
   const sel = byId(M.sel);
   if (sel) drawHandles(svg, sel);
   $("mapEmpty").hidden = M.shapes.length > 0;
@@ -675,9 +677,10 @@ function mapRender() {
 function drawShape(svg, o, fs) {
   const g = el("g", {transform: `translate(${o.x} ${sy(o.y)}) rotate(${o.shape === "box" ? -o.yaw_deg : 0})`, "data-id": o.id}, svg);
   const cls = "shape" + (o.id === M.sel ? " sel" : "") + (o.z_low_m > 0 ? " hang" : "");
-  const sw = (o.id === M.sel ? 3 : 1.5) / M.px;
-  if (o.shape === "cylinder") el("circle", {class: cls, cx: 0, cy: 0, r: o.diameter_m / 2, "stroke-width": sw, "data-id": o.id}, g);
-  else el("rect", {class: cls, x: -o.length_m / 2, y: -o.width_m / 2, width: o.length_m, height: o.width_m, "stroke-width": sw, "data-id": o.id}, g);
+  const sw = (o.id === M.sel ? 3 : 1.5) / M.px, st = {"stroke-width": sw, "data-id": o.id};
+  if (o.z_low_m > 0) st["stroke-dasharray"] = `${6 / M.px} ${4 / M.px}`;        // hangs from the ceiling: dashed outline
+  if (o.shape === "cylinder") el("circle", Object.assign({class: cls, cx: 0, cy: 0, r: o.diameter_m / 2}, st), g);
+  else el("rect", Object.assign({class: cls, x: -o.length_m / 2, y: -o.width_m / 2, width: o.length_m, height: o.width_m}, st), g);
   const t = el("text", {class: "slabel", x: o.x, y: sy(o.y) + fs / 3, "text-anchor": "middle", "font-size": fs}, svg);
   t.textContent = shapeLabel(o);
 }
@@ -876,7 +879,7 @@ function renderInspector() {
   acts.append(h("button", {type: "button", class: "btn danger", onclick: () => change(() => {
     M.shapes = M.shapes.filter(s => s !== o); M.sel = null; }, `Removed ${o.name || "the shape"}.`)}, "Delete"));
   // advanced: name text, hanging, exact position, angle, copy
-  const more = h("details", {}, h("summary", {}, "More"));
+  const more = h("details", {}, h("summary", {}, "More: exact place, angle, hanging"));
   if (wasOpen) more.open = true;
   more.append(h("div", {class: "grid2"},
     field("Name", o.name, v => { change(() => { o.name = v.trim().slice(0, 40); }); return true; }),

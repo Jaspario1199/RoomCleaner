@@ -128,6 +128,7 @@
     <div id="mapWrap" class="mapwrap">
       <svg id="map" role="application" aria-label="Top view of the room: drag shapes to move them"></svg>
     </div>
+    <div id="insp" class="insp" hidden></div>
     <div id="covLegend" class="legend small" hidden>
       <span><i class="sw ok"></i>can pick</span><span><i class="sw shape"></i>blocked by a shape</span>
       <span><i class="sw area"></i>outside usable area</span><span><i class="sw trust"></i>not calibrated there</span>
@@ -139,7 +140,7 @@
       <button type="button" id="mapSave" class="btn primary">Save map</button>
     </div>
     <details id="mapMore" class="mapmore">
-      <summary>More</summary>
+      <summary>More: undo, units, hamper, where it can pick</summary>
       <div class="morebody">
         <button type="button" id="mapUndo" class="btn" disabled>Undo last change</button>
         <label class="chk"><input type="checkbox" id="mapCov"> Show where it can pick things up</label>
@@ -149,7 +150,6 @@
       </div>
     </details>
     <p id="mapNote" class="muted small"></p>
-    <div id="insp" class="insp" hidden></div>
     <div id="mapGhost" class="ghost" hidden aria-hidden="true"></div>
   </section>
 

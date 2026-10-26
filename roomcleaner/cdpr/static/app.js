@@ -521,6 +521,474 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) camStop(); else if (tab === "camera") camStart();
 });
 
+// ------------------------------------------------------------------------------------------------ map (docs/ROOM_MAP_SPEC.md)
+// Top view of the room in room coordinates (metres; origin at the floor corner under anchor A, x along A-B). The SVG uses
+// x as is and y flipped (svg y = depth - y), so A is bottom left. Everything is stored in metres; units only change the text.
+const SVGNS = "http://www.w3.org/2000/svg";
+const INCH = 0.0254, SNAP_WALL = 0.05, MIN_SIZE = 0.03, UNDO_MAX = 20, PREVIEW_MS = 300;
+const KINDS = {   // what a palette button adds
+  square: {shape: "box", length_m: 0.5, width_m: 0.5, height_m: 0.75},
+  rect: {shape: "box", length_m: 1.0, width_m: 0.5, height_m: 0.75},
+  circle: {shape: "cylinder", diameter_m: 0.5, height_m: 0.75},
+};
+const CHIPS = {   // typical sizes; the user edits them afterwards ("hang": a bottom height below the ceiling)
+  "Bed": {shape: "box", length_m: 2.03, width_m: 1.52, height_m: 0.65},
+  "Desk": {shape: "box", length_m: 1.22, width_m: 0.61, height_m: 0.76},
+  "Dresser": {shape: "box", length_m: 1.52, width_m: 0.46, height_m: 0.86},
+  "Shelf": {shape: "box", length_m: 0.80, width_m: 0.40, height_m: 1.90},
+  "Chair": {shape: "box", length_m: 0.50, width_m: 0.50, height_m: 0.90},
+  "Lamp": {shape: "cylinder", diameter_m: 0.40, height_m: 1.60},
+  "Ceiling fan": {shape: "cylinder", diameter_m: 1.10, hang: 0.45},
+  "Other": {},
+};
+const M = {
+  info: null,                // GET /api/room_map (room, anchors, usable area, ...)
+  shapes: [], hamper: null,  // the draft
+  savedKey: "",              // JSON of the saved draft: dirty = draft differs
+  units: "ft-in", sel: null, undo: [], loaded: false,
+  cov: null, covOn: false, covTimer: null, covSeq: 0,
+  px: 100,                   // screen px per metre (for handle and text sizes)
+  drag: null, raf: 0,
+};
+
+// ---- units
+function fmtLen(m) {
+  if (m == null || !isFinite(m)) return "";
+  if (M.units === "m") return m.toFixed(2) + " m";
+  const tot = Math.round(m / INCH), ft = Math.floor(tot / 12), inch = tot - 12 * ft;
+  return ft ? `${ft}'${inch}"` : `${inch}"`;
+}
+// `5'6"`, `5 ft 6 in`, `66 in`, `66"`, `1.68 m`, `168 cm`, `1680 mm`; a bare number is inches (ft-in) or metres (m). Returns m or null.
+function parseLen(text) {
+  let t = String(text || "").trim().toLowerCase().replace(/[’‘′`]/g, "'").replace(/[“”″]/g, '"').replace(/''/g, '"');
+  const n = "(\\d+(?:[.,]\\d+)?|[.,]\\d+)", num = x => parseFloat(x.replace(",", "."));
+  let m;
+  if ((m = t.match(new RegExp(`^${n}\\s*(?:'|ft|feet|foot)\\s*(?:${n}\\s*(?:"|in|inch|inches)?)?$`)))) return (num(m[1]) * 12 + (m[2] ? num(m[2]) : 0)) * INCH;
+  if ((m = t.match(new RegExp(`^${n}\\s*(?:"|in|inch|inches)$`)))) return num(m[1]) * INCH;
+  if ((m = t.match(new RegExp(`^${n}\\s*(m|cm|mm)$`)))) return num(m[1]) * {m: 1, cm: 0.01, mm: 0.001}[m[2]];
+  if ((m = t.match(new RegExp(`^${n}$`)))) return M.units === "m" ? num(m[1]) : num(m[1]) * INCH;
+  return null;
+}
+const snapIn = v => Math.round(v / INCH) * INCH;
+
+// ---- model helpers
+const roomW = () => M.info.room_m[0], roomD = () => M.info.room_m[1], roomH = () => M.info.room_m[2];
+const isSquare = o => o.shape === "box" && Math.abs(o.length_m - o.width_m) < 1e-6;
+const byId = id => M.shapes.find(o => o.id === id);
+function halfExtents(o) {      // axis-aligned half sizes of the footprint
+  if (o.shape === "cylinder") return [o.diameter_m / 2, o.diameter_m / 2];
+  const a = o.yaw_deg * Math.PI / 180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
+  return [c * o.length_m / 2 + s * o.width_m / 2, s * o.length_m / 2 + c * o.width_m / 2];
+}
+function snapPos(o) {          // 1 in grid, flush to a wall within 5 cm, centre inside the room
+  const [hx, hy] = halfExtents(o);
+  let x = snapIn(o.x), y = snapIn(o.y);
+  if (x - hx < SNAP_WALL) x = hx; else if (roomW() - (x + hx) < SNAP_WALL) x = roomW() - hx;
+  if (y - hy < SNAP_WALL) y = hy; else if (roomD() - (y + hy) < SNAP_WALL) y = roomD() - hy;
+  o.x = Math.min(Math.max(x, 0), roomW()); o.y = Math.min(Math.max(y, 0), roomD());
+}
+function nextId() { let n = 1; while (M.shapes.some(o => o.id === "o" + n)) n++; return "o" + n; }
+function draftKey() { return JSON.stringify({s: M.shapes, h: M.hamper}); }
+function snapshot() {
+  M.undo.push(draftKey());
+  if (M.undo.length > UNDO_MAX) M.undo.shift();
+}
+function freeSpot(o) {         // the free floor point nearest the start point where the new footprint overlaps nothing
+  const [hx, hy] = halfExtents(o), c = M.info.start_point_m, b = M.info.usable_box, pts = [];
+  for (let x = b[0][0] + hx; x <= b[1][0] - hx + 1e-9; x += 0.1) for (let y = b[0][1] + hy; y <= b[1][1] - hy + 1e-9; y += 0.1) pts.push([x, y]);
+  pts.sort((p, q) => Math.hypot(p[0] - c[0], p[1] - c[1]) - Math.hypot(q[0] - c[0], q[1] - c[1]));
+  const clear = ([x, y]) => M.shapes.every(s => {
+    const [sx, sy] = halfExtents(s);
+    return Math.abs(s.x - x) >= sx + hx + 0.05 || Math.abs(s.y - y) >= sy + hy + 0.05;
+  });
+  return pts.find(clear) || c;
+}
+function addShape(kind, at) {
+  const t = KINDS[kind];
+  const o = Object.assign({id: nextId(), name: "", x: 0, y: 0, z_low_m: 0}, t, t.shape === "box" ? {yaw_deg: 0} : {});
+  [o.x, o.y] = at || freeSpot(o);
+  snapPos(o);
+  snapshot();
+  M.shapes.push(o); M.sel = o.id;
+  edited(`Added a ${kind === "rect" ? "rectangle" : kind}. Drag it into place, then set its size and height below.`);
+}
+function edited(msg) {         // after every change of the draft
+  mapRender();
+  if (msg !== undefined) mapMsg(msg);
+  if (M.covOn) schedulePreview();
+}
+function mapMsg(text, cls) { const e = $("mapMsg"); e.textContent = text || ""; e.className = "small mapmsg" + (cls ? " " + cls : ""); }
+function dirty() { return M.loaded && draftKey() !== M.savedKey; }
+function shapeLabel(o) {
+  const name = o.name || (o.shape === "cylinder" ? "Circle" : isSquare(o) ? "Square" : "Rectangle");
+  return o.z_low_m > 0 ? `${name} (hangs, from ${fmtLen(o.z_low_m)})` : `${name} ${fmtLen(o.height_m)}`;
+}
+
+// ---- drawing
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v);
+  if (parent) parent.append(e);
+  return e;
+}
+const sy = y => roomD() - y;
+function mapRender() {
+  const svg = $("map");
+  if (!M.info) return;
+  const W = roomW(), D = roomD(), pad = 0.16;
+  svg.setAttribute("viewBox", `${-pad} ${-pad} ${W + 2 * pad} ${D + 2 * pad}`);
+  M.px = (svg.clientWidth || 320) / (W + 2 * pad);
+  const fs = 12.5 / M.px, sw = 1.5 / M.px;
+  svg.replaceChildren();
+  el("rect", {class: "floor", x: 0, y: 0, width: W, height: D, "stroke-width": 3 / M.px}, svg);
+  const cov = el("g", {class: "cov"}, svg);
+  if (M.covOn && M.cov) drawCoverage(cov);
+  const ub = M.info.usable_box;
+  if (M.info.usable_triangle) el("polygon", {class: "usable", points: M.info.usable_triangle.map(p => `${p[0]},${sy(p[1])}`).join(" "), "stroke-width": sw}, svg);
+  else el("rect", {class: "usable", x: ub[0][0], y: sy(ub[1][1]), width: ub[1][0] - ub[0][0], height: ub[1][1] - ub[0][1], "stroke-width": sw}, svg);
+  const sp = M.info.start_point_m;
+  el("circle", {class: "start", cx: sp[0], cy: sy(sp[1]), r: 6 / M.px, "stroke-width": sw}, svg);
+  for (const [id, a] of Object.entries(M.info.anchors).sort()) {
+    const ax = Math.min(Math.max(a.xyz[0], 0), W), ay = Math.min(Math.max(a.xyz[1], 0), D);
+    el("circle", {class: "anchor" + (a.active ? "" : " off"), cx: ax, cy: sy(ay), r: 7 / M.px}, svg);
+    const t = el("text", {class: "alabel" + (a.active ? "" : " off"), x: ax + (ax < W / 2 ? 10 : -10) / M.px, y: sy(ay) + (ay < D / 2 ? -6 : 16) / M.px,
+      "text-anchor": ax < W / 2 ? "start" : "end", "font-size": fs}, svg);
+    t.textContent = a.active ? id : id + " (not used)";
+  }
+  if (M.hamper) {
+    const hp = el("circle", {class: "hamper" + (M.sel === "hamper" ? " sel" : ""), cx: M.hamper.x, cy: sy(M.hamper.y),
+      r: M.hamper.radius_m || 0.2, "stroke-width": 3 / M.px, "data-hamper": "1", "fill": "transparent"}, svg);
+    hp.setAttribute("aria-label", "hamper");
+    const t = el("text", {class: "hlabel", x: M.hamper.x, y: sy(M.hamper.y) + fs / 3, "text-anchor": "middle", "font-size": fs}, svg);
+    t.textContent = "Hamper";
+  }
+  for (const o of M.shapes) drawShape(svg, o, fs);
+  const sel = byId(M.sel);
+  if (sel) drawHandles(svg, sel);
+  $("mapEmpty").hidden = M.shapes.length > 0;
+  $("mapUndo").disabled = !M.undo.length;
+  const d = dirty();
+  $("mapDot").hidden = !d; $("mapRevert").hidden = !d;
+  mapGate();
+  renderInspector();
+}
+function drawShape(svg, o, fs) {
+  const g = el("g", {transform: `translate(${o.x} ${sy(o.y)}) rotate(${o.shape === "box" ? -o.yaw_deg : 0})`, "data-id": o.id}, svg);
+  const cls = "shape" + (o.id === M.sel ? " sel" : "") + (o.z_low_m > 0 ? " hang" : "");
+  const sw = (o.id === M.sel ? 3 : 1.5) / M.px;
+  if (o.shape === "cylinder") el("circle", {class: cls, cx: 0, cy: 0, r: o.diameter_m / 2, "stroke-width": sw, "data-id": o.id}, g);
+  else el("rect", {class: cls, x: -o.length_m / 2, y: -o.width_m / 2, width: o.length_m, height: o.width_m, "stroke-width": sw, "data-id": o.id}, g);
+  const t = el("text", {class: "slabel", x: o.x, y: sy(o.y) + fs / 3, "text-anchor": "middle", "font-size": fs}, svg);
+  t.textContent = shapeLabel(o);
+}
+function handlePoints(o) {     // [{kind, x, y}] in room coordinates
+  if (o.shape === "cylinder") return [{kind: "rim", x: o.x + o.diameter_m / 2, y: o.y}];
+  const a = o.yaw_deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+  const at = (u, v) => ({x: o.x + c * u - s * v, y: o.y + s * u + c * v});
+  if (isSquare(o) && !o._rect) return [Object.assign({kind: "side"}, at(o.length_m / 2, 0))];
+  return [[1, 1], [-1, 1], [-1, -1], [1, -1]].map(([i, j]) => Object.assign({kind: "corner", i, j}, at(i * o.length_m / 2, j * o.width_m / 2)));
+}
+function drawHandles(svg, o) {
+  for (const h of handlePoints(o)) {
+    el("circle", {class: "handle", cx: h.x, cy: sy(h.y), r: 8 / M.px, "stroke-width": 2.5 / M.px}, svg);
+    el("circle", {class: "hit", cx: h.x, cy: sy(h.y), r: 22 / M.px, "data-handle": h.kind, "data-i": h.i || 0, "data-j": h.j || 0}, svg);
+  }
+}
+function drawCoverage(g) {
+  const c = M.cov, kinds = c.reasons.map(r => r.kind), paths = {ok: "", shape: "", area: "", trust: ""}, s = c.cell_m;
+  for (let k = 0; k < c.cells.length; k++) {
+    const ix = k % c.nx, iy = Math.floor(k / c.nx), x = c.x0 + ix * s, y = c.y0 + iy * s;
+    paths[kinds[c.cells[k]]] += `M${x.toFixed(3)} ${sy(y + s).toFixed(3)}h${s}v${s}h${-s}z`;
+  }
+  for (const [k, d] of Object.entries(paths)) if (d) el("path", {class: "cov-" + k, d}, g);
+}
+
+// ---- pointer interaction (pointer events; moves are applied once per animation frame)
+function roomPoint(ev) {
+  const m = M.drag && M.drag.ctm ? M.drag.ctm : $("map").getScreenCTM().inverse();
+  const p = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(m);
+  return [p.x, roomD() - p.y];
+}
+$("map").addEventListener("pointerdown", ev => {
+  if (!M.info) return;
+  const t = ev.target, ctm = $("map").getScreenCTM().inverse();
+  M.drag = {ctm, id: ev.pointerId, moved: false, before: draftKey()};
+  const [x, y] = roomPoint(ev);
+  const o = byId(M.sel);
+  if (t.dataset.handle && o) {
+    M.drag.kind = "resize"; M.drag.h = t.dataset.handle;
+    const a = (o.yaw_deg || 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    if (t.dataset.handle === "corner") {      // the opposite corner stays where it is
+      const u = -t.dataset.i * o.length_m / 2, v = -t.dataset.j * o.width_m / 2;
+      M.drag.fix = [o.x + c * u - s * v, o.y + s * u + c * v];
+    } else if (t.dataset.handle === "side") M.drag.fix = [o.x - c * o.length_m / 2, o.y - s * o.length_m / 2];
+  } else if (t.dataset.id) {
+    M.sel = t.dataset.id; const s = byId(M.sel);
+    M.drag.kind = "move"; M.drag.off = [s.x - x, s.y - y];
+  } else if (t.dataset.hamper) {
+    M.sel = "hamper"; M.drag.kind = "hamper"; M.drag.off = [M.hamper.x - x, M.hamper.y - y];
+  } else {
+    M.drag.kind = "none"; M.drag.at = [x, y];
+  }
+  $("map").setPointerCapture(ev.pointerId);
+  if (M.drag.kind !== "none") mapRender();
+  ev.preventDefault();
+});
+$("map").addEventListener("pointermove", ev => {
+  if (!M.drag || ev.pointerId !== M.drag.id || M.drag.kind === "none") return;
+  M.drag.last = roomPoint(ev);
+  if (!M.raf) M.raf = requestAnimationFrame(applyDrag);
+});
+function applyDrag() {
+  M.raf = 0;
+  const d = M.drag;
+  if (!d || !d.last) return;
+  const [x, y] = d.last;
+  d.moved = true;
+  if (d.kind === "hamper") { M.hamper.x = clamp(x + d.off[0], 0, roomW()); M.hamper.y = clamp(y + d.off[1], 0, roomD()); }
+  const o = byId(M.sel);
+  if (o && d.kind === "move") { o.x = clamp(x + d.off[0], 0, roomW()); o.y = clamp(y + d.off[1], 0, roomD()); }
+  if (o && d.kind === "resize") {
+    if (d.h === "rim") o.diameter_m = Math.max(MIN_SIZE, 2 * Math.hypot(x - o.x, y - o.y));
+    else {
+      const a = (o.yaw_deg || 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), dx = x - d.fix[0], dy = y - d.fix[1];
+      let du = c * dx + s * dy, dv = -s * dx + c * dy;
+      if (d.h === "side") { du = Math.max(MIN_SIZE, du); dv = 0; o.length_m = o.width_m = du; }
+      else { o.length_m = Math.max(MIN_SIZE, Math.abs(du)); o.width_m = Math.max(MIN_SIZE, Math.abs(dv)); o._rect = true; }
+      const u = Math.sign(du || 1) * o.length_m / 2, v = d.h === "side" ? 0 : Math.sign(dv || 1) * o.width_m / 2;
+      o.x = d.fix[0] + c * u - s * v; o.y = d.fix[1] + s * u + c * v;
+    }
+  }
+  mapRender();
+}
+const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+function endDrag(ev) {
+  const d = M.drag;
+  if (!d || ev.pointerId !== d.id) return;
+  if (M.raf) { cancelAnimationFrame(M.raf); M.raf = 0; applyDrag(); }
+  M.drag = null;
+  if (d.kind === "none") {                     // a tap on the floor: deselect, or explain the cell under the finger
+    M.sel = null;
+    const why = M.covOn && M.cov ? cellReason(d.at) : "";
+    mapRender();
+    if (why) mapMsg(why);
+    return;
+  }
+  const o = byId(M.sel);
+  if (o) {
+    delete o._rect;
+    if (d.kind === "resize") {
+      if (o.shape === "cylinder") o.diameter_m = Math.max(MIN_SIZE, snapIn(o.diameter_m));
+      else { o.length_m = Math.max(MIN_SIZE, snapIn(o.length_m)); o.width_m = Math.max(MIN_SIZE, snapIn(o.width_m)); }
+    }
+    snapPos(o);
+  }
+  if (M.hamper && d.kind === "hamper") { M.hamper.x = snapIn(M.hamper.x); M.hamper.y = snapIn(M.hamper.y); }
+  if (d.moved && draftKey() !== d.before) {
+    M.undo.push(d.before); if (M.undo.length > UNDO_MAX) M.undo.shift();
+    edited("");
+  } else mapRender();
+}
+$("map").addEventListener("pointerup", endDrag);
+$("map").addEventListener("pointercancel", endDrag);
+function cellReason([x, y]) {
+  const c = M.cov, ix = Math.floor((x - c.x0) / c.cell_m), iy = Math.floor((y - c.y0) / c.cell_m);
+  if (ix < 0 || iy < 0 || ix >= c.nx || iy >= c.ny) return "";
+  const r = c.reasons[c.cells[iy * c.nx + ix]];
+  return `Here (${fmtLen(x)}, ${fmtLen(y)}): ${r.kind === "ok" ? "the robot can pick things up here" : r.text}.`;
+}
+
+// ---- palette: tap adds in the middle of the free floor; dragging a button onto the map drops the shape there
+document.querySelectorAll(".pal").forEach(b => {
+  let start = null, dragging = false, suppress = false;
+  b.addEventListener("pointerdown", ev => { start = [ev.clientX, ev.clientY]; dragging = false; b.setPointerCapture(ev.pointerId); });
+  b.addEventListener("pointermove", ev => {
+    if (!start) return;
+    if (!dragging && Math.hypot(ev.clientX - start[0], ev.clientY - start[1]) > 10) dragging = true;
+    if (dragging) {
+      const g = $("mapGhost");
+      g.hidden = false; g.className = "ghost" + (b.dataset.kind === "circle" ? " circle" : "");
+      g.style.left = ev.clientX + "px"; g.style.top = ev.clientY + "px";
+    }
+  });
+  const finish = (ev, cancel) => {
+    $("mapGhost").hidden = true;
+    if (!start) return;
+    start = null;
+    if (!dragging) return;
+    dragging = false; suppress = true; setTimeout(() => { suppress = false; }, 400);
+    const r = $("map").getBoundingClientRect();
+    if (cancel || !M.info || ev.clientX < r.left || ev.clientX > r.right || ev.clientY < r.top || ev.clientY > r.bottom) return;
+    const [x, y] = roomPoint(ev);
+    addShape(b.dataset.kind, [x, y]);
+  };
+  b.addEventListener("pointerup", ev => finish(ev, false));
+  b.addEventListener("pointercancel", ev => finish(ev, true));
+  b.addEventListener("click", () => { if (!suppress && M.info) addShape(b.dataset.kind); });
+});
+
+// ---- inspector (the selected shape or the hamper)
+function field(label, value, onset, opts = {}) {
+  const inp = h("input", {type: "text", inputmode: opts.numeric ? "decimal" : "text", autocomplete: "off", spellcheck: "false",
+    "aria-label": label, value, placeholder: opts.placeholder || ""});
+  const lab = h("label", {}, label, inp);
+  const commit = () => {
+    if (inp.value === value) return;
+    const ok = onset(inp.value);
+    if (ok === false) { lab.classList.add("err"); mapMsg(`${label}: "${inp.value}" is not a length I understand (try 5'6", 66 in, 1.68 m or 168 cm).`, "bad"); }
+  };
+  inp.addEventListener("change", commit);
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); inp.blur(); } });
+  return lab;
+}
+function lenField(label, o, key, apply) {
+  return field(label, fmtLen(o[key]), txt => {
+    const v = parseLen(txt);
+    if (v == null || !(v >= 0)) return false;
+    change(() => apply ? apply(v) : (o[key] = v));
+    return true;
+  }, {placeholder: M.units === "m" ? "e.g. 1.68 m" : `e.g. 5'6"`});
+}
+function change(fn, msg) { snapshot(); fn(); edited(msg === undefined ? "" : msg); }
+function renderInspector() {
+  const box = $("insp");
+  if (M.drag && M.drag.moved) return;                            // dragging: the inspector follows when the finger lifts
+  if (document.activeElement && box.contains(document.activeElement) && document.activeElement.tagName === "INPUT"
+      && document.activeElement.type === "text") return;        // never rewrite a field while the user types in it
+  const o = byId(M.sel);
+  if (M.sel === "hamper" && M.hamper) return renderHamperInspector(box);
+  if (!o) { box.hidden = true; box.replaceChildren(); return; }
+  const wasOpen = !!(box.querySelector("details") && box.querySelector("details").open);
+  box.hidden = false;
+  const title = h("h3", {}, h("span", {}, o.name || (o.shape === "cylinder" ? "Circle" : isSquare(o) ? "Square" : "Rectangle")),
+    h("button", {type: "button", class: "btn", onclick: () => { M.sel = null; mapRender(); }}, "Done"));
+  const chips = h("div", {class: "chips", "aria-label": "What is it?"}, ...Object.keys(CHIPS).map(n => h("button", {type: "button", class: "chip",
+    "aria-pressed": String(o.name === n), onclick: () => change(() => applyChip(o, n))}, n)));
+  const sizes = h("div", {class: "grid2"});
+  if (o.shape === "cylinder") sizes.append(lenField("Across", o, "diameter_m", v => { o.diameter_m = Math.max(MIN_SIZE, v); }));
+  else if (isSquare(o)) sizes.append(lenField("Side", o, "length_m", v => { o.length_m = o.width_m = Math.max(MIN_SIZE, v); }));
+  else sizes.append(lenField("Length", o, "length_m", v => { o.length_m = Math.max(MIN_SIZE, v); }),
+                    lenField("Width", o, "width_m", v => { o.width_m = Math.max(MIN_SIZE, v); }));
+  sizes.append(lenField(o.z_low_m > 0 ? "Top height" : "Height", o, "height_m"));
+  const acts = h("div", {class: "row"});
+  if (o.shape === "box" && !isSquare(o)) acts.append(h("button", {type: "button", class: "btn",
+    onclick: () => change(() => { o.yaw_deg = (o.yaw_deg + 90) % 360; snapPos(o); })}, "Turn 90°"));
+  acts.append(h("button", {type: "button", class: "btn danger", onclick: () => change(() => {
+    M.shapes = M.shapes.filter(s => s !== o); M.sel = null; }, `Removed ${o.name || "the shape"}.`)}, "Delete"));
+  // advanced: name text, hanging, exact position, angle, copy
+  const more = h("details", {}, h("summary", {}, "More"));
+  if (wasOpen) more.open = true;
+  more.append(h("div", {class: "grid2"},
+    field("Name", o.name, v => { change(() => { o.name = v.trim().slice(0, 40); }); return true; }),
+    lenField("Position x (from wall A-D)", o, "x", v => { o.x = clamp(v, 0, roomW()); }),
+    lenField("Position y (from wall A-B)", o, "y", v => { o.y = clamp(v, 0, roomD()); }),
+    o.shape === "box" ? field("Turned (degrees)", String(+o.yaw_deg.toFixed(1)), v => {
+      const a = parseFloat(v); if (!isFinite(a)) return false; change(() => { o.yaw_deg = ((a % 360) + 360) % 360; }); return true; }, {numeric: true}) : null));
+  const hang = h("input", {type: "checkbox", onchange: () => change(() => {
+    if (hang.checked) { o.height_m = roomH(); o.z_low_m = Math.max(0, roomH() - 0.45); } else o.z_low_m = 0; })});
+  hang.checked = o.z_low_m > 0;
+  more.append(h("label", {class: "chk"}, hang, "Hangs from the ceiling (a fan, a lamp)"));
+  if (o.z_low_m > 0) more.append(h("div", {class: "grid2"}, lenField("Bottom height", o, "z_low_m")));
+  more.append(h("div", {class: "row"}, h("button", {type: "button", class: "btn", onclick: () => change(() => {
+    const c = Object.assign({}, o, {id: nextId(), x: o.x + 0.3, y: o.y - 0.3}); snapPos(c); M.shapes.push(c); M.sel = c.id; }, "Copied.")}, "Make a copy")));
+  box.replaceChildren(title, h("p", {class: "muted small"}, "Keep the robot away from this. Set what it is, its size and its height."),
+    chips, sizes, acts, more);
+}
+function applyChip(o, n) {
+  const t = CHIPS[n];
+  o.name = n;
+  if (t.shape && t.shape !== o.shape) {          // a lamp is round, a bed is not
+    if (t.shape === "cylinder") { delete o.length_m; delete o.width_m; delete o.yaw_deg; o.diameter_m = t.diameter_m; }
+    else { delete o.diameter_m; o.yaw_deg = 0; }
+  }
+  o.shape = t.shape || o.shape;
+  for (const k of ["length_m", "width_m", "diameter_m", "height_m"]) if (t[k] != null) o[k] = t[k];
+  if (t.hang != null) { o.height_m = roomH(); o.z_low_m = Math.max(0, roomH() - t.hang); } else if (t.shape) o.z_low_m = 0;
+  snapPos(o);
+}
+function renderHamperInspector(box) {
+  const hp = M.hamper;
+  box.hidden = false;
+  box.replaceChildren(
+    h("h3", {}, h("span", {}, "Hamper"), h("button", {type: "button", class: "btn", onclick: () => { M.sel = null; mapRender(); }}, "Done")),
+    h("p", {class: "muted small"}, "Drag the green circle to where the hamper stands. The robot drops laundry over its rim."),
+    h("div", {class: "grid2"}, lenField("Rim height", hp, "height_m"),
+      lenField("Position x", hp, "x", v => { hp.x = clamp(v, 0, roomW()); }), lenField("Position y", hp, "y", v => { hp.y = clamp(v, 0, roomD()); })));
+}
+
+// ---- server: load, preview, save
+async function mapLoad(force) {
+  const r = await api("/api/room_map");
+  if (!r.ok) { mapMsg((r.data && r.data.error) || "Could not load the map.", "bad"); return; }
+  M.info = r.data;
+  if (!M.loaded || force) {
+    M.shapes = r.data.obstacles.map(o => Object.assign({}, o));
+    M.hamper = r.data.hamper ? {x: r.data.hamper.x, y: r.data.hamper.y, height_m: r.data.hamper.height_m, radius_m: r.data.hamper.radius_m} : null;
+    M.units = store.get("rc_units") || r.data.units || "ft-in";
+    M.savedKey = draftKey(); M.loaded = true; M.undo = []; M.sel = null;
+  }
+  $("mapUnits").textContent = M.units === "m" ? "metres" : "feet and inches";
+  $("mapHamper").hidden = !M.hamper;
+  mapRender();
+  if (M.covOn) schedulePreview();
+}
+function mapShow() { mapLoad(false); }
+function draftBody() {
+  return {obstacles: M.shapes.map(o => { const c = Object.assign({}, o); delete c._rect; return c; }),
+          hamper: M.hamper ? {x: M.hamper.x, y: M.hamper.y, height_m: M.hamper.height_m} : undefined, units: M.units};
+}
+function schedulePreview() {
+  clearTimeout(M.covTimer);
+  M.covTimer = setTimeout(async () => {
+    const seq = ++M.covSeq;
+    const r = await api("/api/room_map/preview", draftBody());
+    if (seq !== M.covSeq || !M.covOn) return;     // an older answer, or the overlay was switched off meanwhile
+    if (r.ok && r.data.ok) { M.cov = r.data.coverage; mapRender(); }
+    else mapMsg("Cannot show where it can pick: " + ((r.data && (r.data.errors || []).join("; ")) || r.data.error || "no answer"), "bad");
+  }, PREVIEW_MS);
+}
+function mapGate() {           // Save only where the service would accept it (it re-checks)
+  if (!M.info || !$("mapSave")) return;
+  const st = S ? S.state : M.info.state, busy = S ? S.busy : null;
+  const ok = !busy && ["DISARMED", "PARKED", "READY", "PAUSED"].includes(st);
+  $("mapSave").disabled = !ok || !dirty();
+  $("mapNote").textContent = ok ? (["READY", "PAUSED"].includes(st) ? "The robot is in the air: saving is refused if the claw is where a new shape would be." : "")
+    : (busy ? `The robot is busy (${busy}). You can keep drawing; save when it is done.` : `The map can be saved when the robot is stopped (it is ${st}). You can keep drawing.`);
+}
+$("mapSave").addEventListener("click", async () => {
+  const r = await api("/api/room_map", draftBody(), "PUT");
+  if (r.ok) {
+    M.info = Object.assign(M.info, r.data);
+    M.shapes = r.data.obstacles.map(o => Object.assign({}, o));
+    M.savedKey = draftKey();
+    mapRender(); mapMsg(r.data.text + ".", "good"); toast(r.data.text + ".");
+  } else {
+    const why = (r.data && (r.data.errors ? r.data.errors.join("; ") : r.data.error)) || "HTTP " + r.status;
+    mapMsg("Not saved: " + why, "bad"); toast("Map not saved: " + why, true);
+  }
+});
+$("mapRevert").addEventListener("click", async () => { await mapLoad(true); mapMsg("Back to the saved map."); });
+$("mapUndo").addEventListener("click", () => {
+  const k = M.undo.pop();
+  if (!k) return;
+  const d = JSON.parse(k);
+  M.shapes = d.s; M.hamper = d.h;
+  if (M.sel !== "hamper" && !byId(M.sel)) M.sel = null;
+  edited("Undone.");
+});
+$("mapUnits").addEventListener("click", () => {
+  M.units = M.units === "m" ? "ft-in" : "m"; store.set("rc_units", M.units);
+  $("mapUnits").textContent = M.units === "m" ? "metres" : "feet and inches";
+  mapRender();
+});
+$("mapCov").addEventListener("change", () => {
+  M.covOn = $("mapCov").checked; $("covLegend").hidden = !M.covOn;
+  if (M.covOn) { schedulePreview(); mapMsg("Tap a spot on the map to see why the robot cannot pick there."); }
+  else { M.cov = null; mapRender(); mapMsg(""); }
+});
+$("mapHamper").addEventListener("click", () => { if (M.hamper) { M.sel = "hamper"; mapRender(); } });
+window.addEventListener("resize", () => { if (tab === "map") mapRender(); });
+
 // ------------------------------------------------------------------------------------------------ main loop
 async function tick() {
   if (ticking || !TOKEN) return;

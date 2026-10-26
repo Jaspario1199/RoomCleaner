@@ -287,11 +287,9 @@
   "[startup] FAULT in CALIBRATION: expanded: only 13 feasible visible poses (need 15)"
  ],
  "h1_top_refusals": {
-  "refused": 31,
+  "refused": 0,
   "of": 81,
-  "example": [
-   "workspace: z=2.193 above 2.193"
-  ]
+  "example": []
  },
  "sim4_startup": {
   "state": "READY",
@@ -595,26 +593,7 @@
    "slack probe was off: the predicted sigma is not honest (slack reads as length error); enable startup.slack_probe"
   ]
  },
- "app_360x740_light_small_shape_bodies": [
-  {
-   "what": "shape body a3",
-   "w": 36.591644287109375,
-   "h": 36.591644287109375,
-   "shape": true
-  },
-  {
-   "what": "shape body a5",
-   "w": 4.573974609375,
-   "h": 4.573951721191406,
-   "shape": true
-  },
-  {
-   "what": "shape body a6",
-   "w": 42.08038330078125,
-   "h": 139.0482177734375,
-   "shape": true
-  }
- ],
+ "app_360x740_light_small_shape_bodies": [],
  "app_360x740_light_svg_label_contrast": [
   {
    "shot": "03_three_by_tap",
@@ -678,6 +657,21 @@
   },
   {
    "shot": "03_three_by_tap",
+   "text": "Hamper",
+   "fg": [
+    15,
+    122,
+    41
+   ],
+   "bg": [
+    252,
+    252,
+    252
+   ],
+   "ratio": 5.34
+  },
+  {
+   "shot": "03_three_by_tap",
    "text": "Square 2'6\"",
    "fg": [
     27,
@@ -722,22 +716,7 @@
    "ratio": 12.54
   },
   {
-   "shot": "03_three_by_tap",
-   "text": "Hamper",
-   "fg": [
-    15,
-    122,
-    41
-   ],
-   "bg": [
-    248,
-    248,
-    248
-   ],
-   "ratio": 5.15
-  },
-  {
-   "shot": "05_reloaded",
+   "shot": "07_crowded_labels",
    "text": "A",
    "fg": [
     27,
@@ -752,7 +731,7 @@
    "ratio": 16.23
   },
   {
-   "shot": "05_reloaded",
+   "shot": "07_crowded_labels",
    "text": "B",
    "fg": [
     27,
@@ -767,7 +746,7 @@
    "ratio": 16.23
   },
   {
-   "shot": "05_reloaded",
+   "shot": "07_crowded_labels",
    "text": "C",
    "fg": [
     27,
@@ -782,7 +761,7 @@
    "ratio": 16.23
   },
   {
-   "shot": "05_reloaded",
+   "shot": "07_crowded_labels",
    "text": "D",
    "fg": [
     27,
@@ -790,21 +769,6 @@
     26
    ],
    "bg": [
-    248,
-    248,
-    248
-   ],
-   "ratio": 16.23
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Square 2'6\"",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
     216,
     220,
     228
@@ -812,248 +776,23 @@
    "ratio": 12.54
   },
   {
-   "shot": "05_reloaded",
-   "text": "Desk 2'6\"",
+   "shot": "07_crowded_labels",
+   "text": "Hamper",
    "fg": [
-    27,
-    27,
-    26
+    15,
+    122,
+    41
    ],
    "bg": [
-    216,
-    220,
-    228
+    252,
+    252,
+    252
    ],
-   "ratio": 12.54
+   "ratio": 5.34
   },
   {
-   "shot": "05_reloaded",
+   "shot": "07_crowded_labels",
    "text": "Ceiling fan (hangs, from 7'6\")",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Circle 2'6\"",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Hamper",
-   "fg": [
-    15,
-    122,
-    41
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 3.98
-  },
-  {
-   "shot": "06_overlay",
-   "text": "A",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    224,
-    164,
-    156
-   ],
-   "ratio": 8.18
-  },
-  {
-   "shot": "06_overlay",
-   "text": "B",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    204,
-    200,
-    200
-   ],
-   "ratio": 10.39
-  },
-  {
-   "shot": "06_overlay",
-   "text": "C",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    224,
-    164,
-    156
-   ],
-   "ratio": 8.18
-  },
-  {
-   "shot": "06_overlay",
-   "text": "D",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    204,
-    200,
-    200
-   ],
-   "ratio": 10.39
-  },
-  {
-   "shot": "06_overlay",
-   "text": "Square 2'6\"",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "06_overlay",
-   "text": "Desk 2'6\"",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "06_overlay",
-   "text": "Ceiling fan (hangs, from 7'6\")",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "06_overlay",
-   "text": "Circle 2'6\"",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "06_overlay",
-   "text": "Hamper",
-   "fg": [
-    15,
-    122,
-    41
-   ],
-   "bg": [
-    216,
-    204,
-    172
-   ],
-   "ratio": 3.43
-  },
-  {
-   "shot": "07_crowded_labels",
-   "text": "A",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    248,
-    248,
-    248
-   ],
-   "ratio": 16.23
-  },
-  {
-   "shot": "07_crowded_labels",
-   "text": "B",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    248,
-    248,
-    248
-   ],
-   "ratio": 16.23
-  },
-  {
-   "shot": "07_crowded_labels",
-   "text": "C",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    248,
-    248,
-    248
-   ],
-   "ratio": 16.23
-  },
-  {
-   "shot": "07_crowded_labels",
-   "text": "D",
    "fg": [
     27,
     27,
@@ -1090,30 +829,15 @@
     26
    ],
    "bg": [
-    216,
-    220,
-    228
+    248,
+    248,
+    248
    ],
-   "ratio": 12.54
+   "ratio": 16.23
   },
   {
    "shot": "07_crowded_labels",
    "text": "Lamp 5'3\"",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "07_crowded_labels",
-   "text": "Ceiling fan (hangs, from 7'6\")",
    "fg": [
     27,
     27,
@@ -1157,21 +881,6 @@
    "ratio": 12.54
   },
   {
-   "shot": "07_crowded_labels",
-   "text": "Hamper",
-   "fg": [
-    15,
-    122,
-    41
-   ],
-   "bg": [
-    248,
-    248,
-    248
-   ],
-   "ratio": 5.15
-  },
-  {
    "shot": "08_circle_on_hamper",
    "text": "A",
    "fg": [
@@ -1233,21 +942,6 @@
   },
   {
    "shot": "08_circle_on_hamper",
-   "text": "Circle 2'6\"",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "08_circle_on_hamper",
    "text": "Hamper",
    "fg": [
     15,
@@ -1255,85 +949,53 @@
     41
    ],
    "bg": [
-    216,
-    220,
-    228
+    252,
+    252,
+    252
    ],
-   "ratio": 3.98
+   "ratio": 5.34
+  },
+  {
+   "shot": "08_circle_on_hamper",
+   "text": "Circle 2'6\"",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    248,
+    248,
+    248
+   ],
+   "ratio": 16.23
   }
  ],
  "app_360x740_light_messages": [
-  "Not saved: shape 2: bottom height z_low_m 0.00 m must be below its top height_m 0.00 m",
-  "Not saved: shape 2: length_m 6.10 m is larger than the room (3.35 x 2.74 m)",
-  "Not saved: shape 2: height 3.66 m is above the ceiling (2.74 m)",
-  "Here (3'3\", 4'5\"): cable A would cross shape o1."
+  "Saved: the planner now avoids 4 shapes.",
+  "Saved: the planner now avoids 4 shapes.",
+  "Saved: the planner now avoids 4 shapes.",
+  "Here (3'3\", 4'5\"): cable A would cross the Square."
  ],
  "app_360x740_light_labels": {
   "labelsAfterTaps": {
-   "overlaps": [
-    {
-     "a": "Square 2'6\"",
-     "b": "Circle 2'6\"",
-     "overlap_px": [
-      14,
-      15
-     ]
-    }
-   ],
+   "overlaps": [],
    "clipped": []
   },
   "labelsCrowded": {
-   "overlaps": [
-    {
-     "a": "Chair 2'11\"",
-     "b": "Ceiling fan (hangs, from 7'6\")",
-     "overlap_px": [
-      61,
-      8
-     ]
-    }
-   ],
-   "clipped": [
-    "Dresser 2'10\""
-   ]
+   "overlaps": [],
+   "clipped": []
   },
   "labelsOnHamper": {
-   "overlaps": [
-    {
-     "a": "Circle 2'6\"",
-     "b": "Hamper",
-     "overlap_px": [
-      48,
-      13
-     ]
-    }
-   ],
+   "overlaps": [],
    "clipped": []
   },
   "labelsOverlay": {
-   "overlaps": [
-    {
-     "a": "Ceiling fan (hangs, from 7'6\")",
-     "b": "Hamper",
-     "overlap_px": [
-      48,
-      6
-     ]
-    }
-   ],
+   "overlaps": [],
    "clipped": []
   },
   "labelsAfterReload": {
-   "overlaps": [
-    {
-     "a": "Ceiling fan (hangs, from 7'6\")",
-     "b": "Hamper",
-     "overlap_px": [
-      48,
-      15
-     ]
-    }
-   ],
+   "overlaps": [],
    "clipped": []
   }
  },
@@ -1353,7 +1015,7 @@
     "shape": "box",
     "width_m": 0.6095999999999999,
     "x": 1.7018,
-    "y": 1.3461999999999998,
+    "y": 1.8541999999999998,
     "yaw_deg": 0,
     "z_low_m": 0
    }
@@ -1368,7 +1030,7 @@
     "shape": "box",
     "width_m": 0.6095999999999999,
     "x": 1.7018,
-    "y": 1.3461999999999998,
+    "y": 1.8541999999999998,
     "yaw_deg": 0,
     "z_low_m": 0
    }
@@ -1379,8 +1041,8 @@
    "shape": {
     "id": "o2",
     "name": "Desk",
-    "x": 1.7018,
-    "y": 2.0574,
+    "x": 1.397,
+    "y": 0.8382,
     "z_low_m": 0,
     "shape": "box",
     "length_m": 1.22,
@@ -1395,26 +1057,7 @@
    ]
   }
  },
- "app_360x740_dark_small_shape_bodies": [
-  {
-   "what": "shape body a3",
-   "w": 36.591644287109375,
-   "h": 36.591644287109375,
-   "shape": true
-  },
-  {
-   "what": "shape body a5",
-   "w": 4.573974609375,
-   "h": 4.573951721191406,
-   "shape": true
-  },
-  {
-   "what": "shape body a6",
-   "w": 42.08038330078125,
-   "h": 139.0482177734375,
-   "shape": true
-  }
- ],
+ "app_360x740_dark_small_shape_bodies": [],
  "app_360x740_dark_svg_label_contrast": [
   {
    "shot": "03_three_by_tap",
@@ -1478,6 +1121,21 @@
   },
   {
    "shot": "03_three_by_tap",
+   "text": "Hamper",
+   "fg": [
+    67,
+    192,
+    102
+   ],
+   "bg": [
+    24,
+    24,
+    24
+   ],
+   "ratio": 7.58
+  },
+  {
+   "shot": "03_three_by_tap",
    "text": "Square 2'6\"",
    "fg": [
     243,
@@ -1522,22 +1180,7 @@
    "ratio": 9.28
   },
   {
-   "shot": "03_three_by_tap",
-   "text": "Hamper",
-   "fg": [
-    67,
-    192,
-    102
-   ],
-   "bg": [
-    20,
-    20,
-    20
-   ],
-   "ratio": 7.87
-  },
-  {
-   "shot": "05_reloaded",
+   "shot": "07_crowded_labels",
    "text": "A",
    "fg": [
     243,
@@ -1552,7 +1195,7 @@
    "ratio": 16.43
   },
   {
-   "shot": "05_reloaded",
+   "shot": "07_crowded_labels",
    "text": "B",
    "fg": [
     243,
@@ -1567,7 +1210,7 @@
    "ratio": 16.43
   },
   {
-   "shot": "05_reloaded",
+   "shot": "07_crowded_labels",
    "text": "C",
    "fg": [
     243,
@@ -1582,7 +1225,7 @@
    "ratio": 16.43
   },
   {
-   "shot": "05_reloaded",
+   "shot": "07_crowded_labels",
    "text": "D",
    "fg": [
     243,
@@ -1590,21 +1233,6 @@
     236
    ],
    "bg": [
-    20,
-    20,
-    20
-   ],
-   "ratio": 16.43
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Square 2'6\"",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
     56,
     64,
     80
@@ -1612,248 +1240,23 @@
    "ratio": 9.28
   },
   {
-   "shot": "05_reloaded",
-   "text": "Desk 2'6\"",
+   "shot": "07_crowded_labels",
+   "text": "Hamper",
    "fg": [
-    243,
-    242,
-    236
+    67,
+    192,
+    102
    ],
    "bg": [
-    56,
-    64,
-    80
+    24,
+    24,
+    24
    ],
-   "ratio": 9.28
+   "ratio": 7.58
   },
   {
-   "shot": "05_reloaded",
+   "shot": "07_crowded_labels",
    "text": "Ceiling fan (hangs, from 7'6\")",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Circle 2'6\"",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Hamper",
-   "fg": [
-    67,
-    192,
-    102
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 4.45
-  },
-  {
-   "shot": "06_overlay",
-   "text": "A",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    120,
-    64,
-    60
-   ],
-   "ratio": 7.21
-  },
-  {
-   "shot": "06_overlay",
-   "text": "B",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    60,
-    60,
-    56
-   ],
-   "ratio": 9.88
-  },
-  {
-   "shot": "06_overlay",
-   "text": "C",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    120,
-    64,
-    60
-   ],
-   "ratio": 7.21
-  },
-  {
-   "shot": "06_overlay",
-   "text": "D",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    60,
-    60,
-    56
-   ],
-   "ratio": 9.88
-  },
-  {
-   "shot": "06_overlay",
-   "text": "Square 2'6\"",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "06_overlay",
-   "text": "Desk 2'6\"",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "06_overlay",
-   "text": "Ceiling fan (hangs, from 7'6\")",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "06_overlay",
-   "text": "Circle 2'6\"",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "06_overlay",
-   "text": "Hamper",
-   "fg": [
-    67,
-    192,
-    102
-   ],
-   "bg": [
-    88,
-    68,
-    36
-   ],
-   "ratio": 3.96
-  },
-  {
-   "shot": "07_crowded_labels",
-   "text": "A",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    20,
-    20,
-    20
-   ],
-   "ratio": 16.43
-  },
-  {
-   "shot": "07_crowded_labels",
-   "text": "B",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    20,
-    20,
-    20
-   ],
-   "ratio": 16.43
-  },
-  {
-   "shot": "07_crowded_labels",
-   "text": "C",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    20,
-    20,
-    20
-   ],
-   "ratio": 16.43
-  },
-  {
-   "shot": "07_crowded_labels",
-   "text": "D",
    "fg": [
     243,
     242,
@@ -1890,30 +1293,15 @@
     236
    ],
    "bg": [
-    56,
-    64,
-    80
+    20,
+    20,
+    20
    ],
-   "ratio": 9.28
+   "ratio": 16.43
   },
   {
    "shot": "07_crowded_labels",
    "text": "Lamp 5'3\"",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "07_crowded_labels",
-   "text": "Ceiling fan (hangs, from 7'6\")",
    "fg": [
     243,
     242,
@@ -1957,21 +1345,6 @@
    "ratio": 9.28
   },
   {
-   "shot": "07_crowded_labels",
-   "text": "Hamper",
-   "fg": [
-    67,
-    192,
-    102
-   ],
-   "bg": [
-    20,
-    20,
-    20
-   ],
-   "ratio": 7.87
-  },
-  {
    "shot": "08_circle_on_hamper",
    "text": "A",
    "fg": [
@@ -2033,21 +1406,6 @@
   },
   {
    "shot": "08_circle_on_hamper",
-   "text": "Circle 2'6\"",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "08_circle_on_hamper",
    "text": "Hamper",
    "fg": [
     67,
@@ -2055,85 +1413,53 @@
     102
    ],
    "bg": [
-    56,
-    64,
-    80
+    24,
+    24,
+    24
    ],
-   "ratio": 4.45
+   "ratio": 7.58
+  },
+  {
+   "shot": "08_circle_on_hamper",
+   "text": "Circle 2'6\"",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    20,
+    20,
+    20
+   ],
+   "ratio": 16.43
   }
  ],
  "app_360x740_dark_messages": [
-  "Not saved: shape 2: bottom height z_low_m 0.00 m must be below its top height_m 0.00 m",
-  "Not saved: shape 2: length_m 6.10 m is larger than the room (3.35 x 2.74 m)",
-  "Not saved: shape 2: height 3.66 m is above the ceiling (2.74 m)",
-  "Here (3'3\", 4'5\"): cable A would cross shape o1."
+  "Saved: the planner now avoids 4 shapes.",
+  "Saved: the planner now avoids 4 shapes.",
+  "Saved: the planner now avoids 4 shapes.",
+  "Here (3'3\", 4'5\"): cable A would cross the Square."
  ],
  "app_360x740_dark_labels": {
   "labelsAfterTaps": {
-   "overlaps": [
-    {
-     "a": "Square 2'6\"",
-     "b": "Circle 2'6\"",
-     "overlap_px": [
-      14,
-      15
-     ]
-    }
-   ],
+   "overlaps": [],
    "clipped": []
   },
   "labelsCrowded": {
-   "overlaps": [
-    {
-     "a": "Chair 2'11\"",
-     "b": "Ceiling fan (hangs, from 7'6\")",
-     "overlap_px": [
-      61,
-      8
-     ]
-    }
-   ],
-   "clipped": [
-    "Dresser 2'10\""
-   ]
+   "overlaps": [],
+   "clipped": []
   },
   "labelsOnHamper": {
-   "overlaps": [
-    {
-     "a": "Circle 2'6\"",
-     "b": "Hamper",
-     "overlap_px": [
-      48,
-      13
-     ]
-    }
-   ],
+   "overlaps": [],
    "clipped": []
   },
   "labelsOverlay": {
-   "overlaps": [
-    {
-     "a": "Ceiling fan (hangs, from 7'6\")",
-     "b": "Hamper",
-     "overlap_px": [
-      48,
-      6
-     ]
-    }
-   ],
+   "overlaps": [],
    "clipped": []
   },
   "labelsAfterReload": {
-   "overlaps": [
-    {
-     "a": "Ceiling fan (hangs, from 7'6\")",
-     "b": "Hamper",
-     "overlap_px": [
-      48,
-      15
-     ]
-    }
-   ],
+   "overlaps": [],
    "clipped": []
   }
  },
@@ -2153,7 +1479,7 @@
     "shape": "box",
     "width_m": 0.6095999999999999,
     "x": 1.7018,
-    "y": 1.3461999999999998,
+    "y": 1.8541999999999998,
     "yaw_deg": 0,
     "z_low_m": 0
    }
@@ -2168,7 +1494,7 @@
     "shape": "box",
     "width_m": 0.6095999999999999,
     "x": 1.7018,
-    "y": 1.3461999999999998,
+    "y": 1.8541999999999998,
     "yaw_deg": 0,
     "z_low_m": 0
    }
@@ -2179,8 +1505,8 @@
    "shape": {
     "id": "o2",
     "name": "Desk",
-    "x": 1.7018,
-    "y": 2.0574,
+    "x": 1.397,
+    "y": 0.8382,
     "z_low_m": 0,
     "shape": "box",
     "length_m": 1.22,
@@ -2195,14 +1521,7 @@
    ]
   }
  },
- "app_1280x800_light_small_shape_bodies": [
-  {
-   "what": "shape body a5",
-   "w": 8.71258544921875,
-   "h": 8.712539672851562,
-   "shape": true
-  }
- ],
+ "app_1280x800_light_small_shape_bodies": [],
  "app_1280x800_light_svg_label_contrast": [
   {
    "shot": "03_three_by_tap",
@@ -2266,6 +1585,21 @@
   },
   {
    "shot": "03_three_by_tap",
+   "text": "Hamper",
+   "fg": [
+    15,
+    122,
+    41
+   ],
+   "bg": [
+    252,
+    252,
+    252
+   ],
+   "ratio": 5.34
+  },
+  {
+   "shot": "03_three_by_tap",
    "text": "Square 2'6\"",
    "fg": [
     27,
@@ -2310,21 +1644,6 @@
    "ratio": 12.54
   },
   {
-   "shot": "03_three_by_tap",
-   "text": "Hamper",
-   "fg": [
-    15,
-    122,
-    41
-   ],
-   "bg": [
-    248,
-    248,
-    248
-   ],
-   "ratio": 5.15
-  },
-  {
    "shot": "05_reloaded",
    "text": "A",
    "fg": [
@@ -2386,6 +1705,36 @@
   },
   {
    "shot": "05_reloaded",
+   "text": "Hamper",
+   "fg": [
+    15,
+    122,
+    41
+   ],
+   "bg": [
+    252,
+    252,
+    252
+   ],
+   "ratio": 5.34
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Ceiling fan (hangs, from 7'6\")",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "05_reloaded",
    "text": "Square 2'6\"",
    "fg": [
     27,
@@ -2416,21 +1765,6 @@
   },
   {
    "shot": "05_reloaded",
-   "text": "Ceiling fan (hangs, from 7'6\")",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "05_reloaded",
    "text": "Circle 2'6\"",
    "fg": [
     27,
@@ -2443,21 +1777,6 @@
     228
    ],
    "ratio": 12.54
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Hamper",
-   "fg": [
-    15,
-    122,
-    41
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 3.98
   },
   {
    "shot": "06_overlay",
@@ -2498,11 +1817,11 @@
     26
    ],
    "bg": [
-    204,
-    200,
-    200
+    224,
+    164,
+    156
    ],
-   "ratio": 10.39
+   "ratio": 8.18
   },
   {
    "shot": "06_overlay",
@@ -2518,6 +1837,36 @@
     200
    ],
    "ratio": 10.39
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Hamper",
+   "fg": [
+    15,
+    122,
+    41
+   ],
+   "bg": [
+    252,
+    252,
+    252
+   ],
+   "ratio": 5.34
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Ceiling fan (hangs, from 7'6\")",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
   },
   {
    "shot": "06_overlay",
@@ -2551,21 +1900,6 @@
   },
   {
    "shot": "06_overlay",
-   "text": "Ceiling fan (hangs, from 7'6\")",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "06_overlay",
    "text": "Circle 2'6\"",
    "fg": [
     27,
@@ -2578,21 +1912,6 @@
     228
    ],
    "ratio": 12.54
-  },
-  {
-   "shot": "06_overlay",
-   "text": "Hamper",
-   "fg": [
-    15,
-    122,
-    41
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 3.98
   },
   {
    "shot": "07_crowded_labels",
@@ -2642,6 +1961,36 @@
   {
    "shot": "07_crowded_labels",
    "text": "D",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "07_crowded_labels",
+   "text": "Hamper",
+   "fg": [
+    15,
+    122,
+    41
+   ],
+   "bg": [
+    252,
+    252,
+    252
+   ],
+   "ratio": 5.34
+  },
+  {
+   "shot": "07_crowded_labels",
+   "text": "Ceiling fan (hangs, from 7'6\")",
    "fg": [
     27,
     27,
@@ -2701,21 +2050,6 @@
   },
   {
    "shot": "07_crowded_labels",
-   "text": "Ceiling fan (hangs, from 7'6\")",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "07_crowded_labels",
    "text": "Pole 7'10\"",
    "fg": [
     27,
@@ -2743,21 +2077,6 @@
     228
    ],
    "ratio": 12.54
-  },
-  {
-   "shot": "07_crowded_labels",
-   "text": "Hamper",
-   "fg": [
-    15,
-    122,
-    41
-   ],
-   "bg": [
-    248,
-    248,
-    248
-   ],
-   "ratio": 5.15
   },
   {
    "shot": "08_circle_on_hamper",
@@ -2821,21 +2140,6 @@
   },
   {
    "shot": "08_circle_on_hamper",
-   "text": "Circle 2'6\"",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "08_circle_on_hamper",
    "text": "Hamper",
    "fg": [
     15,
@@ -2843,18 +2147,33 @@
     41
    ],
    "bg": [
-    216,
-    220,
-    228
+    252,
+    252,
+    252
    ],
-   "ratio": 3.98
+   "ratio": 5.34
+  },
+  {
+   "shot": "08_circle_on_hamper",
+   "text": "Circle 2'6\"",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    248,
+    248,
+    248
+   ],
+   "ratio": 16.23
   }
  ],
  "app_1280x800_light_messages": [
-  "Not saved: shape 2: bottom height z_low_m 0.00 m must be below its top height_m 0.00 m",
-  "Not saved: shape 2: length_m 6.10 m is larger than the room (3.35 x 2.74 m)",
-  "Not saved: shape 2: height 3.66 m is above the ceiling (2.74 m)",
-  "Here (2'8\", 4'5\"): cable A would cross shape o1."
+  "Saved: the planner now avoids 4 shapes.",
+  "Saved: the planner now avoids 4 shapes.",
+  "Saved: the planner now avoids 4 shapes.",
+  "Here (2'8\", 4'5\"): cable A would cross the Square."
  ],
  "app_1280x800_light_labels": {
   "labelsAfterTaps": {
@@ -2862,29 +2181,11 @@
    "clipped": []
   },
   "labelsCrowded": {
-   "overlaps": [
-    {
-     "a": "Chair 2'11\"",
-     "b": "Ceiling fan (hangs, from 7'6\")",
-     "overlap_px": [
-      4,
-      1
-     ]
-    }
-   ],
+   "overlaps": [],
    "clipped": []
   },
   "labelsOnHamper": {
-   "overlaps": [
-    {
-     "a": "Circle 2'6\"",
-     "b": "Hamper",
-     "overlap_px": [
-      48,
-      12
-     ]
-    }
-   ],
+   "overlaps": [],
    "clipped": []
   },
   "labelsOverlay": {
@@ -2900,39 +2201,28 @@
   "inspectorTopPx": 649.609375,
   "dockTopPx": 654.015625,
   "msgAfterAdd": "Added a rectangle. Drag it into place, then set its size and height below.",
-  "saveMovedPx": 324,
-  "msg": "Saved: the planner now avoids 1 shape.",
+  "saveMovedPx": 38,
+  "msg": "Not saved: The unnamed rectangle at 1.40, 1.35 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.40, 1.35 m away from it on the Map",
   "tapsTyped": 5,
   "shapes": [
    {
-    "height_m": 0.75,
     "id": "o1",
-    "length_m": 1.2191999999999998,
     "name": "",
-    "shape": "box",
-    "width_m": 0.6095999999999999,
-    "x": 1.7018,
+    "x": 1.397,
     "y": 1.3461999999999998,
-    "yaw_deg": 0,
-    "z_low_m": 0
+    "z_low_m": 0,
+    "shape": "box",
+    "length_m": 1.2191999999999998,
+    "width_m": 0.6095999999999999,
+    "height_m": 0.75,
+    "yaw_deg": 0
    }
   ],
   "scrolledPx": 551,
-  "serverAfterFirstSave": [
-   {
-    "height_m": 0.75,
-    "id": "o1",
-    "length_m": 1.2191999999999998,
-    "name": "",
-    "shape": "box",
-    "width_m": 0.6095999999999999,
-    "x": 1.7018,
-    "y": 1.3461999999999998,
-    "yaw_deg": 0,
-    "z_low_m": 0
-   }
-  ],
-  "tapsTotal": 5,
+  "serverAfterFirstSave": [],
+  "msg2": "Not saved: The unnamed rectangle at 1.40, 1.35 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.40, 1.35 m away from it on the Map",
+  "serverAfterSecondSave": [],
+  "tapsTotal": 6,
   "chipRoute": {
    "taps": 3,
    "shape": {
@@ -2947,21 +2237,14 @@
     "height_m": 0.76,
     "yaw_deg": 0
    },
-   "msg": "Saved: the planner now avoids 2 shapes.",
+   "msg": "Not saved: The unnamed rectangle at 1.40, 1.35 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.40, 1.35 m away from it on the Map",
    "labels": [
     "Rectangle 2'6\"",
     "Desk 2'6\""
    ]
   }
  },
- "app_1280x800_dark_small_shape_bodies": [
-  {
-   "what": "shape body a5",
-   "w": 8.71258544921875,
-   "h": 8.712539672851562,
-   "shape": true
-  }
- ],
+ "app_1280x800_dark_small_shape_bodies": [],
  "app_1280x800_dark_svg_label_contrast": [
   {
    "shot": "03_three_by_tap",
@@ -3025,6 +2308,21 @@
   },
   {
    "shot": "03_three_by_tap",
+   "text": "Hamper",
+   "fg": [
+    67,
+    192,
+    102
+   ],
+   "bg": [
+    24,
+    24,
+    24
+   ],
+   "ratio": 7.58
+  },
+  {
+   "shot": "03_three_by_tap",
    "text": "Square 2'6\"",
    "fg": [
     243,
@@ -3069,21 +2367,6 @@
    "ratio": 9.28
   },
   {
-   "shot": "03_three_by_tap",
-   "text": "Hamper",
-   "fg": [
-    67,
-    192,
-    102
-   ],
-   "bg": [
-    20,
-    20,
-    20
-   ],
-   "ratio": 7.87
-  },
-  {
    "shot": "05_reloaded",
    "text": "A",
    "fg": [
@@ -3145,6 +2428,36 @@
   },
   {
    "shot": "05_reloaded",
+   "text": "Hamper",
+   "fg": [
+    67,
+    192,
+    102
+   ],
+   "bg": [
+    24,
+    24,
+    24
+   ],
+   "ratio": 7.58
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Ceiling fan (hangs, from 7'6\")",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
+   "shot": "05_reloaded",
    "text": "Square 2'6\"",
    "fg": [
     243,
@@ -3175,21 +2488,6 @@
   },
   {
    "shot": "05_reloaded",
-   "text": "Ceiling fan (hangs, from 7'6\")",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "05_reloaded",
    "text": "Circle 2'6\"",
    "fg": [
     243,
@@ -3202,21 +2500,6 @@
     80
    ],
    "ratio": 9.28
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Hamper",
-   "fg": [
-    67,
-    192,
-    102
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 4.45
   },
   {
    "shot": "06_overlay",
@@ -3257,11 +2540,11 @@
     236
    ],
    "bg": [
-    60,
-    60,
-    56
+    120,
+    64,
+    60
    ],
-   "ratio": 9.88
+   "ratio": 7.21
   },
   {
    "shot": "06_overlay",
@@ -3277,6 +2560,36 @@
     56
    ],
    "ratio": 9.88
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Hamper",
+   "fg": [
+    67,
+    192,
+    102
+   ],
+   "bg": [
+    24,
+    24,
+    24
+   ],
+   "ratio": 7.58
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Ceiling fan (hangs, from 7'6\")",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
   },
   {
    "shot": "06_overlay",
@@ -3310,21 +2623,6 @@
   },
   {
    "shot": "06_overlay",
-   "text": "Ceiling fan (hangs, from 7'6\")",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "06_overlay",
    "text": "Circle 2'6\"",
    "fg": [
     243,
@@ -3337,21 +2635,6 @@
     80
    ],
    "ratio": 9.28
-  },
-  {
-   "shot": "06_overlay",
-   "text": "Hamper",
-   "fg": [
-    67,
-    192,
-    102
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 4.45
   },
   {
    "shot": "07_crowded_labels",
@@ -3401,6 +2684,36 @@
   {
    "shot": "07_crowded_labels",
    "text": "D",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
+   "shot": "07_crowded_labels",
+   "text": "Hamper",
+   "fg": [
+    67,
+    192,
+    102
+   ],
+   "bg": [
+    24,
+    24,
+    24
+   ],
+   "ratio": 7.58
+  },
+  {
+   "shot": "07_crowded_labels",
+   "text": "Ceiling fan (hangs, from 7'6\")",
    "fg": [
     243,
     242,
@@ -3460,21 +2773,6 @@
   },
   {
    "shot": "07_crowded_labels",
-   "text": "Ceiling fan (hangs, from 7'6\")",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "07_crowded_labels",
    "text": "Pole 7'10\"",
    "fg": [
     243,
@@ -3502,21 +2800,6 @@
     80
    ],
    "ratio": 9.28
-  },
-  {
-   "shot": "07_crowded_labels",
-   "text": "Hamper",
-   "fg": [
-    67,
-    192,
-    102
-   ],
-   "bg": [
-    20,
-    20,
-    20
-   ],
-   "ratio": 7.87
   },
   {
    "shot": "08_circle_on_hamper",
@@ -3580,21 +2863,6 @@
   },
   {
    "shot": "08_circle_on_hamper",
-   "text": "Circle 2'6\"",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "08_circle_on_hamper",
    "text": "Hamper",
    "fg": [
     67,
@@ -3602,18 +2870,33 @@
     102
    ],
    "bg": [
-    56,
-    64,
-    80
+    24,
+    24,
+    24
    ],
-   "ratio": 4.45
+   "ratio": 7.58
+  },
+  {
+   "shot": "08_circle_on_hamper",
+   "text": "Circle 2'6\"",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    20,
+    20,
+    20
+   ],
+   "ratio": 16.43
   }
  ],
  "app_1280x800_dark_messages": [
-  "Not saved: shape 2: bottom height z_low_m 0.00 m must be below its top height_m 0.00 m",
-  "Not saved: shape 2: length_m 6.10 m is larger than the room (3.35 x 2.74 m)",
-  "Not saved: shape 2: height 3.66 m is above the ceiling (2.74 m)",
-  "Here (2'8\", 4'5\"): cable A would cross shape o1."
+  "Saved: the planner now avoids 4 shapes.",
+  "Saved: the planner now avoids 4 shapes.",
+  "Saved: the planner now avoids 4 shapes.",
+  "Here (2'8\", 4'5\"): cable A would cross the Square."
  ],
  "app_1280x800_dark_labels": {
   "labelsAfterTaps": {
@@ -3621,29 +2904,11 @@
    "clipped": []
   },
   "labelsCrowded": {
-   "overlaps": [
-    {
-     "a": "Chair 2'11\"",
-     "b": "Ceiling fan (hangs, from 7'6\")",
-     "overlap_px": [
-      4,
-      1
-     ]
-    }
-   ],
+   "overlaps": [],
    "clipped": []
   },
   "labelsOnHamper": {
-   "overlaps": [
-    {
-     "a": "Circle 2'6\"",
-     "b": "Hamper",
-     "overlap_px": [
-      48,
-      12
-     ]
-    }
-   ],
+   "overlaps": [],
    "clipped": []
   },
   "labelsOverlay": {
@@ -3659,39 +2924,28 @@
   "inspectorTopPx": 649.609375,
   "dockTopPx": 654.015625,
   "msgAfterAdd": "Added a rectangle. Drag it into place, then set its size and height below.",
-  "saveMovedPx": 324,
-  "msg": "Saved: the planner now avoids 1 shape.",
+  "saveMovedPx": 38,
+  "msg": "Not saved: The unnamed rectangle at 1.40, 1.35 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.40, 1.35 m away from it on the Map",
   "tapsTyped": 5,
   "shapes": [
    {
-    "height_m": 0.75,
     "id": "o1",
-    "length_m": 1.2191999999999998,
     "name": "",
-    "shape": "box",
-    "width_m": 0.6095999999999999,
-    "x": 1.7018,
+    "x": 1.397,
     "y": 1.3461999999999998,
-    "yaw_deg": 0,
-    "z_low_m": 0
+    "z_low_m": 0,
+    "shape": "box",
+    "length_m": 1.2191999999999998,
+    "width_m": 0.6095999999999999,
+    "height_m": 0.75,
+    "yaw_deg": 0
    }
   ],
   "scrolledPx": 551,
-  "serverAfterFirstSave": [
-   {
-    "height_m": 0.75,
-    "id": "o1",
-    "length_m": 1.2191999999999998,
-    "name": "",
-    "shape": "box",
-    "width_m": 0.6095999999999999,
-    "x": 1.7018,
-    "y": 1.3461999999999998,
-    "yaw_deg": 0,
-    "z_low_m": 0
-   }
-  ],
-  "tapsTotal": 5,
+  "serverAfterFirstSave": [],
+  "msg2": "Not saved: The unnamed rectangle at 1.40, 1.35 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.40, 1.35 m away from it on the Map",
+  "serverAfterSecondSave": [],
+  "tapsTotal": 6,
   "chipRoute": {
    "taps": 3,
    "shape": {
@@ -3706,7 +2960,7 @@
     "height_m": 0.76,
     "yaw_deg": 0
    },
-   "msg": "Saved: the planner now avoids 2 shapes.",
+   "msg": "Not saved: The unnamed rectangle at 1.40, 1.35 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.40, 1.35 m away from it on the Map",
    "labels": [
     "Rectangle 2'6\"",
     "Desk 2'6\""

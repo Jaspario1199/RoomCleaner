@@ -377,6 +377,10 @@ class Workspace:
 
     def obstacle_violations(self, geo: Geometry, p, R=None) -> list[str]:
         """Why the cables or the claw body at ``p`` meet a keep-out shape (inflated by the margin); [] if they do not."""
+        return [t for _ob, t in self.obstacle_hits(geo, p, R)]
+
+    def obstacle_hits(self, geo: Geometry, p, R=None) -> list:
+        """(shape, plain reason) for every cable / claw-body contact with a keep-out shape (inflated by the margin) at ``p``."""
         if not self.obstacles:
             return []
         p = np.asarray(p, float)
@@ -385,14 +389,20 @@ class Workspace:
         z_bot = min(float(p[2]) + self.claw_low_z, z_top)
         out = []
         for ob in self.obstacles:
-            name = obstacle_label(ob)
+            name = obstacle_name(ob)
             for i in range(len(pts)):
                 if segment_hits_obstacle(geo.anchors[i], pts[i], ob, self.obstacle_margin_m):
-                    out.append(f"cable {self.ids[i]} would cross {name}")
+                    out.append((ob, f"cable {self.ids[i]} would cross {name}"))
             if claw_hits_obstacle(p[:2], z_bot, z_top, ob, self.obstacle_margin_m, self.claw_radius_m):
-                out.append(f"the claw would enter {name}")
+                out.append((ob, f"the claw would enter {name}"))
         return out
 
+    def body_column_hits(self, xy, z_top_origin, *, top_offset: float = 0.0) -> list:
+        """Shapes the claw BODY would enter anywhere on the vertical column over ``xy`` from resting on the floor up to the origin
+        height ``z_top_origin`` (``top_offset``: body-frame height of the attachment plane). The lowering's landing check."""
+        z_top = float(z_top_origin) + max(float(top_offset), 0.0)
+        return [ob for ob in self.obstacles
+                if claw_hits_obstacle(np.asarray(xy, float)[:2], 0.0, z_top, ob, self.obstacle_margin_m, self.claw_radius_m)]
 
 def _altitude(tri_xy, j) -> float:
     """Altitude (m) of vertex j of the triangle over its opposite side."""
@@ -405,8 +415,17 @@ def _altitude(tri_xy, j) -> float:
 
 # ------------------------------------------------------------------------------------------------- room map shapes
 def obstacle_label(ob) -> str:
-    """How a shape is named in a refusal: "the Shelf", or "shape o3" when it has no name."""
+    """How a shape is named in the coverage grid: "the Shelf", or "shape o3" when it has no name (the app turns the id into the
+    shape's own label; the grid keeps the id so a reason can be matched to its shape)."""
     return f"the {ob['name']}" if ob.get("name") else f"shape {ob.get('id', '?')}"
+
+
+def obstacle_name(ob) -> str:
+    """How a shape is named in a message to the user: "the Shelf", or "the unnamed rectangle at 1.20, 0.80 m" (never its id)."""
+    if ob.get("name"):
+        return f"the {ob['name']}"
+    kind = "circle" if ob.get("shape") == "cylinder" else ("square" if ob.get("length_m") == ob.get("width_m") else "rectangle")
+    return f"the unnamed {kind} at {ob['x']:.2f}, {ob['y']:.2f} m"
 
 
 def segment_hits_obstacle(a, b, ob, margin=0.0) -> bool:

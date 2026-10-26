@@ -48,8 +48,8 @@ import numpy as np
 
 from .perception import cam_displacement, to_marker, to_room
 from .protocol import Fault, State
-from .startup import StartupAbort, StartupSequencer
-from .trajectory import PlanError, plan_cable_move, plan_line_from
+from .startup import StartupAbort, StartupSequencer, _blocked_by_map, run_pumped
+from .trajectory import PlanError, plan_cable_move, plan_line, plan_line_from
 from .trust import TrustLedger, atomic_write, tracking_fault_detail
 
 STATES = ("DISARMED", "STARTUP", "READY", "TASK", "PAUSED", "FAULT", "RECOVERY_REQUIRED", "PARKED")
@@ -431,6 +431,7 @@ class Supervisor:
             raise CommandRefused(f"cannot see the marker: {why}")
         p = ctx.room_pose(sp)
         bad = [s for s in ctx.ids if not ctx.ledger.stations[s].valid]
+        mapped = ctx.ws is not None and bool(ctx.ws.obstacles)
         if ctx.model is not None and ctx.result is not None and len(bad) <= 1:
             if bad:
                 ctx.log(f"[supervisor] lowering: provisional visual reference for {bad}")
@@ -440,7 +441,12 @@ class Supervisor:
             off = (sp.R @ ctx.T_B_C[:3, 3])[:2]
             mk = to_room(ctx.T_R_M, [0, 0, 0])[:2]
             xy = mk - ctx.T_R_M[:2, :2] @ off
-            for tgt, lbl in ((np.array([xy[0], xy[1], max(p[2], zf + 0.30)]), "lower: over marker"),
+            h = max(p[2], zf + 0.30)
+            if mapped:
+                # room map (H-2): the descent never falls back to blind packets through a shape. The marker first, else the
+                # nearest spot whose move there and whole vertical descent pass the map; none: refuse and keep holding
+                xy = run_pumped(ctx, self._landing_spot, ctx.co.positions(), xy, h, zf)
+            for tgt, lbl in ((np.array([xy[0], xy[1], h]), "lower: over marker"),
                              (np.array([xy[0], xy[1], zf + 0.05]), "lower: descend")):
                 try:
                     # recovery move: after a re-reference the claw often hangs on three
@@ -448,11 +454,18 @@ class Supervisor:
                     plan = plan_line_from(ctx.model, ctx.co.positions(), tgt, ctx.lim, ws=ctx.ws, allow_low=True,
                                           label=lbl, max_offset_m=0.02)
                 except PlanError as e:
+                    if _blocked_by_map(e):           # never packets into a shape: stay holding, say which one
+                        raise CommandRefused(f"Can't lower: {str(e).replace('workspace: ', '')}. Move it on the Map, or lower by hand.")
                     ctx.log(f"[supervisor] {lbl} refused ({e}); using cable packets")
                     break
                 r = ctx.co.execute(plan)
                 if not r.ok:
                     raise CommandRefused(f"{lbl} stopped: {r.reason}")
+        elif mapped:                                # no usable model: packets straight down from here, only if nothing is under it
+            low = ctx.ws.body_column_hits(p[:2], max(p[2], zf), top_offset=float(np.max(cfg.attachment_points()[:, 2])))
+            if low:
+                from .kinematics import obstacle_name
+                raise CommandRefused(f"Can't lower: {obstacle_name(low[0])} is under the claw. Move it on the Map, or lower by hand.")
         # final part: equal payout packets until the camera sees no further descent
         sp0, why = ctx.vision.still_pose(3, ctx.wait, max_wait_s=20.0)
         if sp0 is None:
@@ -488,6 +501,46 @@ class Supervisor:
                                        label="slacken"))
         ctx.ledger.claw_supported = True
         self._set("PARKED", "claw on the floor (vision), cables slack")
+
+    def _landing_spot(self, P, xy0, h, zf, step=0.10, max_tries=60):
+        """Room map: where to lower (pure, on the pumped worker). ``xy0`` (over the marker) if the move there at height ``h`` and the
+        straight descent from there to 5 cm above the floor can be planned; a refusal that is not the map's keeps ``xy0`` (the
+        caller's packet fallback is for those). Else the start point, then the nearest points of a 10 cm grid of the usable area,
+        whose descent column clears every shape (the claw body) and whose moves plan. None: CommandRefused naming the shape."""
+        ctx, cfg = self.ctx, self.ctx.cfg
+        ws, model = ctx.ws, ctx.model
+        p_now = model.pose_from_positions(P)[0]
+
+        def ok(xy):
+            try:
+                a = np.array([xy[0], xy[1], h])
+                plan_line(model, p_now, a, ctx.lim, ws=ws, allow_low=True, label="lower: check")
+                plan_line(model, a, np.array([xy[0], xy[1], zf + 0.05]), ctx.lim, ws=ws, allow_low=True, label="lower: check")
+            except PlanError as e:
+                return False, str(e)
+            return True, ""
+        good, why0 = ok(xy0)
+        if good or not _blocked_by_map(why0):
+            return xy0
+        top = float(np.max(cfg.attachment_points()[:, 2]))
+        sx, sy = cfg.start_point_xy()
+        g = np.mgrid[ws.lo[0]:ws.hi[0] + 1e-9:step, ws.lo[1]:ws.hi[1] + 1e-9:step].reshape(2, -1).T
+        g = g[np.argsort(np.hypot(g[:, 0] - xy0[0], g[:, 1] - xy0[1]))]
+        tried = 0
+        for xy in [np.array([sx, sy])] + list(g):
+            if ws.triangle_violation(np.r_[xy, h]) or ws.body_column_hits(xy, h, top_offset=top):
+                continue
+            tried += 1
+            if ok(xy)[0]:
+                ctx.log(f"[supervisor] lower: the map blocks the landing over the marker ({why0}); lowering at "
+                        f"({xy[0]:.2f}, {xy[1]:.2f}) instead")
+                return np.asarray(xy, float)
+            if tried >= max_tries:
+                break
+        from .kinematics import obstacle_name
+        under = ws.body_column_hits(xy0, h, top_offset=top)
+        what = f"{obstacle_name(under[0])} is under the landing spot" if under else why0.replace("workspace: ", "")
+        raise CommandRefused(f"Can't lower: {what}. Move it on the Map, or lower by hand.")
 
     def _floor_confirmed(self):
         sp, why = self.ctx.vision.still_pose(3, self.ctx.wait, max_wait_s=10.0)

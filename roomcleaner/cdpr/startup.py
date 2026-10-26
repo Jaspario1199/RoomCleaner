@@ -86,7 +86,7 @@ from .kinematics import Geometry, geometry_from_config, tension_distribution, wo
 from .perception import cam_displacement, floor_displacement, tilt_change, to_marker, to_room
 from .spool import CableMap
 from .protocol import State
-from .trajectory import PlanError, limits_from_config, model_from, plan_cable_move, plan_line_from
+from .trajectory import PlanError, limits_from_config, model_from, plan_cable_move, plan_line, plan_line_from
 
 def probe_response(geo, q_room, i, k_rel=None, R=None):
     """Claw displacement (room frame) per unit retraction of cable ``i`` beyond
@@ -165,6 +165,12 @@ def hinge_analysis(r, P, C, v, sig_w, k_noise, floor_m):
 
 STARTUP_STATES = ("DISARMED", "SELF_CHECK", "SLACK_TAKEUP", "INITIAL_LIFT", "VISUAL_INITIALIZATION",
                   "CALIBRATION", "REFERENCE_VERIFICATION", "READY")
+
+
+def _map_names(text) -> list:
+    """The shape names in a planner refusal ("cable B would cross the Shelf", "the claw would enter the Shelf")."""
+    import re
+    return re.findall(r"(?:would cross|would enter) (the [^;()]+?)(?=;|$| \()", str(text))
 
 
 def _blocked_by_map(err) -> bool:
@@ -497,6 +503,7 @@ class StartupSequencer:
         self.p_floor = None
         self.probe_log: list = []               # one record per probed pose (slack_probe)
         self.cal_report: dict | None = None     # last acceptance report of the final calibration
+        self._map_blocked: set = set()          # room-map shapes that refused a calibration pose or move (named in an abort)
 
     # -------------------------------------------------------------- helpers
     @property
@@ -873,8 +880,8 @@ class StartupSequencer:
                 if ov:
                     sx, sy = cfg.start_point_xy()
                     raise StartupAbort(S, f"the claw rests too close to a shape of the room map to lift straight up: "
-                                          f"{'; '.join(ov)}. Move it toward the start point ({sx:.2f}, {sy:.2f}) m, away from "
-                                          "the shape, and start again")
+                                          f"{'; '.join(ov)}. Move the claw toward the start point ({sx:.2f}, {sy:.2f}) m, away "
+                                          "from the shape, or edit the Map, and start again")
         ctx.ledger.claw_supported = False          # durable BEFORE the first command that can lift
         ctx.persist()
         # bring every cable to just-taut at the current pose (they were backed off)
@@ -1211,6 +1218,7 @@ class StartupSequencer:
         # The coordinator is only read here, on the command thread (co.positions()), and the values are passed in.
         cands = self._pumped(self._candidates, center_R, half, grid, R_M, min_z)
         if len(cands) < n_fit + n_wit:
+            self._map_blocked.update(self._pumped(self._map_blockers, center_R, half, grid))
             raise StartupAbort("CALIBRATION", f"{name}: only {len(cands)} feasible visible poses "
                                               f"(need {n_fit + n_wit})", suspended=True)
 
@@ -1257,16 +1265,23 @@ class StartupSequencer:
         return self._pumped(plan_line_from, ctx.model, ctx.co.positions(), q, ctx.lim, ws=ctx.ws, label=label)
 
     def _around_the_map(self, name, kind, here, q, why):
-        """From ``here``, reach the calibration pose ``q`` over a room-map shape that blocks the straight line: up to the top of the
-        workspace, across, down. Returns (reached, where the claw is now): reached False (logged) when a leg cannot be planned, the pose
-        is skipped and the claw stays where the last leg left it (an allowed pose). A planned leg is executed like every calibration
-        move (a motion fault or a pause still aborts)."""
+        """From ``here``, reach the calibration pose ``q`` over a room-map shape that blocks the straight line: up, across, down, at
+        the lowest height that clears it (``_detour_height``: never closer than ``motion.waypoint_inset_m`` to the top of the
+        workspace). Returns (reached, where the claw is now): reached False (logged) when no height works or a leg cannot be planned
+        when it is its turn; the pose is skipped and the claw stays where the last leg left it (an allowed pose, inside the box).
+        A planned leg is executed like every calibration move (a motion fault or a pause still aborts)."""
         ctx = self.ctx
-        top = float(ctx.ws.hi[2])
-        for leg, tgt in (("up", np.array([here[0], here[1], top])), ("across", np.array([q[0], q[1], top])), ("down", q)):
+        z, err = self._pumped(self._detour_height, here, q)
+        if z is None:
+            self._map_note(why)
+            ctx.log(f"[startup] {name} {kind} pose {np.round(q, 3).tolist()} skipped: the straight move is blocked by the room "
+                    f"map ({why}) and there is no way over it ({err})")
+            return False, here
+        for leg, tgt in (("up", np.array([here[0], here[1], z])), ("across", np.array([q[0], q[1], z])), ("down", q)):
             try:
                 plan = self._plan_to(tgt, f"{name} {kind} {leg} (room map)")
             except PlanError as e:
+                self._map_note(why)
                 ctx.log(f"[startup] {name} {kind} pose {np.round(q, 3).tolist()} skipped: the straight move is blocked by the room "
                         f"map ({why}) and the way over it too ({leg}: {e})")
                 return False, here
@@ -1276,7 +1291,54 @@ class StartupSequencer:
             here = tgt
         return True, here
 
+    def _detour_height(self, here, q):
+        """(z, None): the lowest height, from just above the higher of the two poses up to the top of the workspace less
+        ``motion.waypoint_inset_m``, at which up / across / down are all plannable (workspace, map, tension); (None, last refusal)
+        if none is. Pure (model and workspace only): runs on the pumped worker."""
+        ctx = self.ctx
+        top = float(ctx.ws.hi[2]) - float(self.cfg.motion.waypoint_inset_m)
+        z0 = max(float(here[2]), float(q[2])) + 0.10
+        err = "no height between the poses and the top of the workspace"
+        for z in list(np.arange(z0, top, 0.10)) + [top]:
+            if z < z0 - 1e-9:
+                continue
+            a, b = np.array([here[0], here[1], z]), np.array([q[0], q[1], z])
+            try:
+                for p0, p1 in ((here, a), (a, b), (b, q)):
+                    plan_line(ctx.model, p0, p1, ctx.lim, ws=ctx.ws, label="room map detour (check)")
+            except PlanError as e:
+                err = str(e)
+                continue
+            return float(z), None
+        return None, err
+
+    def _map_blockers(self, center_R, half, grid):
+        """Names of the room-map shapes that refuse any pose of a calibration box (pure: runs on the pumped worker)."""
+        ctx = self.ctx
+        if not ctx.ws.obstacles:
+            return set()
+        from .kinematics import obstacle_name
+        return {obstacle_name(ob) for q in box_candidates(center_R, half, grid)
+                for ob, _t in ctx.ws.obstacle_hits(ctx.model.geometry, q)}
+
+    def _map_note(self, why):
+        """Remember which room-map shapes refused a calibration move (named in a later abort, M-5)."""
+        self._map_blocked.update(n for n in _map_names(str(why)))
+
     def calibrate(self):
+        """The calibration stages (``_calibrate``). An abort after room-map shapes refused poses or moves names them and says to edit
+        the Map: the plain reason ("only 13 feasible visible poses") does not tell the user that the map is what is in the way."""
+        try:
+            return self._calibrate()
+        except StartupAbort as e:
+            if not self._map_blocked:
+                raise
+            names = ", ".join(sorted(self._map_blocked))
+            raise StartupAbort(e.state, f"{e.reason}. The room map is in the way: {names} is too close to where the claw calibrates "
+                                        "(around its start point). Edit the Map (move that shape, or the claw's start point) and start "
+                                        "again", suspended=e.suspended, paused=e.paused) from e
+
+    def _calibrate(self):
         ctx, cfg, S = self.ctx, self.cfg, "CALIBRATION"
         cc = cfg.calibration
         st = cfg.startup

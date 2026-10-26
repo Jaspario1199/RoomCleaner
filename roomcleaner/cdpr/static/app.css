@@ -201,11 +201,14 @@ label input { margin-top: 2px; }
 #map .alabel { fill: var(--ink); font-weight: 800; }
 #map .alabel.off { fill: var(--muted); }
 #map .start { fill: none; stroke: var(--accent); }
-#map .shape { fill: var(--shape-fill); stroke: var(--shape-stroke); cursor: grab; }
-#map .shape.sel { stroke: var(--sel); }
+#map .sbody { fill: var(--shape-fill); stroke: var(--shape-stroke); pointer-events: none; }
+#map .sbody.sel { stroke: var(--sel); }
+#map .shape { fill: transparent; stroke: none; cursor: grab; }   /* the grab area: the outline, at least a finger wide */
 #map .slabel { fill: var(--shape-ink); font-weight: 700; pointer-events: none; }
-#map .hamper { fill: none; stroke: var(--hamper); cursor: grab; }
-#map .hamper.sel { stroke: var(--sel); }
+#map .hring { fill: none; stroke: var(--hamper); pointer-events: none; }
+#map .hring.sel { stroke: var(--sel); }
+#map .hamper { fill: transparent; stroke: none; cursor: grab; }  /* the whole marker takes the finger */
+#map .hpill { fill: var(--surface); stroke: var(--hamper); stroke-width: 0; pointer-events: none; }
 #map .hlabel { fill: var(--hamper); font-weight: 700; pointer-events: none; }
 #map .handle { fill: var(--surface); stroke: var(--sel); }
 #map .hit { fill: transparent; stroke: none; }

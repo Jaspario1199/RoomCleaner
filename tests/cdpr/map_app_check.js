@@ -19,7 +19,7 @@ const contrast = () => {
   const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
   const bgOf = el => { for (let e = el; e; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c && !/rgba\(.*,\s*0\)$/.test(c) && c !== "transparent") return c; } return getComputedStyle(document.body).backgroundColor; };
   const out = {};
-  const lab = document.querySelector("#map .slabel"), shp = document.querySelector("#map .shape");
+  const lab = document.querySelector("#map .slabel"), shp = document.querySelector("#map .sbody");
   if (lab && shp) out.shapeLabel = ratio(getComputedStyle(lab).fill, getComputedStyle(shp).fill);
   for (const sel of ["#mapMsg", "#mapEmpty", "#insp label", "#insp h3", ".pal", "#mapMore summary", ".estop", "#mapNote"]) {
     const e = document.querySelector(sel);
@@ -63,7 +63,7 @@ const contrast = () => {
   const c0 = await circ.boundingBox();
   await page.mouse.move(c0.x + c0.width / 2, c0.y + c0.height / 2);
   await page.mouse.down();
-  for (let k = 1; k <= 8; k++) await page.mouse.move(c0.x + c0.width / 2 + 6 * k, c0.y + c0.height / 2 + 3 * k);
+  for (let k = 1; k <= 8; k++) await page.mouse.move(c0.x + c0.width / 2 - 6 * k, c0.y + c0.height / 2 - 3 * k);
   await page.mouse.up();
   const c1 = await circ.boundingBox();
   out.circleMovedPx = Math.hypot(c1.x - c0.x, c1.y - c0.y);

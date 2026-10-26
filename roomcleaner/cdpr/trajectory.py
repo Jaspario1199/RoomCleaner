@@ -168,6 +168,9 @@ def _noop_plan(start_pos, cart, label, meta) -> Plan:
                 None if cart is None else np.asarray(cart, float).reshape(1, 3), label, {"noop": True, **meta})
 
 
+START_BOUND_TOL_M = 0.001          # plan_line_from: a start pose this little outside the workspace box is put on the bound
+
+
 class PlanError(ValueError):
     pass
 
@@ -250,6 +253,16 @@ def plan_line_from(model: RobotModel, P_actual, p_to, lim: Limits, *, R=None, p_
     """
     P_actual = np.asarray(P_actual, float)
     p_from, rms = model.pose_from_positions(P_actual, p_guess, R)
+    ws = kw.get("ws")
+    if ws is not None:
+        # a claw stopped AT a bound of the box (the end of a planned move to it) reads up to a microstep outside it after
+        # rounding: start the line on the bound instead of refusing every move away from it (the offset fade absorbs it)
+        lo = ws.lo.copy()
+        if kw.get("allow_low"):
+            lo[2] = -np.inf
+        out = (p_from < lo) & (p_from > lo - START_BOUND_TOL_M) | (p_from > ws.hi) & (p_from < ws.hi + START_BOUND_TOL_M)
+        if np.any(out):
+            p_from = np.clip(p_from, lo, ws.hi)
     plan = plan_line(model, p_from, p_to, lim, R=R, **kw)
     off = P_actual - plan.pos[0]
     L = model.lengths(p_from, R)

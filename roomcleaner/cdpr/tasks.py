@@ -346,6 +346,10 @@ class TaskRunner:
             ctx.wait(self.cfg.startup.settle_s)
             items = [it for it in self.per.scan(ctx) if it.id not in skip]
             if not items:
+                if failed:                             # what is left is what could not be picked (often: the room map is in the way)
+                    return {"done": done, "failed": failed,
+                            "summary": f"{len(done)} delivered, {len(failed)} could not be picked up "
+                                       f"({'; '.join(f'{i}: {w}' for i, w in failed)})"}
                 return {"done": done, "failed": failed, "summary": f"{len(done)} delivered, room clear"}
             items.sort(key=lambda it: np.linalg.norm(it.xy - scan[:2]))
             item = items[0]

@@ -292,15 +292,26 @@ class Service:
                 cfg.record(sid).anchor_room_m = a          # any of the four records (an unmounted station's entry too)
             except KeyError:
                 raise CommandRefused(f"unknown station {sid!r}")
+        def undo():                                        # a refused edit changes nothing
+            cfg.room_m = old_room
+            for st in cfg.all_stations:
+                st.anchor_room_m = old_anchors[st.id]
         if cfg.n_active == 3:                              # three-station mode: the anchors must still span a triangle
             from .config import ConfigError, _check_triangle
             try:
                 _check_triangle(cfg)
             except ConfigError as e:
-                cfg.room_m = old_room                      # a refused edit changes nothing
-                for st in cfg.all_stations:
-                    st.anchor_room_m = old_anchors[st.id]
+                undo()
                 raise CommandRefused(str(e))
+        # the saved room map must still fit the room (else the config file would not load at the next start)
+        _shapes, errs = validate_obstacles(cfg.obstacles, room)
+        hp = cfg.tasks.hamper_room_m
+        if hp is not None and not (0 <= hp[0] <= room[0] and 0 <= hp[1] <= room[1]):
+            errs.append("the hamper would be outside the room")
+        if errs:
+            undo()
+            raise CommandRefused("The new room size does not fit the saved Map: " + "; ".join(errs)
+                                 + ". Move or resize those shapes on the Map first, then change the room")
         if self.config_path:
             raw = json.loads(self.config_path.read_text())
             raw["room"].update(width_m=room[0], depth_m=room[1], height_m=room[2])
@@ -544,6 +555,7 @@ class Service:
                 "usable_box": [[m, m], [W - m, D - m]], "usable_triangle": tri,
                 "start_point_m": [round(float(v), 4) for v in cfg.start_point_xy()],
                 "margin_m": float(cfg.motion.obstacle_margin_m), "claw_body_radius_m": float(cfg.claw.body_radius_m),
+                "landing_m": [[round(float(v), 4) for v in xy] for _w, xy in self.landing_spots()],
                 "max_shapes": MAX_OBSTACLES, "editable": editable is None, "edit_note": editable or "",
                 "state": self.sup.state}
 
@@ -570,6 +582,11 @@ class Service:
                 if not 0.0 <= hh <= 1.5:
                     errs.append(f"hamper rim height {hh:.2f} m must be 0-1.5 m")
                 hamper = {"x": hx, "y": hy, "height_m": hh}
+        if hamper is not None and not errs:
+            from .kinematics import obstacle_name, obstacle_xy_distance
+            inside = [o for o in shapes if o["z_low_m"] < hamper["height_m"] and obstacle_xy_distance([hamper["x"], hamper["y"]], o) <= 0]
+            if inside:
+                errs.append(f"the hamper is inside {obstacle_name(inside[0])}: put it where the robot can reach its opening")
         if units is not None and units not in MAP_UNITS:
             errs.append(f"units must be one of {list(MAP_UNITS)}")
             units = None
@@ -664,6 +681,34 @@ class Service:
                         f"{z:.2f} m: {'; '.join(v)}. Move or park the claw first, or change the map")
         return None
 
+    def landing_spots(self):
+        """Where the claw is lowered to the floor: over the floor marker (supervisor.lower) and the start point."""
+        from .perception import to_room
+        cfg = self.ctx.cfg
+        out = []
+        T = getattr(self.ctx, "T_R_M", None)
+        if T is not None:
+            out.append(("the floor marker", np.asarray(to_room(T, [0, 0, 0])[:2], float)))
+        sp = np.asarray(cfg.start_point_xy(), float)
+        if not out or np.linalg.norm(out[0][1] - sp) > 0.05:
+            out.append(("the start point", sp))
+        return out
+
+    def _landing_check(self, shapes):
+        """Every state (H-2): None if no shape covers the claw's landing column (the claw body from the floor up to the transit
+        height) over the floor marker or the start point, else a plain refusal naming the shape."""
+        from .kinematics import obstacle_name
+        cfg = self.ctx.cfg
+        ws = self._map_workspace(shapes)
+        top = float(np.max(cfg.attachment_points()[:, 2]))
+        for what, xy in self.landing_spots():
+            hit = ws.body_column_hits(xy, float(cfg.motion.task_max_height_m), top_offset=top)
+            if hit:
+                n = obstacle_name(hit[0])
+                return (f"{n[0].upper() + n[1:]} covers the claw's landing spot at {what} ({xy[0]:.2f}, {xy[1]:.2f} m), where it is "
+                        f"lowered to the floor. Move {n} away from it on the Map")
+        return None
+
     def save_room_map(self, body):
         """``PUT /api/room_map``: validate, check the state rules (spec 4), then store the map in the configuration (and in the
         config file in hardware mode; ``--sim`` keeps it in memory) and in the live workspace. Raises CommandRefused (state,
@@ -680,6 +725,8 @@ class Service:
             why = self._map_block()
             if why is None and self.sup.state in ("READY", "PAUSED"):
                 why = self._pose_check(shapes)
+            if why is None:
+                why = self._landing_check(shapes)
             if why:
                 raise CommandRefused(why)
             cfg = self.ctx.cfg

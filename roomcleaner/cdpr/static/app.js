@@ -588,7 +588,7 @@ function snapPos(o) {          // 1 in grid, flush to a wall within 5 cm, centre
   o.x = Math.min(Math.max(x, 0), roomW()); o.y = Math.min(Math.max(y, 0), roomD());
 }
 function nextId() { let n = 1; while (M.shapes.some(o => o.id === "o" + n)) n++; return "o" + n; }
-function draftKey() { return JSON.stringify({s: M.shapes, h: M.hamper}); }
+function draftKey() { return JSON.stringify({s: M.shapes, h: M.hamper, u: M.units}); }     // the units are saved with the map
 function snapshot() {
   M.undo.push(draftKey());
   if (M.undo.length > UNDO_MAX) M.undo.shift();
@@ -597,12 +597,16 @@ function freeSpot(o) {         // the free floor point nearest the start point w
   const [hx, hy] = halfExtents(o), c = M.info.start_point_m, b = M.info.usable_box, pts = [];
   for (let x = b[0][0] + hx; x <= b[1][0] - hx + 1e-9; x += 0.1) for (let y = b[0][1] + hy; y <= b[1][1] - hy + 1e-9; y += 0.1) pts.push([x, y]);
   pts.sort((p, q) => Math.hypot(p[0] - c[0], p[1] - c[1]) - Math.hypot(q[0] - c[0], q[1] - c[1]));
+  const hp = M.hamper, hr = hp ? (hp.radius_m || 0.2) : 0;
   const clear = ([x, y]) => M.shapes.every(s => {
     const [sx, sy] = halfExtents(s);
     return Math.abs(s.x - x) >= sx + hx + 0.05 || Math.abs(s.y - y) >= sy + hy + 0.05;
-  });
+  }) && (!hp || Math.abs(hp.x - x) >= hr + hx + 0.05 || Math.abs(hp.y - y) >= hr + hy + 0.05)
+    // and never over the claw's landing spot (where it is lowered to the floor): the service refuses a map that covers it
+    && (M.info.landing_m || []).every(([lx, ly]) => Math.abs(lx - x) >= hx + keepClear() || Math.abs(ly - y) >= hy + keepClear());
   return pts.find(clear) || c;
 }
+const keepClear = () => (M.info.margin_m || 0.1) + (M.info.claw_body_radius_m || 0.07) + 0.05;
 function addShape(kind, at) {
   const t = KINDS[kind];
   const o = Object.assign({id: nextId(), name: "", x: 0, y: 0, z_low_m: 0}, t, t.shape === "box" ? {yaw_deg: 0} : {});
@@ -650,20 +654,39 @@ function mapRender() {
   else el("rect", {class: "usable", x: ub[0][0], y: sy(ub[1][1]), width: ub[1][0] - ub[0][0], height: ub[1][1] - ub[0][1], "stroke-width": sw, "stroke-dasharray": dash}, svg);
   const sp = M.info.start_point_m;
   el("circle", {class: "start", cx: sp[0], cy: sy(sp[1]), r: 6 / M.px, "stroke-width": sw}, svg);
+  const fixed = [];               // labels that stay where they are (anchors); the others are placed around them
   for (const [id, a] of Object.entries(M.info.anchors).sort()) {
     const ax = Math.min(Math.max(a.xyz[0], 0), W), ay = Math.min(Math.max(a.xyz[1], 0), D);
     el("circle", {class: "anchor" + (a.active ? "" : " off"), cx: ax, cy: sy(ay), r: 7 / M.px}, svg);
     const t = el("text", {class: "alabel" + (a.active ? "" : " off"), x: ax + (ax < W / 2 ? 10 : -10) / M.px, y: sy(ay) + (ay < D / 2 ? -6 : 16) / M.px,
       "text-anchor": ax < W / 2 ? "start" : "end", "font-size": fs}, svg);
     t.textContent = a.active ? id : id + " (not used)";
+    fixed.push(t);
   }
-  for (const o of M.shapes) drawShape(svg, o, fs);
+  // hanging shapes first, so what stands on the floor under them stays visible and on top for the finger
+  const order = M.shapes.filter(o => o.z_low_m > 0).concat(M.shapes.filter(o => !(o.z_low_m > 0)));
+  for (const o of order) drawShape(svg, o);
+  const labels = [];
+  let hamperLabel = null;
   if (M.hamper) {
-    const hp = el("circle", {class: "hamper" + (M.sel === "hamper" ? " sel" : ""), cx: M.hamper.x, cy: sy(M.hamper.y),
-      r: M.hamper.radius_m || 0.2, "stroke-width": 3 / M.px, "data-hamper": "1", "fill": "transparent"}, svg);
-    hp.setAttribute("aria-label", "hamper");
-    const t = el("text", {class: "hlabel", x: M.hamper.x, y: sy(M.hamper.y) + fs / 3, "text-anchor": "middle", "font-size": fs}, svg);
-    t.textContent = "Hamper";
+    const hr = M.hamper.radius_m || 0.2;
+    el("circle", {class: "hring" + (M.sel === "hamper" ? " sel" : ""), cx: M.hamper.x, cy: sy(M.hamper.y), r: hr, "stroke-width": 3 / M.px}, svg);
+    const hp = el("circle", {class: "hamper", cx: M.hamper.x, cy: sy(M.hamper.y), r: Math.max(hr, 24 / M.px), "data-hamper": "1"}, svg);
+    hp.setAttribute("aria-label", "hamper");     // the whole marker (at least a finger wide) takes the drag
+    hamperLabel = el("text", {class: "hlabel", x: M.hamper.x, y: sy(M.hamper.y), "text-anchor": "middle", "dominant-baseline": "central", "font-size": fs}, svg);
+    hamperLabel.textContent = "Hamper";
+    labels.push(hamperLabel);
+  }
+  for (const o of order) {
+    const t = el("text", {class: "slabel", x: o.x, y: sy(o.y), "text-anchor": "middle", "dominant-baseline": "central", "font-size": fs}, svg);
+    t.textContent = shapeLabel(o);
+    labels.push(t);
+  }
+  placeLabels(svg, fixed, labels, pad);
+  if (hamperLabel) {              // an opaque pill behind "Hamper": readable on a shape or on the overlay tint
+    const b = hamperLabel.getBBox(), m = 3 / M.px;
+    const pill = el("rect", {class: "hpill", x: b.x - m, y: b.y - m / 2, width: b.width + 2 * m, height: b.height + m, rx: 4 / M.px});
+    svg.insertBefore(pill, hamperLabel);
   }
   const sel = byId(M.sel);
   if (sel) drawHandles(svg, sel);
@@ -674,15 +697,46 @@ function mapRender() {
   mapGate();
   renderInspector();
 }
-function drawShape(svg, o, fs) {
+function drawShape(svg, o) {
+  // the visible body, and over it the grab area: the same outline, or at least a finger (44 px) wide for a thin pole
   const g = el("g", {transform: `translate(${o.x} ${sy(o.y)}) rotate(${o.shape === "box" ? -o.yaw_deg : 0})`, "data-id": o.id}, svg);
-  const cls = "shape" + (o.id === M.sel ? " sel" : "") + (o.z_low_m > 0 ? " hang" : "");
-  const sw = (o.id === M.sel ? 3 : 1.5) / M.px, st = {"stroke-width": sw, "data-id": o.id};
+  const cls = "sbody" + (o.id === M.sel ? " sel" : "") + (o.z_low_m > 0 ? " hang" : "");
+  const st = {"stroke-width": (o.id === M.sel ? 3 : 1.5) / M.px};
   if (o.z_low_m > 0) st["stroke-dasharray"] = `${6 / M.px} ${4 / M.px}`;        // hangs from the ceiling: dashed outline
-  if (o.shape === "cylinder") el("circle", Object.assign({class: cls, cx: 0, cy: 0, r: o.diameter_m / 2}, st), g);
-  else el("rect", Object.assign({class: cls, x: -o.length_m / 2, y: -o.width_m / 2, width: o.length_m, height: o.width_m}, st), g);
-  const t = el("text", {class: "slabel", x: o.x, y: sy(o.y) + fs / 3, "text-anchor": "middle", "font-size": fs}, svg);
-  t.textContent = shapeLabel(o);
+  const f = 44 / M.px;
+  if (o.shape === "cylinder") {
+    el("circle", Object.assign({class: cls, cx: 0, cy: 0, r: o.diameter_m / 2}, st), g);
+    el("circle", {class: "shape", cx: 0, cy: 0, r: Math.max(o.diameter_m, f) / 2, "data-id": o.id}, g);
+  } else {
+    el("rect", Object.assign({class: cls, x: -o.length_m / 2, y: -o.width_m / 2, width: o.length_m, height: o.width_m}, st), g);
+    const L = Math.max(o.length_m, f), Wd = Math.max(o.width_m, f);
+    el("rect", {class: "shape", x: -L / 2, y: -Wd / 2, width: L, height: Wd, "data-id": o.id}, g);
+  }
+}
+function placeLabels(svg, fixed, labels, pad) {
+  // Greedy, simple: each label (hamper first, then the shapes) takes the first spot near its own centre (centre, then one, two,
+  // three lines above or below, then a little to the side) that overlaps no label already placed and stays inside the drawing.
+  // One layout read for all the boxes, then writes only.
+  const gap = 2 / M.px, W = roomW(), D = roomD();
+  const boxes = fixed.map(t => t.getBBox());
+  const sizes = labels.map(t => { const b = t.getBBox(); return [b.width, b.height, +t.getAttribute("x"), +t.getAttribute("y")]; });
+  const hit = (a, b) => a.x < b.x + b.width + gap && b.x < a.x + a.width + gap && a.y < b.y + b.height + gap && b.y < a.y + a.height + gap;
+  labels.forEach((t, k) => {
+    const [w, hgt, cx, cy] = sizes[k];
+    let best = null;
+    search:
+    for (const j of [0, -1, 1, -2, 2, -3, 3, -4, 4, -5, 5]) {
+      for (const i of [0, -0.6, 0.6, -1.2, 1.2]) {
+        const x = Math.min(Math.max(cx + i * w, -pad + w / 2 + gap), W + pad - w / 2 - gap);
+        const y = Math.min(Math.max(cy + j * (hgt + gap), -pad + hgt / 2), D + pad - hgt / 2);
+        const b = {x: x - w / 2, y: y - hgt / 2, width: w, height: hgt};
+        if (!best) best = [x, y, b];
+        if (!boxes.some(o => hit(o, b))) { best = [x, y, b]; break search; }
+      }
+    }
+    t.setAttribute("x", best[0]); t.setAttribute("y", best[1]);
+    boxes.push(best[2]);
+  });
 }
 function handlePoints(o) {     // [{kind, x, y}] in room coordinates
   if (o.shape === "cylinder") return [{kind: "rim", x: o.x + o.diameter_m / 2, y: o.y}];
@@ -798,7 +852,12 @@ function cellReason([x, y]) {
   const c = M.cov, ix = Math.floor((x - c.x0) / c.cell_m), iy = Math.floor((y - c.y0) / c.cell_m);
   if (ix < 0 || iy < 0 || ix >= c.nx || iy >= c.ny) return "";
   const r = c.reasons[c.cells[iy * c.nx + ix]];
-  return `Here (${fmtLen(x)}, ${fmtLen(y)}): ${r.kind === "ok" ? "the robot can pick things up here" : r.text}.`;
+  return `Here (${fmtLen(x)}, ${fmtLen(y)}): ${r.kind === "ok" ? "the robot can pick things up here" : plainNames(r.text)}.`;
+}
+
+function displayName(o) { return o.name || (o.shape === "cylinder" ? "Circle" : isSquare(o) ? "Square" : "Rectangle"); }
+function plainNames(text) {    // the service names an unnamed shape by its id ("shape o3"): show its label instead
+  return String(text).replace(/\bshape (o\d+|[A-Za-z0-9_-]+)\b/g, (m, id) => { const o = byId(id); return o ? "the " + displayName(o) : "a shape"; });
 }
 
 // ---- palette: tap adds in the middle of the free floor; dragging a button onto the map drops the shape there
@@ -835,22 +894,45 @@ function field(label, value, onset, opts = {}) {
   const inp = h("input", {type: "text", inputmode: opts.numeric ? "decimal" : "text", autocomplete: "off", spellcheck: "false",
     "aria-label": label, value, placeholder: opts.placeholder || ""});
   const lab = h("label", {}, label, inp);
+  let typed = false;              // typing the shown value again still sets it exactly (2'6" is 0.762 m, not the 0.75 shown as 2'6")
+  inp.addEventListener("input", () => { typed = true; });
   const commit = () => {
-    if (inp.value === value) return;
+    if (!typed && inp.value === value) return;
+    typed = false;
     const ok = onset(inp.value);
     if (ok === false) { lab.classList.add("err"); mapMsg(`${label}: "${inp.value}" is not a length I understand (try 5'6", 66 in, 1.68 m or 168 cm).`, "bad"); }
+    else if (typeof ok === "string") { lab.classList.add("err"); mapMsg(`${label}: ${ok}`, "bad"); }
   };
   inp.addEventListener("change", commit);
   inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); inp.blur(); } });
   return lab;
 }
-function lenField(label, o, key, apply) {
+function lenField(label, o, key, apply, check) {
   return field(label, fmtLen(o[key]), txt => {
     const v = parseLen(txt);
     if (v == null || !(v >= 0)) return false;
+    const why = check ? check(v) : null;
+    if (why) return why;
     change(() => apply ? apply(v) : (o[key] = v));
     return true;
   }, {placeholder: M.units === "m" ? "e.g. 1.68 m" : `e.g. 5'6"`});
+}
+// plain checks in the user's units, so a refusal never has to come back from the service (M-2, L-4)
+const MIN_LEN = 0.021;
+const sizeCheck = v => v < MIN_LEN ? `${fmtLen(v)} is not a size the robot can avoid: it must be more than 1 inch (2 cm).`
+  : v > Math.max(roomW(), roomD()) ? `${fmtLen(v)} is longer than the room (${fmtLen(roomW())} x ${fmtLen(roomD())}).` : null;
+const topCheck = o => v => v < MIN_LEN ? `${fmtLen(v)} is not a height: give the real height of the furniture.`
+  : v > roomH() + 0.05 ? `${fmtLen(v)} is above the ceiling (${fmtLen(roomH())}).`
+  : v <= o.z_low_m ? `the top must be above its bottom (${fmtLen(o.z_low_m)}).` : null;
+const bottomCheck = o => v => v >= o.height_m ? `the bottom must be below its top (${fmtLen(o.height_m)}).` : null;
+function draftProblems() {     // the same rules as the service, in plain words and the user's units
+  const out = [];
+  for (const o of M.shapes) {
+    const n = displayName(o), sizes = o.shape === "cylinder" ? [o.diameter_m] : [o.length_m, o.width_m];
+    for (const v of sizes) { const w = sizeCheck(v); if (w) out.push(`${n}: ${w}`); }
+    const t = topCheck(o)(o.height_m); if (t) out.push(`${n}: ${t}`);
+  }
+  return out;
 }
 function change(fn, msg) { snapshot(); fn(); edited(msg === undefined ? "" : msg); }
 function renderInspector() {
@@ -868,11 +950,11 @@ function renderInspector() {
   const chips = h("div", {class: "chips", "aria-label": "What is it?"}, ...Object.keys(CHIPS).map(n => h("button", {type: "button", class: "chip",
     "aria-pressed": String(o.name === n), onclick: () => change(() => applyChip(o, n))}, n)));
   const sizes = h("div", {class: "grid2"});
-  if (o.shape === "cylinder") sizes.append(lenField("Across", o, "diameter_m", v => { o.diameter_m = Math.max(MIN_SIZE, v); }));
-  else if (isSquare(o)) sizes.append(lenField("Side", o, "length_m", v => { o.length_m = o.width_m = Math.max(MIN_SIZE, v); }));
-  else sizes.append(lenField("Length", o, "length_m", v => { o.length_m = Math.max(MIN_SIZE, v); }),
-                    lenField("Width", o, "width_m", v => { o.width_m = Math.max(MIN_SIZE, v); }));
-  sizes.append(lenField(o.z_low_m > 0 ? "Top height" : "Height", o, "height_m"));
+  if (o.shape === "cylinder") sizes.append(lenField("Across", o, "diameter_m", v => { o.diameter_m = Math.max(MIN_SIZE, v); }, sizeCheck));
+  else if (isSquare(o)) sizes.append(lenField("Side", o, "length_m", v => { o.length_m = o.width_m = Math.max(MIN_SIZE, v); }, sizeCheck));
+  else sizes.append(lenField("Length", o, "length_m", v => { o.length_m = Math.max(MIN_SIZE, v); }, sizeCheck),
+                    lenField("Width", o, "width_m", v => { o.width_m = Math.max(MIN_SIZE, v); }, sizeCheck));
+  sizes.append(lenField(o.z_low_m > 0 ? "Top height" : "Height", o, "height_m", null, topCheck(o)));
   const acts = h("div", {class: "row"});
   if (o.shape === "box" && !isSquare(o)) acts.append(h("button", {type: "button", class: "btn",
     onclick: () => change(() => { o.yaw_deg = (o.yaw_deg + 90) % 360; snapPos(o); })}, "Turn 90°"));
@@ -891,7 +973,7 @@ function renderInspector() {
     if (hang.checked) { o.height_m = roomH(); o.z_low_m = Math.max(0, roomH() - 0.45); } else o.z_low_m = 0; })});
   hang.checked = o.z_low_m > 0;
   more.append(h("label", {class: "chk"}, hang, "Hangs from the ceiling (a fan, a lamp)"));
-  if (o.z_low_m > 0) more.append(h("div", {class: "grid2"}, lenField("Bottom height", o, "z_low_m")));
+  if (o.z_low_m > 0) more.append(h("div", {class: "grid2"}, lenField("Bottom height", o, "z_low_m", null, bottomCheck(o))));
   more.append(h("div", {class: "row"}, h("button", {type: "button", class: "btn", onclick: () => change(() => {
     const c = Object.assign({}, o, {id: nextId(), x: o.x + 0.3, y: o.y - 0.3}); snapPos(c); M.shapes.push(c); M.sel = c.id; }, "Copied.")}, "Make a copy")));
   box.replaceChildren(title, h("p", {class: "muted small"}, "Keep the robot away from this. Set what it is, its size and its height."),
@@ -927,7 +1009,7 @@ async function mapLoad(force) {
   if (!M.loaded || force) {
     M.shapes = r.data.obstacles.map(o => Object.assign({}, o));
     M.hamper = r.data.hamper ? {x: r.data.hamper.x, y: r.data.hamper.y, height_m: r.data.hamper.height_m, radius_m: r.data.hamper.radius_m} : null;
-    M.units = store.get("rc_units") || r.data.units || "ft-in";
+    M.units = r.data.units || "ft-in";
     M.savedKey = draftKey(); M.loaded = true; M.undo = []; M.sel = null;
   }
   $("mapUnits").textContent = M.units === "m" ? "metres" : "feet and inches";
@@ -959,6 +1041,8 @@ function mapGate() {           // Save only where the service would accept it (i
     : (busy ? `The robot is busy (${busy}). You can keep drawing; save when it is done.` : `The map can be saved when the robot is stopped (it is ${st}). You can keep drawing.`);
 }
 $("mapSave").addEventListener("click", async () => {
+  const bad = draftProblems();
+  if (bad.length) { mapMsg("Not saved: " + bad.join(" "), "bad"); return; }
   const r = await api("/api/room_map", draftBody(), "PUT");
   if (r.ok) {
     M.info = Object.assign(M.info, r.data);
@@ -966,7 +1050,7 @@ $("mapSave").addEventListener("click", async () => {
     M.savedKey = draftKey();
     mapRender(); mapMsg(r.data.text + ".", "good"); toast(r.data.text + ".");
   } else {
-    const why = (r.data && (r.data.errors ? r.data.errors.join("; ") : r.data.error)) || "HTTP " + r.status;
+    const why = plainNames((r.data && (r.data.errors ? r.data.errors.join("; ") : r.data.error)) || "HTTP " + r.status);
     mapMsg("Not saved: " + why, "bad"); toast("Map not saved: " + why, true);
   }
 });
@@ -975,12 +1059,12 @@ $("mapUndo").addEventListener("click", () => {
   const k = M.undo.pop();
   if (!k) return;
   const d = JSON.parse(k);
-  M.shapes = d.s; M.hamper = d.h;
+  M.shapes = d.s; M.hamper = d.h; M.units = d.u || M.units;
   if (M.sel !== "hamper" && !byId(M.sel)) M.sel = null;
   edited("Undone.");
 });
 $("mapUnits").addEventListener("click", () => {
-  M.units = M.units === "m" ? "ft-in" : "m"; store.set("rc_units", M.units);
+  snapshot(); M.units = M.units === "m" ? "ft-in" : "m";
   $("mapUnits").textContent = M.units === "m" ? "metres" : "feet and inches";
   mapRender();
 });

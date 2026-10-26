@@ -346,6 +346,8 @@ class MotionConfig:
     start_lead_s: float = 0.40
     task_max_height_m: float = 1.6                   # pickup/delivery transit never plans above this claw-origin height
     obstacle_margin_m: float = 0.10                  # room map: every keep-out shape is inflated by this, sideways and in height
+    waypoint_inset_m: float = 0.03                   # a generated waypoint (room-map detour) stays this far inside the workspace
+                                                     # box: a pose AT a bound reads micrometres outside it after rounding
 
 
 @dataclass
@@ -739,10 +741,21 @@ _CYL_KEYS = {"id", "name", "shape", "x", "y", "diameter_m", "z_low_m", "height_m
 _OLD_KEYS = {"x", "y", "r", "z_low", "z_high", "name"}
 
 
+# the words a user sees for each key (messages never show the key names, docs/ROOM_MAP_SPEC.md 1 "plain words")
+_WORDS = {"x": "position x", "y": "position y", "length_m": "length", "width_m": "width", "diameter_m": "width across",
+          "height_m": "height", "z_low_m": "bottom height", "yaw_deg": "angle", "r": "radius", "z_low": "bottom height",
+          "z_high": "height"}
+_KIND = {"box": "rectangle", "cylinder": "circle"}
+
+
+def _ordinal(n: int) -> str:
+    return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
 def _num(d, key, where, errs, default=None):
     v = d.get(key, default)
     if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
-        errs.append(f"{where}: {key} must be a finite number, got {v!r}")
+        errs.append(f"{where}: its {_WORDS.get(key, key)} must be a finite number, got {v!r}")
         return None
     return float(v)
 
@@ -764,7 +777,7 @@ def validate_obstacles(raw, room_m) -> tuple:
         errs.append(f"{len(raw)} shapes: a map holds at most {MAX_OBSTACLES}")
     big = max(W, D)
     for k, ob in enumerate(raw):
-        where = f"shape {k + 1}"
+        where = f"the {_ordinal(k + 1)} shape on the map"
         if not isinstance(ob, dict):
             errs.append(f"{where}: must be an object, got {type(ob).__name__}")
             continue
@@ -772,7 +785,10 @@ def validate_obstacles(raw, room_m) -> tuple:
         if not isinstance(name, str) or len(name) > 40:
             errs.append(f"{where}: name must be text of at most 40 characters")
             name = ""
-        where = f"shape {k + 1}" + (f" ({name})" if name else "")
+        kind = _KIND.get(ob.get("shape"), "shape")
+        if kind == "rectangle" and ob.get("length_m") == ob.get("width_m") and ob.get("length_m") is not None:
+            kind = "square"
+        where = f"the {name}" if name else f"the {_ordinal(k + 1)} shape on the map (a {kind})"
         if "shape" not in ob and set(ob) <= _OLD_KEYS and "r" in ob:           # the format before the map: a cylinder
             vals = [_num(ob, key, where, errs) for key in ("x", "y", "r", "z_low", "z_high")]
             if None in vals:
@@ -781,7 +797,7 @@ def validate_obstacles(raw, room_m) -> tuple:
             ob = {"name": name, "shape": "cylinder", "x": x, "y": y, "diameter_m": 2 * r, "z_low_m": zl, "height_m": zh}
         shape = ob.get("shape")
         if shape not in ("box", "cylinder"):
-            errs.append(f"{where}: unknown shape {shape!r} (box or cylinder)")
+            errs.append(f"{where}: unknown shape {shape!r} (a rectangle / square is 'box', a circle 'cylinder')")
             continue
         extra = set(ob) - (_BOX_KEYS if shape == "box" else _CYL_KEYS)
         if extra:
@@ -797,13 +813,14 @@ def validate_obstacles(raw, room_m) -> tuple:
             continue
         for key, v in dims.items():
             if v <= OBSTACLE_MIN_SIZE_M:
-                errs.append(f"{where}: {key} {v:.3f} m is too small (must be more than {OBSTACLE_MIN_SIZE_M * 100:.0f} cm)")
+                errs.append(f"{where}: its {_WORDS[key]} ({v:.3f} m) is too small (it must be more than "
+                            f"{OBSTACLE_MIN_SIZE_M * 100:.0f} cm)")
             elif v > big:
-                errs.append(f"{where}: {key} {v:.2f} m is larger than the room ({W:.2f} x {D:.2f} m)")
+                errs.append(f"{where}: its {_WORDS[key]} ({v:.2f} m) is larger than the room ({W:.2f} x {D:.2f} m)")
         if zl < 0:
-            errs.append(f"{where}: bottom height z_low_m {zl:.2f} m is below the floor")
+            errs.append(f"{where}: its bottom ({zl:.2f} m) is below the floor")
         if zl >= top:
-            errs.append(f"{where}: bottom height z_low_m {zl:.2f} m must be below its top height_m {top:.2f} m")
+            errs.append(f"{where}: its bottom ({zl:.2f} m) must be below its top ({top:.2f} m); give it a height")
         if top > H + CEILING_SLACK_M:
             errs.append(f"{where}: height {top:.2f} m is above the ceiling ({H:.2f} m)")
         if not (0.0 <= x <= W and 0.0 <= y <= D):
@@ -967,6 +984,7 @@ def load_config(path_or_dict) -> SystemConfig:
                  ("motion.ceiling_margin_m", cfg.motion.ceiling_margin_m),
                  ("motion.task_max_height_m", cfg.motion.task_max_height_m),
                  ("motion.obstacle_margin_m", cfg.motion.obstacle_margin_m),
+                 ("motion.waypoint_inset_m", cfg.motion.waypoint_inset_m),
                  ("claw.body_radius_m", cfg.claw.body_radius_m)):
         if not isinstance(v, (int, float)) or isinstance(v, bool) or not v >= 0:
             raise ConfigError(f"{k} must be a number >= 0")

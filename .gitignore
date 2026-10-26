@@ -29,3 +29,7 @@ output/
 firmware/**/secrets.h
 # runtime robot state (per machine): ledger, model, supervisor state
 data/cdpr/
+
+# LibreOffice render temp/lock files
+.~lock.*#
+lu*.tmp

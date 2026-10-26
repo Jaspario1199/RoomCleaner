@@ -694,3 +694,16 @@ slack_probe default (keep false until probe H1/M2 are closed).
   - servo open/closed values are not measured;
   - the claw camera is not calibrated;
   - the stations are not yet on the network.
+
+## Over-the-air updates (10/26, lead)
+- `winch_station.ino` and `claw_s3.ino` now run ArduinoOTA, with network ports `roomcleaner-station-<ID>` and
+  `roomcleaner-claw`.
+  - **Password:** `OTA_PASS` is required in `secrets.h`; a sketch without it does not compile.
+  - **Station:** listens only while **disarmed**.
+  - **Claw:** listens only while its grip is **open**. An update ends in a reboot, and a reboot releases the motor or the
+    servo.
+- **Guide:** `docs/NETWORK_AND_OTA.md` covers the fixed addresses, `secrets.h`, the one USB flash, boxed operation and
+  Wi-Fi updates.
+- **Host build test:** `tests/firmware/test_sketch_builds.py` failed after the board-detection change (no board macro in
+  the host build). It now builds as the XIAO-C3 (`-DCONFIG_IDF_TARGET_ESP32C3`). `tests/firmware`: 9 pass.
+- Not compiled for the ESP32 here.

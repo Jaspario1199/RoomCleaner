@@ -19,7 +19,7 @@ def test_station_sketch_builds_against_stubs(tmp_path):
     (tmp_path / "main.cpp").write_text(
         '#include "winch_station.ino"\nint main(){ setup(); for (int i = 0; i < 5; i++) loop(); return 0; }\n')
     exe = tmp_path / "station"
-    r = subprocess.run(["g++", "-std=c++17", "-Wall", "-Wextra", "-Werror", f"-I{tmp_path}", f"-I{STUBS}",
+    r = subprocess.run(["g++", "-std=c++17", "-Wall", "-Wextra", "-Werror", "-DCONFIG_IDF_TARGET_ESP32C3", f"-I{tmp_path}", f"-I{STUBS}",
                         f"-I{FW}", str(tmp_path / "main.cpp"), "-o", str(exe)], capture_output=True, text=True)
     assert r.returncode == 0, r.stderr[-3000:]
     assert subprocess.run([str(exe)], timeout=10).returncode == 0

@@ -7,3 +7,5 @@
 #define STATION_IP IPAddress(192, 168, 1, 61)
 #define GATEWAY IPAddress(192, 168, 1, 1)
 #define SUBNET IPAddress(255, 255, 255, 0)
+// Over-the-air update password (Arduino IDE asks for it when uploading to the network port). Pick your own.
+#define OTA_PASS "change-me"

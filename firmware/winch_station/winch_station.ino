@@ -25,7 +25,12 @@
  * The A4988 has no fault output (unlike the DRV8825 bench code's GPIO20).
  *
  * arduino-esp32 core 3.x for both boards.
- * Copy secrets.example.h -> secrets.h and set STATION_ID, Wi-Fi, static IP.
+ * Copy secrets.example.h -> secrets.h and set STATION_ID, Wi-Fi, static IP and OTA_PASS.
+ *
+ * Over-the-air updates (ArduinoOTA): after one USB flash, new firmware can be uploaded over Wi-Fi from the
+ * Arduino IDE (Tools > Port > network port "roomcleaner-station-<ID>"), password OTA_PASS. ONLY while the
+ * station is DISARMED (driver off, claw supported): an update ends in a reboot, and a reboot releases the
+ * motor, so an armed station never listens for an update (the upload just times out).
  *
  * STATUS: written against the core API; not yet compiled for the ESP32 in this
  * workspace (no Arduino toolchain here). First physical run = commissioning
@@ -34,10 +39,14 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 #include <Wire.h>
 #include "esp_random.h"
 #include "esp_timer.h"
-#include "secrets.h"        // STATION_ID, WIFI_SSID, WIFI_PASS, STATION_IP, GATEWAY, SUBNET
+#include "secrets.h"        // STATION_ID, WIFI_SSID, WIFI_PASS, STATION_IP, GATEWAY, SUBNET, OTA_PASS
+#ifndef OTA_PASS
+#error "winch_station: add  #define OTA_PASS \"<a password>\"  to secrets.h (over-the-air updates need one)"
+#endif
 #include "station_core.h"
 #include "as5600.h"
 #include "stepgen.h"
@@ -110,6 +119,10 @@ void setup() {
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   while (WiFi.status() != WL_CONNECTED) delay(100);
   udp.begin(UDP_PORT);
+  ArduinoOTA.setHostname("roomcleaner-station-" STATION_ID);
+  ArduinoOTA.setPassword(OTA_PASS);
+  ArduinoOTA.onStart([]() { digitalWrite(EN_PIN, HIGH); Serial.println("OTA update: receiving"); });   // already off: disarmed only
+  ArduinoOTA.begin();
   core = new StationCore(esp_random(), PERIOD_US, esp_random() & 0xFFFFFF);   // one allocation at boot, none afterwards
   Serial.printf("station %s %s boot\n", STATION_ID, WiFi.localIP().toString().c_str());
   nextTick = nowUs();
@@ -137,4 +150,5 @@ void loop() {
   OutMsg m;
   while (core->drain(m)) sendOut(m);
   if (WiFi.status() != WL_CONNECTED) WiFi.reconnect();          // lease handles the outage
+  if (!core->armed()) ArduinoOTA.handle();                       // updates only while disarmed (header comment)
 }

@@ -21,7 +21,7 @@ typedef int portMUX_TYPE;
 #define portMUX_INITIALIZER_UNLOCKED 0
 #define portENTER_CRITICAL(x) (void)(x)
 #define portEXIT_CRITICAL(x) (void)(x)
-struct SerialT { void begin(int) {} template <class... A> void printf(const char*, A...) {} };
+struct SerialT { void begin(int) {} void println(const char*) {} template <class... A> void printf(const char*, A...) {} };
 static SerialT Serial;
 struct IPAddress { IPAddress(int=0,int=0,int=0,int=0) {} bool operator==(const IPAddress&) const { return false; }
   struct S { const char* c_str() const { return ""; } }; S toString() const { return {}; } };

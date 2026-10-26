@@ -33,13 +33,20 @@
  * leave the servo without pulses, seen on the bench 10/26).
  * Copy secrets.example.h to secrets.h and fill in the network credentials (and, optionally, a fixed IP).
  * The orange user LED blinks once a second while the sketch runs (the board has no power LED).
+ * Over-the-air updates (ArduinoOTA, network port "roomcleaner-claw", password OTA_PASS from secrets.h): only
+ * while the grip is OPEN, because the update ends in a reboot and a reboot stops the servo pulses (an item held
+ * would drop). Rest the claw on the floor or a support before updating.
  */
 #include <WiFi.h>
 #include <WebServer.h>
+#include <ArduinoOTA.h>
 #include "driver/ledc.h"
 #include "esp_camera.h"
 #include "esp_timer.h"
-#include "secrets.h"       // WIFI_SSID, WIFI_PASS
+#include "secrets.h"       // WIFI_SSID, WIFI_PASS, OTA_PASS (optional CLAW_IP / GATEWAY / SUBNET)
+#ifndef OTA_PASS
+#error "claw_s3: add  #define OTA_PASS \"<a password>\"  to secrets.h (over-the-air updates need one)"
+#endif
 
 // ---------------------------------------------------------------- settings
 static const char* HOSTNAME = "roomcleaner-claw";
@@ -210,11 +217,15 @@ void setup() {
   server.on("/grip", HTTP_POST, handleGrip);
   server.on("/setup", HTTP_POST, handleSetup);
   server.begin();
+  ArduinoOTA.setHostname(HOSTNAME);
+  ArduinoOTA.setPassword(OTA_PASS);
+  ArduinoOTA.begin();
 }
 
 void loop() {
   digitalWrite(LED_PIN, (millis() % 1000) < 80 ? LOW : HIGH);   // heartbeat: short blink once a second
   server.handleClient();
+  if (!gripClosed) ArduinoOTA.handle();       // updates only with the grip open (header comment)
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.reconnect();                        // grip state is deliberately untouched
     delay(200);

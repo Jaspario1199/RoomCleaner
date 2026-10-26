@@ -707,3 +707,16 @@ slack_probe default (keep false until probe H1/M2 are closed).
 - **Host build test:** `tests/firmware/test_sketch_builds.py` failed after the board-detection change (no board macro in
   the host build). It now builds as the XIAO-C3 (`-DCONFIG_IDF_TARGET_ESP32C3`). `tests/firmware`: 9 pass.
 - Not compiled for the ESP32 here.
+
+## Map tab (D35 "now" half) built and independently verified (10/26, lead)
+- Built to `docs/ROOM_MAP_SPEC.md` §1-5 plus the "simple first" rule: three shape buttons, Save, one "More"; exact
+  segment-vs-shape tests with a 0.10 m margin and the claw body; `GET/POST preview/PUT /api/room_map`; coverage grid.
+- Round 1 review: FAIL (lowering could land the claw on a saved shape through the cable-packet fallback; a calibration
+  detour stranded the claw at the workspace top). Both fixed: the landing spot is chosen first (marker, start point,
+  nearest clear grid point) or lowering refuses, holding; a shape over the landing column is refused at save; detour
+  apex ≥ `motion.waypoint_inset_m` (0.03 m) below the top.
+- Round 2 review (`verification/room_map_verification.md`): **PASS WITH CONDITIONS for hardware**; no High/Critical.
+  Full suite serial 968 passed, 3 failed (2 pre-existing `test_tiny_moves`, 1 timing test that passes alone).
+- Open (Low): L-5 retyping the identical ft-in text is not applied (type a different value); L-6 preview slow while
+  busy; L-9 to L-12 observations (metres in some messages, landing rule vs the pre-startup marker, 60-spot search cap,
+  camera coverage of a far landing spot on hardware). Next: phase S1 of `docs/ROOM_SCAN_SPEC.md`.

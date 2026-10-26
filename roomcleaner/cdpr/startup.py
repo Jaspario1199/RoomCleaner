@@ -1228,46 +1228,53 @@ class StartupSequencer:
         here = to_marker(ctx.T_R_M, self._pumped(ctx.model.pose_from_positions, ctx.co.positions())[0])
         fitM, witM = self._pumped(design_excitation, ctx.cal, ctx.result, candM, n_fit, cov_fn=cov_fn,
                                   existing_M=[s.p for s in ctx.samples], start_M=here, n_witness=n_wit)
+        at = to_room(ctx.T_R_M, here)                       # where the claw is (the last pose it was moved to)
         for kind, pts in (("fit", fitM), ("witness", witM)):
             for qM in pts:
                 q = to_room(ctx.T_R_M, qM)
                 try:
-                    plan = self._pumped(plan_line_from, ctx.model, ctx.co.positions(), q, ctx.lim, ws=ctx.ws,
-                                        label=f"{name} {kind}")
+                    plan = self._plan_to(q, f"{name} {kind}")
                 except PlanError as e:
                     if not _blocked_by_map(e):
                         raise StartupAbort("CALIBRATION", f"{name}: {e}", suspended=True)
                     # room map: the pose is allowed but the straight line to it passes a keep-out shape. Go over it (up,
                     # across, down); a pose that cannot be reached that way either is skipped (the claw is still at an
                     # allowed pose), never a fault
-                    if not self._around_the_map(name, kind, q, e):
+                    ok, at = self._around_the_map(name, kind, at, q, e)
+                    if not ok:
                         continue
                     plan = None
                 if plan is not None:
                     r = self._execute(plan, "CALIBRATION", suspended=True)
                     if not r.ok:
                         raise StartupAbort("CALIBRATION", f"{name}: motion {r.reason}", suspended=True)
+                at = q
                 ctx.samples.append(self._sample_probed(kind, "CALIBRATION"))
 
-    def _around_the_map(self, name, kind, q, why) -> bool:
-        """Reach the calibration pose ``q`` over a room-map shape that blocks the straight line: up to the top of the workspace,
-        across, down. True when the claw is at ``q``; False (logged) when a leg cannot be planned: the pose is skipped. A leg that
-        was planned is executed like every calibration move (a motion fault or a pause still aborts)."""
+    def _plan_to(self, q, label):
+        """A calibration move from where the stations are to ``q`` (planned and path-checked on the pumped worker)."""
         ctx = self.ctx
-        here = self._pumped(ctx.model.pose_from_positions, ctx.co.positions())[0]
+        return self._pumped(plan_line_from, ctx.model, ctx.co.positions(), q, ctx.lim, ws=ctx.ws, label=label)
+
+    def _around_the_map(self, name, kind, here, q, why):
+        """From ``here``, reach the calibration pose ``q`` over a room-map shape that blocks the straight line: up to the top of the
+        workspace, across, down. Returns (reached, where the claw is now): reached False (logged) when a leg cannot be planned, the pose
+        is skipped and the claw stays where the last leg left it (an allowed pose). A planned leg is executed like every calibration
+        move (a motion fault or a pause still aborts)."""
+        ctx = self.ctx
         top = float(ctx.ws.hi[2])
         for leg, tgt in (("up", np.array([here[0], here[1], top])), ("across", np.array([q[0], q[1], top])), ("down", q)):
             try:
-                plan = self._pumped(plan_line_from, ctx.model, ctx.co.positions(), tgt, ctx.lim, ws=ctx.ws,
-                                    label=f"{name} {kind} {leg} (room map)")
+                plan = self._plan_to(tgt, f"{name} {kind} {leg} (room map)")
             except PlanError as e:
                 ctx.log(f"[startup] {name} {kind} pose {np.round(q, 3).tolist()} skipped: the straight move is blocked by the room "
                         f"map ({why}) and the way over it too ({leg}: {e})")
-                return False
+                return False, here
             r = self._execute(plan, "CALIBRATION", suspended=True)
             if not r.ok:
                 raise StartupAbort("CALIBRATION", f"{name}: motion {r.reason}", suspended=True)
-        return True
+            here = tgt
+        return True, here
 
     def calibrate(self):
         ctx, cfg, S = self.ctx, self.cfg, "CALIBRATION"

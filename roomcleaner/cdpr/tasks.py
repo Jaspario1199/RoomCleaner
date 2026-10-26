@@ -34,7 +34,8 @@ Reach (refused before any motion, never discovered half-way through an item):
     and the trusted extents;
   * an item whose approach or grip pose is outside the trusted volume or not plannable (workspace, tension) is recorded as
     failed ("unreachable: ...") and skipped; so is an item whose CARRY to the hamper (lift, verify shift, raise, transport, with the
-    payload mass) is refused when dry-run planned before the claw moves towards it. Motion faults and pauses still abort, and so does
+    payload mass) is refused when dry-run planned before the claw moves towards it. A target refused by the room map says which
+    shape and cable ("unreachable: approach sock: target [...]: cable B would cross the Shelf"; docs/ROOM_MAP_SPEC.md 3.6). Motion faults and pauses still abort, and so does
     a planning refusal after the grip closed (it can no longer happen for the poses the dry run covers).
 
 Keep-alive: while a task owns the robot the idle host loop does not pump the stations (``Service.idle_tick``), so anything
@@ -239,6 +240,9 @@ class TaskRunner:
         """None if the task layer may plan to ``q``, else the refusal text of ``_move`` (so that a pre-check and the move say the same)."""
         if self.vol.allows(q, below_ok=below_ok):
             return None
+        ob = self.ctx.ws.obstacle_violations(self.ctx.model.geometry, q)      # room map: name the shape ("cable B would cross the Shelf")
+        if ob:
+            return f"{label}: target {np.round(q, 3).tolist()}: {'; '.join(ob)}"
         return f"{label}: target {np.round(q, 3).tolist()} outside the trusted volume"
 
     def _here(self):

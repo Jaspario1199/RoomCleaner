@@ -119,3 +119,109 @@ def cables_clear_of_fan(anchors: np.ndarray, effector: np.ndarray, fan) -> bool:
         ):
             return False
     return True
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Gen-2 room map (docs/ROOM_MAP_SPEC.md 3): the same exact tests for an oriented box (a vertical prism over a rectangle
+# turned by ``yaw`` about +z), and vectorised forms of both for the app's coverage grid (many segments, one shape).
+
+def _clip_slab(p0, d, lo, hi, t0, t1, eps):
+    """Clip [t0, t1] to the t where p0 + t d lies in [lo, hi] (one slab). Returns (t0, t1); empty when t0 > t1."""
+    if abs(d) < eps:
+        if p0 < lo - eps or p0 > hi + eps:
+            return 1.0, 0.0
+        return t0, t1
+    ta, tb = (lo - p0) / d, (hi - p0) / d
+    if ta > tb:
+        ta, tb = tb, ta
+    return max(t0, ta), min(t1, tb)
+
+
+def segment_intersects_box(
+    a: np.ndarray,
+    b: np.ndarray,
+    center_xy: tuple[float, float],
+    half_length: float,
+    half_width: float,
+    yaw_rad: float,
+    z_low: float,
+    z_high: float,
+    eps: float = 1e-9,
+) -> bool:
+    """Return True if segment A->B passes through the oriented box.
+
+    The box is the rectangle |u| <= half_length, |v| <= half_width in its own frame (u along the length, turned by
+    ``yaw_rad`` from room +x), extruded over z in [z_low, z_high]. Slab test: the segment is moved into the box frame
+    and its parameter interval [0, 1] is clipped by the u, v and z slabs in turn; it pierces the box iff something is left.
+    """
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    c, s = np.cos(yaw_rad), np.sin(yaw_rad)
+    ax, ay = a[0] - center_xy[0], a[1] - center_xy[1]
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    t0, t1 = 0.0, 1.0
+    for p0, d, h in ((c * ax + s * ay, c * dx + s * dy, half_length), (-s * ax + c * ay, -s * dx + c * dy, half_width)):
+        t0, t1 = _clip_slab(p0, d, -h, h, t0, t1, eps)
+        if t0 > t1 + eps:
+            return False
+    t0, t1 = _clip_slab(a[2], b[2] - a[2], z_low, z_high, t0, t1, eps)
+    return bool(t0 <= t1 + eps)
+
+
+def xy_distance_to_box(xy, center_xy, half_length, half_width, yaw_rad) -> np.ndarray:
+    """Floor distance (m) from the point(s) ``xy`` (..., 2) to the box's rectangle; 0 inside it."""
+    xy = np.asarray(xy, dtype=float)
+    c, s = np.cos(yaw_rad), np.sin(yaw_rad)
+    px, py = xy[..., 0] - center_xy[0], xy[..., 1] - center_xy[1]
+    u, v = np.abs(c * px + s * py) - half_length, np.abs(-s * px + c * py) - half_width
+    return np.hypot(np.maximum(u, 0.0), np.maximum(v, 0.0))
+
+
+def segments_hit_cylinder(a, b, center_xy, radius, z_low, z_high, eps: float = 1e-9) -> np.ndarray:
+    """Vectorised ``segment_intersects_cylinder``: ``a``, ``b`` are (..., 3); returns a bool array of shape (...)."""
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    d = b - a
+    px, py = a[..., 0] - center_xy[0], a[..., 1] - center_xy[1]
+    dx, dy = d[..., 0], d[..., 1]
+    dd = dx * dx + dy * dy
+    bq = 2.0 * (px * dx + py * dy)
+    cq = px * px + py * py - radius * radius
+    flat = dd < eps
+    with np.errstate(divide="ignore", invalid="ignore"):
+        disc = bq * bq - 4.0 * dd * cq
+        sq = np.sqrt(np.maximum(disc, 0.0))
+        tr0 = np.where(flat, 0.0, (-bq - sq) / (2.0 * np.where(flat, 1.0, dd)))
+        tr1 = np.where(flat, 1.0, (-bq + sq) / (2.0 * np.where(flat, 1.0, dd)))
+    ok = np.where(flat, cq <= 0.0, disc >= 0.0)
+    t0, t1 = np.maximum(tr0, 0.0), np.minimum(tr1, 1.0)
+    t0, t1, okz = _clip_slabs(a[..., 2], d[..., 2], z_low, z_high, t0, t1, eps)
+    return ok & okz & (t0 <= t1 + eps)
+
+
+def segments_hit_box(a, b, center_xy, half_length, half_width, yaw_rad, z_low, z_high, eps: float = 1e-9) -> np.ndarray:
+    """Vectorised ``segment_intersects_box``: ``a``, ``b`` are (..., 3); returns a bool array of shape (...)."""
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    c, s = np.cos(yaw_rad), np.sin(yaw_rad)
+    ax, ay = a[..., 0] - center_xy[0], a[..., 1] - center_xy[1]
+    dx, dy = b[..., 0] - a[..., 0], b[..., 1] - a[..., 1]
+    t0, t1 = np.zeros(ax.shape), np.ones(ax.shape)
+    ok = np.ones(ax.shape, dtype=bool)
+    for p0, d, lo, hi in ((c * ax + s * ay, c * dx + s * dy, -half_length, half_length),
+                          (-s * ax + c * ay, -s * dx + c * dy, -half_width, half_width),
+                          (a[..., 2], b[..., 2] - a[..., 2], z_low, z_high)):
+        t0, t1, o = _clip_slabs(p0, d, lo, hi, t0, t1, eps)
+        ok &= o
+    return ok & (t0 <= t1 + eps)
+
+
+def _clip_slabs(p0, d, lo, hi, t0, t1, eps):
+    """Vectorised ``_clip_slab``: returns (t0, t1, inside) where ``inside`` is False for a parallel segment outside the slab."""
+    par = np.abs(d) < eps
+    with np.errstate(divide="ignore", invalid="ignore"):
+        dsafe = np.where(par, 1.0, d)
+        ta, tb = (lo - p0) / dsafe, (hi - p0) / dsafe
+    tmin, tmax = np.minimum(ta, tb), np.maximum(ta, tb)
+    inside = ~par | ((p0 >= lo - eps) & (p0 <= hi + eps))
+    return np.where(par, t0, np.maximum(t0, tmin)), np.where(par, t1, np.minimum(t1, tmax)), inside

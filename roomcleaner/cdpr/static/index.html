@@ -118,6 +118,41 @@
     </div>
   </section>
 
+  <!-- ================================================================== MAP (docs/ROOM_MAP_SPEC.md) -->
+  <section id="tab-map" class="tab maptab" role="tabpanel" aria-labelledby="t-map" hidden>
+    <div class="palette" role="toolbar" aria-label="Add a shape (tap, or drag onto the map)">
+      <button type="button" class="pal" data-kind="square"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="1"/></svg>Square</button>
+      <button type="button" class="pal" data-kind="rect"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="10" rx="1"/></svg>Rectangle</button>
+      <button type="button" class="pal" data-kind="circle"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>Circle</button>
+    </div>
+    <div id="mapWrap" class="mapwrap">
+      <svg id="map" role="application" aria-label="Top view of the room: drag shapes to move them"></svg>
+    </div>
+    <div id="covLegend" class="legend small" hidden>
+      <span><i class="sw ok"></i>can pick</span><span><i class="sw shape"></i>blocked by a shape</span>
+      <span><i class="sw area"></i>outside usable area</span><span><i class="sw trust"></i>not calibrated there</span>
+    </div>
+    <p id="mapEmpty" class="mapempty">Tap Square, Rectangle or Circle to add furniture the robot must avoid.</p>
+    <p id="mapMsg" class="small mapmsg" role="status" aria-live="polite"></p>
+    <div class="row mapsave">
+      <button type="button" id="mapRevert" class="btn" hidden>Revert</button>
+      <button type="button" id="mapSave" class="btn primary">Save map</button>
+    </div>
+    <details id="mapMore" class="mapmore">
+      <summary>More</summary>
+      <div class="morebody">
+        <button type="button" id="mapUndo" class="btn" disabled>Undo last change</button>
+        <label class="chk"><input type="checkbox" id="mapCov"> Show where it can pick things up</label>
+        <button type="button" id="mapHamper" class="btn">Hamper: place and height</button>
+        <div class="row"><span class="muted small">Units</span>
+          <button type="button" id="mapUnits" class="btn" aria-label="Switch units">feet and inches</button></div>
+      </div>
+    </details>
+    <p id="mapNote" class="muted small"></p>
+    <div id="insp" class="insp" hidden></div>
+    <div id="mapGhost" class="ghost" hidden aria-hidden="true"></div>
+  </section>
+
   <!-- ================================================================= CHAT -->
   <section id="tab-chat" class="tab chat" role="tabpanel" aria-labelledby="t-chat" hidden>
     <div id="chatlog" class="chatlog" role="log" aria-live="polite" aria-label="Conversation with the robot"></div>
@@ -146,6 +181,7 @@
   <button id="t-home" role="tab" data-tab="home" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
   <button id="t-camera" role="tab" data-tab="camera" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/></svg>Camera</button>
   <button id="t-setup" role="tab" data-tab="setup" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Setup</button>
+  <button id="t-map" role="tab" data-tab="map" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v16H3zM3 12h7v8M14 4v6h7"/></svg>Map<span id="mapDot" class="tabdot" hidden aria-label="unsaved changes"></span></button>
   <button id="t-chat" role="tab" data-tab="chat" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H10l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>Chat</button>
 </nav>
 

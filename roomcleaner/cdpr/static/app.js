@@ -12,7 +12,7 @@ const STATE_CLASS = {READY: "good", TASK: "good", PARKED: "", DISARMED: "", STAR
                      FAULT: "bad", RECOVERY_REQUIRED: "bad"};
 const STATION_STATE = {OFF: "off (not holding)", IDLE: "holding", RUN: "moving", HOLD: "stopping", FAULT: "fault (holding)"};
 const STATION_WORD = {OFF: "off", IDLE: "holding", RUN: "moving", HOLD: "stopping", FAULT: "fault"};
-const TABS = ["home", "camera", "setup", "chat"];
+const TABS = ["home", "camera", "setup", "map", "chat"];
 
 let TOKEN = "";
 let S = null;                      // last /api/status
@@ -88,10 +88,10 @@ function layout() {            // sheets and toasts sit just above the PAUSE doc
 }
 
 // ------------------------------------------------------------------------------------------------ network
-async function api(path, body) {
+async function api(path, body, method) {
   const headers = {"X-Token": TOKEN, "X-Client": CLIENT};
   const opt = {headers, cache: "no-store"};
-  if (body !== undefined) { opt.method = "POST"; headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+  if (body !== undefined) { opt.method = method || "POST"; headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
   let r;
   try { r = await fetch(path, opt); }
   catch (e) { netFails++; setConn(false); return {ok: false, status: 0, data: {error: "no connection to the robot service"}}; }
@@ -176,6 +176,7 @@ function showTab(name) {
   if (name === "camera") camStart(); else camStop();
   if (name === "setup") { refreshChecks(); refreshCalib(); }
   if (name === "chat") scrollChat(true);
+  if (name === "map") mapShow();
 }
 document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
 
@@ -251,6 +252,8 @@ function renderStatus(s) {
 
   // setup
   renderSetup(s);
+
+  mapGate();
 
   // chat chips follow the state unless a question is waiting
   if (!pending && s.chips) setChips(s.chips);

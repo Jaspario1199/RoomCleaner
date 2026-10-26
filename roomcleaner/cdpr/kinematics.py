@@ -52,6 +52,9 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import least_squares, linprog
 
+from ..geometry import (segment_intersects_box, segment_intersects_cylinder, segments_hit_box, segments_hit_cylinder,
+                        xy_distance_to_box)
+
 G = 9.81
 
 
@@ -317,7 +320,13 @@ class Workspace:
     Three-station mode adds the triangle of the active anchors' floor projection (``tri_xy``, (3, 2)): the claw's floor
     projection must keep every barycentric coordinate >= ``lam_min`` (= T_floor / (m g): the edge margin derived from the
     tension floor, see the module docstring); ``lam_min`` = 0 means "inside the triangle" only. ``None`` = four cables, no
-    triangle (the box and the tension check are the whole region, exactly as before)."""
+    triangle (the box and the tension check are the whole region, exactly as before).
+
+    Room map (docs/ROOM_MAP_SPEC.md 3): ``obstacles`` are the canonical keep-out shapes of ``config.parse_obstacles``. Each is
+    inflated by ``obstacle_margin_m`` (sideways and in height; a box keeps square corners, which is conservative) and tested
+    EXACTLY against every cable segment (anchor to attachment point: ``roomcleaner.geometry``) and against the claw body, the
+    vertical segment from its lowest point (``claw_low_z``, body frame) to its attachment plane widened by ``claw_radius_m``.
+    No obstacles: nothing below runs, the region is exactly as before."""
     lo: np.ndarray
     hi: np.ndarray
     min_lengths: np.ndarray          # per cable (bead minimum + margin), 0 if none
@@ -325,6 +334,9 @@ class Workspace:
     ids: tuple = ("A", "B", "C", "D")
     tri_xy: np.ndarray | None = None
     lam_min: float = 0.0
+    obstacle_margin_m: float = 0.0
+    claw_low_z: float = 0.0          # body-frame z of the claw's lowest point (<= 0)
+    claw_radius_m: float = 0.0
 
     def triangle_violation(self, p) -> str | None:
         """None if the floor projection of ``p`` is inside the (margin-shrunk) triangle, else why not (three cables only)."""
@@ -360,11 +372,25 @@ class Workspace:
         for i, (Li, m) in enumerate(zip(L, self.min_lengths)):
             if Li < m - 1e-9:
                 out.append(f"cable {self.ids[i]} {Li:.3f} m shorter than minimum {m:.3f} m")
+        out += self.obstacle_violations(geo, p, R)
+        return out
+
+    def obstacle_violations(self, geo: Geometry, p, R=None) -> list[str]:
+        """Why the cables or the claw body at ``p`` meet a keep-out shape (inflated by the margin); [] if they do not."""
+        if not self.obstacles:
+            return []
+        p = np.asarray(p, float)
         pts = geo.attach_world(p, R)
+        z_top = max(float(np.max(pts[:, 2])), float(p[2]))
+        z_bot = min(float(p[2]) + self.claw_low_z, z_top)
+        out = []
         for ob in self.obstacles:
+            name = obstacle_label(ob)
             for i in range(len(pts)):
-                if _segment_hits_cylinder(geo.anchors[i], pts[i], ob):
-                    out.append(f"cable {self.ids[i]} crosses obstacle {ob.get('name', '')}")
+                if segment_hits_obstacle(geo.anchors[i], pts[i], ob, self.obstacle_margin_m):
+                    out.append(f"cable {self.ids[i]} would cross {name}")
+            if claw_hits_obstacle(p[:2], z_bot, z_top, ob, self.obstacle_margin_m, self.claw_radius_m):
+                out.append(f"the claw would enter {name}")
         return out
 
 
@@ -377,12 +403,45 @@ def _altitude(tri_xy, j) -> float:
     return float(abs(side[0] * d[1] - side[1] * d[0]) / np.linalg.norm(side))
 
 
-def _segment_hits_cylinder(a, b, ob, n=24) -> bool:
-    for s in np.linspace(0, 1, n):
-        q = a + s * (b - a)
-        if ob["z_low"] <= q[2] <= ob["z_high"] and np.hypot(q[0] - ob["x"], q[1] - ob["y"]) <= ob["r"]:
-            return True
-    return False
+# ------------------------------------------------------------------------------------------------- room map shapes
+def obstacle_label(ob) -> str:
+    """How a shape is named in a refusal: "the Shelf", or "shape o3" when it has no name."""
+    return f"the {ob['name']}" if ob.get("name") else f"shape {ob.get('id', '?')}"
+
+
+def segment_hits_obstacle(a, b, ob, margin=0.0) -> bool:
+    """Exact: does the segment a -> b pass through the shape ``ob`` (canonical, config.parse_obstacles) inflated by ``margin``?"""
+    zl, zh = ob["z_low_m"] - margin, ob["height_m"] + margin
+    if ob["shape"] == "cylinder":
+        return segment_intersects_cylinder(a, b, (ob["x"], ob["y"]), ob["diameter_m"] / 2 + margin, zl, zh)
+    return segment_intersects_box(a, b, (ob["x"], ob["y"]), ob["length_m"] / 2 + margin, ob["width_m"] / 2 + margin,
+                                  np.radians(ob["yaw_deg"]), zl, zh)
+
+
+def segments_hit_obstacle(a, b, ob, margin=0.0) -> np.ndarray:
+    """Vectorised ``segment_hits_obstacle`` over segments a, b of shape (..., 3)."""
+    zl, zh = ob["z_low_m"] - margin, ob["height_m"] + margin
+    if ob["shape"] == "cylinder":
+        return segments_hit_cylinder(a, b, (ob["x"], ob["y"]), ob["diameter_m"] / 2 + margin, zl, zh)
+    return segments_hit_box(a, b, (ob["x"], ob["y"]), ob["length_m"] / 2 + margin, ob["width_m"] / 2 + margin,
+                            np.radians(ob["yaw_deg"]), zl, zh)
+
+
+def obstacle_xy_distance(xy, ob, margin=0.0) -> np.ndarray:
+    """Floor distance (m) from the point(s) xy (..., 2) to the footprint of ``ob`` inflated by ``margin``; 0 inside it."""
+    xy = np.asarray(xy, float)
+    if ob["shape"] == "cylinder":
+        return np.maximum(np.hypot(xy[..., 0] - ob["x"], xy[..., 1] - ob["y"]) - ob["diameter_m"] / 2 - margin, 0.0)
+    return xy_distance_to_box(xy, (ob["x"], ob["y"]), ob["length_m"] / 2 + margin, ob["width_m"] / 2 + margin,
+                              np.radians(ob["yaw_deg"]))
+
+
+def claw_hits_obstacle(xy, z_bot, z_top, ob, margin=0.0, radius=0.0):
+    """Does the claw body (vertical axis at ``xy`` from ``z_bot`` to ``z_top``, widened by ``radius``) enter ``ob`` inflated
+    by ``margin``? Vectorised over xy (..., 2) and z_bot / z_top (broadcast)."""
+    over = (np.asarray(z_bot) <= ob["height_m"] + margin) & (np.asarray(z_top) >= ob["z_low_m"] - margin)
+    hit = over & (obstacle_xy_distance(xy, ob, margin) <= radius + 1e-9)
+    return bool(hit) if np.ndim(hit) == 0 else hit
 
 
 def workspace_from_config(cfg, anchors_room: np.ndarray, *, lowest_point_z: float = 0.0) -> Workspace:
@@ -409,4 +468,74 @@ def workspace_from_config(cfg, anchors_room: np.ndarray, *, lowest_point_z: floa
     if len(cfg.stations) == 3:
         tri = np.asarray(anchors_room, float)[:, :2].copy()
         lam = cfg.tension_floor_fraction() or 0.0
-    return Workspace(lo, hi, np.array(mins), list(cfg.obstacles), tuple(cfg.ids), tri, float(lam))
+    return Workspace(lo, hi, np.array(mins), list(cfg.obstacles), tuple(cfg.ids), tri, float(lam),
+                     obstacle_margin_m=float(cfg.motion.obstacle_margin_m), claw_low_z=min(float(lowest_point_z), 0.0),
+                     claw_radius_m=float(cfg.claw.body_radius_m))
+
+
+def coverage(ws: Workspace, anchors, attach, shapes, heights, room_xy, *, yaw: float = 0.0, trusted=None,
+             trust_text: str = "outside the trusted (calibrated) volume", cell_m: float = 0.1) -> dict:
+    """The app's "Where can it pick?" grid (docs/ROOM_MAP_SPEC.md 3.5): per ``cell_m`` floor cell, the first reason a grip
+    there is impossible, or 0 = reachable.
+
+    A grip at a cell is the claw origin at every height in ``heights`` (the grip and approach heights; heights in between are
+    added every 0.1 m so the descent is covered) above the cell centre, upright at the held ``yaw``. Reasons, in this order:
+    a cable (``anchors`` to the attachment points ``attach``, body frame) or the claw body (its vertical span over the whole
+    descent, widened by ``ws.claw_radius_m``) meets one of ``shapes`` (the DRAFT map, inflated by ``ws.obstacle_margin_m``;
+    the first shape in map order and its first cable); outside the usable area (the workspace box in xy, and in three-station
+    mode the margin-shrunk triangle); outside the trusted volume (``trusted``: a function (N, 2) -> bool, None = all).
+
+    Pure numpy over all cells at once (no LP, no lock): ~10 ms for 10 shapes on a 3.4 x 2.7 m room. Returns
+    ``{cell_m, nx, ny, x0, y0, cells, reasons, counts}``: ``cells`` is row-major (y rows, then x), each an index into
+    ``reasons`` (``reasons[0]`` = reachable)."""
+    W, D = float(room_xy[0]), float(room_xy[1])
+    nx, ny = max(1, int(np.ceil(W / cell_m - 1e-9))), max(1, int(np.ceil(D / cell_m - 1e-9)))
+    gx, gy = np.meshgrid((np.arange(nx) + 0.5) * cell_m, (np.arange(ny) + 0.5) * cell_m)
+    xy = np.stack([gx.ravel(), gy.ravel()], axis=1)                                     # (N, 2), row-major in y
+    n = len(xy)
+    hs = np.asarray(sorted(set(float(h) for h in heights)), float)
+    if len(hs) > 1:
+        hs = np.unique(np.r_[hs, np.arange(hs[0], hs[-1], 0.1)])
+    A = np.asarray(anchors, float).reshape(-1, 3)
+    b = np.asarray(attach, float).reshape(-1, 3) @ _rot_z(yaw).T                         # attachment offsets (upright, held yaw)
+    ids = ws.ids
+    reasons = [{"kind": "ok", "text": "reachable for a grip"}]
+    index: dict = {}
+    code = np.zeros(n, int)
+
+    def mark(mask, kind, text, **extra):
+        mask = mask & (code == 0)
+        if not np.any(mask):
+            return
+        if text not in index:
+            index[text] = len(reasons)
+            reasons.append({"kind": kind, "text": text, **extra})
+        code[mask] = index[text]
+
+    m = ws.obstacle_margin_m
+    top_off = float(np.max(b[:, 2]))
+    z_bot, z_top = hs[0] + ws.claw_low_z, hs[-1] + max(top_off, 0.0)
+    P = np.empty((n, len(hs), 3))
+    P[:, :, :2], P[:, :, 2] = xy[:, None, :], hs[None, :]
+    for ob in shapes:
+        name = obstacle_label(ob)
+        for i in range(len(A)):
+            hit = segments_hit_obstacle(np.broadcast_to(A[i], P.shape), P + b[i], ob, m).any(axis=1)
+            mark(hit, "shape", f"cable {ids[i]} would cross {name}", shape=ob.get("id"), cable=ids[i])
+        mark(claw_hits_obstacle(xy, z_bot, z_top, ob, m, ws.claw_radius_m), "shape", f"the claw would enter {name}",
+             shape=ob.get("id"))
+    out_box = np.any(xy < ws.lo[:2] - 1e-9, axis=1) | np.any(xy > ws.hi[:2] + 1e-9, axis=1)
+    mark(out_box, "area", f"outside the usable area (closer than {ws.lo[0]:.2f} m to a wall)")
+    if ws.tri_xy is not None:
+        P3 = np.asarray(ws.tri_xy, float)
+        T = np.array([[P3[0, 0] - P3[2, 0], P3[1, 0] - P3[2, 0]], [P3[0, 1] - P3[2, 1], P3[1, 1] - P3[2, 1]]])
+        l01 = np.linalg.solve(T, (xy - P3[2]).T).T
+        lam = np.c_[l01, 1.0 - l01.sum(axis=1)]
+        mark(lam.min(axis=1) < ws.lam_min - 1e-9, "area",
+             f"outside the usable area (too close to an edge of the {'/'.join(ids)} triangle)")
+    if trusted is not None:
+        mark(~np.asarray(trusted(xy), bool), "trust", trust_text)
+    kinds = np.array([r["kind"] for r in reasons])[code]
+    counts = {k: int(np.sum(kinds == k)) for k in ("ok", "shape", "area", "trust")}
+    return {"cell_m": cell_m, "nx": nx, "ny": ny, "x0": 0.0, "y0": 0.0, "cells": code.tolist(), "reasons": reasons,
+            "counts": counts}

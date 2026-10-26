@@ -4,7 +4,7 @@
     python -m roomcleaner.cdpr.service --config config/robot.json   # hardware
     ... --host 0.0.0.0 --port 8100                      # reachable from the phone on the home LAN
 
-Pages: ``/`` the phone app (Home / Camera / Setup / Chat; docs/PHONE_APP_SPEC.md), ``/v1`` the first setup page.
+Pages: ``/`` the phone app (Home / Camera / Setup / Map / Chat; docs/PHONE_APP_SPEC.md, docs/ROOM_MAP_SPEC.md), ``/v1`` the first setup page.
 
 Endpoints (JSON):
     GET  /api/status                 supervisor state, trust level, startup step, reasons,
@@ -21,6 +21,12 @@ Endpoints (JSON):
     GET  /api/frame.jpg              newest claw frame from the host's frame-thread cache (+ X-Frame-Age-S)
     GET  /api/stream.mjpg?token=     MJPEG at ~5 fps from the same cache (the ONLY route that takes the token as a
                                      query parameter: an <img> cannot send headers)
+    GET  /api/room_map               the saved keep-out shapes, hamper and units, plus the room, anchors, active stations,
+                                     usable area and start point for drawing (docs/ROOM_MAP_SPEC.md 4)
+    POST /api/room_map/preview       {obstacles, hamper?} draft -> {errors, coverage}; saves nothing
+    PUT  /api/room_map               {obstacles, hamper?, units?}: validate and save (config file; in memory in --sim).
+                                     DISARMED / PARKED; READY / PAUSED only if the claw's pose and the vertical lowering
+                                     from it stay clear of the new map; never while a command runs
 
 Long commands run on one worker thread; only ``pause`` may interrupt them.
 ``start`` requires ``checklist: true`` (the operator ticked the pre-start
@@ -56,6 +62,7 @@ import numpy as np
 from flask import Flask, Response, jsonify, request, send_from_directory
 
 from .chat import STATE_HINT, STATE_TEXT, Chat, EventLog, Refused, chips_for, hold_report
+from .config import MAP_UNITS, MAX_OBSTACLES, validate_obstacles
 from .supervisor import ALLOWED, STATES, CommandRefused, Supervisor
 
 STATIC = Path(__file__).parent / "static"
@@ -67,6 +74,8 @@ STREAM_NOFRAME_S = 5.0           # a stream that has no frame to send for this l
 BUSY_BACKOFF_S = 0.005           # host loop sleep while a command holds the robot lock (it pumps the stations itself)
 LOCK_WAIT_S = 0.3                # how long an operator command waits for the idle host loop to release the robot lock
 DEFAULT_DATA = Path(__file__).resolve().parents[2] / "data" / "cdpr"
+MAP_EDIT_STATES = ("DISARMED", "PARKED", "READY", "PAUSED")    # PUT /api/room_map (READY / PAUSED with the pose check)
+MAP_ITEM_HEIGHT_M = 0.10         # coverage: the typical garment height the approach pose is planned over
 CHECKLIST = [
     "Room cleared; nobody will stand under the workspace",
     "Switched power strip (emergency stop) within reach",
@@ -510,6 +519,193 @@ class Service:
         else:
             self.command(cmd, body)
 
+    # -- room map (docs/ROOM_MAP_SPEC.md) -----------------------------------------------------------------
+    def room_map(self):
+        """``GET /api/room_map``: the saved map plus what the Map tab draws. Reads the configuration only."""
+        cfg = self.ctx.cfg
+        W, D, H = (float(v) for v in cfg.room_m)
+        defaults = {"A": (0, 0, H), "B": (W, 0, H), "C": (W, D, H), "D": (0, D, H)}
+        anchors = {s.id: {"xyz": [float(v) for v in (s.anchor_room_m if s.anchor_room_m is not None else defaults[s.id])],
+                          "active": s.id in cfg.ids} for s in cfg.all_stations}
+        m = float(cfg.motion.workspace_margin_m)
+        tri = None
+        if cfg.n_active == 3:
+            P = cfg.anchor_priors()[:, :2]
+            lam = cfg.tension_floor_fraction() or 0.0
+            tri = [[round(float(v), 4) for v in (1 - 3 * lam) * P[i] + lam * P.sum(axis=0)] for i in range(3)]
+        tk = cfg.tasks
+        editable = self._map_block()
+        return {"obstacles": [dict(o) for o in cfg.obstacles], "units": cfg.map_units,
+                "hamper": None if tk.hamper_room_m is None else {"x": float(tk.hamper_room_m[0]), "y": float(tk.hamper_room_m[1]),
+                                                                  "height_m": float(tk.hamper_height_m),
+                                                                  "radius_m": float(tk.hamper_radius_m)},
+                "room_m": [W, D, H], "anchors": anchors, "stations_active": list(cfg.ids),
+                "stations_inactive": list(cfg.inactive_ids),
+                "usable_box": [[m, m], [W - m, D - m]], "usable_triangle": tri,
+                "start_point_m": [round(float(v), 4) for v in cfg.start_point_xy()],
+                "margin_m": float(cfg.motion.obstacle_margin_m), "claw_body_radius_m": float(cfg.claw.body_radius_m),
+                "max_shapes": MAX_OBSTACLES, "editable": editable is None, "edit_note": editable or "",
+                "state": self.sup.state}
+
+    def _parse_map(self, body):
+        """(shapes, hamper, units, errors) of a draft map body. ``hamper`` / ``units`` are None when the body leaves them out."""
+        cfg = self.ctx.cfg
+        if not isinstance(body, dict):
+            return [], None, None, ["the map must be a JSON object"]
+        shapes, errs = validate_obstacles(body.get("obstacles", []), cfg.room_m)
+        hamper, units = body.get("hamper"), body.get("units")
+        if hamper is not None:
+            W, D, _ = (float(v) for v in cfg.room_m)
+            try:
+                hx, hy = float(hamper["x"]), float(hamper["y"])
+                hh = float(hamper.get("height_m", cfg.tasks.hamper_height_m))
+                if not all(np.isfinite([hx, hy, hh])):
+                    raise ValueError
+            except (KeyError, TypeError, ValueError, AttributeError):
+                errs.append("hamper needs numbers x, y (and height_m)")
+                hamper = None
+            else:
+                if not (0.0 <= hx <= W and 0.0 <= hy <= D):
+                    errs.append(f"hamper ({hx:.2f}, {hy:.2f}) m is outside the room")
+                if not 0.0 <= hh <= 1.5:
+                    errs.append(f"hamper rim height {hh:.2f} m must be 0-1.5 m")
+                hamper = {"x": hx, "y": hy, "height_m": hh}
+        if units is not None and units not in MAP_UNITS:
+            errs.append(f"units must be one of {list(MAP_UNITS)}")
+            units = None
+        return shapes, hamper, units, errs
+
+    def _map_workspace(self, shapes):
+        """The live workspace with ``shapes`` in place of the saved map (the configured one before the first model)."""
+        from dataclasses import replace
+
+        from .kinematics import workspace_from_config
+        ctx = self.ctx
+        if ctx.ws is not None:
+            return replace(ctx.ws, obstacles=list(shapes))
+        low = ctx.cfg.claw.lowest_point_body_m
+        ws = workspace_from_config(ctx.cfg, self._map_anchors(), lowest_point_z=0.0 if low is None else float(low[2]))
+        ws.obstacles = list(shapes)
+        return ws
+
+    def _map_anchors(self):
+        model = self.ctx.model
+        return model.geometry.anchors.copy() if model is not None else self.ctx.cfg.anchor_priors()
+
+    def map_coverage(self, shapes):
+        """The "Where can it pick?" grid for a draft map (kinematics.coverage). Reads the model, the ledger and the validated
+        volume without the robot lock (they are replaced, never mutated in place, by the command thread)."""
+        from .kinematics import coverage
+        ctx, cfg = self.ctx, self.ctx.cfg
+        t0 = time.perf_counter()
+        low = cfg.claw.lowest_point_body_m
+        zf = 0.0 if low is None else -float(low[2])
+        tk = cfg.tasks
+        heights = (zf + tk.grip_clearance_m, zf + MAP_ITEM_HEIGHT_M + tk.approach_clearance_m)
+        trusted, text = None, ""
+        lg = ctx.ledger
+        if lg.level != "VERIFIED":
+            pts = ctx.validated_volume
+            hull = None
+            if pts is not None and len(pts) >= 5:
+                from scipy.spatial import Delaunay, QhullError
+                try:
+                    hull = Delaunay(np.asarray(pts, float))
+                except QhullError:
+                    hull = None
+            if hull is None:
+                trusted, text = (lambda xy: np.zeros(len(xy), bool)), "outside the trusted volume (not calibrated yet)"
+            else:
+                zmin = float(np.min(hull.points[:, 2])) + 1e-3          # a vertical descent below a validated point (tasks.py)
+                trusted = lambda xy: hull.find_simplex(np.c_[xy, np.full(len(xy), zmin)]) >= 0
+                text = "outside the trusted (calibrated) volume"
+        out = coverage(self._map_workspace(shapes), self._map_anchors(), cfg.attachment_points(), shapes, heights, cfg.room_m[:2],
+                       yaw=float(ctx.claw_yaw_room), trusted=trusted, trust_text=text or "outside the trusted volume")
+        out["heights_m"] = [round(h, 3) for h in heights]
+        out["ms"] = round((time.perf_counter() - t0) * 1e3, 1)
+        return out
+
+    def preview_room_map(self, body):
+        """``POST /api/room_map/preview``: validation errors and the coverage of the valid draft. Saves nothing."""
+        shapes, _hamper, _units, errs = self._parse_map(body)
+        if errs:
+            return {"ok": False, "errors": errs, "coverage": None}
+        return {"ok": True, "errors": [], "coverage": self.map_coverage(shapes)}
+
+    def _map_block(self):
+        """None if the map may be saved now (pose checks aside), else why not."""
+        if self.busy:
+            return f"busy with '{self.busy}': the map can be saved when it finishes"
+        st = self.sup.state
+        if st not in MAP_EDIT_STATES:
+            return (f"the map can be saved in DISARMED, PARKED, READY or PAUSED; the robot is {st}"
+                    + (" (a command is running)" if st in ("STARTUP", "TASK") else ""))
+        return None
+
+    def _pose_check(self, shapes):
+        """READY / PAUSED: None if the claw's current pose and the vertical lowering from it to the floor stay clear of
+        ``shapes``, else why not. Called with the robot lock held."""
+        ctx = self.ctx
+        if ctx.model is None:
+            return "the claw's pose is not known (no model)"
+        ws = self._map_workspace(shapes)
+        geo = ctx.model.geometry
+        p = ctx.model.pose_from_positions(ctx.co.positions())[0]
+        v = ws.obstacle_violations(geo, p)
+        if v:
+            return (f"the claw's current pose ({p[0]:.2f}, {p[1]:.2f}, {p[2]:.2f}) m would break the new map: {'; '.join(v)}. "
+                    "Lower or park the claw first, or change the map")
+        low = ctx.cfg.claw.lowest_point_body_m
+        zf = 0.0 if low is None else -float(low[2])
+        for z in np.arange(p[2], zf - 1e-9, -0.02):
+            v = ws.obstacle_violations(geo, np.array([p[0], p[1], z]))
+            if v:
+                return (f"lowering the claw straight down from ({p[0]:.2f}, {p[1]:.2f}) would break the new map at "
+                        f"{z:.2f} m: {'; '.join(v)}. Move or park the claw first, or change the map")
+        return None
+
+    def save_room_map(self, body):
+        """``PUT /api/room_map``: validate, check the state rules (spec 4), then store the map in the configuration (and in the
+        config file in hardware mode; ``--sim`` keeps it in memory) and in the live workspace. Raises CommandRefused (state,
+        pose; HTTP 409) or MapInvalid (validation; HTTP 400). Returns the saved map."""
+        why = self._map_block()
+        if why:
+            raise CommandRefused(why)
+        shapes, hamper, units, errs = self._parse_map(body)
+        if errs:
+            raise MapInvalid(errs)
+        if not self.lock.acquire(timeout=LOCK_WAIT_S):             # no command may start between the check and the change
+            raise CommandRefused(f"busy with '{self.busy or 'the host loop'}'")
+        try:
+            why = self._map_block()
+            if why is None and self.sup.state in ("READY", "PAUSED"):
+                why = self._pose_check(shapes)
+            if why:
+                raise CommandRefused(why)
+            cfg = self.ctx.cfg
+            if self.config_path:
+                raw = json.loads(self.config_path.read_text())
+                raw["obstacles"] = shapes
+                if hamper is not None:
+                    raw.setdefault("tasks", {}).update(hamper_room_m=[hamper["x"], hamper["y"]], hamper_height_m=hamper["height_m"])
+                if units is not None:
+                    raw["map_units"] = units
+                self.config_path.write_text(json.dumps(raw, indent=2))
+            cfg.obstacles = shapes
+            if hamper is not None:
+                cfg.tasks.hamper_room_m = [hamper["x"], hamper["y"]]
+                cfg.tasks.hamper_height_m = hamper["height_m"]
+            if units is not None:
+                cfg.map_units = units
+            if self.ctx.ws is not None:
+                self.ctx.ws.obstacles = list(shapes)
+        finally:
+            self.lock.release()
+        n = len(shapes)
+        text = f"Saved: the planner now avoids {n} shape{'s' if n != 1 else ''}"
+        self.log_event("info", f"Room map saved ({n} shape{'s' if n != 1 else ''})")
+        return {"text": text, **self.room_map()}
+
     def trust_summary(self):
         """Why the level is what it is (D26): the basis of VERIFIED, or plain reasons it is not, plus the
         margin numbers (k, sigma, margins, worst pose) of the last startup decision."""
@@ -523,6 +719,14 @@ class Service:
                 "full_workspace": lg.level == "VERIFIED",
                 "reasons": [] if lg.level == "VERIFIED" else list(lg.trust_reasons),
                 "margin": {k: mc[k] for k in keys if k in mc}}
+
+
+class MapInvalid(ValueError):
+    """A room map that fails validation: ``errors`` is one plain message per problem."""
+
+    def __init__(self, errors):
+        super().__init__("; ".join(errors))
+        self.errors = list(errors)
 
 
 def _vision_frame_source(ctx):
@@ -678,7 +882,7 @@ def create_app(service: Service) -> Flask:
             tok = request.args.get("token", "")          # the ONE route that takes it in the URL (<img> sends no headers)
         if not secrets.compare_digest(tok.encode("utf-8"), service.token.encode("utf-8")):
             return refuse("missing or wrong session token", 401)
-        if request.method == "POST" and not request.is_json:
+        if request.method in ("POST", "PUT") and not request.is_json:
             return refuse("JSON body required", 415)
         return None
 
@@ -715,6 +919,23 @@ def create_app(service: Service) -> Flask:
             return jsonify({"ok": True, **service.set_room(request.get_json() or {})})
         except CommandRefused as e:
             return refuse(e, 400)
+
+    @app.get("/api/room_map")
+    def room_map():
+        return jsonify(service.room_map())
+
+    @app.post("/api/room_map/preview")
+    def room_map_preview():
+        return jsonify(service.preview_room_map(request.get_json(silent=True)))
+
+    @app.put("/api/room_map")
+    def room_map_save():
+        try:
+            return jsonify({"ok": True, **service.save_room_map(request.get_json(silent=True))})
+        except MapInvalid as e:
+            return jsonify({"ok": False, "error": str(e), "errors": e.errors}), 400
+        except CommandRefused as e:
+            return refuse(e)
 
     @app.post("/api/command")
     def command():

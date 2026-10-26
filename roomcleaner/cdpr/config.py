@@ -23,6 +23,14 @@ requirement, no transport, and are never configured or armed. The active set is 
 of 3 or 4 ids; ``"stations.active"`` is accepted as a spelling of the same key); absent = all four, so every existing
 profile is unchanged. Per-station arrays that are indexed A-D in the file (``claw.attachment_points_body_m``,
 ``startup.max_slack_m``) stay four long; ``SystemConfig.station_index`` maps an id to its place in them.
+
+Room map (docs/ROOM_MAP_SPEC.md 2)
+----------------------------------
+``obstacles`` lists the keep-out shapes the user draws in the app's Map tab: boxes (``length_m`` x ``width_m`` turned by
+``yaw_deg``; a square is a box with equal sides) and vertical cylinders (``diameter_m``), each from ``z_low_m`` (its bottom,
+0 = on the floor) to ``height_m`` (its TOP above the floor), room frame, metres. The gen-2 format before the map,
+``{x, y, r, z_low, z_high, name}``, still loads as a cylinder. :func:`parse_obstacles` validates every entry (also at every
+start) and returns them in the canonical form above; the planner inflates each by ``motion.obstacle_margin_m``.
 """
 from __future__ import annotations
 
@@ -38,6 +46,10 @@ from .frames import make_T, rpy_to_matrix
 
 STATION_IDS = ("A", "B", "C", "D")
 G_ACC = 9.81
+MAX_OBSTACLES = 50                 # room map: most shapes a map may hold
+OBSTACLE_MIN_SIZE_M = 0.02         # a side or diameter must be larger than this
+CEILING_SLACK_M = 0.05             # a shape's top may reach this far above the configured ceiling (measuring error)
+MAP_UNITS = ("ft-in", "m")
 
 # Three-station mode: the active anchors must span a triangle (floor projection) that is not a sliver. A point claw on
 # three cables is held with all-positive tensions only inside that triangle, and the margin from its edges (below) is
@@ -285,6 +297,8 @@ class ClawConfig:
     mount_offset_max_rad: float = math.radians(5)    # startup aborts if the measured camera-to-body tilt offset exceeds
                                                      # this (mount wrong, or the claw is not resting upright)
     address: str | None = None
+    body_radius_m: float = 0.07                      # room map: the claw body's horizontal reach about its axis, checked against
+                                                     # every keep-out shape (inflated by motion.obstacle_margin_m)
 
 
 @dataclass
@@ -331,6 +345,7 @@ class MotionConfig:
     lookahead_s: float = 0.8
     start_lead_s: float = 0.40
     task_max_height_m: float = 1.6                   # pickup/delivery transit never plans above this claw-origin height
+    obstacle_margin_m: float = 0.10                  # room map: every keep-out shape is inflated by this, sideways and in height
 
 
 @dataclass
@@ -473,7 +488,8 @@ class SystemConfig:
     calibration: CalibrationConfig
     authorization: Authorization
     tasks: TaskConfig = field(default_factory=TaskConfig)
-    obstacles: list = field(default_factory=list)   # vertical cylinders {x,y,r,z_low,z_high}
+    obstacles: list = field(default_factory=list)   # room map: canonical keep-out shapes (parse_obstacles), room frame
+    map_units: str = "ft-in"                        # the Map tab's display units ("ft-in" | "m"); storage is always metres
     profile: str = "hardware"
     source: str | None = None
     inactive_stations: list = field(default_factory=list)   # records of the stations that are not mounted (never configured/armed)
@@ -716,6 +732,117 @@ def _check_triangle(cfg: "SystemConfig") -> None:
                           "impossible at or above 1/3 (no pose would be feasible). Lower the tension floor")
 
 
+# ---------------------------------------------------------------------------
+# room map (docs/ROOM_MAP_SPEC.md 2)
+_BOX_KEYS = {"id", "name", "shape", "x", "y", "length_m", "width_m", "yaw_deg", "z_low_m", "height_m"}
+_CYL_KEYS = {"id", "name", "shape", "x", "y", "diameter_m", "z_low_m", "height_m"}
+_OLD_KEYS = {"x", "y", "r", "z_low", "z_high", "name"}
+
+
+def _num(d, key, where, errs, default=None):
+    v = d.get(key, default)
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
+        errs.append(f"{where}: {key} must be a finite number, got {v!r}")
+        return None
+    return float(v)
+
+
+def validate_obstacles(raw, room_m) -> tuple:
+    """(shapes, errors): the canonical form of every valid entry of ``raw`` and one plain message per problem.
+
+    Canonical entries: ``{id, name, shape: "box", x, y, length_m, width_m, yaw_deg, z_low_m, height_m}`` or
+    ``{id, name, shape: "cylinder", x, y, diameter_m, z_low_m, height_m}``. An entry in the old format
+    ``{x, y, r, z_low, z_high, name}`` (no ``shape``) becomes the cylinder of diameter 2 r from z_low to z_high. Refused, with a
+    message (spec 2): an unknown shape or key, a side / diameter of 2 cm or less or larger than the room, ``z_low_m >=
+    height_m`` (or below the floor), a top above the ceiling + 5 cm, a centre outside the room, more than 50 shapes, a
+    duplicate id. Entries without an id get ``o1``, ``o2``, ... (the first free ones)."""
+    W, D, H = (float(v) for v in room_m)
+    errs, out = [], []
+    if not isinstance(raw, (list, tuple)):
+        return [], [f"obstacles must be a list of shapes, got {type(raw).__name__}"]
+    if len(raw) > MAX_OBSTACLES:
+        errs.append(f"{len(raw)} shapes: a map holds at most {MAX_OBSTACLES}")
+    big = max(W, D)
+    for k, ob in enumerate(raw):
+        where = f"shape {k + 1}"
+        if not isinstance(ob, dict):
+            errs.append(f"{where}: must be an object, got {type(ob).__name__}")
+            continue
+        name = ob.get("name", "")
+        if not isinstance(name, str) or len(name) > 40:
+            errs.append(f"{where}: name must be text of at most 40 characters")
+            name = ""
+        where = f"shape {k + 1}" + (f" ({name})" if name else "")
+        if "shape" not in ob and set(ob) <= _OLD_KEYS and "r" in ob:           # the format before the map: a cylinder
+            vals = [_num(ob, key, where, errs) for key in ("x", "y", "r", "z_low", "z_high")]
+            if None in vals:
+                continue
+            x, y, r, zl, zh = vals
+            ob = {"name": name, "shape": "cylinder", "x": x, "y": y, "diameter_m": 2 * r, "z_low_m": zl, "height_m": zh}
+        shape = ob.get("shape")
+        if shape not in ("box", "cylinder"):
+            errs.append(f"{where}: unknown shape {shape!r} (box or cylinder)")
+            continue
+        extra = set(ob) - (_BOX_KEYS if shape == "box" else _CYL_KEYS)
+        if extra:
+            errs.append(f"{where}: unknown keys {sorted(extra)} for a {shape}")
+            continue
+        n0 = len(errs)
+        x, y = _num(ob, "x", where, errs), _num(ob, "y", where, errs)
+        zl, top = _num(ob, "z_low_m", where, errs, 0.0), _num(ob, "height_m", where, errs)
+        sizes = ("length_m", "width_m") if shape == "box" else ("diameter_m",)
+        dims = {key: _num(ob, key, where, errs) for key in sizes}
+        yaw = _num(ob, "yaw_deg", where, errs, 0.0) if shape == "box" else None
+        if len(errs) > n0:
+            continue
+        for key, v in dims.items():
+            if v <= OBSTACLE_MIN_SIZE_M:
+                errs.append(f"{where}: {key} {v:.3f} m is too small (must be more than {OBSTACLE_MIN_SIZE_M * 100:.0f} cm)")
+            elif v > big:
+                errs.append(f"{where}: {key} {v:.2f} m is larger than the room ({W:.2f} x {D:.2f} m)")
+        if zl < 0:
+            errs.append(f"{where}: bottom height z_low_m {zl:.2f} m is below the floor")
+        if zl >= top:
+            errs.append(f"{where}: bottom height z_low_m {zl:.2f} m must be below its top height_m {top:.2f} m")
+        if top > H + CEILING_SLACK_M:
+            errs.append(f"{where}: height {top:.2f} m is above the ceiling ({H:.2f} m)")
+        if not (0.0 <= x <= W and 0.0 <= y <= D):
+            errs.append(f"{where}: centre ({x:.2f}, {y:.2f}) m is outside the room (0-{W:.2f} x 0-{D:.2f} m)")
+        if len(errs) > n0:
+            continue
+        sid = ob.get("id")
+        if sid is not None and (not isinstance(sid, str) or not 1 <= len(sid) <= 16):
+            errs.append(f"{where}: id must be text of 1-16 characters")
+            continue
+        c = {"id": sid, "name": name, "shape": shape, "x": x, "y": y}
+        if shape == "box":
+            c.update(length_m=dims["length_m"], width_m=dims["width_m"], yaw_deg=yaw % 360.0)
+        else:
+            c.update(diameter_m=dims["diameter_m"])
+        c.update(z_low_m=zl, height_m=top)
+        out.append(c)
+    ids = [c["id"] for c in out if c["id"] is not None]
+    dup = sorted({i for i in ids if ids.count(i) > 1})
+    if dup:
+        errs.append(f"duplicate shape id(s) {dup}")
+    n = 1
+    for c in out:
+        if c["id"] is None:
+            while f"o{n}" in ids:
+                n += 1
+            c["id"] = f"o{n}"
+            ids.append(c["id"])
+    return out, errs
+
+
+def parse_obstacles(raw, room_m) -> list:
+    """Canonical shapes of ``raw`` (see :func:`validate_obstacles`); ConfigError listing every problem."""
+    out, errs = validate_obstacles(raw, room_m)
+    if errs:
+        raise ConfigError("obstacles: " + "; ".join(errs))
+    return out
+
+
 def load_config(path_or_dict) -> SystemConfig:
     if isinstance(path_or_dict, (str, Path)):
         src = str(path_or_dict)
@@ -773,6 +900,7 @@ def load_config(path_or_dict) -> SystemConfig:
         statics_attitude_sigma_rad=_f(cd.pop("statics_attitude_sigma_rad", 0.07), "claw.statics_attitude_sigma_rad"),
         mount_offset_max_rad=_f(cd.pop("mount_offset_max_rad", math.radians(5)), "claw.mount_offset_max_rad"),
         address=cd.pop("address", None),
+        body_radius_m=_f(cd.pop("body_radius_m", 0.07), "claw.body_radius_m", allow_none=False),
     )
     if cd:
         raise ConfigError(f"claw: unknown keys {sorted(cd)}")
@@ -805,9 +933,13 @@ def load_config(path_or_dict) -> SystemConfig:
         calibration=_dc(CalibrationConfig, raw.get("calibration"), "calibration"),
         authorization=_dc(Authorization, raw.get("authorization"), "authorization"),
         tasks=_dc(TaskConfig, raw.get("tasks"), "tasks"),
-        obstacles=list(raw.get("obstacles", [])),
+        obstacles=[],
+        map_units=raw.get("map_units", "ft-in"),
         profile=raw.get("profile", "hardware"), source=src,
     )
+    if cfg.map_units not in MAP_UNITS:
+        raise ConfigError(f"map_units must be one of {list(MAP_UNITS)}, got {cfg.map_units!r}")
+    cfg.obstacles = parse_obstacles(raw.get("obstacles", []), cfg.room_m)
     if cfg.startup.max_slack_m is not None and len(cfg.startup.max_slack_m) != 4:
         raise ConfigError("startup.max_slack_m needs 4 values (A-D; the entries of inactive stations are ignored)")
     su = cfg.startup
@@ -833,7 +965,9 @@ def load_config(path_or_dict) -> SystemConfig:
         raise ConfigError("startup.board_survey_frames must be an integer")
     for k, v in (("motion.workspace_margin_m", cfg.motion.workspace_margin_m),
                  ("motion.ceiling_margin_m", cfg.motion.ceiling_margin_m),
-                 ("motion.task_max_height_m", cfg.motion.task_max_height_m)):
+                 ("motion.task_max_height_m", cfg.motion.task_max_height_m),
+                 ("motion.obstacle_margin_m", cfg.motion.obstacle_margin_m),
+                 ("claw.body_radius_m", cfg.claw.body_radius_m)):
         if not isinstance(v, (int, float)) or isinstance(v, bool) or not v >= 0:
             raise ConfigError(f"{k} must be a number >= 0")
     cl, ca = cfg.claw, cfg.calibration

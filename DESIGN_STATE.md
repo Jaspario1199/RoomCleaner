@@ -672,3 +672,25 @@ slack_probe default (keep false until probe H1/M2 are closed).
 - Calculation at 1.0 A: pinion teeth 1.75 (weakest tooth), insert set screw 1.50–3.32, PETG contact 3.55; all pass. At 1.5 A
   pinion teeth 1.17 and set screw low end 1.00 are marginal: stay at 1.0 A. Backlash formula fixed (0.418 mm, 10 counts).
 - Jasper (10/23): keep 18/54 ("it works"); 18/45 not needed.
+
+
+## Claw Rev B on the bench (10/25–10/26, lead)
+- Breadboard layout and off-board wiring drawn, both net-checked against `kicad/claw_spec.py` (PASS), with a parts list
+  that links every label (`docs/electrical/claw_revB_20261021/`).
+- Jasper's bench (10/26):
+  - **Bench test passes:** camera live view, battery sense 7.2 V, servo moves.
+  - **Buck setting:** set to 5.16 V; the XIAO 5V pin sees about 4.9 V after D1.
+  - **Earlier "4.33 V" reading:** a meter mis-read, not the pack.
+- **Fault found:** with the camera running, ESP32Servo left the servo without pulses. Both the bench test and `claw_s3.ino`
+  now drive the servo straight from LEDC timer 1 / channel 1, since the camera owns timer 0.
+- **`claw_s3.ino` also gained:** an orange heartbeat LED and an optional fixed IP (`CLAW_IP` in `secrets.h`).
+  - The host harness still passes: `tests/firmware/test_claw_sketch.py`, 5 tests.
+  - The ESP32 build itself is not compiled here.
+- **New `tools/check_claw.py`:** status, frames and grip from the laptop, recorded to `data/commissioning/claw.jsonl`. Tests:
+  `tests/test_check_claw.py`, 3.
+- **Path to the phone app:** `docs/CLAW_BRINGUP_20261026.md`. The hardware service still needs station addresses, camera
+  intrinsics, `marker.edge_m` and `claw.mass_kg`.
+- **Open:**
+  - servo open/closed values are not measured;
+  - the claw camera is not calibrated;
+  - the stations are not yet on the network.

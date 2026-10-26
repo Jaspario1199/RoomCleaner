@@ -29,11 +29,18 @@ class String {
 template <class T, class L, class H>
 inline T constrain(T x, L lo, H hi) { return x < (T)lo ? (T)lo : (x > (T)hi ? (T)hi : x); }
 inline void delay(int) {}
+inline uint32_t millis() { return 0; }
+#define OUTPUT 1
+#define LOW 0
+#define HIGH 1
+inline void pinMode(int, int) {}
+inline void digitalWrite(int, int) {}
 inline uint32_t analogReadMilliVolts(int) { return 2600; }   // x 3.0 divider = 7.8 V
 inline void analogReadResolution(int) {}
 struct SerialT {
   void begin(int) {}
   void print(const char*) {}
+  void println(const char*) {}
   template <class... A> void printf(const char*, A...) {}
 };
 static SerialT Serial;

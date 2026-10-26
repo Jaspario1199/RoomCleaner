@@ -28,12 +28,15 @@
  *   Battery sense  GPIO3  (D2)     2S LiPo through 200k/100k divider (ratio 3.0)
  *   Camera         Sense board (pins below)
  *
- * Board: "XIAO_ESP32S3", PSRAM: "OPI PSRAM". Libraries: ESP32Servo.
- * Copy secrets.example.h to secrets.h and fill in the network credentials.
+ * Board: "XIAO_ESP32S3", PSRAM: "OPI PSRAM". No extra libraries: the servo pulses come straight from the LEDC
+ * hardware on timer 1 / channel 1 (the camera clock owns timer 0 / channel 0; ESP32Servo could collide with it and
+ * leave the servo without pulses, seen on the bench 10/26).
+ * Copy secrets.example.h to secrets.h and fill in the network credentials (and, optionally, a fixed IP).
+ * The orange user LED blinks once a second while the sketch runs (the board has no power LED).
  */
 #include <WiFi.h>
 #include <WebServer.h>
-#include <ESP32Servo.h>
+#include "driver/ledc.h"
 #include "esp_camera.h"
 #include "esp_timer.h"
 #include "secrets.h"       // WIFI_SSID, WIFI_PASS
@@ -48,6 +51,7 @@ static const int   BATT_PIN = 3;
 static const float BATT_RATIO = 3.0f;        // divider; calibrate against a meter
 static const float BATT_CUTOFF_V = 6.8f;
 static const char* CAMERA_MODE = "SVGA-800x600-q10";
+static const int   LED_PIN = 21;             // orange user LED, ON when LOW
 
 // XIAO ESP32-S3 Sense camera pins
 #define PWDN_GPIO_NUM  -1
@@ -68,16 +72,40 @@ static const char* CAMERA_MODE = "SVGA-800x600-q10";
 #define PCLK_GPIO_NUM  13
 
 WebServer server(80);
-Servo servo;
 int servoUs = SERVO_OPEN_US;
 bool gripClosed = false;
 bool cameraOk = false;
 uint32_t frameId = 0;
 
 // ---------------------------------------------------------------- servo
+// 50 Hz, 14-bit, on LEDC timer 1 / channel 1
+static const ledc_mode_t SERVO_MODE = LEDC_LOW_SPEED_MODE;
+static const ledc_timer_t SERVO_TIMER = LEDC_TIMER_1;
+static const ledc_channel_t SERVO_CH = LEDC_CHANNEL_1;
+static const uint32_t SERVO_PERIOD_US = 20000, SERVO_DUTY_MAX = (1u << 14) - 1;
+
+bool servoStart() {
+  ledc_timer_config_t t = {};
+  t.speed_mode = SERVO_MODE;
+  t.duty_resolution = LEDC_TIMER_14_BIT;
+  t.timer_num = SERVO_TIMER;
+  t.freq_hz = 50;
+  t.clk_cfg = LEDC_AUTO_CLK;
+  if (ledc_timer_config(&t) != ESP_OK) return false;
+  ledc_channel_config_t c = {};
+  c.gpio_num = SERVO_PIN;
+  c.speed_mode = SERVO_MODE;
+  c.channel = SERVO_CH;
+  c.timer_sel = SERVO_TIMER;
+  c.duty = 0;
+  c.hpoint = 0;
+  return ledc_channel_config(&c) == ESP_OK;
+}
+
 void setServo(int us) {
   servoUs = constrain(us, SERVO_MIN_US, SERVO_MAX_US);
-  servo.writeMicroseconds(servoUs);
+  ledc_set_duty(SERVO_MODE, SERVO_CH, (uint32_t)servoUs * SERVO_DUTY_MAX / SERVO_PERIOD_US);
+  ledc_update_duty(SERVO_MODE, SERVO_CH);
 }
 
 float batteryV() {
@@ -162,14 +190,18 @@ void handleSetup() {
 
 void setup() {
   Serial.begin(115200);
-  servo.setPeriodHertz(50);
-  servo.attach(SERVO_PIN, SERVO_MIN_US, SERVO_MAX_US);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH);               // LED off until loop() blinks it
+  if (!servoStart()) Serial.println("servo: LEDC setup FAILED");
   setServo(SERVO_OPEN_US);                   // power-up: open (nothing can be held yet)
   analogReadResolution(12);
   cameraOk = cameraInit();
   WiFi.mode(WIFI_STA);
   WiFi.setHostname(HOSTNAME);
   WiFi.setSleep(false);                      // latency over power
+#if defined(CLAW_IP)
+  WiFi.config(CLAW_IP, GATEWAY, SUBNET);     // fixed address: config claw.address = "<CLAW_IP>"
+#endif
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   while (WiFi.status() != WL_CONNECTED) { delay(300); Serial.print("."); }
   Serial.printf("\nclaw %s camera=%d\n", WiFi.localIP().toString().c_str(), cameraOk);
@@ -181,6 +213,7 @@ void setup() {
 }
 
 void loop() {
+  digitalWrite(LED_PIN, (millis() % 1000) < 80 ? LOW : HIGH);   // heartbeat: short blink once a second
   server.handleClient();
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.reconnect();                        // grip state is deliberately untouched

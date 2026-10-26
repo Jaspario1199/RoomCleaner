@@ -1,7 +1,10 @@
 #pragma once
 #include "Arduino.h"
+#ifndef STUB_ESP_ERR_T
+#define STUB_ESP_ERR_T
 typedef int esp_err_t;
 #define ESP_OK 0
+#endif
 #define PIXFORMAT_JPEG 4
 #define FRAMESIZE_SVGA 9
 #define CAMERA_FB_IN_PSRAM 1

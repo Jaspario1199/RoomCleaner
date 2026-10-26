@@ -256,3 +256,86 @@ script `tests/cdpr/map_app_verify.js`).
     `09_320px`;
   - each at `_360x740_light`, `_360x740_dark`, `_1280x800_light` and `_1280x800_dark`.
 - The base worktree for the compatibility test: `ROOM_MAP_BASE=/tmp/base` (the test is skipped without it).
+
+---
+
+# Round 2 (2026-10-26, head fcdf1c5): re-verification after the builder's fixes
+
+Scope: everything of round 1 re-run against the fixed code, plus a fresh look at what the fixes introduce. The lead's decision
+applied to the verifier's tests: the landing-column rule is intentional (a shape over the floor marker or the start point is
+refused at save), so the 31 round-1 `xfail(strict)` tests are plain tests again, H-2 is two tests (the refusal at save, and lowering
+with a shape NEAR the column), and the sim fixtures and the scripted desk keep off the landing columns.
+
+## Verdict: PASS WITH CONDITIONS (hardware)
+
+Both High findings are fixed and re-verified in the simulator with adversarial shapes; all Medium findings are fixed. Remaining
+(none is a safety item): L-5 is **not** fixed for its own defining case, L-6 is open by decision, and four new Low observations
+below. Conditions for hardware: see "Conditions" at the end.
+
+## Round-1 findings: expected vs measured
+
+| id | round 1 | round 2 expected | measured | status |
+|---|---|---|---|---|
+| H-2 | lowering descended into a refused shape | a shape over the landing column is refused at save (every state, named); a shape NEAR the column makes the lowering land on a clear spot or refuse holding; never cable packets through the map; true claw never inside a shape | `PUT` DISARMED/PARKED/READY: 409 "The Ottoman covers the claw's landing spot at the floor marker (x, y m), where it is lowered to the floor. Move the Ottoman away from it on the Map"; a stool 5 mm inside the inflated column refused, a chair 1 cm outside and a fan above the transit height accepted. Lowering with a 5 cm floor lamp beside the column (cable A crossing the planned descent over the marker): __FOUR_LOWER__ | fixed |
+| H-1 | detour stranded the claw at the top | pole near the start point reaches READY; no detour apex above `ws.hi[z] - 0.03`; no move refused "above" | sim3 pole 0.25 m: **READY** (10 blocked poses skipped and logged, 0 detour legs needed in this run); sim3 shelf 0.55 m: READY; sim3 shelf 0.33 m: READY. No "workspace: z= ... above" in any log. Deterministic: 0 of 81 (sim) and 0 of 27 (sim3) station positions at the top refuse the next move; the `_detour_height` apex of a dry detour over a 1.2 m shelf is the lowest 0.1 m step that clears it and is <= hi - inset; a shelf to the ceiling gives (None, reason) | fixed |
+| M-1 | room edit broke the map file | refused naming the shapes, nothing changed | 409 "The new room size does not fit the saved Map: the Shelf: ... Move or resize those shapes on the Map first"; room unchanged; file loads | fixed |
+| M-2 | jargon in refusals | plain words, user's units, no ids | field: "Length: 20'0" is longer than the room (11'0" x 9'0")", "Height: 12'0" is above the ceiling (9'0")", "Height: 0" is not a height: give the real height of the furniture."; cell: "cable A would cross the Square" | fixed (residual: L-9) |
+| M-3 | hamper only by its ring | drag by the middle | moved 0.29-0.35 m by the middle, all 4 configurations | fixed |
+| M-4 | labels overlap | none overlap, none clipped | 0 overlaps and 0 clipped labels in all 5 recorded states x 4 configurations (incl. the lead's circle-on-hamper case: the circle's label moves beside it, "Hamper" keeps its pill) | fixed |
+| M-5 | a blocked startup did not name the map | names the shape and says to edit the Map | the shelf 0.33 m case now reaches READY (the landing-column rule pushed it 1 cm further); the message path is covered by the builder's unit test; the lift refusal and calibration abort texts name the shape ("edit the Map") by inspection | fixed |
+| L-1 | units not saved | units part of the map | toggling units alone: dirty, Save enabled; `GET` returns "m"; undo restores them | fixed |
+| L-2 | thin shapes not grabbable | >= 44 px grab area | 5 cm pole, 40 cm lamp: grab area 44 px at 360 and 1280 px | fixed |
+| L-3 | Hamper label contrast | >= 4.5 | 5.34 light / >= 5 dark, on shapes and on the overlay tint (pill) | fixed |
+| L-4 | height 0 accepted | refused in the field | "0" is not a height ..."; value kept | fixed |
+| L-5 | typed 2'6" over a shown 2'6" gives 0.75 m | 0.762 m | **0.75 m, still**: with `fill` + Enter and with key-by-key typing, the field receives `input` and `blur` but no `change` event (the browser fires none when the text is unchanged), and the field commits only on `change`; "30 in" over "2'6"" works. The walkthrough's typed desk is still 0.750 m tall | **not fixed** (Low) |
+| L-6 | preview slow while busy | documented, not changed | compute 1.8-3.0 s while a startup runs, 13 ms idle | open by decision |
+| L-7 | hamper inside a shape | refused | "the hamper is inside the unnamed rectangle at 1.55, 0.94 m: put it where the robot can reach its opening" | fixed |
+| L-8 | "room clear" after skipped items | counts the skipped items | "0 delivered, 2 could not be picked up (item0: ...)" | fixed |
+
+## New observations (round 2)
+
+| id | severity | observation | evidence |
+|---|---|---|---|
+| L-9 | Low | Server messages name unnamed shapes and the landing spot in metres whatever the units ("the unnamed rectangle at 1.68, 1.37 m", "landing spot at the floor marker (1.68, 1.37 m)"), and repeat the long name twice in one sentence | `app_*_messages.landing` |
+| L-10 | Low | The landing-column rule is checked against the floor marker the service knows at save time: before the first startup that is the configured prior, and the real marker can be 10-15 cm away (the sim draws it so). A shape accepted while DISARMED can therefore cover the real marker's column after the startup; lowering then handles it (the marker spot is refused by the planner and the search lands elsewhere, or refuses), so this is not a safety gap, but the save-time promise is weaker than it reads | sim3: marker 0.13-0.38 m from the start point |
+| L-11 | Low | `_landing_spot` tries at most 60 grid spots nearest the marker and then refuses even if farther spots would land: in two of three three-station rigs a pole over the marker plus a crate on the start point produced "Can't lower: the Pole is under the landing spot" although the box has free floor; in the third it landed 0.68 m from the marker | `sim3_landing_spot_*` |
+| L-12 | Low | A landing spot away from the marker relies on the camera still seeing the floor reference near the floor (the lowering's packet phase needs `still_pose`); with the sim's tag board it does, with a single marker on hardware a spot 0.5 m away may lose it and stop with "lost the marker while lowering" (claw 5 cm up, holding). Prefer the start point / marker; the search already orders by distance | code reading (`supervisor.lower`) |
+| I-2 | Info | The 1 mm start-bound snap (`START_BOUND_TOL_M`) is tight: 0.9 mm outside is put on the bound with a 10-microstep faded offset, 1.1 mm is refused, the target is never clamped, and tension / triangle checks still apply at a bound (sim and sim3). It changes behaviour without a map only within 1 mm of a bound | `bound_snap` |
+
+## Planner safety (round 2 sims)
+
+| scenario | outcome | planned min clearance to inflated shape | true min clearance to real shape |
+|---|---|---|---|
+| sim3, 1.8 m shelf 0.55 m from the start | READY | +3.7 mm | cable 65 mm, body 98 mm |
+| sim3, 5 cm pole 0.25 m from the start (round-1 H-1 case) | **READY** | +16.5 mm | cable 62 mm, body 80 mm |
+| sim3, 1.8 m shelf 0.33 m from the start (round-1 M-5 case) | **READY** | +1.0 mm | cable 68 mm, body 158 mm |
+| sim4, dresser + pole saved while DISARMED | __FOUR_STARTUP__ |
+| sim4 task: 5 cm floor lamp 0.12 m from item 0 | __FOUR_TASK1__ |
+| sim4 task: ottoman 0.45 m behind item 0 | __FOUR_TASK2__ |
+| sim4 lowering, floor lamp beside the landing column | __FOUR_LOWER2__ |
+
+No planned pose of any executed plan entered an inflated shape; the true cables and claw never touched a real shape. `PUT` while
+the startup runs: 409 "busy" every time.
+
+## App (round 2)
+
+4 configurations (360 x 740 touch, 1280 x 800 mouse; light, dark) + 320 px: **92 passed, 4 xfailed** (L-5, one per configuration).
+Unchanged from round 1 and still good: first screen, PAUSE / e-stop line always visible and topmost, no horizontal scroll, HTML
+and SVG contrast, 44 px targets, parsing in both unit modes, undo x20, save / revert / reload, overlay reasons, 50-shape render
+3.4-3.8 ms. New: shapes added by tap land >= 0.17 m clear of the landing spot; the landing refusal is shown as "Not saved: ...
+covers the claw's landing spot ...".
+
+**Desk walkthrough** (4 ft x 2 ft, 2'6" tall, save): 3 taps with the Desk button (exact 4'0" x 2'0" x 2'6"); 5 taps typed, with
+about 430 px of scrolling on the phone, and the typed height still 0.750 m (L-5).
+
+## Suite (round 2, serial)
+
+__SUITE__
+
+## Conditions for hardware
+
+1. On the first hardware lowering with a map, have the switched power strip in hand: the landing search is new and the camera
+   coverage of a landing spot away from the marker is untested on hardware (L-12).
+2. Keep `motion.obstacle_margin_m` at 0.10 m or more: the true cables used up to 38 mm of it in the sims.
+3. L-5: tell the user to type a different text (e.g. "30 in") when the shown value is what they want exactly, or fix the commit
+   (commit on blur / Enter when `typed`, not only on `change`).

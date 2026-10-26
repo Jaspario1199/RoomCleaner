@@ -25,22 +25,22 @@
   ],
   "plans_executed": 61,
   "cartesian_plans_checked": 6,
-  "true_steps": 301510,
+  "true_steps": 299701,
   "worst_planned": {
    "Shelf": {
-    "label": "intermediate fit",
+    "label": "intermediate witness",
     "shape": "Shelf",
-    "clearance_m": 0.003683741057372958,
+    "clearance_m": 0.0036837429511836772,
     "what": "cable 1",
-    "n_poses": 129
+    "n_poses": 75
    }
   },
   "true": {
    "Shelf": {
     "cable_real": 0.06493956455382491,
-    "body_real": 0.0981120446872937,
+    "body_real": 0.09812818428941708,
     "cable_inflated": -0.0350604354461751,
-    "body_inflated": -0.001887955312706302
+    "body_inflated": -0.0018718157105829247
    }
   },
   "detour_legs": [],
@@ -69,18 +69,18 @@
     ]
    ],
    "preview_ms": [
-    3.8865879978402518,
-    913.804149000498,
-    876.833449001424,
-    697.217199998704,
-    1080.8642779993534
+    2.754910001385724,
+    825.9540489998471,
+    725.6989569978032,
+    614.0309750007873,
+    1103.747540000768
    ],
    "coverage_compute_ms": [
-    3.3,
-    913.0,
-    876.1,
-    696.3,
-    1080.1
+    2.3,
+    825.1,
+    724.9,
+    613.1,
+    1102.6
    ]
   }
  },
@@ -88,7 +88,7 @@
  "sim3_startup_shelf_0.55m_detour_apex": {
   "legs": 0,
   "max_z": null,
-  "limit": 2.111686313953941
+  "limit": 2.109880656525031
  },
  "sim3_landing_spot_shelf_0.55m": {
   "refused": "Can't lower: the Pole is under the landing spot. Move it on the Map, or lower by hand."
@@ -2363,22 +2363,22 @@
   ],
   "plans_executed": 51,
   "cartesian_plans_checked": 6,
-  "true_steps": 285331,
+  "true_steps": 277124,
   "worst_planned": {
    "Pole": {
     "label": "expanded fit",
     "shape": "Pole",
-    "clearance_m": 0.016504334812461247,
+    "clearance_m": 0.01650433461182166,
     "what": "cable 2",
     "n_poses": 135
    }
   },
   "true": {
    "Pole": {
-    "cable_real": 0.06242631589580761,
-    "body_real": 0.08014735633929077,
-    "cable_inflated": -0.03757368410419239,
-    "body_inflated": -0.01985264366070924
+    "cable_real": 0.06242631589580747,
+    "body_real": 0.08015659109413265,
+    "cable_inflated": -0.037573684104192526,
+    "body_inflated": -0.01984340890586736
    }
   },
   "detour_legs": [],
@@ -2407,18 +2407,18 @@
     ]
    ],
    "preview_ms": [
-    12.891415997728473,
-    581.4426439974341,
-    474.25943200141774,
-    654.3452969999635,
-    829.0386970002146
+    3.150322001602035,
+    519.9172940010612,
+    496.7619259987259,
+    1025.9045320017322,
+    574.6546549999039
    ],
    "coverage_compute_ms": [
-    12.3,
-    580.6,
-    472.8,
-    653.5,
-    828.3
+    2.6,
+    519.1,
+    495.7,
+    1025.1,
+    573.9
    ]
   }
  },
@@ -2433,14 +2433,14 @@
  "sim3_startup_pole_0.25m_detour_apex": {
   "legs": 0,
   "max_z": null,
-  "limit": 2.114210999879929
+  "limit": 2.114210999879607
  },
  "sim3_landing_spot_pole_0.25m": {
   "spot": [
    1.2,
    1.1
   ],
-  "distance_from_marker_m": 0.6759131143682097
+  "distance_from_marker_m": 0.6759131143681238
  },
  "app_1280x800_dark_small_shape_bodies": [],
  "app_1280x800_dark_svg_label_contrast": [
@@ -3213,22 +3213,22 @@
   ],
   "plans_executed": 61,
   "cartesian_plans_checked": 6,
-  "true_steps": 300724,
+  "true_steps": 304464,
   "worst_planned": {
    "Shelf": {
     "label": "local fit",
     "shape": "Shelf",
-    "clearance_m": 0.0009785843919224435,
+    "clearance_m": 0.0009785843918585502,
     "what": "cable 2",
     "n_poses": 64
    }
   },
   "true": {
    "Shelf": {
-    "cable_real": 0.06785138745110111,
-    "body_real": 0.15830118661988182,
-    "cable_inflated": -0.03214861254889889,
-    "body_inflated": 0.05830118661988182
+    "cable_real": 0.06785138745110156,
+    "body_real": 0.15830118661988238,
+    "cable_inflated": -0.03214861254889845,
+    "body_inflated": 0.05830118661988237
    }
   },
   "detour_legs": [],
@@ -3257,18 +3257,18 @@
     ]
    ],
    "preview_ms": [
-    3.405448998819338,
-    919.1441599978134,
-    1109.91680799998,
-    1290.4097890022967,
-    647.7101089985808
+    3.4544530026323628,
+    678.1409440009156,
+    837.9356129989901,
+    163.80099200250697,
+    1153.9371409999148
    ],
    "coverage_compute_ms": [
     2.8,
-    918.2,
-    1109.2,
-    1289.6,
-    646.7
+    677.2,
+    837.0,
+    162.9,
+    1152.9
    ]
   }
  },
@@ -3276,7 +3276,7 @@
  "sim3_startup_shelf_0.33m_detour_apex": {
   "legs": 0,
   "max_z": null,
-  "limit": 2.1085684726806306
+  "limit": 2.1081842772236494
  },
  "sim3_landing_spot_shelf_0.33m": {
   "refused": "Can't lower: the Pole is under the landing spot. Move it on the Map, or lower by hand."
@@ -3284,7 +3284,7 @@
  "sim4_startup": {
   "state": "READY",
   "reasons": [
-   "predicted length sigma 5.2 mm > 5.0 mm in the requested volume",
+   "predicted length sigma 5.1 mm > 5.0 mm in the requested volume",
    "slack probe was off: the predicted sigma is not honest (slack reads as length error); enable startup.slack_probe"
   ],
   "shapes": [
@@ -3313,35 +3313,35 @@
   ],
   "plans_executed": 62,
   "cartesian_plans_checked": 6,
-  "true_steps": 348405,
+  "true_steps": 345149,
   "worst_planned": {
    "Dresser": {
     "label": "expanded fit",
     "shape": "Dresser",
-    "clearance_m": 0.298369371715231,
+    "clearance_m": 0.29855717216936556,
     "what": "body",
-    "n_poses": 327
+    "n_poses": 279
    },
    "Pole": {
     "label": "intermediate fit",
     "shape": "Pole",
-    "clearance_m": 0.039212975922540944,
+    "clearance_m": 0.05056678492807021,
     "what": "cable 3",
-    "n_poses": 69
+    "n_poses": 67
    }
   },
   "true": {
    "Dresser": {
-    "cable_real": 0.43228650488608256,
-    "body_real": 0.4371936404340731,
-    "cable_inflated": 0.3322865048860825,
-    "body_inflated": 0.3367173060390473
+    "cable_real": 0.43327998691221936,
+    "body_real": 0.44111003829196177,
+    "cable_inflated": 0.3332799869122194,
+    "body_inflated": 0.3406283315276972
    },
    "Pole": {
-    "cable_real": 0.16218150905342862,
-    "body_real": 0.7442495269436822,
-    "cable_inflated": 0.06218150905342862,
-    "body_inflated": 0.6442495269436821
+    "cable_real": 0.16278329133603126,
+    "body_real": 0.7593359235370787,
+    "cable_inflated": 0.06278329133603125,
+    "body_inflated": 0.6593359235370788
    }
   },
   "detour_legs": [],
@@ -3370,18 +3370,18 @@
     ]
    ],
    "preview_ms": [
-    506.7924260001746,
-    1774.1351420008868,
-    1902.817509999295,
-    2362.2182629987947,
-    2497.782559999905
+    257.6796800021839,
+    1561.9312130002072,
+    2150.522820000333,
+    1528.8023649991374,
+    3003.592215998651
    ],
    "coverage_compute_ms": [
-    506.1,
-    1773.1,
-    1901.7,
-    2361.3,
-    2496.9
+    256.7,
+    1560.9,
+    2149.7,
+    1527.9,
+    3002.6
    ]
   }
  },
@@ -3409,32 +3409,32 @@
    ]
   ],
   "preview_ms": [
-   506.7924260001746,
-   1774.1351420008868,
-   1902.817509999295,
-   2362.2182629987947,
-   2497.782559999905
+   257.6796800021839,
+   1561.9312130002072,
+   2150.522820000333,
+   1528.8023649991374,
+   3003.592215998651
   ],
   "coverage_compute_ms": [
-   506.1,
-   1773.1,
-   1901.7,
-   2361.3,
-   2496.9
+   256.7,
+   1560.9,
+   2149.7,
+   1527.9,
+   3002.6
   ]
  },
  "put_state_rules": {
   "READY_side": [
    409,
-   "the claw's current pose (2.29, 0.89, 0.95) m would break the new map: cable B would cross the Cabinet; cable C would cross the Cabinet; the claw would enter the Cabinet. Lower or park the claw first, or change the map"
+   "the claw's current pose (2.29, 0.87, 0.95) m would break the new map: cable B would cross the Cabinet; cable C would cross the Cabinet; the claw would enter the Cabinet. Lower or park the claw first, or change the map"
   ],
   "READY_hang": [
    409,
-   "the claw's current pose (2.29, 0.89, 0.95) m would break the new map: cable A would cross the Lamp; cable B would cross the Lamp; cable C would cross the Lamp; cable D would cross the Lamp; the claw would enter the Lamp. Lower or park the claw first, or change the map"
+   "the claw's current pose (2.29, 0.87, 0.95) m would break the new map: cable A would cross the Lamp; cable B would cross the Lamp; cable C would cross the Lamp; cable D would cross the Lamp; the claw would enter the Lamp. Lower or park the claw first, or change the map"
   ],
   "READY_under": [
    409,
-   "lowering the claw straight down from (2.29, 0.89) would break the new map at 0.93 m: the claw would enter the Table. Move or park the claw first, or change the map"
+   "lowering the claw straight down from (2.29, 0.87) would break the new map at 0.93 m: the claw would enter the Table. Move or park the claw first, or change the map"
   ],
   "READY_far": [
    200,
@@ -3442,15 +3442,15 @@
   ],
   "PAUSED_side": [
    409,
-   "the claw's current pose (2.29, 0.89, 0.95) m would break the new map: cable B would cross the Cabinet; cable C would cross the Cabinet; the claw would enter the Cabinet. Lower or park the claw first, or change the map"
+   "the claw's current pose (2.29, 0.87, 0.95) m would break the new map: cable B would cross the Cabinet; cable C would cross the Cabinet; the claw would enter the Cabinet. Lower or park the claw first, or change the map"
   ],
   "PAUSED_hang": [
    409,
-   "the claw's current pose (2.29, 0.89, 0.95) m would break the new map: cable A would cross the Lamp; cable B would cross the Lamp; cable C would cross the Lamp; cable D would cross the Lamp; the claw would enter the Lamp. Lower or park the claw first, or change the map"
+   "the claw's current pose (2.29, 0.87, 0.95) m would break the new map: cable A would cross the Lamp; cable B would cross the Lamp; cable C would cross the Lamp; cable D would cross the Lamp; the claw would enter the Lamp. Lower or park the claw first, or change the map"
   ],
   "PAUSED_under": [
    409,
-   "lowering the claw straight down from (2.29, 0.89) would break the new map at 0.93 m: the claw would enter the Table. Move or park the claw first, or change the map"
+   "lowering the claw straight down from (2.29, 0.87) would break the new map at 0.93 m: the claw would enter the Table. Move or park the claw first, or change the map"
   ],
   "PAUSED_far": [
    200,
@@ -3509,8 +3509,8 @@
    "id": "t3",
    "name": "Ottoman",
    "shape": "box",
-   "x": 1.3552425719419818,
-   "y": 0.8714242011834135,
+   "x": 1.3554502429707216,
+   "y": 0.8732152186279557,
    "length_m": 0.3,
    "width_m": 0.3,
    "yaw_deg": 0.0,
@@ -3538,6 +3538,147 @@
    "hamper",
    "hamper"
   ],
-  "worst_planned_m": 0.04664085470245666
+  "worst_planned_m": 0.04662895937827688
+ },
+ "sim4_landing_put_ready": {
+  "error": "The Ottoman covers the claw's landing spot at the floor marker (1.78, 1.15 m), where it is lowered to the floor. Move the Ottoman away from it on the Map",
+  "ok": false
+ },
+ "sim4_lower": {
+  "state": "PARKED",
+  "refusal": null,
+  "labels": [
+   "lower: over marker",
+   "lower: descend",
+   "lower packet",
+   "lower packet",
+   "...",
+   "lower packet",
+   "lower packet",
+   "slacken"
+  ],
+  "n_packets": 8,
+  "log": [
+   "[supervisor] lower: the map blocks the landing over the marker (workspace: cable A would cross the Floor lamp); lowering at (1.68, 1.37) instead"
+  ],
+  "true_body_clearance_to_real_shapes_m": 0.151726191443172,
+  "claw_end": [
+   1.706919987088243,
+   1.381879137814689,
+   0.5172875045836569
+  ],
+  "marker": [
+   1.7780233469575668,
+   1.1461638034642112
+  ],
+  "claw_lowest_end_m": 0.0,
+  "pole": {
+   "id": "l3",
+   "name": "Floor lamp",
+   "shape": "cylinder",
+   "x": 1.42867868210691,
+   "y": 0.9221474979407462,
+   "diameter_m": 0.05,
+   "z_low_m": 0.0,
+   "height_m": 2.3
+  }
+ },
+ "geometry_random": {
+  "cases": 12000,
+  "false_negatives": 0,
+  "false_positives": 0,
+  "boundary_within_1e-7": 0,
+  "dense_sampler_misses_grazing": 0,
+  "dense_sampler_inventions": 0
+ },
+ "geometry_vectorised_mismatches": 0,
+ "pole_5cm": {
+  "caught": 693,
+  "of_which_the_old_24_sample_test_missed": 166
+ },
+ "no_obstacles_equals_base": {
+  "points_per_profile": 3000,
+  "profiles": [
+   "robot.sim.json",
+   "robot.sim3.json"
+  ],
+  "refused_points": [
+   1961,
+   2626
+  ]
+ },
+ "m1_room_edit": [
+  400,
+  {
+   "error": "The new room size does not fit the saved Map: the Shelf: height 2.60 m is above the ceiling (2.40 m); the Shelf: centre (3.10, 2.50) m is outside the room (0-3.00 x 0-2.40 m). Move or resize those shapes on the Map first, then change the room",
+   "ok": false
+  }
+ ],
+ "coverage_cells": {
+  "cells": 952,
+  "mismatches": 0,
+  "first": [],
+  "counts": {
+   "area": 86,
+   "ok": 0,
+   "shape": 772,
+   "trust": 94
+  },
+  "server_ms": 5.0
+ },
+ "coverage_timing_10_shapes": {
+  "server_ms_median": 10.2,
+  "server_ms_max": 15.3,
+  "http_roundtrip_ms_median": 11.008924000634579,
+  "http_ms_max": 16.190171001653653
+ },
+ "h1_top_refusals": {
+  "refused": 0,
+  "of": 81,
+  "example": []
+ },
+ "bound_snap": {
+  "robot.sim.json +0.9 mm": "planned",
+  "robot.sim.json +1.1 mm": "refused",
+  "robot.sim.json +5.0 mm": "refused",
+  "robot.sim.json +50.0 mm": "refused",
+  "robot.sim3.json +0.9 mm": "planned",
+  "robot.sim3.json +1.1 mm": "refused",
+  "robot.sim3.json +5.0 mm": "refused",
+  "robot.sim3.json +50.0 mm": "refused"
+ },
+ "landing_rule_put": {
+  "DISARMED_Ottoman": [
+   409,
+   "The Ottoman covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the Ottoman away from it on the Map"
+  ],
+  "DISARMED_Stool": [
+   409,
+   "The Stool covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the Stool away from it on the Map"
+  ],
+  "DISARMED_Chair": [
+   200,
+   "Saved: the planner now avoids 1 shape"
+  ],
+  "DISARMED_Ceiling fan": [
+   200,
+   "Saved: the planner now avoids 1 shape"
+  ],
+  "PARKED_Ottoman": [
+   409,
+   "The Ottoman covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the Ottoman away from it on the Map"
+  ],
+  "PARKED_Stool": [
+   409,
+   "The Stool covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the Stool away from it on the Map"
+  ],
+  "PARKED_Chair": [
+   200,
+   "Saved: the planner now avoids 1 shape"
+  ],
+  "PARKED_Ceiling fan": [
+   200,
+   "Saved: the planner now avoids 1 shape"
+  ]
  }
 }

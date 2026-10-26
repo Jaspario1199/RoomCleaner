@@ -330,7 +330,22 @@ about 430 px of scrolling on the phone, and the typed height still 0.750 m (L-5)
 
 ## Suite (round 2, serial)
 
-__SUITE__
+Command (serial, nothing else running): `/usr/bin/python3 -m pytest -q -p no:logging tests/cdpr tests/test_app.py
+tests/test_geometry.py tests/test_kinematics.py` (my two verify files are inside `tests/cdpr`).
+Result: **968 passed, 3 failed, 2 skipped, 4 xfailed** (53 min).
+- 2 failures pre-exist: `test_tiny_moves.py::test_task_runner_move_handles_a_tiny_or_zero_move[offset0/1]` (same on the base
+  worktree 8b933e2, round 1).
+- 1 failure is timing-only: `test_task_layer_verification.py::test_b4_...never_stalls_the_keep_alive` (worst pump gap 197 ms
+  against a 100 ms limit, in the test's own 1 s detector). Re-run alone on HEAD: once failed, once passed; alone on the base
+  8b933e2: passed. Not a room-map regression.
+- 4 xfailed: L-5 (one per browser configuration), the only open finding with a test.
+- 2 skipped: one pre-existing (`test_three_station_review` H1), one of mine (`test_a_task_next_to_shapes_never_plans_into_them`:
+  the landing-column rule refused every placement of the floor lamp next to the first item from the claw pose of that run; the
+  same test ran and passed in the dedicated four-station run, 2 delivered, see the sims table).
+
+Verifier's own files in that run: `tests/cdpr/test_room_map_verify.py` 65 passed, 1 skipped; `tests/cdpr/test_room_map_app_verify.py`
+92 passed, 4 xfailed. Dedicated runs before the suite: three-station 9 passed, four-station 4 passed, browser 92 passed /
+4 xfailed. No xfail of round 1 remains (31 flipped to plain passing tests); one new xfail (L-5).
 
 ## Conditions for hardware
 

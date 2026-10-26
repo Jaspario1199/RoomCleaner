@@ -32,6 +32,14 @@ On a new **Map** tab, the user sees a top view of the room:
 | hamper | the hamper marker is draggable too (`tasks.hamper_room_m`); its rim height is in its inspector (`tasks.hamper_height_m`) |
 | save | **Save map**. Afterwards: "Saved: the planner now avoids 3 shapes". Unsaved changes show a dot on the tab and a Revert button |
 
+**Simple first (Jasper, 10/26: "make sure the app is easy to navigate and simple as possible").**
+- **Main screen:** the room, the shapes, three big buttons (Square, Rectangle, Circle) and Save. Everything else (units,
+  undo history, "Where can it pick?", hamper settings, exact angle) sits behind one "More" control.
+- **Shape panel:** name chip, size and height only; the bottom height, x/y and angle go under "More".
+- **Words:** plain ("keep the robot away from this"), never "keep-out", "violations" or "coverage".
+- **One obvious next step at a time,** and an empty-state hint when there are no shapes.
+- **Navigation:** no new top-level navigation beyond the Map tab.
+
 PAUSE and the emergency-stop line stay visible above everything, as on every other tab (phone-app review F14).
 
 The user experience must be good on a phone (Jasper's request):

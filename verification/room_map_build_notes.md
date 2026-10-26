@@ -124,3 +124,17 @@ app script's "save and reload" desk turned 30 degrees near the room centre): tho
 
 New own tests (`tests/cdpr/test_room_map.py`): plain messages, room edit refused, hamper in a shape and landing spot refused, moves from
 one microstep past the top and from every detour apex, lowering never enters a shape (refuses with the name or lands elsewhere).
+
+### Suite after round 1 (four parallel groups, ~27 min)
+
+895 passed, 57 failed, 3 skipped, 8 xfailed, 2 errors, broken down as:
+- 31 strict-xfail flips (XPASS): H-1 x2, M-1 and, in the browser file, L-2, L-3, L-4, M-3, M-4 (4 configurations each) and M-2 (1280 px x2;
+  at 360 px its overlay phase did not run, see next point).
+- 24 browser-verify failures and 2 three-station-verify errors that all start from the new landing-spot rule: the verifier's scripted maps
+  put a desk 1 cm from the floor marker (app "save and reload": the save is refused, later phases then miss their data) and shelves
+  0.33 / 0.55 m from the resting claw (sim3 fixtures: PUT 409). They need maps that leave the landing column clear.
+- 6 timing tests that fail only under the 4x parallel load and pass alone (keepalive x3, task_reach, task_layer b6, keepalive n2).
+- 2 pre-existing `test_tiny_moves` failures.
+- 1 found and fixed: the M-1 hamper check had incidentally changed the pinned NaN behaviour of `test_phone_app_review::test_f10_room_accepts_nan...`
+  (a review defect pinned as "flip when fixed"); the check is now written so NaN behaves as before, and the F10 tests pass. The NaN
+  room is still accepted (out of scope here).

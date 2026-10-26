@@ -306,7 +306,7 @@ class Service:
         # the saved room map must still fit the room (else the config file would not load at the next start)
         _shapes, errs = validate_obstacles(cfg.obstacles, room)
         hp = cfg.tasks.hamper_room_m
-        if hp is not None and not (0 <= hp[0] <= room[0] and 0 <= hp[1] <= room[1]):
+        if hp is not None and (hp[0] < 0 or hp[0] > room[0] or hp[1] < 0 or hp[1] > room[1]):   # (NaN: tests/F10 pins it)
             errs.append("the hamper would be outside the room")
         if errs:
             undo()

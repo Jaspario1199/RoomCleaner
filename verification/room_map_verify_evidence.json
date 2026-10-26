@@ -1644,141 +1644,6 @@
    "ratio": 12.54
   },
   {
-   "shot": "05_reloaded",
-   "text": "A",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    248,
-    248,
-    248
-   ],
-   "ratio": 16.23
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "B",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    248,
-    248,
-    248
-   ],
-   "ratio": 16.23
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "C",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    248,
-    248,
-    248
-   ],
-   "ratio": 16.23
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "D",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    248,
-    248,
-    248
-   ],
-   "ratio": 16.23
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Hamper",
-   "fg": [
-    15,
-    122,
-    41
-   ],
-   "bg": [
-    252,
-    252,
-    252
-   ],
-   "ratio": 5.34
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Ceiling fan (hangs, from 7'6\")",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Square 2'6\"",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Desk 2'6\"",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Circle 2'6\"",
-   "fg": [
-    27,
-    27,
-    26
-   ],
-   "bg": [
-    216,
-    220,
-    228
-   ],
-   "ratio": 12.54
-  },
-  {
    "shot": "06_overlay",
    "text": "A",
    "fg": [
@@ -1817,11 +1682,11 @@
     26
    ],
    "bg": [
-    224,
-    164,
-    156
+    204,
+    200,
+    200
    ],
-   "ratio": 8.18
+   "ratio": 10.39
   },
   {
    "shot": "06_overlay",
@@ -1832,11 +1697,11 @@
     26
    ],
    "bg": [
-    204,
-    200,
-    200
+    224,
+    164,
+    156
    ],
-   "ratio": 10.39
+   "ratio": 8.18
   },
   {
    "shot": "06_overlay",
@@ -2170,10 +2035,10 @@
   }
  ],
  "app_1280x800_light_messages": [
-  "Saved: the planner now avoids 4 shapes.",
-  "Saved: the planner now avoids 4 shapes.",
-  "Saved: the planner now avoids 4 shapes.",
-  "Here (2'8\", 4'5\"): cable A would cross the Square."
+  "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map",
+  "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map",
+  "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map",
+  "Here (2'8\", 6'1\"): cable A would cross the Square."
  ],
  "app_1280x800_light_labels": {
   "labelsAfterTaps": {
@@ -2201,35 +2066,46 @@
   "inspectorTopPx": 649.609375,
   "dockTopPx": 654.015625,
   "msgAfterAdd": "Added a rectangle. Drag it into place, then set its size and height below.",
-  "saveMovedPx": 38,
-  "msg": "Not saved: The unnamed rectangle at 1.40, 1.35 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.40, 1.35 m away from it on the Map",
+  "saveMovedPx": 324,
+  "msg": "Saved: the planner now avoids 1 shape.",
   "tapsTyped": 5,
   "shapes": [
    {
-    "id": "o1",
-    "name": "",
-    "x": 1.397,
-    "y": 1.3461999999999998,
-    "z_low_m": 0,
-    "shape": "box",
-    "length_m": 1.2191999999999998,
-    "width_m": 0.6095999999999999,
     "height_m": 0.75,
-    "yaw_deg": 0
+    "id": "o1",
+    "length_m": 1.2191999999999998,
+    "name": "",
+    "shape": "box",
+    "width_m": 0.6095999999999999,
+    "x": 1.7018,
+    "y": 1.8541999999999998,
+    "yaw_deg": 0,
+    "z_low_m": 0
    }
   ],
   "scrolledPx": 551,
-  "serverAfterFirstSave": [],
-  "msg2": "Not saved: The unnamed rectangle at 1.40, 1.35 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.40, 1.35 m away from it on the Map",
-  "serverAfterSecondSave": [],
-  "tapsTotal": 6,
+  "serverAfterFirstSave": [
+   {
+    "height_m": 0.75,
+    "id": "o1",
+    "length_m": 1.2191999999999998,
+    "name": "",
+    "shape": "box",
+    "width_m": 0.6095999999999999,
+    "x": 1.7018,
+    "y": 1.8541999999999998,
+    "yaw_deg": 0,
+    "z_low_m": 0
+   }
+  ],
+  "tapsTotal": 5,
   "chipRoute": {
    "taps": 3,
    "shape": {
     "id": "o2",
     "name": "Desk",
-    "x": 1.7018,
-    "y": 2.0574,
+    "x": 1.397,
+    "y": 0.8382,
     "z_low_m": 0,
     "shape": "box",
     "length_m": 1.22,
@@ -2237,7 +2113,7 @@
     "height_m": 0.76,
     "yaw_deg": 0
    },
-   "msg": "Not saved: The unnamed rectangle at 1.40, 1.35 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.40, 1.35 m away from it on the Map",
+   "msg": "Saved: the planner now avoids 2 shapes.",
    "labels": [
     "Rectangle 2'6\"",
     "Desk 2'6\""
@@ -2367,141 +2243,6 @@
    "ratio": 9.28
   },
   {
-   "shot": "05_reloaded",
-   "text": "A",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    20,
-    20,
-    20
-   ],
-   "ratio": 16.43
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "B",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    20,
-    20,
-    20
-   ],
-   "ratio": 16.43
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "C",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    20,
-    20,
-    20
-   ],
-   "ratio": 16.43
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "D",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    20,
-    20,
-    20
-   ],
-   "ratio": 16.43
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Hamper",
-   "fg": [
-    67,
-    192,
-    102
-   ],
-   "bg": [
-    24,
-    24,
-    24
-   ],
-   "ratio": 7.58
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Ceiling fan (hangs, from 7'6\")",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Square 2'6\"",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Desk 2'6\"",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
-   "shot": "05_reloaded",
-   "text": "Circle 2'6\"",
-   "fg": [
-    243,
-    242,
-    236
-   ],
-   "bg": [
-    56,
-    64,
-    80
-   ],
-   "ratio": 9.28
-  },
-  {
    "shot": "06_overlay",
    "text": "A",
    "fg": [
@@ -2540,11 +2281,11 @@
     236
    ],
    "bg": [
-    120,
-    64,
-    60
+    60,
+    60,
+    56
    ],
-   "ratio": 7.21
+   "ratio": 9.88
   },
   {
    "shot": "06_overlay",
@@ -2555,11 +2296,11 @@
     236
    ],
    "bg": [
-    60,
-    60,
-    56
+    120,
+    64,
+    60
    ],
-   "ratio": 9.88
+   "ratio": 7.21
   },
   {
    "shot": "06_overlay",
@@ -2893,10 +2634,10 @@
   }
  ],
  "app_1280x800_dark_messages": [
-  "Saved: the planner now avoids 4 shapes.",
-  "Saved: the planner now avoids 4 shapes.",
-  "Saved: the planner now avoids 4 shapes.",
-  "Here (2'8\", 4'5\"): cable A would cross the Square."
+  "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map",
+  "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map",
+  "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map",
+  "Here (2'8\", 6'1\"): cable A would cross the Square."
  ],
  "app_1280x800_dark_labels": {
   "labelsAfterTaps": {
@@ -2924,35 +2665,46 @@
   "inspectorTopPx": 649.609375,
   "dockTopPx": 654.015625,
   "msgAfterAdd": "Added a rectangle. Drag it into place, then set its size and height below.",
-  "saveMovedPx": 38,
-  "msg": "Not saved: The unnamed rectangle at 1.40, 1.35 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.40, 1.35 m away from it on the Map",
+  "saveMovedPx": 324,
+  "msg": "Saved: the planner now avoids 1 shape.",
   "tapsTyped": 5,
   "shapes": [
    {
-    "id": "o1",
-    "name": "",
-    "x": 1.397,
-    "y": 1.3461999999999998,
-    "z_low_m": 0,
-    "shape": "box",
-    "length_m": 1.2191999999999998,
-    "width_m": 0.6095999999999999,
     "height_m": 0.75,
-    "yaw_deg": 0
+    "id": "o1",
+    "length_m": 1.2191999999999998,
+    "name": "",
+    "shape": "box",
+    "width_m": 0.6095999999999999,
+    "x": 1.7018,
+    "y": 1.8541999999999998,
+    "yaw_deg": 0,
+    "z_low_m": 0
    }
   ],
   "scrolledPx": 551,
-  "serverAfterFirstSave": [],
-  "msg2": "Not saved: The unnamed rectangle at 1.40, 1.35 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.40, 1.35 m away from it on the Map",
-  "serverAfterSecondSave": [],
-  "tapsTotal": 6,
+  "serverAfterFirstSave": [
+   {
+    "height_m": 0.75,
+    "id": "o1",
+    "length_m": 1.2191999999999998,
+    "name": "",
+    "shape": "box",
+    "width_m": 0.6095999999999999,
+    "x": 1.7018,
+    "y": 1.8541999999999998,
+    "yaw_deg": 0,
+    "z_low_m": 0
+   }
+  ],
+  "tapsTotal": 5,
   "chipRoute": {
    "taps": 3,
    "shape": {
     "id": "o2",
     "name": "Desk",
-    "x": 1.7018,
-    "y": 2.0574,
+    "x": 1.397,
+    "y": 0.8382,
     "z_low_m": 0,
     "shape": "box",
     "length_m": 1.22,
@@ -2960,7 +2712,7 @@
     "height_m": 0.76,
     "yaw_deg": 0
    },
-   "msg": "Not saved: The unnamed rectangle at 1.40, 1.35 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.40, 1.35 m away from it on the Map",
+   "msg": "Saved: the planner now avoids 2 shapes.",
    "labels": [
     "Rectangle 2'6\"",
     "Desk 2'6\""

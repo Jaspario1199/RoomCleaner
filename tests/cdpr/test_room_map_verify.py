@@ -5,6 +5,10 @@ Nothing here reuses the builder's checkers: the reference geometry below is a se
 golden-section refinement), and the planner-safety tests sample the ACTUAL planned trajectories that the simulated robot
 executed (every ``co.execute`` plan, densified to 5 mm) and the TRUE simulated claw and cables at every plant step.
 
+Round 2 (2026-10-26, head fcdf1c5): the confirmed findings of round 1 that the builder fixed are plain tests again; H-2 became
+two tests (the landing-column refusal at save, and lowering with a shape NEAR the column); the sim fixtures keep their shapes off
+the landing columns (the lead's rule) but as close to the claw as the lift check allows.
+
 Report: verification/room_map_verification.md. Run: /usr/bin/python3 -m pytest -q tests/cdpr/test_room_map_verify.py
 (about 10 minutes: three simulated startups, a task and a lowering).
 """
@@ -713,9 +717,8 @@ def test_put_allowed_in_disarmed_and_parked(tmp_path):
     assert _put(c, {"obstacles": [dict(BOX)]}).status_code == 200 and len(svc.ctx.cfg.obstacles) == 1
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING M-1: POST /api/room shrinks the room without re-validating the saved map; "
-                                       "the config file then no longer loads (the service cannot start)")
 def test_editing_the_room_size_keeps_the_saved_map_loadable(tmp_path):
+    """Round 1 finding M-1 (fixed in round 2): the room edit is refused with the shapes named, or the file still loads."""
     cfgp = tmp_path / "robot.json"
     cfgp.write_text(Path(SIM).read_text())
     r, svc, c, app = _svc(tmp_path / "d", config_path=cfgp)
@@ -725,7 +728,11 @@ def test_editing_the_room_size_keeps_the_saved_map_loadable(tmp_path):
     if res.status_code == 200:                                     # accepted: the file must still load
         load_config(cfgp)
     else:                                                          # or refused with the reason (also acceptable)
-        assert "shape" in res.get_json().get("error", "").lower() or "map" in res.get_json().get("error", "").lower()
+        err = res.get_json().get("error", "")
+        assert "Shelf" in err and "Map" in err, err
+        load_config(cfgp)                                          # and a refused edit changed nothing
+        assert svc.ctx.cfg.room_m.tolist() == pytest.approx(list(ROOM))
+    _evidence("m1_room_edit", (res.status_code, res.get_json()))
 
 
 # ===================================================================================== 5. coverage
@@ -920,7 +927,7 @@ class MotionRecorder:
         return out
 
 
-def _place_near(cfg, rest_xy, template, *, angles, dists, clear_min=0.03, extra_ok=lambda ob: True):
+def _place_near(cfg, rest_xy, template, *, angles, dists, clear_min=0.03, extra_ok=lambda ob: True, avoid=()):
     """The first placement of ``template`` (around the resting claw, angle in degrees, distance of the shape's centre) whose
     inflated shape stays >= ``clear_min`` clear of the straight lift column (prior model, rest to rest + 0.25 m), i.e. a shape put
     as close to the start point as a careful user could without the startup refusing to lift."""
@@ -934,6 +941,10 @@ def _place_near(cfg, rest_xy, template, *, angles, dists, clear_min=0.03, extra_
             ob = dict(template, x=float(rest_xy[0] + d * math.cos(math.radians(ang))),
                       y=float(rest_xy[1] + d * math.sin(math.radians(ang))))
             if not (0.05 < ob["x"] < W - 0.05 and 0.05 < ob["y"] < D - 0.05) or not extra_ok(ob):
+                continue
+            # the lead's rule (round 2): a shape may not cover the claw's landing column (body, floor to the transit height) over
+            # the floor marker or the start point; keep 1 cm beyond what the service refuses
+            if any(body_clearance(xy, 0.0, cfg.motion.task_max_height_m, ob, m, rad) <= 0.01 for xy in avoid):
                 continue
             P = np.c_[np.full(len(zs), rest_xy[0]), np.full(len(zs), rest_xy[1]), zs]
             c = min(float(seg_min_sdf(np.broadcast_to(A[i], (len(zs), 3)), P + attach[i], ob, m).min()) for i in range(len(A)))
@@ -950,7 +961,8 @@ def _sim_startup(tmp, cfg, shapes_fn, seed=0):
     r = SimRobot(cfg, seed=seed, data_dir=tmp, camera_kw={"board": FloorBoard.nominal(0.15)})
     svc = Service(r.ctx, data_dir=tmp)
     c = Client(create_app(svc), svc.token)
-    shapes = shapes_fn(r)
+    landing = [np.asarray(xy, float) for _w, xy in svc.landing_spots()]
+    shapes = shapes_fn(r, landing)
     res = _put(c, {"obstacles": shapes})
     assert res.status_code == 200, res.get_json()
     rec = MotionRecorder(r)
@@ -996,7 +1008,7 @@ def _assert_clear(rows, tc):
         assert o["cable_real"] > 0 and o["body_real"] > 0, (k, o)  # the true cables / claw never touched a real shape
 
 
-THREE_CASES = {   # name: (template, first centre distance from the resting claw, expected to reach READY)
+THREE_CASES = {   # name: (template, first centre distance from the resting claw)
     "shelf_0.55m": ({"id": "b1", "name": "Shelf", "shape": "box", "length_m": 0.3, "width_m": 0.3, "yaw_deg": 30.0, "z_low_m": 0.0,
                      "height_m": 1.8}, 0.55),
     "pole_0.25m": ({"id": "p1", "name": "Pole", "shape": "cylinder", "diameter_m": 0.05, "z_low_m": 0.0, "height_m": 2.5}, 0.25),
@@ -1008,12 +1020,14 @@ THREE_CASES = {   # name: (template, first centre distance from the resting claw
 @pytest.fixture(scope="module", params=list(THREE_CASES))
 def three(request, tmp_path_factory):
     """Three-station startup (config/robot.sim3.json, fast profile) with ONE shape placed as close to the resting claw as the
-    lift check allows (the first angle / distance from the given one whose inflated shape clears the straight lift by 3 cm)."""
+    lift check and the landing-column rule allow (the first angle / distance from the given one whose inflated shape clears the
+    straight lift by 3 cm and the landing columns at the marker / start point)."""
     from .test_three_station import fast3
     cfg = fast3()
     tpl, d0 = THREE_CASES[request.param]
     out = _sim_startup(tmp_path_factory.mktemp("rm_three"), cfg,
-                       lambda r: [_place_near(cfg, r.world.p[:2], tpl, angles=range(0, 360, 15), dists=np.arange(d0, 1.2, 0.02))])
+                       lambda r, landing: [_place_near(cfg, r.world.p[:2], tpl, angles=range(0, 360, 15),
+                                                       dists=np.arange(d0, 1.2, 0.02), avoid=landing)])
     return (request.param, *out)
 
 
@@ -1027,37 +1041,68 @@ def test_three_station_startup_with_a_shape_near_the_start_point_never_enters_it
     _assert_clear(rows, tc)
 
 
-def test_three_station_startup_with_a_shelf_0_55_m_from_the_start_reaches_ready(three):
+def test_three_station_startup_with_a_shape_near_the_start_reaches_ready_or_names_the_shape(three):
+    """Round 1: H-1 (the detour stranded the claw at the top: pole case) and M-5 (an abort that did not name the map: shelf
+    0.33 m case). Round 2: the pole and the 0.55 m shelf reach READY; a startup that the map still blocks names the shape and
+    says to edit the Map; no detour leg goes above the top less the inset; no move is refused at the top."""
     name, r, svc, c, rec, shapes, busy = three
-    if name != "shelf_0.55m":
-        pytest.skip("only this case is expected to reach READY")
-    assert svc.sup.state == "READY", svc.sup.reasons[-2:]
-    assert [row for row in rec.planned_clearances()], "no Cartesian plan was checked against the map"
+    if name in ("shelf_0.55m", "pole_0.25m"):
+        assert svc.sup.state == "READY", svc.sup.reasons[-2:]
+        assert [row for row in rec.planned_clearances()], "no Cartesian plan was checked against the map"
+    else:
+        last = " ".join(svc.sup.reasons[-1:])
+        assert svc.sup.state == "READY" or (shapes[0]["name"] in last and "Map" in last), svc.sup.reasons[-1:]
+    inset = float(r.cfg.motion.waypoint_inset_m)
+    tops = [float(np.max(p["cart"][:, 2])) for p in rec.plans if p["cart"] is not None and "(room map)" in p["label"]]
+    _evidence(f"sim3_startup_{name}_detour_apex", {"legs": len(tops), "max_z": max(tops, default=None),
+                                                   "limit": float(r.ctx.ws.hi[2]) - inset})
+    assert all(z <= float(r.ctx.ws.hi[2]) - inset + 1e-6 for z in tops), tops
+    assert not any("workspace: z=" in str(x) and "above" in str(x) for x in r.log_lines), "a move was refused at the top"
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING H-1: the calibration detour ('up, across, down') parks the claw at exactly the "
-                                       "workspace top; the next planned move is then refused ('workspace: z=2.154 above 2.154') "
-                                       "and the startup ends in RECOVERY_REQUIRED with the claw at the ceiling margin")
-def test_three_station_startup_with_a_pole_0_25_m_from_the_start_reaches_ready(three):
+def test_the_landing_spot_search_stays_inside_the_triangle_and_the_box(three):
+    """Round 2 regression probe: ``Supervisor._landing_spot`` with a pole over the marker and a crate on the start point (not
+    saveable through PUT, so set on the live workspace directly) must pick a spot that is clear of every shape, inside the
+    workspace box AND the three-station triangle (with its tension margin), never merely 'clear by the map'; or refuse, naming
+    a shape."""
     name, r, svc, c, rec, shapes, busy = three
-    if name != "pole_0.25m":
-        pytest.xfail("other case")
-    assert svc.sup.state == "READY", svc.sup.reasons[-2:]
+    if svc.sup.state != "READY":
+        pytest.skip(f"not READY ({svc.sup.state})")
+    from roomcleaner.cdpr.perception import to_room
+    from roomcleaner.cdpr.supervisor import CommandRefused
+    ctx = r.ctx
+    ws = ctx.ws
+    mk = np.asarray(to_room(ctx.T_R_M, [0, 0, 0])[:2], float)
+    zf = -float(r.cfg.claw.lowest_point_body_m[2])
+    h = max(float(_claw(svc)[2]), zf + 0.30)
+    pole = {"id": "z1", "name": "Pole", "shape": "cylinder", "x": float(mk[0]), "y": float(mk[1]), "diameter_m": 0.05, "z_low_m": 0.0,
+            "height_m": 2.2}
+    sx, sy = r.cfg.start_point_xy()
+    big = {"id": "z2", "name": "Crate", "shape": "box", "x": float(sx), "y": float(sy), "length_m": 0.5, "width_m": 0.5, "yaw_deg": 0.0,
+           "z_low_m": 0.0, "height_m": 0.5}
+    saved = list(ws.obstacles)
+    out = {}
+    try:
+        ws.obstacles = saved + [pole, big]
+        try:
+            xy = svc.sup._landing_spot(ctx.co.positions(), mk, h, zf)
+        except CommandRefused as e:
+            out["refused"] = str(e)
+            assert "Pole" in str(e) or "Crate" in str(e), str(e)
+        else:
+            out["spot"] = xy.tolist()
+            assert np.all(xy >= ws.lo[:2] - 1e-9) and np.all(xy <= ws.hi[:2] + 1e-9), xy
+            assert ws.triangle_violation(np.r_[xy, zf + 0.05]) is None, ws.triangle_violation(np.r_[xy, zf + 0.05])
+            for ob in ws.obstacles:
+                assert body_clearance(xy, 0.0, h, ob, r.cfg.motion.obstacle_margin_m, r.cfg.claw.body_radius_m) > 0, (ob["name"], xy)
+            out["distance_from_marker_m"] = float(np.linalg.norm(xy - mk))
+    finally:
+        ws.obstacles = saved
+    _evidence(f"sim3_landing_spot_{name}", out)
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING M-5: a 1.8 m shelf whose side is 0.19 m from the resting claw blocks every local "
-                                       "calibration pose (and the way over); the startup ends in RECOVERY_REQUIRED with 'expanded: "
-                                       "only 13 feasible visible poses (need 15)', which does not name the map or the shelf")
-def test_a_startup_blocked_by_the_map_says_so_in_plain_words(three):
-    name, r, svc, c, rec, shapes, busy = three
-    if name != "shelf_0.33m":
-        pytest.xfail("other case")
-    assert svc.sup.state == "READY" or any(s_["name"] in " ".join(svc.sup.reasons[-1:]) for s_ in shapes), svc.sup.reasons[-1:]
-
-
-@pytest.mark.xfail(strict=True, reason="FINDING H-1 (deterministic part): within one microstep of a pose at exactly ws.hi[z] "
-                                       "(where the detour's 'up' leg ends), 31 of 81 station positions refuse every next move")
 def test_after_the_detours_up_leg_the_next_move_can_be_planned():
+    """Round 1 finding H-1 (fixed in round 2): a pose within a microstep of the workspace top can start a move."""
     import itertools
     from roomcleaner.cdpr.trajectory import PlanError, limits_from_config, model_from, plan_line_from
     cfg, geo, ws = _cfg_ws([])
@@ -1075,13 +1120,87 @@ def test_after_the_detours_up_leg_the_next_move_can_be_planned():
     assert not bad, (len(bad), bad[:1])
 
 
+def test_the_1_mm_bound_snap_hides_no_real_out_of_workspace_pose():
+    """Round 2 regression probe for the H-1 fix (trajectory.START_BOUND_TOL_M): a start pose up to 1 mm outside the box is put on
+    the bound (the offset is faded out), 1.1 mm and more is still refused, the tension and three-station triangle checks still
+    apply at a bound, a target outside is never clamped."""
+    from roomcleaner.cdpr.trajectory import START_BOUND_TOL_M, PlanError, limits_from_config, model_from, plan_line_from
+    assert START_BOUND_TOL_M <= 0.001
+    out = {}
+    for path in (SIM, SIM3):
+        cfg, geo, ws = _cfg_ws([], path)
+        model = model_from(geo, cfg, {s.id: 3.0 for s in cfg.stations})
+        lim = limits_from_config(cfg)
+        c = cfg.start_point_xy()
+        top = float(ws.hi[2])
+        for dz, ok in ((0.0009, True), (0.0011, False), (0.005, False), (0.05, False)):
+            P = model.positions_for(np.array([c[0], c[1], top + dz]))
+            try:
+                pl = plan_line_from(model, P, np.array([c[0] + 0.3, c[1], 1.0]), lim, ws=ws, label="x")
+                assert ok, (path, dz)
+                assert abs(float(pl.cart[0][2]) - top) < 1e-9 and np.max(np.abs(pl.meta["start_offset_usteps"])) < 200
+            except PlanError as e:
+                assert not ok and "above" in str(e), (path, dz, e)
+            out[f"{Path(path).name} +{dz * 1e3:.1f} mm"] = "planned" if ok else "refused"
+        zlo = float(ws.lo[2])
+        P = model.positions_for(np.array([c[0], c[1], zlo - 0.0009]))
+        plan_line_from(model, P, np.array([c[0] + 0.3, c[1], 1.0]), lim, ws=ws, label="x")
+        with pytest.raises(PlanError):                                                  # a target outside is never clamped
+            plan_line_from(model, P, np.array([c[0] + 0.3, c[1], zlo - 0.0009]), lim, ws=ws, label="x")
+        P = model.positions_for(np.array([ws.hi[0] + 0.0009, c[1], 1.0]))             # at a side bound: still infeasible there
+        with pytest.raises(PlanError):
+            plan_line_from(model, P, np.array([c[0], c[1], 1.0]), lim, ws=ws, label="x")
+    _evidence("bound_snap", out)
+
+
+def test_the_detour_apex_is_inset_from_the_top_and_is_the_lowest_that_clears_the_shape():
+    """Round 2: ``StartupSequencer._detour_height`` on a dry context: the apex is at most ws.hi[z] - waypoint_inset_m, every leg
+    plans, the height is the lowest 0.1 m step that clears a shelf between two poses, and a shelf up to the ceiling gives
+    (None, reason)."""
+    from types import SimpleNamespace
+    from roomcleaner.cdpr.startup import StartupSequencer
+    from roomcleaner.cdpr.trajectory import PlanError, limits_from_config, model_from, plan_line
+    shelf = {"id": "s", "name": "Shelf", "shape": "box", "x": 1.68, "y": 1.37, "length_m": 0.3, "width_m": 0.3, "yaw_deg": 0.0,
+             "z_low_m": 0.0, "height_m": 1.2}
+    cfg, geo, ws = _cfg_ws([shelf])
+    model = model_from(geo, cfg, {s.id: 3.0 for s in cfg.stations})
+    lim = limits_from_config(cfg)
+    seq = StartupSequencer.__new__(StartupSequencer)
+    seq.ctx = SimpleNamespace(ws=ws, model=model, lim=lim)
+    seq.cfg = cfg
+    here = q = None
+    for dx in np.arange(0.5, 1.3, 0.05):                            # two valid poses whose straight line the shelf blocks
+        a, b = np.array([1.68 - dx, 1.37, 0.8]), np.array([1.68 + dx, 1.37, 0.8])
+        if ws.violations(geo, a) or ws.violations(geo, b):
+            continue
+        try:
+            plan_line(model, a, b, lim, ws=ws)
+        except PlanError as e:
+            if "Shelf" in str(e):
+                here, q = a, b
+                break
+    assert here is not None, "no pair of valid poses with the shelf between them"
+    z, err = seq._detour_height(here, q)
+    assert err is None and z is not None
+    limit = float(ws.hi[2]) - float(cfg.motion.waypoint_inset_m)
+    assert z <= limit + 1e-9
+    for p0, p1 in ((here, np.r_[here[:2], z]), (np.r_[here[:2], z], np.r_[q[:2], z]), (np.r_[q[:2], z], q)):
+        plan_line(model, p0, p1, lim, ws=ws)
+    with pytest.raises(PlanError):                                   # one 0.1 m step lower does not clear it
+        plan_line(model, np.r_[here[:2], z - 0.1], np.r_[q[:2], z - 0.1], lim, ws=ws)
+    ws.obstacles = [dict(shelf, height_m=2.7)]
+    z2, err2 = seq._detour_height(here, q)
+    assert z2 is None and err2
+    _evidence("detour_apex", {"z": z, "limit": limit, "blocked_reason": err2})
+
+
 # ----------------------------------------------------------------------------------------------- four stations: startup, state rules,
 # a task next to shapes, and the lowering
 @pytest.fixture(scope="module")
 def four(tmp_path_factory):
     cfg = fast_cfg()
 
-    def shapes(r):     # saved while DISARMED: a dresser against the A-D wall and a floor lamp in the D corner (outside the
+    def shapes(r, landing):     # saved while DISARMED: a dresser against the A-D wall and a floor lamp in the D corner (outside the
         # calibration poses, so the startup is not blocked: H-1 / M-5); more shapes are saved in READY by the tests below
         return [{"id": "b1", "name": "Dresser", "shape": "box", "x": 0.25, "y": 1.37, "length_m": 0.46, "width_m": 1.2,
                  "yaw_deg": 0.0, "z_low_m": 0.0, "height_m": 0.9},
@@ -1227,44 +1346,100 @@ def test_a_task_next_to_shapes_never_plans_into_them(four):
     _assert_clear([], rec.true_clearances())
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING H-2: supervisor.lower logs 'lower: descend refused (workspace: the claw would enter "
-                                       "the Ottoman); using cable packets' and then pays out equal packets at the same place: the claw "
-                                       "is lowered INTO the shape the map just refused (true claw body 0.07 m inside it)")
-def test_lowering_after_the_map_refuses_the_descent_does_not_lower_into_a_shape(four):
-    """Lowering (supervisor.lower) moves over the floor marker, then plans the descent there. If the map refuses that planned
-    descent, the code falls back to equal cable pay-out packets at the same place. Expected (spec 3.4: lowering uses the map): the
-    claw never enters a shape. A low box saved over the marker while the claw is high (PUT allowed: the claw and its own straight
-    lowering are clear) makes the planned descent refused."""
+def test_put_refuses_a_shape_over_the_landing_column_in_every_state(tmp_path):
+    """The lead's rule (round 2): a shape covering the claw body's landing column (floor up to the transit height) over the floor
+    marker or the start point is refused at save, in DISARMED and PARKED too, naming the shape; a shape beside the column, and a
+    hanging shape above the transit height, are accepted."""
+    r, svc, c, app = _svc(tmp_path)
+    spots = svc.landing_spots()
+    assert spots
+    what, xy = spots[0]
+    m, rad = r.cfg.motion.obstacle_margin_m, r.cfg.claw.body_radius_m
+    over = {"id": "l1", "name": "Ottoman", "shape": "box", "x": float(xy[0]), "y": float(xy[1]), "length_m": 0.4, "width_m": 0.4,
+            "yaw_deg": 0.0, "z_low_m": 0.0, "height_m": 0.3}
+    edge = dict(over, name="Stool", x=float(xy[0] + 0.2 + m + rad - 0.005))             # 5 mm inside the inflated column
+    beside = dict(over, name="Chair", x=float(xy[0] + 0.2 + m + rad + 0.01))            # 1 cm outside it
+    fan = {"id": "l2", "name": "Ceiling fan", "shape": "cylinder", "x": float(xy[0]), "y": float(xy[1]), "diameter_m": 1.0,
+           "z_low_m": float(r.cfg.motion.task_max_height_m + m + 0.02), "height_m": 2.74}
+    out = {}
+    for st in ("DISARMED", "PARKED"):
+        svc.sup.state = st
+        for ob, ok in ((over, False), (edge, False), (beside, True), (fan, True)):
+            res = _put(c, {"obstacles": [ob]})
+            out[f"{st}_{ob['name']}"] = (res.status_code, res.get_json().get("error", res.get_json().get("text")))
+            assert (res.status_code == 200) == ok, (st, ob["name"], res.get_json())
+            if not ok:
+                err = res.get_json()["error"]
+                assert ob["name"] in err and "landing spot" in err, err
+                assert svc.ctx.cfg.obstacles == [] or svc.ctx.cfg.obstacles[0]["name"] != ob["name"]
+    assert _put(c, {"obstacles": []}).status_code == 200
+    _evidence("landing_rule_put", out)
+
+
+def test_lowering_with_a_shape_near_the_landing_column_lands_clear_or_refuses_holding(four):
+    """Round 1 finding H-2, reworked for the lead's rule. (1) A box over the marker is refused at save in READY, naming it.
+    (2) A tall thin pole NEXT to the landing column (accepted at save: the body column is clear) in the direction of an anchor,
+    so that the planned descent over the marker is refused by a cable: lowering must land on a clear spot (inside the box) or
+    refuse while holding; the true claw body is never inside a shape; no cable-packet fallback through the map."""
     r, svc, c, rec, shapes, busy = four
     if svc.sup.state != "READY":
         pytest.skip(f"not READY ({svc.sup.state})")
-    ctx = r.ctx
-    from roomcleaner.cdpr.startup import to_room
-    mk = to_room(ctx.T_R_M, [0, 0, 0])[:2]
-    p = _claw(svc)
     assert _put(c, {"obstacles": shapes}).status_code == 200          # the task test's extra shapes are removed first
-    # first put the claw high, away from the marker (a READY claw after a task is at the scan / transit height)
-    from roomcleaner.cdpr.trajectory import plan_line_from
+    ctx = r.ctx
+    from roomcleaner.cdpr.perception import to_room
+    from roomcleaner.cdpr.supervisor import CommandRefused
+    from roomcleaner.cdpr.trajectory import PlanError, plan_line, plan_line_from
+    mk = np.asarray(to_room(ctx.T_R_M, [0, 0, 0])[:2], float)
+    m, rad = r.cfg.motion.obstacle_margin_m, r.cfg.claw.body_radius_m
+    zf = -float(r.cfg.claw.lowest_point_body_m[2])
+    # the claw high, beside the marker (so that the READY pose check does not fire first)
     tgt = np.r_[mk[0] + 0.45 * np.sign(1.6 - mk[0] + 1e-9), mk[1], 1.25]
     assert ctx.co.execute(plan_line_from(ctx.model, ctx.co.positions(), tgt, ctx.lim, ws=ctx.ws, label="verifier: up")).ok
+    # (1) over the marker: refused at save, in READY, by the landing rule
     box = {"id": "l1", "name": "Ottoman", "shape": "box", "x": float(mk[0]), "y": float(mk[1]), "length_m": 0.5, "width_m": 0.5,
            "yaw_deg": 0.0, "z_low_m": 0.0, "height_m": 0.30}
     res = _put(c, {"obstacles": shapes + [box]})
-    assert res.status_code == 200, res.get_json()                    # the claw is not above it: accepted in READY
+    assert res.status_code == 409 and "Ottoman" in res.get_json()["error"] and "landing" in res.get_json()["error"], res.get_json()
+    _evidence("sim4_landing_put_ready", res.get_json())
+    # (2) a 5 cm pole just outside the inflated landing column, towards anchor A (so cable A crosses it low over the marker)
+    A = ctx.model.geometry.anchors[0]
+    d = (A[:2] - mk) / np.linalg.norm(A[:2] - mk)
+    pole = None
+    for dist in np.arange(0.025 + m + rad + 0.01, 0.45, 0.01):
+        cand = {"id": "l3", "name": "Floor lamp", "shape": "cylinder", "x": float(mk[0] + dist * d[0]), "y": float(mk[1] + dist * d[1]),
+                "diameter_m": 0.05, "z_low_m": 0.0, "height_m": 2.3}
+        res = _put(c, {"obstacles": shapes + [cand]})
+        if res.status_code == 200:
+            pole = cand
+            break
+    assert pole is not None, res.get_json()
+    with pytest.raises(PlanError, match="Floor lamp"):                # the descent over the marker is indeed refused by the map
+        plan_line(ctx.model, np.r_[mk, 1.25], np.r_[mk, zf + 0.05], ctx.lim, ws=ctx.ws, allow_low=True)
     n0, t0 = len(rec.plans), len(rec.true)
+    refusal = None
     try:
         svc.sup.lower()
-    except Exception as e:                                           # a refusal is a fine outcome; entering the shape is not
-        _evidence("sim4_lower_exception", str(e))
+    except CommandRefused as e:
+        refusal = str(e)
     labels = [p_["label"] for p_ in rec.plans[n0:]]
-    refused = [l for l in r.log_lines if "refused" in str(l) and "lower" in str(l)]
-    # TRUE claw body against the real ottoman (no margin) while lowering
+    log = [str(x) for x in r.log_lines[-40:] if "lower" in str(x)]
     worst = 9.0
     for att, pp, lz, mid in rec.true[t0:]:
-        worst = min(worst, float(body_clearance(pp[:2], lz, pp[2], box, 0.0, r.cfg.claw.body_radius_m)))
+        for ob in ctx.ws.obstacles:
+            worst = min(worst, float(body_clearance(pp[:2], lz, pp[2], ob, 0.0, rad)))
     end = r.world.p.copy()
-    _evidence("sim4_lower", {"state": svc.sup.state, "labels": labels[:6] + ["..."] + labels[-3:], "n_packets": sum("lower packet" in l for l in labels),
-                             "refusal_log": [str(x) for x in refused][-3:], "true_body_clearance_to_real_box_m": worst,
-                             "claw_end": end.tolist(), "claw_lowest_end_m": r.world.lowest_z(), "box_top_m": box["height_m"],
-                             "reasons": svc.sup.reasons[-2:] if hasattr(svc.sup, "reasons") else None})
-    assert worst > 0, (f"the claw body went {-worst:.3f} m into the Ottoman while lowering", labels[-3:], refused[-2:])
+    _evidence("sim4_lower", {"state": svc.sup.state, "refusal": refusal, "labels": labels[:4] + ["..."] + labels[-3:],
+                             "n_packets": sum("lower packet" in l for l in labels), "log": log[-4:],
+                             "true_body_clearance_to_real_shapes_m": worst, "claw_end": end.tolist(), "marker": mk.tolist(),
+                             "claw_lowest_end_m": r.world.lowest_z(), "pole": pole})
+    assert worst > 0, f"the claw body went {-worst:.3f} m into a shape while lowering"
+    assert not any("using cable packets" in l for l in log), log
+    if refusal is None:
+        assert svc.sup.state == "PARKED" and r.world.lowest_z() < 0.02, (svc.sup.state, r.world.lowest_z())
+        assert any("lowering at (" in l for l in log), log          # it did land elsewhere, and said so
+        assert np.all(end[:2] >= ctx.ws.lo[:2] - 1e-6) and np.all(end[:2] <= ctx.ws.hi[:2] + 1e-6), end
+        for ob in ctx.ws.obstacles:
+            assert body_clearance(end[:2], 0.0, 1.0, ob, m, rad) > 0, ob["name"]
+    else:
+        assert "Floor lamp" in refusal and svc.sup.state == "READY", (refusal, svc.sup.state)
+        assert sum("lower packet" in l for l in labels) == 0

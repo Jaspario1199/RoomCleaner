@@ -146,7 +146,7 @@ function probeLabels() {      // SVG labels: boxes (screen px), overlaps between
   await page.route("**/app.js", async route => {
     const resp = await route.fetch();
     let body = await resp.text();
-    const hook = 'Object.defineProperty(window, "M", {get: () => M}); Object.assign(window, {mapRender, dirty, draftKey, snapshot, edited, snapPos});\n';
+    const hook = 'Object.defineProperty(window, "M", {get: () => M}); Object.assign(window, {mapRender, dirty, draftKey, snapshot, edited, snapPos, cellReason});\n';
     if (!/\}\)\(\);\s*$/.test(body)) throw new Error("app.js does not end with the IIFE close");
     body = body.replace(/\}\)\(\);\s*$/, hook + "})();\n");
     await route.fulfill({ response: resp, body });
@@ -159,6 +159,8 @@ function probeLabels() {      // SVG labels: boxes (screen px), overlaps between
   await page.waitForFunction(() => document.getElementById("connText").textContent === "online", null, { timeout: 10000 });
   await page.waitForSelector("#map rect.floor", { timeout: 10000 });
   await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+  out.landing = await page.evaluate(() => M.info.landing_m || []);
+  const keepClear = await page.evaluate(() => (M.info.margin_m || 0.1) + (M.info.claw_body_radius_m || 0.07));
 
   // ---------------------------------------------------------------- 0. the first screen
   await phase("first screen", async () => {
@@ -233,6 +235,9 @@ function probeLabels() {      // SVG labels: boxes (screen px), overlaps between
   await phase("add by tap", async () => {
     for (const k of ["square", "rect", "circle"]) { await tap(page.locator(`.pal[data-kind=${k}]`)); await layout("added " + k); }
     out.addedByTap = (await draft()).map(o => ({ shape: o.shape, x: o.x, y: o.y, L: o.length_m, Wd: o.width_m, d: o.diameter_m }));
+    out.addedClearOfLanding = (await draft()).map(o => Math.min(...out.landing.map(([lx, ly]) =>     // footprint distance (yaw 0)
+      o.shape === "cylinder" ? Math.hypot(lx - o.x, ly - o.y) - o.diameter_m / 2
+        : Math.hypot(Math.max(Math.abs(lx - o.x) - o.length_m / 2, 0), Math.max(Math.abs(ly - o.y) - o.width_m / 2, 0)))));
     out.hamper = await page.evaluate(() => M.hamper);
     out.labelsAfterTaps = await page.evaluate(probeLabels);
     await labelShot("03_three_by_tap");
@@ -353,23 +358,26 @@ function probeLabels() {      // SVG labels: boxes (screen px), overlaps between
   // ---------------------------------------------------------------- 8. plain language of what the user is shown when something is wrong
   await phase("plain language", async () => {
     const rect = (await draft())[1];
-    await page.evaluate(id => { M.sel = id; mapRender(); }, rect.id);
-    await typeInto("Height", "0");                                    // a 0 height is accepted by the field...
-    await page.click("#mapSave"); await page.waitForTimeout(400);
-    out.msgZeroHeight = await page.textContent("#mapMsg");
-    await page.evaluate(id => { M.sel = id; mapRender(); }, rect.id);
+    await page.evaluate(id => { const o = M.shapes.find(s => s.id === id); o.height_m = 0.75; M.sel = id; mapRender(); }, rect.id);
+    const msgs = {};
+    for (const [lab, val, key] of [["Height", "0", "zero"], ["Length", "20 ft", "tooLong"], ["Height", "12 ft", "tooTall"]]) {
+      await page.evaluate(id => { M.sel = id; mapRender(); }, rect.id);
+      await typeInto(lab, val);
+      msgs[key] = { field: await page.textContent("#mapMsg"), value: (await draft()).find(s => s.id === rect.id)[lab === "Height" ? "height_m" : "length_m"] };
+      await page.click("#mapSave"); await page.waitForTimeout(400);
+      msgs[key].afterSave = await page.textContent("#mapSave") && await page.textContent("#mapMsg");
+      await page.evaluate(id => { M.sel = id; mapRender(); }, rect.id);
+    }
     await typeInto("Height", `2'6"`);
-    await typeInto("Length", "20 ft");                               // longer than the room
-    await page.click("#mapSave"); await page.waitForTimeout(400);
-    out.msgTooLong = await page.textContent("#mapMsg");
-    await page.evaluate(id => { M.sel = id; mapRender(); }, rect.id);
     await typeInto("Length", "3 ft");
-    await typeInto("Height", "12 ft");                               // above the ceiling
-    await page.click("#mapSave"); await page.waitForTimeout(400);
-    out.msgTooTall = await page.textContent("#mapMsg");
-    await page.evaluate(id => { M.sel = id; mapRender(); }, rect.id);
-    await typeInto("Height", `2'6"`);
+    // a refusal that only the service can give: a shape over the claw's landing spot
+    await page.evaluate(([x, y]) => { const o = M.shapes[1]; o.x = x; o.y = y; o.name = ""; edited(""); }, out.landing[0]);
+    await page.click("#mapSave"); await page.waitForTimeout(500);
+    msgs.landing = { afterSave: await page.textContent("#mapMsg"), toast: (await page.evaluate(probeText)).toast };
+    out.msgZeroHeight = msgs.zero.field; out.msgTooLong = msgs.tooLong.field; out.msgTooTall = msgs.tooTall.field;
+    out.msgs = msgs;
     out.textAfterErrors = await page.evaluate(probeText);
+    await page.evaluate(() => { const o = M.shapes[1]; o.x = 0.9; o.y = 2.1; edited(""); });
   });
 
   // ---------------------------------------------------------------- 9. undo (20 steps), save, revert, reload
@@ -392,7 +400,7 @@ function probeLabels() {      // SVG labels: boxes (screen px), overlaps between
 
   await phase("save and reload", async () => {
     // a valid map: square, rectangle (hanging lamp chip on the circle), named shapes
-    await page.evaluate(() => { const r = M.shapes[1]; r.height_m = 0.762; r.length_m = 1.2192; r.width_m = 0.6096; r.name = "Desk"; snapPos(r); mapRender(); });
+    await page.evaluate(() => { const r = M.shapes[1]; r.height_m = 0.762; r.length_m = 1.2192; r.width_m = 0.6096; r.name = "Desk"; r.x = 0.9; r.y = 2.1; snapPos(r); mapRender(); });
     await page.evaluate(id => { M.sel = id; mapRender(); }, (await draft())[2].id);
     await tap(page.locator("#insp .chip", { hasText: "Ceiling fan" }));
     out.fanChip = (await draft())[2];
@@ -409,6 +417,17 @@ function probeLabels() {      // SVG labels: boxes (screen px), overlaps between
     out.revertOk = (await page.evaluate(() => JSON.stringify(M.shapes))) === kSaved;
     await page.reload();
     await page.waitForFunction(() => document.querySelectorAll("#map .shape").length > 0, null, { timeout: 10000 });
+    out.unitsSaved = await (async () => {
+      await openMore(true);
+      const before = await page.evaluate(() => ({ dirty: dirty(), save: document.getElementById("mapSave").disabled }));
+      await page.click("#mapUnits");
+      const after = await page.evaluate(() => ({ dirty: dirty(), save: document.getElementById("mapSave").disabled, units: M.units }));
+      await page.click("#mapSave"); await page.waitForTimeout(400);
+      const server = (await (await page.evaluate(async t => (await (await fetch("/api/room_map", { headers: { "X-Token": t } })).json()), token))).units;
+      await page.click("#mapUnits"); await page.click("#mapSave"); await page.waitForTimeout(400);     // back to ft-in, saved
+      await openMore(false);
+      return { before, after, server };
+    })();
     out.reloadSame = (await page.evaluate(() => JSON.stringify(M.shapes.map(({ id, shape, x, y, height_m, z_low_m }) => ({ id, shape, x, y, height_m, z_low_m })))))
                      === JSON.stringify(JSON.parse(kSaved).map(({ id, shape, x, y, height_m, z_low_m }) => ({ id, shape, x, y, height_m, z_low_m })));
     out.labelsAfterReload = await page.evaluate(probeLabels);
@@ -453,13 +472,25 @@ function probeLabels() {      // SVG labels: boxes (screen px), overlaps between
     out.overlay.updateMs = Date.now() - t0;
     // tap a cell next to the square (blocked) and one in the open
     const sq = (await draft())[0];
-    const toScreen = () => page.evaluate(([x, y]) => { const p = new DOMPoint(x, M.info.room_m[1] - y).matrixTransform(document.getElementById("map").getScreenCTM()); return [p.x, p.y]; }, [sq.x + sq.length_m / 2 + 0.06, sq.y]);
-    let pt = await toScreen();
-    await page.evaluate(y => { document.getElementById("tab-map").scrollTop += y - innerHeight / 3; }, pt[1]);   // bring it into view
-    await page.waitForTimeout(50);
-    pt = await toScreen();
+    // a floor cell next to the square: the first candidate (around it, 6 cm out) under which the finger finds the floor itself
+    const toScreen = xy => page.evaluate(([x, y]) => { const p = new DOMPoint(x, M.info.room_m[1] - y).matrixTransform(document.getElementById("map").getScreenCTM()); return [p.x, p.y]; }, xy);
+    const cands = [[sq.x + sq.length_m / 2 + 0.06, sq.y], [sq.x - sq.length_m / 2 - 0.06, sq.y], [sq.x, sq.y + sq.width_m / 2 + 0.06], [sq.x, sq.y - sq.width_m / 2 - 0.06]];
+    let pt = null, cell = null;
+    for (const xy of cands) {
+      let p = await toScreen(xy);
+      await page.evaluate(y => { document.getElementById("tab-map").scrollTop += y - innerHeight / 3; }, p[1]);   // bring it into view
+      await page.waitForTimeout(50);
+      p = await toScreen(xy);
+      const floor = await page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return !!e && e.classList.contains("floor"); }, p);
+      if (floor && xy[0] > 0.05 && xy[1] > 0.05) { pt = p; cell = xy; break; }
+    }
+    if (!pt) throw new Error("no floor cell next to the square");
+    out.overlay.under = await page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? e.tagName + "." + e.getAttribute("class") + " id=" + e.dataset.id + " hamper=" + e.dataset.hamper : null; }, pt);
+    out.overlay.cellBefore = await page.evaluate(xy => cellReason(xy), cell);
     await (phone ? page.touchscreen.tap(pt[0], pt[1]) : page.mouse.click(pt[0], pt[1]));
+    await page.waitForTimeout(100);
     out.overlay.cellMsg = await page.textContent("#mapMsg");
+    out.overlay.selAfter = await page.evaluate(() => M.sel);
     out.labelsOverlay = await page.evaluate(probeLabels);
     out.contrastOverlay = await page.evaluate(probeContrast);
     out.textOverlay = await page.evaluate(probeText);

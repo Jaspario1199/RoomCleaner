@@ -1,45 +1,8 @@
 {
- "geometry_random": {
-  "cases": 12000,
-  "false_negatives": 0,
-  "false_positives": 0,
-  "boundary_within_1e-7": 0,
-  "dense_sampler_misses_grazing": 0,
-  "dense_sampler_inventions": 0
- },
- "geometry_vectorised_mismatches": 0,
- "pole_5cm": {
-  "caught": 693,
-  "of_which_the_old_24_sample_test_missed": 166
- },
- "no_obstacles_equals_base": {
-  "points_per_profile": 3000,
-  "profiles": [
-   "robot.sim.json",
-   "robot.sim3.json"
-  ],
-  "refused_points": [
-   1961,
-   2626
-  ]
- },
- "coverage_cells": {
-  "cells": 952,
-  "mismatches": 0,
-  "first": [],
-  "counts": {
-   "area": 86,
-   "ok": 0,
-   "shape": 772,
-   "trust": 94
-  },
-  "server_ms": 9.8
- },
- "coverage_timing_10_shapes": {
-  "server_ms_median": 29.4,
-  "server_ms_max": 37.1,
-  "http_roundtrip_ms_median": 30.51467099976435,
-  "http_ms_max": 38.386418998925365
+ "detour_apex": {
+  "z": 1.9,
+  "limit": 2.1632000000000002,
+  "blocked_reason": "workspace: cable B would cross the Shelf; cable C would cross the Shelf"
  },
  "sim3_startup_shelf_0.55m": {
   "state": "READY",
@@ -62,22 +25,22 @@
   ],
   "plans_executed": 61,
   "cartesian_plans_checked": 6,
-  "true_steps": 303644,
+  "true_steps": 301510,
   "worst_planned": {
    "Shelf": {
     "label": "intermediate fit",
     "shape": "Shelf",
-    "clearance_m": 0.0024272821499040087,
+    "clearance_m": 0.003683741057372958,
     "what": "cable 1",
-    "n_poses": 111
+    "n_poses": 129
    }
   },
   "true": {
    "Shelf": {
-    "cable_real": 0.06492659302764967,
-    "body_real": 0.0973432839565346,
-    "cable_inflated": -0.03507340697235034,
-    "body_inflated": -0.0026567160434654014
+    "cable_real": 0.06493956455382491,
+    "body_real": 0.0981120446872937,
+    "cable_inflated": -0.0350604354461751,
+    "body_inflated": -0.001887955312706302
    }
   },
   "detour_legs": [],
@@ -106,495 +69,29 @@
     ]
    ],
    "preview_ms": [
-    2.457415999742807,
-    29.2200240000966,
-    2.653585999723873,
-    3.5383710001042346,
-    6.923557999471086
+    3.8865879978402518,
+    913.804149000498,
+    876.833449001424,
+    697.217199998704,
+    1080.8642779993534
    ],
    "coverage_compute_ms": [
-    1.8,
-    28.5,
-    2.0,
-    2.7,
-    6.2
+    3.3,
+    913.0,
+    876.1,
+    696.3,
+    1080.1
    ]
   }
  },
  "sim3_startup_shelf_0.55m_log": [],
- "sim3_startup_pole_0.25m": {
-  "state": "READY",
-  "reasons": [
-   "predicted length sigma 5.6 mm > 5.0 mm in the requested volume",
-   "slack probe was off: the predicted sigma is not honest (slack reads as length error); enable startup.slack_probe"
-  ],
-  "shapes": [
-   {
-    "id": "p1",
-    "name": "Pole",
-    "shape": "cylinder",
-    "diameter_m": 0.05,
-    "z_low_m": 0.0,
-    "height_m": 2.5,
-    "x": 2.123230395988454,
-    "y": 1.0583782567211522
-   }
-  ],
-  "plans_executed": 51,
-  "cartesian_plans_checked": 6,
-  "true_steps": 293894,
-  "worst_planned": {
-   "Pole": {
-    "label": "expanded fit",
-    "shape": "Pole",
-    "clearance_m": 0.0165043346708304,
-    "what": "cable 2",
-    "n_poses": 135
-   }
-  },
-  "true": {
-   "Pole": {
-    "cable_real": 0.06242631589580697,
-    "body_real": 0.08014224204575221,
-    "cable_inflated": -0.037573684104193025,
-    "body_inflated": -0.019857757954247796
-   }
-  },
-  "detour_legs": [],
-  "skipped_poses": 10,
-  "busy": {
-   "put": [
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ],
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ],
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ],
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ],
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ]
-   ],
-   "preview_ms": [
-    3.257660999224754,
-    2.6932910004688893,
-    3.3314920001430437,
-    23.10261700040428,
-    2.613922999444185
-   ],
-   "coverage_compute_ms": [
-    2.6,
-    2.0,
-    2.6,
-    22.3,
-    1.9
-   ]
-  }
+ "sim3_startup_shelf_0.55m_detour_apex": {
+  "legs": 0,
+  "max_z": null,
+  "limit": 2.111686313953941
  },
- "sim3_startup_pole_0.25m_log": [
-  "[startup] expanded fit pose [2.127, 1.335, 1.279] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)",
-  "[startup] expanded fit pose [2.127, 1.335, 1.612] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)",
-  "[startup] expanded fit pose [2.394, 1.068, 1.612] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)",
-  "[startup] expanded fit pose [2.394, 0.801, 1.612] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)",
-  "[startup] expanded fit pose [2.127, 1.335, 0.612] skipped: the straight move is blocked by the room map (workspace: cable B would cross the Pole) and there is no way over it (workspace: cable B would cross the Pole)",
-  "[startup] expanded witness pose [2.394, 0.801, 0.946] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)"
- ],
- "sim3_startup_shelf_0.33m": {
-  "state": "RECOVERY_REQUIRED",
-  "reasons": [
-   "expanded: only 13 feasible visible poses (need 15)"
-  ],
-  "shapes": [
-   {
-    "id": "b1",
-    "name": "Shelf",
-    "shape": "box",
-    "length_m": 0.3,
-    "width_m": 0.3,
-    "yaw_deg": 30.0,
-    "z_low_m": 0.0,
-    "height_m": 1.8,
-    "x": 1.5266785238645668,
-    "y": 1.198673495445522
-   }
-  ],
-  "plans_executed": 24,
-  "cartesian_plans_checked": 0,
-  "true_steps": 103120,
-  "worst_planned": {},
-  "true": {
-   "Shelf": {
-    "cable_real": 0.11226921208670851,
-    "body_real": 0.14015199356793367,
-    "cable_inflated": 0.012269212086708503,
-    "body_inflated": 0.034256252326461956
-   }
-  },
-  "detour_legs": [],
-  "skipped_poses": 22,
-  "busy": {
-   "put": [
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ],
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ],
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ],
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ],
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ]
-   ],
-   "preview_ms": [
-    3.4805689992936095,
-    844.9330650000775,
-    857.4248820004868,
-    815.1478370000405,
-    1326.2060229990311
-   ],
-   "coverage_compute_ms": [
-    2.9,
-    843.9,
-    856.4,
-    814.4,
-    1325.2
-   ]
-  }
- },
- "sim3_startup_shelf_0.33m_log": [
-  "[startup] intermediate fit pose [2.221, 1.284, 1.062] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Shelf) and the way over it too (up: workspace: cable C would cross the Shelf)",
-  "[startup] intermediate fit pose [2.221, 1.284, 0.912] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Shelf) and the way over it too (up: workspace: cable C would cross the Shelf)",
-  "[startup] intermediate fit pose [2.101, 1.164, 0.612] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Shelf) and the way over it too (up: workspace: cable C would cross the Shelf)",
-  "[startup] intermediate witness pose [2.221, 0.924, 0.762] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Shelf) and the way over it too (up: workspace: cable C would cross the Shelf)",
-  "[startup] intermediate witness pose [2.221, 0.684, 0.912] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Shelf) and the way over it too (up: workspace: cable C would cross the Shelf)",
-  "[startup] FAULT in CALIBRATION: expanded: only 13 feasible visible poses (need 15)"
- ],
- "h1_top_refusals": {
-  "refused": 0,
-  "of": 81,
-  "example": []
- },
- "sim4_startup": {
-  "state": "READY",
-  "reasons": [
-   "predicted length sigma 5.1 mm > 5.0 mm in the requested volume",
-   "slack probe was off: the predicted sigma is not honest (slack reads as length error); enable startup.slack_probe"
-  ],
-  "shapes": [
-   {
-    "id": "b1",
-    "name": "Dresser",
-    "shape": "box",
-    "x": 0.25,
-    "y": 1.37,
-    "length_m": 0.46,
-    "width_m": 1.2,
-    "yaw_deg": 0.0,
-    "z_low_m": 0.0,
-    "height_m": 0.9
-   },
-   {
-    "id": "p1",
-    "name": "Pole",
-    "shape": "cylinder",
-    "x": 0.45,
-    "y": 2.35,
-    "diameter_m": 0.05,
-    "z_low_m": 0.0,
-    "height_m": 1.7
-   }
-  ],
-  "plans_executed": 62,
-  "cartesian_plans_checked": 6,
-  "true_steps": 372846,
-  "worst_planned": {
-   "Dresser": {
-    "label": "expanded fit",
-    "shape": "Dresser",
-    "clearance_m": 0.30102596663803466,
-    "what": "body",
-    "n_poses": 279
-   },
-   "Pole": {
-    "label": "intermediate fit",
-    "shape": "Pole",
-    "clearance_m": 0.05035909594422722,
-    "what": "cable 3",
-    "n_poses": 156
-   }
-  },
-  "true": {
-   "Dresser": {
-    "cable_real": 0.43382418267173384,
-    "body_real": 0.44203020162163736,
-    "cable_inflated": 0.33382418267173386,
-    "body_inflated": 0.34154878998683375
-   },
-   "Pole": {
-    "cable_real": 0.16276240508539513,
-    "body_real": 0.7593149326518367,
-    "cable_inflated": 0.06276240508539513,
-    "body_inflated": 0.6593149326518368
-   }
-  },
-  "detour_legs": [],
-  "skipped_poses": 0,
-  "busy": {
-   "put": [
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ],
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ],
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ],
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ],
-    [
-     409,
-     "busy with 'start': the map can be saved when it finishes"
-    ]
-   ],
-   "preview_ms": [
-    3.6058999994565966,
-    3.377173999979277,
-    3.455986001426936,
-    3.675357000247459,
-    12.261542999112862
-   ],
-   "coverage_compute_ms": [
-    3.1,
-    2.8,
-    2.7,
-    3.0,
-    11.6
-   ]
-  }
- },
- "preview_while_busy_sim4": {
-  "put": [
-   [
-    409,
-    "busy with 'start': the map can be saved when it finishes"
-   ],
-   [
-    409,
-    "busy with 'start': the map can be saved when it finishes"
-   ],
-   [
-    409,
-    "busy with 'start': the map can be saved when it finishes"
-   ],
-   [
-    409,
-    "busy with 'start': the map can be saved when it finishes"
-   ],
-   [
-    409,
-    "busy with 'start': the map can be saved when it finishes"
-   ]
-  ],
-  "preview_ms": [
-   3.6058999994565966,
-   3.377173999979277,
-   3.455986001426936,
-   3.675357000247459,
-   12.261542999112862
-  ],
-  "coverage_compute_ms": [
-   3.1,
-   2.8,
-   2.7,
-   3.0,
-   11.6
-  ]
- },
- "put_state_rules": {
-  "READY_side": [
-   409,
-   "the claw's current pose (2.29, 0.88, 0.95) m would break the new map: cable B would cross the Cabinet; cable C would cross the Cabinet; the claw would enter the Cabinet. Lower or park the claw first, or change the map"
-  ],
-  "READY_hang": [
-   409,
-   "the claw's current pose (2.29, 0.88, 0.95) m would break the new map: cable A would cross the Lamp; cable B would cross the Lamp; cable C would cross the Lamp; cable D would cross the Lamp; the claw would enter the Lamp. Lower or park the claw first, or change the map"
-  ],
-  "READY_under": [
-   409,
-   "lowering the claw straight down from (2.29, 0.88) would break the new map at 0.93 m: the claw would enter the Table. Move or park the claw first, or change the map"
-  ],
-  "READY_far": [
-   200,
-   "Saved: the planner now avoids 3 shapes"
-  ],
-  "PAUSED_side": [
-   409,
-   "the claw's current pose (2.29, 0.88, 0.95) m would break the new map: cable B would cross the Cabinet; cable C would cross the Cabinet; the claw would enter the Cabinet. Lower or park the claw first, or change the map"
-  ],
-  "PAUSED_hang": [
-   409,
-   "the claw's current pose (2.29, 0.88, 0.95) m would break the new map: cable A would cross the Lamp; cable B would cross the Lamp; cable C would cross the Lamp; cable D would cross the Lamp; the claw would enter the Lamp. Lower or park the claw first, or change the map"
-  ],
-  "PAUSED_under": [
-   409,
-   "lowering the claw straight down from (2.29, 0.88) would break the new map at 0.93 m: the claw would enter the Table. Move or park the claw first, or change the map"
-  ],
-  "PAUSED_far": [
-   200,
-   "Saved: the planner now avoids 3 shapes"
-  ]
- },
- "sim4_task": {
-  "result": {
-   "done": [],
-   "failed": [
-    [
-     "item0",
-     "unreachable: approach item0: target [1.762, 1.071, 0.817]: cable C would cross the Floor lamp; cable D would cross the Floor lamp; the claw would enter the Floor lamp"
-    ],
-    [
-     "item1",
-     "unreachable: approach item1: target [1.957, 1.365, 0.817]: cable A would cross the Floor lamp; the claw would enter the Ottoman"
-    ]
-   ],
-   "summary": "0 delivered, room clear"
-  },
-  "state": "READY",
-  "placed": [
-   {
-    "id": "t1",
-    "name": "Floor lamp",
-    "shape": "cylinder",
-    "x": 1.734299528036972,
-    "y": 1.1784091378262875,
-    "diameter_m": 0.05,
-    "z_low_m": 0.0,
-    "height_m": 1.0
-   },
-   {
-    "id": "t2",
-    "name": "Ottoman",
-    "shape": "box",
-    "x": 2.099299528036972,
-    "y": 1.1994860893721548,
-    "length_m": 0.3,
-    "width_m": 0.3,
-    "yaw_deg": 0.0,
-    "z_low_m": 0.0,
-    "height_m": 0.35
-   }
-  ],
-  "plans": [
-   "scan",
-   "scan",
-   "scan"
-  ],
-  "items": [
-   "floor",
-   "floor"
-  ]
- },
- "sim4_task_2": {
-  "result": {
-   "done": [
-    "item0",
-    "item1"
-   ],
-   "failed": [],
-   "summary": "2 delivered, room clear"
-  },
-  "state": "READY",
-  "ottoman": {
-   "id": "t3",
-   "name": "Ottoman",
-   "shape": "box",
-   "x": 1.344299528036972,
-   "y": 1.0744860893721548,
-   "length_m": 0.3,
-   "width_m": 0.3,
-   "yaw_deg": 0.0,
-   "z_low_m": 0.0,
-   "height_m": 0.4
-  },
-  "plans": [
-   "scan",
-   "approach item0",
-   "descend item0",
-   "lift item0",
-   "verify shift item0",
-   "raise",
-   "transport",
-   "scan",
-   "approach item1",
-   "descend item1",
-   "lift item1",
-   "verify shift item1",
-   "raise",
-   "transport",
-   "scan"
-  ],
-  "items": [
-   "hamper",
-   "hamper"
-  ],
-  "worst_planned_m": 0.004999999999999949
- },
- "sim4_lower": {
-  "state": "PARKED",
-  "labels": [
-   "lower: over marker",
-   "lower packet",
-   "lower packet",
-   "lower packet",
-   "lower packet",
-   "lower packet",
-   "...",
-   "lower packet",
-   "lower packet",
-   "slacken"
-  ],
-  "n_packets": 95,
-  "refusal_log": [
-   "[supervisor] lower: descend refused (workspace: the claw would enter the Ottoman); using cable packets"
-  ],
-  "true_body_clearance_to_real_box_m": -0.07,
-  "claw_end": [
-   1.8235403382308861,
-   1.01356493888481,
-   0.516446422593856
-  ],
-  "claw_lowest_end_m": 0.0,
-  "box_top_m": 0.3,
-  "reasons": [
-   "predicted length sigma 5.1 mm > 5.0 mm in the requested volume",
-   "slack probe was off: the predicted sigma is not honest (slack reads as length error); enable startup.slack_probe"
-  ]
+ "sim3_landing_spot_shelf_0.55m": {
+  "refused": "Can't lower: the Pole is under the landing spot. Move it on the Map, or lower by hand."
  },
  "app_360x740_light_small_shape_bodies": [],
  "app_360x740_light_svg_label_contrast": [
@@ -705,6 +202,276 @@
   },
   {
    "shot": "03_three_by_tap",
+   "text": "Circle 2'6\"",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "A",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    248,
+    248,
+    248
+   ],
+   "ratio": 16.23
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "B",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    248,
+    248,
+    248
+   ],
+   "ratio": 16.23
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "C",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    248,
+    248,
+    248
+   ],
+   "ratio": 16.23
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "D",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    248,
+    248,
+    248
+   ],
+   "ratio": 16.23
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Hamper",
+   "fg": [
+    15,
+    122,
+    41
+   ],
+   "bg": [
+    252,
+    252,
+    252
+   ],
+   "ratio": 5.34
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Ceiling fan (hangs, from 7'6\")",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Square 2'6\"",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Desk 2'6\"",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Circle 2'6\"",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "06_overlay",
+   "text": "A",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    224,
+    164,
+    156
+   ],
+   "ratio": 8.18
+  },
+  {
+   "shot": "06_overlay",
+   "text": "B",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    204,
+    200,
+    200
+   ],
+   "ratio": 10.39
+  },
+  {
+   "shot": "06_overlay",
+   "text": "C",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    224,
+    164,
+    156
+   ],
+   "ratio": 8.18
+  },
+  {
+   "shot": "06_overlay",
+   "text": "D",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    224,
+    164,
+    156
+   ],
+   "ratio": 8.18
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Hamper",
+   "fg": [
+    15,
+    122,
+    41
+   ],
+   "bg": [
+    252,
+    252,
+    252
+   ],
+   "ratio": 5.34
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Ceiling fan (hangs, from 7'6\")",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Square 2'6\"",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Desk 2'6\"",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "06_overlay",
    "text": "Circle 2'6\"",
    "fg": [
     27,
@@ -974,12 +741,28 @@
    "ratio": 16.23
   }
  ],
- "app_360x740_light_messages": [
-  "Saved: the planner now avoids 4 shapes.",
-  "Saved: the planner now avoids 4 shapes.",
-  "Saved: the planner now avoids 4 shapes.",
-  "Here (3'3\", 4'5\"): cable A would cross the Square."
- ],
+ "app_360x740_light_messages": {
+  "zero": {
+   "field": "Height: 0\" is not a height: give the real height of the furniture.",
+   "value": 0.75,
+   "afterSave": "Not saved: the hamper is inside the unnamed rectangle at 1.55, 0.94 m: put it where the robot can reach its opening"
+  },
+  "tooLong": {
+   "field": "Length: 20'0\" is longer than the room (11'0\" x 9'0\").",
+   "value": 1.3208,
+   "afterSave": "Not saved: the hamper is inside the unnamed rectangle at 1.55, 0.94 m: put it where the robot can reach its opening"
+  },
+  "tooTall": {
+   "field": "Height: 12'0\" is above the ceiling (9'0\").",
+   "value": 0.75,
+   "afterSave": "Not saved: the hamper is inside the unnamed rectangle at 1.55, 0.94 m: put it where the robot can reach its opening"
+  },
+  "landing": {
+   "afterSave": "Not saved: The unnamed rectangle at 1.68, 1.37 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.68, 1.37 m away from it on the Map",
+   "toast": "Map not saved: The unnamed rectangle at 1.68, 1.37 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.68, 1.37 m away from it on the Map"
+  },
+  "cell": "Here (1'8\", 7'8\"): cable A would cross the Square."
+ },
  "app_360x740_light_labels": {
   "labelsAfterTaps": {
    "overlaps": [],
@@ -1183,6 +966,276 @@
    "ratio": 9.28
   },
   {
+   "shot": "05_reloaded",
+   "text": "A",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    20,
+    20,
+    20
+   ],
+   "ratio": 16.43
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "B",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    20,
+    20,
+    20
+   ],
+   "ratio": 16.43
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "C",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    20,
+    20,
+    20
+   ],
+   "ratio": 16.43
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "D",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    20,
+    20,
+    20
+   ],
+   "ratio": 16.43
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Hamper",
+   "fg": [
+    67,
+    192,
+    102
+   ],
+   "bg": [
+    24,
+    24,
+    24
+   ],
+   "ratio": 7.58
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Ceiling fan (hangs, from 7'6\")",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Square 2'6\"",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Desk 2'6\"",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Circle 2'6\"",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
+   "shot": "06_overlay",
+   "text": "A",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    120,
+    64,
+    60
+   ],
+   "ratio": 7.21
+  },
+  {
+   "shot": "06_overlay",
+   "text": "B",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    60,
+    60,
+    56
+   ],
+   "ratio": 9.88
+  },
+  {
+   "shot": "06_overlay",
+   "text": "C",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    120,
+    64,
+    60
+   ],
+   "ratio": 7.21
+  },
+  {
+   "shot": "06_overlay",
+   "text": "D",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    120,
+    64,
+    60
+   ],
+   "ratio": 7.21
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Hamper",
+   "fg": [
+    67,
+    192,
+    102
+   ],
+   "bg": [
+    24,
+    24,
+    24
+   ],
+   "ratio": 7.58
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Ceiling fan (hangs, from 7'6\")",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Square 2'6\"",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Desk 2'6\"",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
+   "shot": "06_overlay",
+   "text": "Circle 2'6\"",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
    "shot": "07_crowded_labels",
    "text": "A",
    "fg": [
@@ -1438,12 +1491,28 @@
    "ratio": 16.43
   }
  ],
- "app_360x740_dark_messages": [
-  "Saved: the planner now avoids 4 shapes.",
-  "Saved: the planner now avoids 4 shapes.",
-  "Saved: the planner now avoids 4 shapes.",
-  "Here (3'3\", 4'5\"): cable A would cross the Square."
- ],
+ "app_360x740_dark_messages": {
+  "zero": {
+   "field": "Height: 0\" is not a height: give the real height of the furniture.",
+   "value": 0.75,
+   "afterSave": "Not saved: the hamper is inside the unnamed rectangle at 1.55, 0.94 m: put it where the robot can reach its opening"
+  },
+  "tooLong": {
+   "field": "Length: 20'0\" is longer than the room (11'0\" x 9'0\").",
+   "value": 1.3208,
+   "afterSave": "Not saved: the hamper is inside the unnamed rectangle at 1.55, 0.94 m: put it where the robot can reach its opening"
+  },
+  "tooTall": {
+   "field": "Height: 12'0\" is above the ceiling (9'0\").",
+   "value": 0.75,
+   "afterSave": "Not saved: the hamper is inside the unnamed rectangle at 1.55, 0.94 m: put it where the robot can reach its opening"
+  },
+  "landing": {
+   "afterSave": "Not saved: The unnamed rectangle at 1.68, 1.37 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.68, 1.37 m away from it on the Map",
+   "toast": "Map not saved: The unnamed rectangle at 1.68, 1.37 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.68, 1.37 m away from it on the Map"
+  },
+  "cell": "Here (1'8\", 7'8\"): cable A would cross the Square."
+ },
  "app_360x740_dark_labels": {
   "labelsAfterTaps": {
    "overlaps": [],
@@ -1647,6 +1716,141 @@
    "ratio": 12.54
   },
   {
+   "shot": "05_reloaded",
+   "text": "A",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    248,
+    248,
+    248
+   ],
+   "ratio": 16.23
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "B",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    248,
+    248,
+    248
+   ],
+   "ratio": 16.23
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "C",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    248,
+    248,
+    248
+   ],
+   "ratio": 16.23
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "D",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    248,
+    248,
+    248
+   ],
+   "ratio": 16.23
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Hamper",
+   "fg": [
+    15,
+    122,
+    41
+   ],
+   "bg": [
+    252,
+    252,
+    252
+   ],
+   "ratio": 5.34
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Ceiling fan (hangs, from 7'6\")",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Square 2'6\"",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Desk 2'6\"",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Circle 2'6\"",
+   "fg": [
+    27,
+    27,
+    26
+   ],
+   "bg": [
+    216,
+    220,
+    228
+   ],
+   "ratio": 12.54
+  },
+  {
    "shot": "06_overlay",
    "text": "A",
    "fg": [
@@ -2037,12 +2241,28 @@
    "ratio": 16.23
   }
  ],
- "app_1280x800_light_messages": [
-  "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map",
-  "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map",
-  "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map",
-  "Here (2'8\", 6'1\"): cable A would cross the Square."
- ],
+ "app_1280x800_light_messages": {
+  "zero": {
+   "field": "Height: 0\" is not a height: give the real height of the furniture.",
+   "value": 0.75,
+   "afterSave": "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map"
+  },
+  "tooLong": {
+   "field": "Length: 20'0\" is longer than the room (11'0\" x 9'0\").",
+   "value": 1.1683999999999999,
+   "afterSave": "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map"
+  },
+  "tooTall": {
+   "field": "Height: 12'0\" is above the ceiling (9'0\").",
+   "value": 0.75,
+   "afterSave": "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map"
+  },
+  "landing": {
+   "afterSave": "Not saved: The unnamed rectangle at 1.68, 1.37 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.68, 1.37 m away from it on the Map",
+   "toast": "Map not saved: The unnamed rectangle at 1.68, 1.37 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.68, 1.37 m away from it on the Map"
+  },
+  "cell": "Here (1'5\", 7'4\"): cable A would cross the Square."
+ },
  "app_1280x800_light_labels": {
   "labelsAfterTaps": {
    "overlaps": [],
@@ -2122,6 +2342,105 @@
     "Desk 2'6\""
    ]
   }
+ },
+ "sim3_startup_pole_0.25m": {
+  "state": "READY",
+  "reasons": [
+   "predicted length sigma 5.6 mm > 5.0 mm in the requested volume",
+   "slack probe was off: the predicted sigma is not honest (slack reads as length error); enable startup.slack_probe"
+  ],
+  "shapes": [
+   {
+    "id": "p1",
+    "name": "Pole",
+    "shape": "cylinder",
+    "diameter_m": 0.05,
+    "z_low_m": 0.0,
+    "height_m": 2.5,
+    "x": 2.123230395988454,
+    "y": 1.0583782567211522
+   }
+  ],
+  "plans_executed": 51,
+  "cartesian_plans_checked": 6,
+  "true_steps": 285331,
+  "worst_planned": {
+   "Pole": {
+    "label": "expanded fit",
+    "shape": "Pole",
+    "clearance_m": 0.016504334812461247,
+    "what": "cable 2",
+    "n_poses": 135
+   }
+  },
+  "true": {
+   "Pole": {
+    "cable_real": 0.06242631589580761,
+    "body_real": 0.08014735633929077,
+    "cable_inflated": -0.03757368410419239,
+    "body_inflated": -0.01985264366070924
+   }
+  },
+  "detour_legs": [],
+  "skipped_poses": 10,
+  "busy": {
+   "put": [
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ],
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ],
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ],
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ],
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ]
+   ],
+   "preview_ms": [
+    12.891415997728473,
+    581.4426439974341,
+    474.25943200141774,
+    654.3452969999635,
+    829.0386970002146
+   ],
+   "coverage_compute_ms": [
+    12.3,
+    580.6,
+    472.8,
+    653.5,
+    828.3
+   ]
+  }
+ },
+ "sim3_startup_pole_0.25m_log": [
+  "[startup] expanded fit pose [2.127, 1.335, 1.279] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)",
+  "[startup] expanded fit pose [2.127, 1.335, 1.612] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)",
+  "[startup] expanded fit pose [2.394, 1.068, 1.612] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)",
+  "[startup] expanded fit pose [2.394, 0.801, 1.612] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)",
+  "[startup] expanded fit pose [2.127, 1.335, 0.612] skipped: the straight move is blocked by the room map (workspace: cable B would cross the Pole) and there is no way over it (workspace: cable B would cross the Pole)",
+  "[startup] expanded witness pose [2.394, 0.801, 0.946] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)"
+ ],
+ "sim3_startup_pole_0.25m_detour_apex": {
+  "legs": 0,
+  "max_z": null,
+  "limit": 2.114210999879929
+ },
+ "sim3_landing_spot_pole_0.25m": {
+  "spot": [
+   1.2,
+   1.1
+  ],
+  "distance_from_marker_m": 0.6759131143682097
  },
  "app_1280x800_dark_small_shape_bodies": [],
  "app_1280x800_dark_svg_label_contrast": [
@@ -2246,6 +2565,141 @@
    "ratio": 9.28
   },
   {
+   "shot": "05_reloaded",
+   "text": "A",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    20,
+    20,
+    20
+   ],
+   "ratio": 16.43
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "B",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    20,
+    20,
+    20
+   ],
+   "ratio": 16.43
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "C",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    20,
+    20,
+    20
+   ],
+   "ratio": 16.43
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "D",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    20,
+    20,
+    20
+   ],
+   "ratio": 16.43
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Hamper",
+   "fg": [
+    67,
+    192,
+    102
+   ],
+   "bg": [
+    24,
+    24,
+    24
+   ],
+   "ratio": 7.58
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Ceiling fan (hangs, from 7'6\")",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Square 2'6\"",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Desk 2'6\"",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
+   "shot": "05_reloaded",
+   "text": "Circle 2'6\"",
+   "fg": [
+    243,
+    242,
+    236
+   ],
+   "bg": [
+    56,
+    64,
+    80
+   ],
+   "ratio": 9.28
+  },
+  {
    "shot": "06_overlay",
    "text": "A",
    "fg": [
@@ -2636,12 +3090,28 @@
    "ratio": 16.43
   }
  ],
- "app_1280x800_dark_messages": [
-  "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map",
-  "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map",
-  "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map",
-  "Here (2'8\", 6'1\"): cable A would cross the Square."
- ],
+ "app_1280x800_dark_messages": {
+  "zero": {
+   "field": "Height: 0\" is not a height: give the real height of the furniture.",
+   "value": 0.75,
+   "afterSave": "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map"
+  },
+  "tooLong": {
+   "field": "Length: 20'0\" is longer than the room (11'0\" x 9'0\").",
+   "value": 1.1683999999999999,
+   "afterSave": "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map"
+  },
+  "tooTall": {
+   "field": "Height: 12'0\" is above the ceiling (9'0\").",
+   "value": 0.75,
+   "afterSave": "Not saved: The unnamed rectangle at 1.47, 0.89 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.47, 0.89 m away from it on the Map"
+  },
+  "landing": {
+   "afterSave": "Not saved: The unnamed rectangle at 1.68, 1.37 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.68, 1.37 m away from it on the Map",
+   "toast": "Map not saved: The unnamed rectangle at 1.68, 1.37 m covers the claw's landing spot at the floor marker (1.68, 1.37 m), where it is lowered to the floor. Move the unnamed rectangle at 1.68, 1.37 m away from it on the Map"
+  },
+  "cell": "Here (1'5\", 7'4\"): cable A would cross the Square."
+ },
  "app_1280x800_dark_labels": {
   "labelsAfterTaps": {
    "overlaps": [],
@@ -2721,5 +3191,353 @@
     "Desk 2'6\""
    ]
   }
+ },
+ "sim3_startup_shelf_0.33m": {
+  "state": "READY",
+  "reasons": [
+   "slack probe was off: the predicted sigma is not honest (slack reads as length error); enable startup.slack_probe"
+  ],
+  "shapes": [
+   {
+    "id": "b1",
+    "name": "Shelf",
+    "shape": "box",
+    "length_m": 0.3,
+    "width_m": 0.3,
+    "yaw_deg": 30.0,
+    "z_low_m": 0.0,
+    "height_m": 1.8,
+    "x": 2.2714603711191845,
+    "y": 1.218673495445522
+   }
+  ],
+  "plans_executed": 61,
+  "cartesian_plans_checked": 6,
+  "true_steps": 300724,
+  "worst_planned": {
+   "Shelf": {
+    "label": "local fit",
+    "shape": "Shelf",
+    "clearance_m": 0.0009785843919224435,
+    "what": "cable 2",
+    "n_poses": 64
+   }
+  },
+  "true": {
+   "Shelf": {
+    "cable_real": 0.06785138745110111,
+    "body_real": 0.15830118661988182,
+    "cable_inflated": -0.03214861254889889,
+    "body_inflated": 0.05830118661988182
+   }
+  },
+  "detour_legs": [],
+  "skipped_poses": 0,
+  "busy": {
+   "put": [
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ],
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ],
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ],
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ],
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ]
+   ],
+   "preview_ms": [
+    3.405448998819338,
+    919.1441599978134,
+    1109.91680799998,
+    1290.4097890022967,
+    647.7101089985808
+   ],
+   "coverage_compute_ms": [
+    2.8,
+    918.2,
+    1109.2,
+    1289.6,
+    646.7
+   ]
+  }
+ },
+ "sim3_startup_shelf_0.33m_log": [],
+ "sim3_startup_shelf_0.33m_detour_apex": {
+  "legs": 0,
+  "max_z": null,
+  "limit": 2.1085684726806306
+ },
+ "sim3_landing_spot_shelf_0.33m": {
+  "refused": "Can't lower: the Pole is under the landing spot. Move it on the Map, or lower by hand."
+ },
+ "sim4_startup": {
+  "state": "READY",
+  "reasons": [
+   "predicted length sigma 5.2 mm > 5.0 mm in the requested volume",
+   "slack probe was off: the predicted sigma is not honest (slack reads as length error); enable startup.slack_probe"
+  ],
+  "shapes": [
+   {
+    "id": "b1",
+    "name": "Dresser",
+    "shape": "box",
+    "x": 0.25,
+    "y": 1.37,
+    "length_m": 0.46,
+    "width_m": 1.2,
+    "yaw_deg": 0.0,
+    "z_low_m": 0.0,
+    "height_m": 0.9
+   },
+   {
+    "id": "p1",
+    "name": "Pole",
+    "shape": "cylinder",
+    "x": 0.45,
+    "y": 2.35,
+    "diameter_m": 0.05,
+    "z_low_m": 0.0,
+    "height_m": 1.7
+   }
+  ],
+  "plans_executed": 62,
+  "cartesian_plans_checked": 6,
+  "true_steps": 348405,
+  "worst_planned": {
+   "Dresser": {
+    "label": "expanded fit",
+    "shape": "Dresser",
+    "clearance_m": 0.298369371715231,
+    "what": "body",
+    "n_poses": 327
+   },
+   "Pole": {
+    "label": "intermediate fit",
+    "shape": "Pole",
+    "clearance_m": 0.039212975922540944,
+    "what": "cable 3",
+    "n_poses": 69
+   }
+  },
+  "true": {
+   "Dresser": {
+    "cable_real": 0.43228650488608256,
+    "body_real": 0.4371936404340731,
+    "cable_inflated": 0.3322865048860825,
+    "body_inflated": 0.3367173060390473
+   },
+   "Pole": {
+    "cable_real": 0.16218150905342862,
+    "body_real": 0.7442495269436822,
+    "cable_inflated": 0.06218150905342862,
+    "body_inflated": 0.6442495269436821
+   }
+  },
+  "detour_legs": [],
+  "skipped_poses": 0,
+  "busy": {
+   "put": [
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ],
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ],
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ],
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ],
+    [
+     409,
+     "busy with 'start': the map can be saved when it finishes"
+    ]
+   ],
+   "preview_ms": [
+    506.7924260001746,
+    1774.1351420008868,
+    1902.817509999295,
+    2362.2182629987947,
+    2497.782559999905
+   ],
+   "coverage_compute_ms": [
+    506.1,
+    1773.1,
+    1901.7,
+    2361.3,
+    2496.9
+   ]
+  }
+ },
+ "preview_while_busy_sim4": {
+  "put": [
+   [
+    409,
+    "busy with 'start': the map can be saved when it finishes"
+   ],
+   [
+    409,
+    "busy with 'start': the map can be saved when it finishes"
+   ],
+   [
+    409,
+    "busy with 'start': the map can be saved when it finishes"
+   ],
+   [
+    409,
+    "busy with 'start': the map can be saved when it finishes"
+   ],
+   [
+    409,
+    "busy with 'start': the map can be saved when it finishes"
+   ]
+  ],
+  "preview_ms": [
+   506.7924260001746,
+   1774.1351420008868,
+   1902.817509999295,
+   2362.2182629987947,
+   2497.782559999905
+  ],
+  "coverage_compute_ms": [
+   506.1,
+   1773.1,
+   1901.7,
+   2361.3,
+   2496.9
+  ]
+ },
+ "put_state_rules": {
+  "READY_side": [
+   409,
+   "the claw's current pose (2.29, 0.89, 0.95) m would break the new map: cable B would cross the Cabinet; cable C would cross the Cabinet; the claw would enter the Cabinet. Lower or park the claw first, or change the map"
+  ],
+  "READY_hang": [
+   409,
+   "the claw's current pose (2.29, 0.89, 0.95) m would break the new map: cable A would cross the Lamp; cable B would cross the Lamp; cable C would cross the Lamp; cable D would cross the Lamp; the claw would enter the Lamp. Lower or park the claw first, or change the map"
+  ],
+  "READY_under": [
+   409,
+   "lowering the claw straight down from (2.29, 0.89) would break the new map at 0.93 m: the claw would enter the Table. Move or park the claw first, or change the map"
+  ],
+  "READY_far": [
+   200,
+   "Saved: the planner now avoids 3 shapes"
+  ],
+  "PAUSED_side": [
+   409,
+   "the claw's current pose (2.29, 0.89, 0.95) m would break the new map: cable B would cross the Cabinet; cable C would cross the Cabinet; the claw would enter the Cabinet. Lower or park the claw first, or change the map"
+  ],
+  "PAUSED_hang": [
+   409,
+   "the claw's current pose (2.29, 0.89, 0.95) m would break the new map: cable A would cross the Lamp; cable B would cross the Lamp; cable C would cross the Lamp; cable D would cross the Lamp; the claw would enter the Lamp. Lower or park the claw first, or change the map"
+  ],
+  "PAUSED_under": [
+   409,
+   "lowering the claw straight down from (2.29, 0.89) would break the new map at 0.93 m: the claw would enter the Table. Move or park the claw first, or change the map"
+  ],
+  "PAUSED_far": [
+   200,
+   "Saved: the planner now avoids 3 shapes"
+  ]
+ },
+ "sim4_task": {
+  "result": {
+   "done": [],
+   "failed": [
+    [
+     "item0",
+     "unreachable: approach item0: target [1.757, 0.988, 0.817]: cable B would cross the Floor lamp; cable C would cross the Floor lamp; the claw would enter the Floor lamp"
+    ],
+    [
+     "item1",
+     "unreachable: verify shift item1: target [2.062, 1.146, 0.817]: cable A would cross the Floor lamp"
+    ]
+   ],
+   "summary": "0 delivered, 2 could not be picked up (item0: unreachable: approach item0: target [1.757, 0.988, 0.817]: cable B would cross the Floor lamp; cable C would cross the Floor lamp; the claw would enter the Floor lamp; item1: unreachable: verify shift item1: target [2.062, 1.146, 0.817]: cable A would cross the Floor lamp)"
+  },
+  "state": "READY",
+  "placed": [
+   {
+    "id": "t1",
+    "name": "Floor lamp",
+    "shape": "cylinder",
+    "x": 1.9101168648008024,
+    "y": 0.98968378892409,
+    "diameter_m": 0.05,
+    "z_low_m": 0.0,
+    "height_m": 1.0
+   }
+  ],
+  "plans": [
+   "scan",
+   "scan",
+   "scan"
+  ],
+  "items": [
+   "floor",
+   "floor"
+  ]
+ },
+ "sim4_task_2": {
+  "result": {
+   "done": [
+    "item0",
+    "item1"
+   ],
+   "failed": [],
+   "summary": "2 delivered, room clear"
+  },
+  "state": "READY",
+  "ottoman": {
+   "id": "t3",
+   "name": "Ottoman",
+   "shape": "box",
+   "x": 1.3552425719419818,
+   "y": 0.8714242011834135,
+   "length_m": 0.3,
+   "width_m": 0.3,
+   "yaw_deg": 0.0,
+   "z_low_m": 0.0,
+   "height_m": 0.4
+  },
+  "plans": [
+   "scan",
+   "approach item0",
+   "descend item0",
+   "lift item0",
+   "verify shift item0",
+   "raise",
+   "transport",
+   "scan",
+   "approach item1",
+   "descend item1",
+   "lift item1",
+   "verify shift item1",
+   "raise",
+   "transport",
+   "scan"
+  ],
+  "items": [
+   "hamper",
+   "hamper"
+  ],
+  "worst_planned_m": 0.04664085470245666
  }
 }

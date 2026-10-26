@@ -3,8 +3,8 @@
 Same Playwright setup as the builder's tests/cdpr/test_room_map_app.py (the Node 'playwright' package + the preinstalled Chromium,
 a real --sim service over HTTP), but a separate script, tests/cdpr/map_app_verify.js, that drives the page like a user: real
 touch events (CDP) at phone size, the mouse on the desktop size, light and dark. Screenshots: verification/room_map_verify_screens/.
-Findings that are confirmed defects are ``xfail(strict=True)`` with the finding id of verification/room_map_verification.md, so
-they turn into failures the day they are fixed (and the marker must then be removed)."""
+Round 1 marked the confirmed defects ``xfail(strict=True)``; round 2 (head fcdf1c5, the builder's fixes) turned them back into
+plain tests with the round-2 expectation, and added the units-with-the-map, landing-spot and field-message checks."""
 import json
 import os
 import re
@@ -104,9 +104,8 @@ def test_touch_targets_are_at_least_44_px(run):
     assert not small, small
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING L-2: a thin shape (5 cm pole, 40 cm lamp) is drawn 5-37 px wide on a phone; its body "
-                                       "is the only way to select it, so it cannot be reliably tapped or dragged")
 def test_every_drawn_shape_can_be_grabbed_with_a_finger(run):
+    """Round 1 L-2 (fixed): the grab area of a thin shape is at least a finger wide."""
     small = [t for t in run["targetsCrowded"] if min(t["w"], t["h"]) < 43.9]
     _evidence(_key(run) + "_small_shape_bodies", small)
     assert not small, small
@@ -159,9 +158,8 @@ def test_svg_label_contrast_is_at_least_4_5(run):
     assert rows and not low, low                                 # shape names, heights and the anchor letters
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING L-3: the green 'Hamper' label drops below 4.5:1 when it sits on a shape (light 3.98, "
-                                       "dark 4.45) or on the 'where it can pick' tint (light 3.43)")
 def test_the_hamper_label_contrast_on_shapes_and_on_the_overlay(run):
+    """Round 1 L-3 (fixed): the Hamper label has an opaque pill."""
     low = [r for r in _svg_label_contrast(run) if r["ratio"] < 4.5 and r["text"] == "Hamper"]
     assert not low, low
 
@@ -202,11 +200,12 @@ def test_lengths_are_parsed_in_ft_in_and_metres(run):
     assert run["unitsLabel"] == "metres"
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING L-4: a height of 0 is accepted by the field; the save is then refused with a message "
-                                       "naming z_low_m / height_m")
 def test_a_zero_height_is_refused_by_the_field(run):
+    """Round 1 L-4 (fixed): 0 is refused in the field, in plain words, and the value stays."""
     z = [r for r in run["parseFtIn"] if r["input"] == "0"][0]
-    assert z["height_m"] != 0 or "not" in z["msg"], z
+    assert z["height_m"] == 0.75 and "not a height" in z["msg"], z
+    m = run["msgs"]["zero"]
+    assert m["value"] == 0.75 and "not a height" in m["field"] and not BANNED.search(m["field"]), m
 
 
 def test_undo_twenty_steps_save_revert_reload(run):
@@ -228,9 +227,8 @@ def test_hamper_moves_and_its_rim_height_is_saved(run):
     assert run["server_hamper"][0] == [hs["x"], hs["y"]] and run["server_hamper"][1] == hs["height_m"]
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING M-3: the hamper only reacts on its 3 px ring (fill: none); a finger on the middle of "
-                                       "the hamper deselects instead of dragging it")
 def test_the_hamper_can_be_dragged_by_its_middle(run):
+    """Round 1 M-3 (fixed): the whole hamper marker takes the finger."""
     assert run["hamperMove"]["movedByMiddle"] > 0.05, run["hamperMove"]
 
 
@@ -248,14 +246,18 @@ def test_no_jargon_in_the_normal_screens(run):
         assert not hits, (k, hits)
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING M-2: refusals shown to the user carry internal key names and metres (\"bottom height "
-                                       "z_low_m 0.00 m must be below its top height_m\", \"length_m 6.10 m\") and unnamed shapes are "
-                                       "called by their id (\"shape o1\")")
 def test_messages_shown_after_a_refused_save_are_plain(run):
-    msgs = [run["msgZeroHeight"], run["msgTooLong"], run["msgTooTall"], run["overlay"]["cellMsg"]]
-    _evidence(_key(run) + "_messages", msgs)
+    """Round 1 M-2 (fixed): field refusals, the server's landing-spot refusal and the tapped-cell reason are plain, in the user's
+    units, and name shapes by their label, never by id or key."""
+    ms = run["msgs"]
+    msgs = [ms["zero"]["field"], ms["tooLong"]["field"], ms["tooTall"]["field"], ms["landing"]["afterSave"], run["overlay"]["cellMsg"]]
+    _evidence(_key(run) + "_messages", ms | {"cell": run["overlay"]["cellMsg"]})
     bad = [m for m in msgs if BANNED.search(m) or re.search(r"\bshape o\d+\b|\bshape \d+\b", m)]
     assert not bad, bad
+    assert "longer than the room" in ms["tooLong"]["field"] and "above the ceiling" in ms["tooTall"]["field"], ms
+    assert "landing spot" in ms["landing"]["afterSave"] and "Not saved" in ms["landing"]["afterSave"], ms["landing"]
+    assert re.search(r"\d'\d+\"|\d+\"", ms["tooLong"]["field"]), ms["tooLong"]          # the user's units, not metres
+    assert "the Square" in run["overlay"]["cellMsg"] or "the robot can pick" in run["overlay"]["cellMsg"], run["overlay"]
 
 
 # ----------------------------------------------------------------------------------------------- labels
@@ -264,11 +266,26 @@ def test_labels_characterisation_is_recorded(run):
                                       for k in ("labelsAfterTaps", "labelsCrowded", "labelsOnHamper", "labelsOverlay", "labelsAfterReload")})
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING M-4: labels are centred on their shape with no collision handling; they overlap each "
-                                       "other and the 'Hamper' label (three shapes added by tap already overlap on a phone)")
-def test_labels_do_not_overlap(run):
-    ov = [o for k in ("labelsAfterTaps", "labelsCrowded", "labelsOnHamper") for o in run[k]["overlaps"]]
+def test_labels_do_not_overlap_and_stay_inside_the_drawing(run):
+    """Round 1 M-4 (fixed): greedy label placement; the lead's circle-on-hamper case included."""
+    ov = [o for k in ("labelsAfterTaps", "labelsCrowded", "labelsOnHamper", "labelsOverlay", "labelsAfterReload") for o in run[k]["overlaps"]]
     assert not ov, ov
+    clipped = [c for k in ("labelsAfterTaps", "labelsCrowded", "labelsOnHamper") for c in run[k]["clipped"]]
+    assert not clipped, clipped
+
+
+def test_new_shapes_are_placed_clear_of_the_landing_spot(run):
+    """Round 2: the app never drops a new shape on the claw's landing column (the service would refuse the save)."""
+    assert run["landing"], run.get("landing")
+    assert all(d > 0.17 for d in run["addedClearOfLanding"]), run["addedClearOfLanding"]
+
+
+def test_units_are_saved_with_the_map(run):
+    """Round 1 L-1 (fixed): changing the units alone makes the map dirty, Save is enabled, and the server stores the choice."""
+    u = run["unitsSaved"]
+    assert u["before"] == {"dirty": False, "save": True}, u
+    assert u["after"]["dirty"] and not u["after"]["save"] and u["after"]["units"] == "m", u
+    assert u["server"] == "m", u
 
 
 # ----------------------------------------------------------------------------------------------- the first-time user
@@ -279,7 +296,7 @@ def test_walkthrough_desk_4_by_2_ft_2_ft_6_tall(run):
     assert wk["tapsTotal"] == 5 and wk["msg"].startswith("Saved"), wk
     s = wk["serverAfterFirstSave"][0]
     assert abs(s["length_m"] - 48 * INCH) < 1e-9 and abs(s["width_m"] - 24 * INCH) < 1e-9
-    assert abs(s["height_m"] - 30 * INCH) < 0.013                  # 2'6" (the default 0.75 m already reads 2'6", see L-5)
+    assert abs(s["height_m"] - 30 * INCH) < 0.013                  # 2'6": 0.75 m shown as 2'6" is kept (L-5, still open: below)
     # chip route: Rectangle, "Desk", Save = 3 taps; the chip's desk is 4'0" x 2'0" x 2'6"
     cr = wk["chipRoute"]
     assert cr["taps"] == 3 and cr["msg"].startswith("Saved") and "Desk 2'6\"" in cr["labels"]
@@ -290,3 +307,11 @@ def test_walkthrough_desk_4_by_2_ft_2_ft_6_tall(run):
 
 def test_one_drag_frame_is_cheap_with_50_shapes(run):
     assert run["renderMs"]["fiftyShapes"] < 16, run["renderMs"]
+
+
+@pytest.mark.xfail(strict=True, reason="FINDING L-5 (round 2: NOT fixed): typing exactly the text the field already shows (2'6\" over "
+                                       "the default 0.75 m, which reads 2'6\") is not applied: the browser fires no 'change' event when "
+                                       "the text is unchanged, and the field commits only on 'change' (input and blur do fire)")
+def test_typing_the_shown_text_sets_the_exact_value(run):
+    s = run["walk"]["serverAfterFirstSave"][0]
+    assert abs(s["height_m"] - 30 * INCH) < 1e-9, s["height_m"]

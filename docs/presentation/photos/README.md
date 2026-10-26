@@ -30,3 +30,15 @@ Technical Presentation — v2 draft"). Suggested placement:
 | 26 | slicing PETG parts for the Creality K1: 0.4 mm nozzle, 0.20 mm standard, supports at 30° (Jasper, 10/18) | deck v8 "Build" |
 | 27 | station shell (red PETG) on its wall mount, the aluminium fin rising through the slot in the top, vents on the side (Jasper, 10/23) | website "Building it" (wall stations) |
 | 28 | slide-in assembled: NEMA 17 bolted behind the tall aluminium fin, red spool on the shaft, switch lug below (Jasper, 10/23) | website "Building it" (wall stations) |
+| 29 | station bench test on the floor: ELEGOO ESP32 DevKit, A4988 (yellow tape), red spool and end-stop on the slide-in, blue shells beside it (Jasper, 10/26) | website "Building it"; deck v9 "Bring-up" |
+| 30 | the same bench, spool and switch side (Jasper, 10/26) | website "Building it" |
+| 31 | XIAO station on a mini breadboard with the shell open and the slide-in in front; the 1000 uF capacitor is visible (Jasper, 10/26) | deck v9 "Bring-up" |
+| 32 | a wall station mounted high on the TV wall, 12 V leads running down (Jasper, 10/26) | deck v9 "Final Wall Station"; website |
+| 33 | the mounted station from below: shell on its grey wall mount, fin through the slot, switch and encoder wires hanging (Jasper, 10/26) | deck v9 |
+| 34 | shell rear: vent slots, the switch tab with the end-stop pressed in, the line leaving the spool (Jasper, 10/26) | deck v9 "Manufacturing" |
+| 35 | blue shell with the aluminium fin and the "Rhyno" logo; the top shows a failed print layer that was kept (Jasper, 10/26) | deck v9 "Manufacturing: what went wrong" |
+| 36 | shell front: vents, the fin tab, encoder wires through the side window (Jasper, 10/26) | deck v9 |
+| 37 | station bench with the red shell: fused 12 V lead, WAGO joints, meter probes, slide-in with spool (Jasper, 10/26) | deck v9 "Bring-up" |
+| 38 | the claw assembled on the bench: four-bar jaws, white gear housing, aluminium tube, blue electronics housing lit from inside, XIAO S3 beside it (Jasper, 10/26) | deck v9 project picture; website |
+| 39 | slide-in held up: NEMA 17, red spool, end-stop, the full breadboard harness hanging below (Jasper, 10/26) | deck v9 "Bring-up" |
+| 40 | claw electronics housing open: ZTW UBEC, MP1584, WAGOs, battery, XIAO S3 Sense on its carrier (Jasper, 10/26) | deck v9 "Claw electronics"; website |

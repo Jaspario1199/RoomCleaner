@@ -5,7 +5,7 @@
 //   - servo on D0: OFF at boot (no signal = no jump); center, small steps, open/close test positions
 //   - camera: live video at http://<ip>/ , one photo at http://<ip>/jpg , numbers at http://<ip>/status
 //
-// Board: "XIAO_ESP32S3", Tools > PSRAM: "OPI PSRAM" (the camera needs it). Library: ESP32Servo.
+// Board: "XIAO_ESP32S3", Tools > PSRAM: "OPI PSRAM" (the camera needs it). No extra libraries.
 // Wi-Fi: copy secrets.example.h to secrets.h (git-ignored) and fill in your 2.4 GHz network. Without Wi-Fi the
 // serial menu still works; only the camera page needs it.
 // Wiring: docs/electrical/claw_revB_20261021/breadboard_layout_claw.png and offboard_wiring_claw.png.
@@ -13,7 +13,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include <ESP32Servo.h>
+#include "driver/ledc.h"                     // servo pulses straight from the LEDC hardware (timer 1, not the camera's timer 0)
 #include "esp_camera.h"
 #include "esp_http_server.h"
 #if __has_include("secrets.h")
@@ -58,7 +58,6 @@ constexpr float BATT_CUTOFF_V = 6.8f;
 #define HREF_GPIO_NUM  47
 #define PCLK_GPIO_NUM  13
 
-Servo servo;
 bool servoOn = false;
 int servoUs = SERVO_CENTER_US;
 bool cameraOk = false;
@@ -83,21 +82,48 @@ void batteryReport() {
 }
 
 // ---------------------------------------------------------------- servo
+// 50 Hz on LEDC timer 1 / channel 1, 14-bit: the camera clock owns timer 0 / channel 0.
+constexpr ledc_mode_t SERVO_MODE = LEDC_LOW_SPEED_MODE;
+constexpr ledc_timer_t SERVO_TIMER = LEDC_TIMER_1;
+constexpr ledc_channel_t SERVO_CH = LEDC_CHANNEL_1;
+constexpr uint32_t SERVO_PERIOD_US = 20000, SERVO_DUTY_MAX = (1u << 14) - 1;
+
+bool servoStart() {
+  ledc_timer_config_t t = {};
+  t.speed_mode = SERVO_MODE;
+  t.duty_resolution = LEDC_TIMER_14_BIT;
+  t.timer_num = SERVO_TIMER;
+  t.freq_hz = 50;
+  t.clk_cfg = LEDC_AUTO_CLK;
+  esp_err_t e = ledc_timer_config(&t);
+  if (e != ESP_OK) { Serial.printf("servo: timer setup FAILED (0x%x)\n", e); return false; }
+  ledc_channel_config_t c = {};
+  c.gpio_num = SERVO_PIN;
+  c.speed_mode = SERVO_MODE;
+  c.channel = SERVO_CH;
+  c.timer_sel = SERVO_TIMER;
+  c.duty = 0;
+  c.hpoint = 0;
+  e = ledc_channel_config(&c);
+  if (e != ESP_OK) { Serial.printf("servo: channel setup FAILED (0x%x)\n", e); return false; }
+  return true;
+}
+
 void servoWrite(int us) {
   servoUs = constrain(us, SERVO_MIN_US, SERVO_MAX_US);
   if (!servoOn) {
-    servo.setPeriodHertz(50);
-    servo.attach(SERVO_PIN, SERVO_MIN_US, SERVO_MAX_US);
+    if (!servoStart()) return;
     servoOn = true;
   }
-  servo.writeMicroseconds(servoUs);
-  Serial.printf("servo: %d us%s\n", servoUs, servoUs == SERVO_MIN_US || servoUs == SERVO_MAX_US ? " (limit)" : "");
+  ledc_set_duty(SERVO_MODE, SERVO_CH, (uint32_t)servoUs * SERVO_DUTY_MAX / SERVO_PERIOD_US);
+  ledc_update_duty(SERVO_MODE, SERVO_CH);
+  Serial.printf("servo: %d us on D0%s  (meter D0 to GND on DC: about %.2f V while pulsing)\n", servoUs,
+                servoUs == SERVO_MIN_US || servoUs == SERVO_MAX_US ? " (limit)" : "", 3.3f * servoUs / SERVO_PERIOD_US);
 }
 
 void servoOff() {
-  if (servoOn) servo.detach();
+  if (servoOn) ledc_stop(SERVO_MODE, SERVO_CH, 0);   // pin held LOW: no pulses
   servoOn = false;
-  digitalWrite(SERVO_PIN, LOW);
   Serial.println("servo: signal OFF (the servo goes limp)");
 }
 
@@ -241,7 +267,6 @@ void setup() {
   digitalWrite(LED_PIN, HIGH);               // LED off
   pinMode(SERVO_PIN, OUTPUT);
   digitalWrite(SERVO_PIN, LOW);              // no servo pulses until you ask for them
-  ESP32PWM::allocateTimer(1);                // leave LEDC timer 0 to the camera clock
   Serial.begin(115200);
   delay(1500);                               // time for the USB serial port to appear
   analogReadResolution(12);

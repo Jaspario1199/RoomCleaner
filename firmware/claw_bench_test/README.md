@@ -7,7 +7,7 @@ live web page. It is not the claw firmware: flash `firmware/claw_s3/claw_s3.ino`
 **Setup (Arduino IDE):**
 - **Board:** esp32 > **XIAO_ESP32S3**. Under Tools, set **PSRAM: "OPI PSRAM"**; the camera fails without it.
 - **USB CDC On Boot: Enabled**, so the Serial Monitor works over USB.
-- **Library:** **ESP32Servo** (Library Manager).
+- **Libraries:** none beyond the esp32 core.
 - **Wi-Fi:** copy `secrets.example.h` to `secrets.h` in this folder and fill in your **2.4 GHz** network.
   `secrets.h` is git-ignored.
 - **Serial Monitor:** 115200 baud, line ending "Newline". Type a letter and press Enter.

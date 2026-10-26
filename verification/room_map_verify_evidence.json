@@ -33,13 +33,13 @@
    "shape": 772,
    "trust": 94
   },
-  "server_ms": 5.0
+  "server_ms": 9.8
  },
  "coverage_timing_10_shapes": {
-  "server_ms_median": 13.4,
-  "server_ms_max": 15.9,
-  "http_roundtrip_ms_median": 14.363838999997824,
-  "http_ms_max": 17.080819001421332
+  "server_ms_median": 29.4,
+  "server_ms_max": 37.1,
+  "http_roundtrip_ms_median": 30.51467099976435,
+  "http_ms_max": 38.386418998925365
  },
  "sim3_startup_shelf_0.55m": {
   "state": "READY",
@@ -62,22 +62,22 @@
   ],
   "plans_executed": 61,
   "cartesian_plans_checked": 6,
-  "true_steps": 301504,
+  "true_steps": 303644,
   "worst_planned": {
    "Shelf": {
     "label": "intermediate fit",
     "shape": "Shelf",
-    "clearance_m": 0.0020185550796837926,
+    "clearance_m": 0.0024272821499040087,
     "what": "cable 1",
     "n_poses": 111
    }
   },
   "true": {
    "Shelf": {
-    "cable_real": 0.06492659302776843,
-    "body_real": 0.0973997169487256,
-    "cable_inflated": -0.035073406972231574,
-    "body_inflated": -0.00260028305127441
+    "cable_real": 0.06492659302764967,
+    "body_real": 0.0973432839565346,
+    "cable_inflated": -0.03507340697235034,
+    "body_inflated": -0.0026567160434654014
    }
   },
   "detour_legs": [],
@@ -106,18 +106,18 @@
     ]
    ],
    "preview_ms": [
-    3.3268269999098266,
-    879.4365569992806,
-    816.3760259994888,
-    451.2642909994611,
-    1030.9414599996671
+    2.457415999742807,
+    29.2200240000966,
+    2.653585999723873,
+    3.5383710001042346,
+    6.923557999471086
    ],
    "coverage_compute_ms": [
+    1.8,
+    28.5,
+    2.0,
     2.7,
-    878.7,
-    815.4,
-    450.3,
-    1029.8
+    6.2
    ]
   }
  },
@@ -125,7 +125,7 @@
  "sim3_startup_pole_0.25m": {
   "state": "READY",
   "reasons": [
-   "predicted length sigma 5.3 mm > 5.0 mm in the requested volume",
+   "predicted length sigma 5.6 mm > 5.0 mm in the requested volume",
    "slack probe was off: the predicted sigma is not honest (slack reads as length error); enable startup.slack_probe"
   ],
   "shapes": [
@@ -140,28 +140,28 @@
     "y": 1.0583782567211522
    }
   ],
-  "plans_executed": 52,
+  "plans_executed": 51,
   "cartesian_plans_checked": 6,
-  "true_steps": 292855,
+  "true_steps": 293894,
   "worst_planned": {
    "Pole": {
     "label": "expanded fit",
     "shape": "Pole",
-    "clearance_m": 0.008414810715338589,
-    "what": "cable 1",
-    "n_poses": 207
+    "clearance_m": 0.0165043346708304,
+    "what": "cable 2",
+    "n_poses": 135
    }
   },
   "true": {
    "Pole": {
-    "cable_real": 0.06242631589580768,
-    "body_real": 0.08015923575633824,
-    "cable_inflated": -0.03757368410419232,
-    "body_inflated": -0.019840764243661768
+    "cable_real": 0.06242631589580697,
+    "body_real": 0.08014224204575221,
+    "cable_inflated": -0.037573684104193025,
+    "body_inflated": -0.019857757954247796
    }
   },
   "detour_legs": [],
-  "skipped_poses": 9,
+  "skipped_poses": 10,
   "busy": {
    "put": [
     [
@@ -186,27 +186,27 @@
     ]
    ],
    "preview_ms": [
-    18.90836599886825,
-    664.9707130000024,
-    744.950708000033,
-    480.2499589986837,
-    1138.105527999869
+    3.257660999224754,
+    2.6932910004688893,
+    3.3314920001430437,
+    23.10261700040428,
+    2.613922999444185
    ],
    "coverage_compute_ms": [
-    18.1,
-    664.2,
-    744.0,
-    477.3,
-    1137.3
+    2.6,
+    2.0,
+    2.6,
+    22.3,
+    1.9
    ]
   }
  },
  "sim3_startup_pole_0.25m_log": [
+  "[startup] expanded fit pose [2.127, 1.335, 1.279] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)",
+  "[startup] expanded fit pose [2.127, 1.335, 1.612] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)",
+  "[startup] expanded fit pose [2.394, 1.068, 1.612] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)",
+  "[startup] expanded fit pose [2.394, 0.801, 1.612] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)",
   "[startup] expanded fit pose [2.127, 1.335, 0.612] skipped: the straight move is blocked by the room map (workspace: cable B would cross the Pole) and there is no way over it (workspace: cable B would cross the Pole)",
-  "[startup] expanded fit pose [2.127, 1.335, 1.279] skipped: the straight move is blocked by the room map (workspace: cable B would cross the Pole) and there is no way over it (workspace: cable B would cross the Pole)",
-  "[startup] expanded fit pose [2.127, 1.335, 1.612] skipped: the straight move is blocked by the room map (workspace: cable B would cross the Pole) and there is no way over it (workspace: cable B would cross the Pole)",
-  "[startup] expanded fit pose [2.394, 1.068, 1.612] skipped: the straight move is blocked by the room map (workspace: cable B would cross the Pole) and there is no way over it (workspace: cable B would cross the Pole)",
-  "[startup] expanded fit pose [2.394, 0.801, 1.612] skipped: the straight move is blocked by the room map (workspace: cable B would cross the Pole) and there is no way over it (workspace: cable B would cross the Pole)",
   "[startup] expanded witness pose [2.394, 0.801, 0.946] skipped: the straight move is blocked by the room map (workspace: cable C would cross the Pole) and there is no way over it (workspace: cable C would cross the Pole)"
  ],
  "sim3_startup_shelf_0.33m": {
@@ -326,35 +326,35 @@
   ],
   "plans_executed": 62,
   "cartesian_plans_checked": 6,
-  "true_steps": 346824,
+  "true_steps": 372846,
   "worst_planned": {
    "Dresser": {
     "label": "expanded fit",
     "shape": "Dresser",
-    "clearance_m": 0.29855717217079797,
+    "clearance_m": 0.30102596663803466,
     "what": "body",
     "n_poses": 279
    },
    "Pole": {
     "label": "intermediate fit",
     "shape": "Pole",
-    "clearance_m": 0.050566785032914174,
+    "clearance_m": 0.05035909594422722,
     "what": "cable 3",
-    "n_poses": 67
+    "n_poses": 156
    }
   },
   "true": {
    "Dresser": {
-    "cable_real": 0.4332901890841069,
-    "body_real": 0.44110593957239624,
-    "cable_inflated": 0.33329018908410685,
-    "body_inflated": 0.3406197245183007
+    "cable_real": 0.43382418267173384,
+    "body_real": 0.44203020162163736,
+    "cable_inflated": 0.33382418267173386,
+    "body_inflated": 0.34154878998683375
    },
    "Pole": {
-    "cable_real": 0.16278329133603126,
-    "body_real": 0.7593359235370789,
-    "cable_inflated": 0.06278329133603125,
-    "body_inflated": 0.6593359235370788
+    "cable_real": 0.16276240508539513,
+    "body_real": 0.7593149326518367,
+    "cable_inflated": 0.06276240508539513,
+    "body_inflated": 0.6593149326518368
    }
   },
   "detour_legs": [],
@@ -383,18 +383,18 @@
     ]
    ],
    "preview_ms": [
-    299.57767900123144,
-    2224.5535499987454,
-    2150.3192849995685,
-    2262.4776310003654,
-    2933.379509000588
+    3.6058999994565966,
+    3.377173999979277,
+    3.455986001426936,
+    3.675357000247459,
+    12.261542999112862
    ],
    "coverage_compute_ms": [
-    298.8,
-    2223.8,
-    2149.4,
-    2259.2,
-    2932.5
+    3.1,
+    2.8,
+    2.7,
+    3.0,
+    11.6
    ]
   }
  },
@@ -422,32 +422,32 @@
    ]
   ],
   "preview_ms": [
-   299.57767900123144,
-   2224.5535499987454,
-   2150.3192849995685,
-   2262.4776310003654,
-   2933.379509000588
+   3.6058999994565966,
+   3.377173999979277,
+   3.455986001426936,
+   3.675357000247459,
+   12.261542999112862
   ],
   "coverage_compute_ms": [
-   298.8,
-   2223.8,
-   2149.4,
-   2259.2,
-   2932.5
+   3.1,
+   2.8,
+   2.7,
+   3.0,
+   11.6
   ]
  },
  "put_state_rules": {
   "READY_side": [
    409,
-   "the claw's current pose (2.29, 0.87, 0.95) m would break the new map: cable B would cross the Cabinet; cable C would cross the Cabinet; the claw would enter the Cabinet. Lower or park the claw first, or change the map"
+   "the claw's current pose (2.29, 0.88, 0.95) m would break the new map: cable B would cross the Cabinet; cable C would cross the Cabinet; the claw would enter the Cabinet. Lower or park the claw first, or change the map"
   ],
   "READY_hang": [
    409,
-   "the claw's current pose (2.29, 0.87, 0.95) m would break the new map: cable A would cross the Lamp; cable B would cross the Lamp; cable C would cross the Lamp; cable D would cross the Lamp; the claw would enter the Lamp. Lower or park the claw first, or change the map"
+   "the claw's current pose (2.29, 0.88, 0.95) m would break the new map: cable A would cross the Lamp; cable B would cross the Lamp; cable C would cross the Lamp; cable D would cross the Lamp; the claw would enter the Lamp. Lower or park the claw first, or change the map"
   ],
   "READY_under": [
    409,
-   "lowering the claw straight down from (2.29, 0.87) would break the new map at 0.93 m: the claw would enter the Table. Move or park the claw first, or change the map"
+   "lowering the claw straight down from (2.29, 0.88) would break the new map at 0.93 m: the claw would enter the Table. Move or park the claw first, or change the map"
   ],
   "READY_far": [
    200,
@@ -455,15 +455,15 @@
   ],
   "PAUSED_side": [
    409,
-   "the claw's current pose (2.29, 0.87, 0.95) m would break the new map: cable B would cross the Cabinet; cable C would cross the Cabinet; the claw would enter the Cabinet. Lower or park the claw first, or change the map"
+   "the claw's current pose (2.29, 0.88, 0.95) m would break the new map: cable B would cross the Cabinet; cable C would cross the Cabinet; the claw would enter the Cabinet. Lower or park the claw first, or change the map"
   ],
   "PAUSED_hang": [
    409,
-   "the claw's current pose (2.29, 0.87, 0.95) m would break the new map: cable A would cross the Lamp; cable B would cross the Lamp; cable C would cross the Lamp; cable D would cross the Lamp; the claw would enter the Lamp. Lower or park the claw first, or change the map"
+   "the claw's current pose (2.29, 0.88, 0.95) m would break the new map: cable A would cross the Lamp; cable B would cross the Lamp; cable C would cross the Lamp; cable D would cross the Lamp; the claw would enter the Lamp. Lower or park the claw first, or change the map"
   ],
   "PAUSED_under": [
    409,
-   "lowering the claw straight down from (2.29, 0.87) would break the new map at 0.93 m: the claw would enter the Table. Move or park the claw first, or change the map"
+   "lowering the claw straight down from (2.29, 0.88) would break the new map at 0.93 m: the claw would enter the Table. Move or park the claw first, or change the map"
   ],
   "PAUSED_far": [
    200,

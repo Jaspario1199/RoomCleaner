@@ -95,3 +95,32 @@ Net: everything passes except the 2 pre-existing `test_tiny_moves` cases.
   at the top with the checklist, the rest folded.
 - The anchors' x/y/z inputs on Setup have no units hint beyond the card title; the room size could reuse the Map tab's ft-in parser.
 - "Acknowledge fault" / "Recover (re-reference from camera)" are jargon; a one-line "what happens" under each would help.
+
+## Round 1 fixes after the independent verification (`verification/room_map_verification.md`, FAIL)
+
+| finding | fix |
+|---|---|
+| H-2 lowering into a shape | `Supervisor.lower`: with a map, the landing is chosen first (`_landing_spot`, on the pumped worker): over the marker if the move there and the straight descent plan; else the start point, then the nearest point of a 10 cm grid of the usable area whose claw-body descent column is clear and whose moves plan; none: `CommandRefused("Can't lower: the Ottoman is under the landing spot. Move it on the Map, or lower by hand.")`, still holding. A map-caused refusal of a planned leg never falls back to packets (the fallback stays for its other reasons). Without a usable model, packets straight down are refused if a shape is under the claw. `PUT /api/room_map` refuses, in every state, a map whose shapes cover the landing column (claw body, floor up to `motion.task_max_height_m`) over the floor marker or the start point, naming the shape; `GET` returns `landing_m` and the app never places a new shape there. |
+| H-1 detour strands the claw | `plan_line_from` puts a start pose less than 1 mm outside the workspace box on the bound (`START_BOUND_TOL_M`); the detour goes over the shape at the lowest height (0.1 m steps) at which up/across/down all plan, never above the top less `motion.waypoint_inset_m` (0.03 m, new config key). |
+| M-1 room edit | `POST /api/room` re-validates the saved map and hamper against the new room and refuses with the shapes named ("Move or resize those shapes on the Map first"). |
+| M-2 plain words | Service messages name keys in words ("its bottom", "its length") and unnamed shapes by kind and place ("the 4th shape on the map (a rectangle)", "the unnamed square at 1.20, 0.80 m"); the app checks sizes and heights in the user's units before saving and turns the coverage grid's "shape o3" into the shape's label. The coverage text itself keeps the id (the verifier's per-cell reference matches it). |
+| M-3 hamper | The whole hamper marker (at least 48 px) takes the drag; the ring is drawn separately. |
+| M-4 labels | Greedy placement: each label (hamper first) takes the first free spot near its centre (lines above/below, a little to the side), inside the drawing; hanging shapes are drawn first; new shapes avoid the hamper. |
+| M-5 blocked startup | Calibration aborts after map refusals name the shapes and say "Edit the Map"; the lift refusal says so too. |
+| L-1 units | Units are part of the saved map (dirty, undo); the server's value wins on load. |
+| L-2 thin shapes | Every shape has a grab area at least 44 px wide (transparent, over its body). |
+| L-3 Hamper label | Opaque pill behind it. |
+| L-4 zero height | Refused in the field ("is not a height"). |
+| L-5 typed value | A typed value is always applied, even when it reads like the shown one. |
+| L-7 hamper in a shape | Refused ("the hamper is inside the Desk"). |
+| L-8 task summary | "N delivered, M could not be picked up (...)" when items were skipped. |
+| L-6 preview while busy | Not changed: coverage competes for the GIL with the pumping command thread (the switch interval is lowered on purpose); idle it is 13 ms. Option: refuse or cache the preview while a command runs. |
+
+Verifier tests that now XPASS (strict): H-1 (`test_three_station_startup_with_a_pole_0_25_m_from_the_start_reaches_ready`,
+`test_after_the_detours_up_leg_the_next_move_can_be_planned`), M-1, and in the browser file L-2, L-3, L-4, M-2, M-3, M-4 (each per
+configuration). H-2's verifier test cannot flip: it saves an ottoman over the marker and expects 200, which the lead's rule now refuses.
+The same rule refuses some maps the verifier's other scenarios save (three-station shelves 0.33 / 0.55 m from the resting claw, and the
+app script's "save and reload" desk turned 30 degrees near the room centre): those setups now get 409 "covers the claw's landing spot".
+
+New own tests (`tests/cdpr/test_room_map.py`): plain messages, room edit refused, hamper in a shape and landing spot refused, moves from
+one microstep past the top and from every detour apex, lowering never enters a shape (refuses with the name or lands elsewhere).

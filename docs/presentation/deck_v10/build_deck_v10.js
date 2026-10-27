@@ -257,8 +257,8 @@ section("Fundamentals");
 {
   const sl = slide("How cable length becomes position, and torque becomes pull",
     "Fundamentals. Card A: straight taut cable, L_i = ||a_i - p|| (roomcleaner/cdpr/kinematics.py docstring; the full form adds R b_i for the spaced " +
-    "attachments). Line per revolution 47.1 to 62.8 mm on the O15 core as layers build (FUNDAMENTALS.md section 2, spool-core study table). Four cables, " +
-    "three force equations, so the split is indeterminate (kinematics.py docstring); the camera on the floor board fits the anchors and cable lengths at startup " +
+    "attachments). Line per revolution 47.1 to 62.8 mm on the O15 core as layers build (FUNDAMENTALS.md section 2, spool-core study table). Four cable lengths " +
+    "against three position unknowns: overdetermined, least squares (kinematics.py docstring; the TENSION split is the indeterminate one); the camera on the floor board fits the anchors and cable lengths at startup " +
     "(DECK_V9_NOTES slide 15); held-out poses check the fit (CALIBRATION_SIMPLE step 5, 'surprise spots'): SIMULATED, no physical position measurement. " +
     "Card B: I = Vref / (8 R_s), tau_hold = tau_rated I / I_rated, tau_run = 0.7 tau_hold assumed, F = tau / r (FUNDAMENTALS section 2); at 1.5 A, the motor's " +
     "rated current (DECISIONS D37), tau_hold 0.36 N.m, running pull 33.6 N at r 7.5 mm and 25.2 N at r 10 mm (calculations/lift_chain_weakest_link.json " +
@@ -278,7 +278,7 @@ section("Fundamentals");
   const cards3 = [
     ["Cable length → position", ["L_i = ‖ a_i − p ‖", "a_i: anchor exit, p: claw", "straight, taut cable"], [
       "Each spool turn pays out line: 47.1 → 62.8 mm per rev on the Ø15 core as layers build (calculated)",
-      "Four cables, three equations: the split is indeterminate; the position is solved by least squares",
+      "Four cable lengths, three position unknowns: overdetermined, solved by least squares",
       "The camera on the floor board fixes the anchors and cable lengths at startup (calibration)",
       "Validated in the simulator and by held-out poses during calibration (simulated); no physical position measurement yet",
     ]],

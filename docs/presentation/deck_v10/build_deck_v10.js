@@ -176,19 +176,23 @@ const r1 = v => Math.round(v * 10) / 10;
 // ------------------------------------------------------------------------------------------------ chart data (record)
 // Cable tension vs depth: T = W / (4 sin phi), Dh = 2.166 m (room centre to anchor), W = weighed claw 0.60 kg + 1 lb.
 // FUNDAMENTALS.md section 1 / calculations/presentation_fundamentals.json topic 1; weighed claw per DECK_V8_NOTES.md.
-const DH = 2.166, M_CLAW_LB = 0.60 + 0.45359, G = 9.81, A_DYN = 2.0, WINCH_LIMIT = 16.8;
+const DH = 2.166, M_CLAW_LB = 0.60 + 0.45359, G = 9.81, A_DYN = 1.0, WINCH_LIMIT = 16.8;   // a = 1 m/s² (design, DECISIONS D45)
 const depths = [0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2];
 const tension = (d, a) => r1(M_CLAW_LB * (G + a) / (4 * (d / Math.sqrt(d * d + DH * DH))));
 // Winch pull vs spool radius at 1.5 A: running torque 0.7 x 0.36 N.m holding (assumed), design force = running / 1.5.
 // calculations/lift_chain_weakest_link.json fuse.run_empty 33.6 N (r 7.5 mm), run_full 25.2 N (r 10 mm); design_force 16.8.
 const radii = [6, 7, 7.5, 8, 9, 10, 11];
 const runPull = r => r1(0.7 * 0.36 / (r / 1000)), designPull = r => r1(runPull(r) / 1.5);
-const JEANS_PEAK = 16.2;                        // worst cable, jeans, lift_chain_weakest_link.md "Demand and the fuse"
+// Worst-cable factor: the LP's 1.101 per unit weight included 2 m/s² (lift_chain_weakest_link.py K_TENSION). Tension is linear in the
+// vertical load, so k_geo = 1.101 / (1 + 2/9.81) = 0.915 per unit m(g + a); with a = 1 m/s²: k = 0.915 × 1.102 = 1.008 (D45).
+const K_GEO = 1.101 / (1 + 2 / G), K_WORST = K_GEO * (1 + A_DYN / G);
+const JEANS_PEAK = r1(1.50 * K_WORST * G);       // 14.8 N, worst cable, jeans + claw
+const CAPACITY = Math.round(100 * WINCH_LIMIT / (K_WORST * G)) / 100;   // 1.70 kg
 // Motor case temperature at 1.5 A, 23 C room: deck_v8/fig/sheet_motor_temperature (Sheet "Motor temperature"); PETG limit 60 C.
 const TEMP = { labels: ["Vented shell", "Sealed shell"], noFin: [77.2, 99.1], thin: [57.6, 66.3], plate: [48.9, 53.8], limit: 60 };
 // Lift budget (kg): sheet_lift_budget; 0.86 kg CAD estimate with battery (DESIGN_STATE 10/22; PANEL_FEEDBACK_ANSWERS slide 16).
 const LIFT = { labels: ["+ jeans (assumed)", "+ 1 lb (design)", "Claw (measured)", "Claw, CAD (calc)", "Capacity (calc)"],   // bottom to top
-               values: [1.50, 1.05, 0.60, 0.86, 1.56], budget: 0.45 };
+               values: [1.50, 1.05, 0.60, 0.86, 1.70], budget: 0.45 };   // capacity 16.8 / (1.008 × 9.81) = 1.70 kg (D45)
 // Weakest link: cable tension at which each part gives, low / high (lift_chain_weakest_link.md ranking; chart capped at 600 N).
 const WL = [["Set screw, printed", 22, 64], ["Motor slip (fuse)", 34, 59], ["Set screw, metal", 53, 118], ["Tab as drawn", 70, 82],
             ["Tab 6 mm", 125, 147], ["Motor shaft", 149, 255], ["Line knot", 267, 480], ["Screws in stud", 531, 600]].reverse();   // weakest at top
@@ -311,7 +315,7 @@ section("Fundamentals");
       "Validated in the simulator and by held-out poses during calibration (sim); no physical position measurement yet",
     ]],
     ["Torque → pull on the line", ["eq_b", "I = Vref / (8·R_s)", "τ_hold = τ_rated · I / I_rated", "τ_run ≈ 0.7 τ_hold (assumed)", "F = τ / r"], [
-      "At 1.5 A (rated, datasheet; chosen, design): τ_run = 0.7 (assumed) × 0.36 N·m (datasheet) = 0.252 N·m; F = 0.252 / 0.0075 m = 34 N empty, 0.252 / 0.010 m = 25 N full (calc)",
+      "At 1.5 A (rated; chosen, design): τ_run = 0.7 (assumed) × 0.36 N·m = 0.252 N·m (1.5 A, 0.36 N·m: datasheet, SIMAX3D NEMA 17 42-38 seller listing); F = 0.252 / 0.0075 m = 34 N empty, 0.252 / 0.010 m = 25 N full (calc)",
       "Validated: Vref on the board (measured); 0.7 running fraction (assumed); pull test (planned)",
     ]],
     ["Pull → what four cables hold", ["eq_c", "T = W / (4 sin φ)", "sin φ = d / √(d² + D_h²)"], [
@@ -528,14 +532,15 @@ section("Trade-offs");
 {
   const sl = slide("Trade-offs: what each component needs",
     "Trade-offs, all calculated unless marked. Tension vs depth: T = W / (4 sin phi) with the weighed claw plus 1 lb; at 0.4 m below the anchors 14.3 N static, " +
-    "17.2 N with 2 m/s^2, against the 16.8 N winch limit; with jeans the claw stays 0.6 m down (DECK_V9_NOTES slide 6 row; FUNDAMENTALS section 1). Motor " +
+    "15.7 N with a = 1 m/s^2 (design, D45; was 2 m/s^2 assumed), against the 16.8 N winch limit; with jeans the claw stays at least 0.54 m down (recomputed, FUNDAMENTALS section 1 method). Motor " +
     "temperature at 1.5 A, 23 C room: no fin 77.2 / 99.1 C vented / sealed, 0.019 in prototype fin 57.6 / 66.3, 1/8 in design fin 48.9 / 53.8; PETG limit 60 C " +
     "(deck_v8/fig/sheet_motor_temperature; calculations/fin_sizing_4w.md coupled results 55.9-58.8 C vented). Winch pull: 0.7 x 0.36 N.m holding (0.7 assumed) " +
-    "over the spool radius: 34 N empty core, 25 N full; design force = running / 1.5 = 16.8 N; jeans worst cable 16.2 N (calculations/lift_chain_weakest_link.md " +
+    "over the spool radius: 34 N empty core, 25 N full; design force = running / 1.5 = 16.8 N; jeans worst cable 1.50 x 1.008 x 9.81 = 14.8 N (was 16.2 N at 2 m/s^2; calculations/lift_chain_weakest_link.md " +
     "'Demand and the fuse'; slide 17 row). Weight: 0.45 kg budget (R7), 0.86 kg CAD estimate with battery, 0.60 kg weighed 10/22 (PANEL_FEEDBACK_ANSWERS slide 16); " +
-    "capacity m = F_design / (k g) = 16.8 / (1.101 x 9.81) = 1.56 kg, k = 1.101 the worst-cable tension per unit weight (LP, lift_chain_weakest_link.md; winch_gear3.json direct_drive.capacity_kg 1.555); " +
-    "jeans 1.50 kg: (1.56 - 1.50) / 1.50 = 4 %. Motor temperature chart: two-node thermal network (fin_sizing_4w.py), input P = I^2 R = 1.5^2 x 1.8 = 4.05 W; no temperature measured. " +
-    "Tension Need line: 1 lb + 0.60 kg claw at d 0.4 m: 1.054 x 11.81 / (4 x 0.1816) = 17.1 N; jeans + claw 1.50 kg at d 0.6 m: 16.6 N. Weakest link: cable tension at which each part gives, one station at 1.5 A " +
+    "capacity m = F_design / (k g); the LP factor 1.101 (lift_chain_weakest_link.py K_TENSION) included 2 m/s^2, so it is NOT 1 + a/g: k_geo = 1.101 / 1.204 = 0.915, and with a = 1 m/s^2 k = 0.915 x 1.102 = 1.008 (tension is linear in the vertical load); " +
+    "16.8 / (1.008 x 9.81) = 1.70 kg (was 1.56 kg); (1.70 - 1.50) / 1.50 = 13 % (was 4 %). " +
+    "Motor temperature chart: two-node thermal network (fin_sizing_4w.py), input P = I^2 R = 1.5^2 x 1.8 = 4.05 W; no temperature measured. " +
+    "Tension Need line: 1 lb + 0.60 kg claw at d 0.4 m: 1.054 x 10.81 / (4 x 0.1816) = 15.7 N (was 17.1 N); jeans + claw 1.50 kg: 16.8 N reached at d = 0.54 m (was 0.59 m), 15.2 N at 0.6 m (was 16.6 N). Weakest link: cable tension at which each part gives, one station at 1.5 A " +
     "(lift_chain_weakest_link.md ranking table): motor slip 0.36 / 0.0075 = 48 N; low 48 / sqrt 2 = 33.9 N; high 0.36 x 40/36 / 0.0075 / cos 26.05 deg = 59.4 N (json fuse); the set screw in the printed thread 22-64 N may give first, so it moves " +
     "into a metal insert; screws in a stud 531 N and up (bar capped at 600).");
   const g = 0.15, cols = 3, cw = (W - 2 * M - (cols - 1) * g) / cols, ch = (BOT - TOP - g) / 2;
@@ -547,8 +552,8 @@ section("Trade-offs");
   // 1. Tension vs depth
   let p = at(0, 0);
   CHART_DATA.tension = { title: "Tension per cable (N) vs depth (m), calc", depths, static: depths.map(d => tension(d, 0)), dynamic: depths.map(d => tension(d, A_DYN)), limit: WINCH_LIMIT, box };
-  chartImage(sl, "tension", p.x, p.y, cw, chH, "Tension per cable vs depth below the anchors: static, with 2 m/s2, winch limit (calculated)");
-  need(p, "T = m(g + a)/(4 sin φ); m = 0.60 kg claw (measured) + 1 lb (design), a = 2 m/s² (assumed): d 0.4 m → 17.1 N vs 16.8 N limit (calc); jeans 0.9 kg (assumed) need d ≥ 0.6 m (16.6 N, calc)");
+  chartImage(sl, "tension", p.x, p.y, cw, chH, "Tension per cable vs depth below the anchors: static, with 1 m/s2, winch limit (calc)");
+  need(p, "T = m(g + a)/(4 sin φ); m = 0.60 kg claw (measured) + 1 lb (design), a = 1 m/s² (design): d 0.4 m → 15.7 N < 16.8 N limit (calc); jeans 0.9 kg (assumed) need d ≥ 0.54 m (calc)");
   // 2. Motor temperature
   p = at(1, 0);
   CHART_DATA.temperature = { title: "Motor case (°C) at 1.5 A (design), sim", labels: TEMP.labels, noFin: TEMP.noFin, thin: TEMP.thin, plate: TEMP.plate, limit: TEMP.limit, box };
@@ -558,12 +563,12 @@ section("Trade-offs");
   p = at(2, 0);
   CHART_DATA.pull = { title: "Pull per winch (N) vs spool radius (mm), calc", radii, running: radii.map(runPull), design: radii.map(designPull), jeans: JEANS_PEAK, box };
   chartImage(sl, "pull", p.x, p.y, cw, chH, "Pull per winch vs spool radius at 1.5 A: running pull, design force, jeans worst cable (calculated)");
-  need(p, "F = 0.7 (assumed) × 0.36 N·m (datasheet) / r: 34 N at 7.5 mm (design), 25 N at 10 mm (calc); ÷ 1.5 skip margin (design) = 16.8 N ≥ 16.2 N jeans (calc)");
+  need(p, "F = 0.7 (assumed) × 0.36 N·m (datasheet: SIMAX3D 42-38 listing) / r: 34 N at 7.5 mm (design), 25 N at 10 mm (calc); ÷ 1.5 skip margin (design) = 16.8 N ≥ 14.8 N jeans (calc)");
   // 4. Weight budget
   p = at(0, 1);
   CHART_DATA.lift = { title: "Winches can hold vs must hold (kg)", labels: LIFT.labels, values: LIFT.values, colors: ["#1F3A5F", "#8A8F98", "#8A8F98", "#BFC4CB", "#1F3A5F"], box };
   chartImage(sl, "lift", p.x, p.y, cw, chH, "What the winches can hold vs what they must hold, kg (measured claw, calculated capacity)");
-  need(p, "16.8 N / (1.101 worst-cable factor, sim × 9.81, handbook) = 1.56 kg vs 0.60 (measured) + 0.9 (assumed) = 1.50 kg: +4 % (calc); 1.50 × 1.101 × 9.81 = 16.2 N; budget 0.45 kg (design)");
+  need(p, "k = 0.915 LP worst-cable factor (sim) × (1 + a/g) 1.102 = 1.008; 16.8 N / (1.008 × 9.81) = 1.70 kg vs 0.60 (measured) + 0.9 (assumed) = 1.50 kg: +13 % (calc); jeans 1.50 × 1.008 × 9.81 = 14.8 N");
   // 5. Weakest link
   p = at(1, 1);
   CHART_DATA.weakest = { title: "Tension at which each part gives (N), calc", rows: WL, box };
@@ -594,7 +599,7 @@ section("Mount assembly");
     "The wall mount screws into a stud; the station slides onto it on a dovetail",
     "Dovetail: wall mount offset outward 0.175 mm per side (design); clearance set from fit coupons (measured)",
     "Load path: cable, spool, set screw, motor, tab, mount, screws, stud",
-    "Motor slips first: F = τ/r = 0.36 N·m (datasheet) / 7.5 mm (design) = 48 N (calc)",
+    "Motor slips first: F = τ/r = 0.36 N·m (datasheet: SIMAX3D NEMA 17 42-38 listing) / 7.5 mm (design) = 48 N (calc)",
     "The spool encoder sees the slip: tracking fault, every station holds",
   ], { space: 5 });
   const px = M + cw + 0.25, pw = W - M - px, g = 0.12;
@@ -611,22 +616,30 @@ section("Mount assembly");
 // ================================================================================================ 13. Mount assembly: on the wall
 {
   const sl = slide("The mount assembly: fin, vents and the wall",
-    "Mount assembly 2. The aluminium fin bolts to the motor face and goes out through a slot in the top of the shell; the shell is vented (DECK_V9_NOTES slide 16 " +
+    "Mount assembly 2. Fin alloy 6061, confirmed by Jasper (DECISIONS D45). Radiation q_rad = eps sigma A (Ts^4 - Tinf^4), h_rad = eps sigma (Ts + Tinf)(Ts^2 + Tinf^2) = 6.75 eps W/m^2K at 50 / 23 C; bare Al eps 0.05-0.09, black paint 0.92-0.96 (handbook tables, D45); natural convection h = 1.42 (dT/L)^0.25 = 4.84 W/m^2K at dT 27 K, L 0.2 m; total 5.3 (eps 0.07) to 10.9 W/m^2K (eps 0.9, the fin model value), D45. The aluminium fin bolts to the motor face and goes out through a slot in the top of the shell; the shell is vented (DECK_V9_NOTES slide 16 " +
     "and 22 rows; README rows 27, 34, 36). Heat P = I^2 R = 1.5^2 x 1.8 = 4.05 W, 1.8 ohm assumed (FUNDAMENTALS section 3). The fin temperatures " +
     "come from a two-node thermal network (fin_sizing_4w.py) and are not on the slide. First station in a stud on the TV wall, 12 V down the wall (slide 22 row). Load path and fuse as on the previous slide. A 1 deg draft " +
-    "on the dovetail is the NEXT iteration: the slide-in binds on insertion today (slide 24 row). Photos 32, 33, 44 (README rows).");
-  const cw = 3.5, ch = BOT - TOP;
+    "on the dovetail is the NEXT iteration: the slide-in binds on insertion today (slide 24 row). Motor: SIMAX3D NEMA 17 42-38, 36 N.cm, 1.5 A, seller listing (D45). Photos 32, 33 (README rows).");
+  const cw = 5.6, ch = BOT - TOP, pad = 0.16;
+  const eqFile = path.join(CHARTDIR, "eq_e.png"), ed = imgSize(eqFile);
+  const eqW = 4.4, eqH = (eqW - 0.16) * ed.h / ed.w + 0.16;
   card(sl, M, TOP, cw, ch, "Fin, vents, stud", [
-    "The fin: aluminium on the motor face, out through a slot in the top of the shell",
-    "Motor heat: P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W (calc; 1.5 A rated, datasheet; 1.8 Ω per phase, assumed, not metered)",
+    "The fin: aluminium 6061 (design) on the motor face, out through a slot in the top of the shell",
+    "Motor heat: P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W (calc; 1.5 A rated, datasheet: SIMAX3D NEMA 17 42-38 seller listing; 1.8 Ω per phase, assumed, not on the listing, to be metered)",
     "With microstepping the two phase currents follow sin and cos, so total heat = I_peak²·R",
     "That heat leaves through the vents and the fin",
-    "First station in a stud on the TV wall, 12 V down the wall (datasheet)",
-    "The slide-in binds on insertion today; a 1° draft on the dovetail (design) is the next iteration",
-  ], { space: 5 });
-  const px = M + cw + 0.25, pw = W - M - px;
-  photoRow(sl, [[PH("32_wall_station_mounted_tv_wall.jpg"), "On the TV wall, 12 V leads (datasheet)"], [PH("33_wall_station_mounted_closeup_wires.jpg"), "From below: fin through the slot"],
-                [PH("44_wall_station_from_below_line_down.jpg"), "The line leaves the switch tab straight down"]], px, TOP, pw, BOT - TOP, { cover: true });
+    "At Ts 50 °C, T∞ 23 °C: h_rad = 6.75·ε W/m²K (calc; σ = 5.67×10⁻⁸ W/m²K⁴, handbook; temperatures, design)",
+    "Bare aluminium ε ≈ 0.05–0.09, black paint 0.92–0.96 (handbook)",
+    "Natural convection: h = 1.42 (ΔT/L)^0.25 = 1.42 × (27 K / 0.2 m)^0.25 = 4.8 W/m²K on a 0.2 m vertical plate (calc, handbook correlation)",
+    "Black paint: total 4.8 + 0.07 × 6.75 = 5.3 → 4.8 + 0.9 × 6.75 = 10.9 W/m²K, about 2× the heat per degree (calc); the motor contact square stays bare",
+    "First station in a stud on the TV wall, 12 V down the wall (datasheet); 1° dovetail draft (design) next iteration",
+  ], { size: 9, space: 2, gapIn: eqH + 0.12 });
+  sl.addShape(pres.shapes.RECTANGLE, { x: M + pad, y: TOP + 0.44, w: eqW, h: eqH, fill: { color: HEX.white }, line: { color: HEX.ink, width: 0.75 }, objectName: "equation box" });
+  sl.addImage({ path: eqFile, x: M + pad + 0.08, y: TOP + 0.44 + 0.08, w: eqW - 0.16, h: (eqW - 0.16) * ed.h / ed.w,
+                altText: "q_rad = epsilon sigma A (Ts^4 - Tinf^4); h_rad = epsilon sigma (Ts + Tinf)(Ts^2 + Tinf^2)", objectName: "equation" });
+  const px = M + cw + 0.2, pw = W - M - px;
+  photoRow(sl, [[PH("32_wall_station_mounted_tv_wall.jpg"), "On the TV wall"], [PH("33_wall_station_mounted_closeup_wires.jpg"), "Fin through the slot"]],
+           px, TOP, pw, BOT - TOP, { cover: true, gap: 0.1 });
 }
 
 // ================================================================================================ 14. Manufacturing
@@ -684,7 +697,7 @@ section("Manufacturing");
 section("Claw");
 {
   const sl = slide("The claw, and why it is modular",
-    "Claw. Four-bar hands on the gear crank, 53 mm opening (CAD; the parallelism figure is a linkage model, not shown); a camera bay on the electronics housing; one 7.4 V two-cell pack, a 6 V regulator " +
+    "Grip: N = m(g + a)/(2 mu) = 0.9 x 10.81 / 0.6 = 16.2 N per jaw at mu 0.3, 8.1 N at mu 0.6 (was 17.7 / 8.9 N at 2 m/s^2); a = 1 m/s^2 (D45). Cloth friction (DECISIONS D45): garment fabrics 0.22-0.38, special fabrics 0.52-0.62, denim on skin 0.14-0.44, simulation guidance for cotton/polyester twills 0.5-0.65, an informal incline test 0.74-0.89 for denim/cotton on plastic; none is fabric on PETG; mu 0.3 kept as the worst case until a sled pull on the printed jaws (ASTM D1894-style). Claw. Four-bar hands on the gear crank, 53 mm opening (CAD; the parallelism figure is a linkage model, not shown); a camera bay on the electronics housing; one 7.4 V two-cell pack, a 6 V regulator " +
     "for the servo, a 5 V buck for the board (DECK_V9_NOTES slide 18 row 'The claw'). The gripper attaches modularly at the tube, by design, a test bed for shirts " +
     "(DESIGN_INTENT 'The gripper'; v9.2 slide 18 row). A hard-material pinch was expected to grip better; testing showed alignment problems: the rack-and-pinion " +
     "jaws left a 2 mm gap on thin cloth, Sep 30 (v9.2 slide 18 row; no cloth-test reading logged). TPU and other pad materials being tried " +
@@ -696,7 +709,9 @@ section("Claw");
     "A camera bay in the electronics housing; the camera looks down the tube",
     "One 7.4 V two-cell pack (datasheet): 6 V regulator for the servo, 5 V buck for the board (design setpoints)",
     "Weighed 0.60 kg with battery (measured) against a 0.45 kg budget (design)",
-  ], { space: 5 });
+    "Grip per jaw, jeans: N = m(g + a)/(2μ) = 0.9 × (9.81 + 1)/(2 × 0.3) = 16.2 N; 8.1 N at μ 0.6 (calc; 0.9 kg assumed; a = 1 m/s² design; μ 0.3 worst case, from published ranges)",
+    "Published fabric friction: 0.22–0.38 garment fabrics, 0.52–0.62 special fabrics, denim on skin 0.14–0.44; none is fabric on PETG, so 0.3 is the design worst case (handbook / literature)",
+  ], { size: 9, space: 3 });
   card(sl, M + cw + g, TOP, cw, ch, "Modular, on purpose", [
     "The gripper attaches at the tube, so other grippers can be tried",
     "A hard pinch was expected to grip better; testing showed alignment problems",
@@ -773,22 +788,30 @@ section("Next iteration");
     "the mounted stations are direct-drive spools (D40-D42; v9 'correction' update). 2.7x pull at 1.0 A with half the heat (PANEL_FEEDBACK_ANSWERS " +
     "'larger motors'). Draft: the slide-in binds on insertion; a 1 deg draft on the dovetail, thicker at the " +
     "top (slide 24 row, PLANNED). Mount: 597 cm^3 solid (COST_BREAKDOWN section 2), dovetails 225x and screws in a stud 8.9x the motor (lift_chain_weakest_link.md ranking), to about 200 cm^3 (slide 24 row, PLANNED). " +
-    "Gear stage: ratio 3, efficiency 0.9 (winch_gear3.json ratio, eta): 3 x 0.9 = 2.7x torque at the spool at equal current; heat at 1.0 A vs 1.5 A: (1.0/1.5)^2 = 0.44 (1.8 W vs 4.05 W, winch_gear3.json heat). Still planned, " +
+    "Gear stage: ratio 3, efficiency 0.9, assumed and conservative (DECISIONS D45: Niemann mesh-loss factor H_v = 0.167 for 18T/54T module 1, 20 deg, eps1 0.765, eps2 0.884; eta_mesh = 1 - mu H_v = 0.92-0.97 for mu 0.2-0.5; no published efficiency for printed PETG spur gears; a torque-in/torque-out test replaces it; winch_gear3.json ratio, eta): 3 x 0.9 = 2.7x torque at the spool at equal current; heat at 1.0 A vs 1.5 A: (1.0/1.5)^2 = 0.44 (1.8 W vs 4.05 W, winch_gear3.json heat). Still planned, " +
     "no result: pull test, hold test, first three-station lift (slide 25 and 26 rows). The dashed box is for Jasper's new CAD.");
-  const cw = 1.9, g = 0.12, ch = 2.6;
-  const cards3 = [
-    ["3:1 printed gear stage", ["18T / 54T spur (design), printed PETG pinion", "Designed and checked in CAD; pinion printed; not fitted", "Pull × 3 (design) × 0.9 η (assumed) = 2.7 at equal current (calc)", "At 1.0 A (design): heat × (1.0/1.5)² = 0.44 (calc)"]],
-    ["1° draft on the dovetail", ["Today the slide-in binds on insertion; 1° (design)", "Thicker at the top, thinning toward the bottom", "The station self-locates as it slides in (planned)"]],
-    ["Lighter back mount", ["Today: 597 cm³ solid (design, CAD volume), far stronger than the motor can pull", "Thinner walls and ribs: about 200 cm³ (planned)", "Less print time and filament"]],
-  ];
-  cards3.forEach(([h, items], i) => card(sl, M + i * (cw + g), TOP, cw, ch, h, items, { size: 9.5, space: 2, headSize: 11 }));
-  card(sl, M, TOP + ch + g, 3 * cw + 2 * g, BOT - TOP - ch - g, "Also next / still planned", [
+  const g = 0.12, fullW = 3 * 1.9 + 2 * g, h1 = 1.72, h2 = 0.98, h3 = BOT - TOP - h1 - h2 - 2 * g, halfW = (fullW - g) / 2;
+  card(sl, M, TOP, fullW, h1, "3:1 printed gear stage", [
+    "18T / 54T spur, module 1, 20° (design); printed PETG pinion; checked in CAD, pinion printed, not fitted",
+    "Pull × 3 (design) × 0.9 η (assumed, conservative) = 2.7 at equal current (calc); at 1.0 A (design): heat × (1.0/1.5)² = 0.44 (calc)",
+    "Mesh loss (Niemann): H_v = π(u+1)/(z1·u)·(1 − εα + ε1² + ε2²) = 0.167; η = 1 − μ·H_v = 0.92–0.97 for μ 0.2–0.5 (calc)",
+    "z1 18, z2 54, u 3 (design); ε1 0.765, ε2 0.884 (calc); μ 0.2–0.5 dry polymer (assumed); 0.9 leaves room for bearing and print-roughness losses",
+  ], { size: 9, space: 2, headSize: 11 });
+  card(sl, M, TOP + h1 + g, halfW, h2, "1° draft on the dovetail (design)", [
+    "Today the slide-in binds on insertion",
+    "Thicker at the top: the station self-locates as it slides in (planned)",
+  ], { size: 9, space: 2, headSize: 11 });
+  card(sl, M + halfW + g, TOP + h1 + g, halfW, h2, "Lighter back mount", [
+    "Today 597 cm³ solid (design, CAD volume), far stronger than the motor can pull",
+    "Thinner walls and ribs: about 200 cm³ (planned)",
+  ], { size: 9, space: 2, headSize: 11 });
+  card(sl, M, TOP + h1 + h2 + 2 * g, fullW, h3, "Also next / still planned", [
     "TPU grip pads on the jaws (planned)",
     "Pull test at 1.5 A (design): the measured limit goes into the planner (planned)",
     "Hold test: 90 minutes at 1.5 A, motor below 60 °C (planned; 60 °C limit, design)",
     "First three-station lift: self-check, calibration, a short move with 1 lb (planned; 1 lb, design)",
-  ], { size: 10, space: 3, headSize: 11.5 });
-  const px = M + 3 * (cw + g), pw = W - M - px;
+  ], { size: 9, space: 1, headSize: 11 });
+  const px = M + fullW + g, pw = W - M - px;
   const ph2 = (BOT - TOP - 0.5 - 0.08) / 2;
   fitImage(sl, PH("49_next_iteration_station_gear_stage_cad.png"), px, TOP, pw, ph2, "Next-iteration station (CAD), front: 3:1 spur stage, motor pinion to spool gear, spool on its own shaft, encoder magnet cap", { top: true });
   fitImage(sl, PH("50_next_iteration_station_back_dovetail_cad.png"), px, TOP + ph2 + 0.08, pw, ph2, "Next-iteration station (CAD), back: slide-in rails on the mount plate, window, screw holes", { top: true });

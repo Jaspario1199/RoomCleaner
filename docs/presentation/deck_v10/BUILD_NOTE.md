@@ -7,6 +7,20 @@ only, nothing invented. Emphasis per `DESIGN_INTENT_20261027.md`; calibration te
 blue), two layouts (`CONTENT` with the title placeholder and the footer bar, `PLAIN` for the title and thank-you slides),
 sections per topic. Outputs in this folder: `RoomCleaner_Buntinx_v10.pptx`, `.pdf`, `contact_sheet.png`.
 
+## v10.5 (10/27): DECISIONS D45 applied
+
+- Dynamic load a = 1 m/s² (design, the maximum commanded claw acceleration; was 2 m/s² assumed). A_DYN in the build, the tension
+  chart series and every Need line recomputed. The LP worst-cable factor 1.101 included 2 m/s² (it is not 1 + a/g), so it is
+  rescaled: k_geo = 1.101 / 1.204 = 0.915 per unit m(g + a), k = 0.915 × 1.102 = 1.008 (tension is linear in the vertical load).
+- Old → new: 1 lb + claw at d 0.4 m 17.1 → 15.7 N; jeans minimum depth 0.59 → 0.54 m (16.6 → 15.2 N at 0.6 m); jeans worst
+  cable 16.2 → 14.8 N; lift capacity 1.56 → 1.70 kg; margin over 1.50 kg 4 → 13 %; grip per jaw (jeans) 17.7 → 16.2 N at μ 0.3,
+  8.9 → 8.1 N at μ 0.6.
+- μ = 0.3 tagged as the worst case from published ranges, with the fabric-friction bullet on the claw slide (D45).
+- Gear η = 0.9 (assumed, conservative) with the Niemann mesh-loss line on the next-iteration slide (H_v = 0.167, η_mesh 0.92–0.97).
+- Motor values tagged to the SIMAX3D NEMA 17 42-38 seller listing; 1.8 Ω stays assumed.
+- Fin slide: alloy 6061 (design), radiation equation panel (fig/eq_e.png), h_rad = 6.75·ε, emissivities, natural convection
+  4.8 W/m²K, 5.3 → 10.9 W/m²K with black paint (ε 0.9, the fin-model value); two photos instead of three.
+
 ## v10.4 (10/27): a source tag on every number
 
 - Every number on a slide (cards, chart titles and legends, "Need:" lines, captions, equation panels) carries one short tag in

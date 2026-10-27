@@ -62,7 +62,7 @@ def tension(d, out):
     fig = fig_for(d["box"], d["title"]); ax = fig.add_axes([0.1, 0.18, 0.86, 0.66])
     x = d["depths"]
     ax.plot(x, d["static"], color=NAVY, linewidth=1.4, label="Static (calc)")
-    ax.plot(x, d["dynamic"], color=GREY, linewidth=1.4, label="With 2 m/s² (assumed)")
+    ax.plot(x, d["dynamic"], color=GREY, linewidth=1.4, label="With 1 m/s² (design)")
     ax.plot(x, [d["limit"]] * len(x), color=INK, linewidth=1.1, linestyle="--", label="Limit 16.8 N (calc)")
     ax.set_ylim(0, 50); ax.set_yticks(range(0, 51, 10)); ax.set_xticks([0.2, 0.4, 0.6, 0.8, 1.0, 1.2])
     ax.legend(loc="upper right", handlelength=1.6, fontsize=7)
@@ -88,7 +88,7 @@ def pull(d, out):
     x = d["radii"]
     ax.plot(x, d["running"], color=NAVY, linewidth=1.4, label="Running pull (calc)")
     ax.plot(x, d["design"], color=GREY, linewidth=1.4, linestyle="--", label="÷ 1.5 (design)")
-    ax.plot(x, [d["jeans"]] * len(x), color=INK, linewidth=1.1, linestyle="--", label="Jeans 16.2 N (calc)")
+    ax.plot(x, [d["jeans"]] * len(x), color=INK, linewidth=1.1, linestyle="--", label=f"Jeans {d['jeans']:.1f} N (calc)")
     ax.set_ylim(0, 50); ax.set_yticks(range(0, 51, 10)); ax.set_xticks([6, 7, 8, 9, 10, 11])
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=2, handlelength=1.4, columnspacing=1.0, fontsize=6.5)
     frame(ax); save(fig, out)

@@ -10,7 +10,7 @@ plt.rcParams["font.family"] = "STIXGeneral"
 OUT = Path(__file__).parent / "fig"
 OUT.mkdir(exist_ok=True)
 
-WID = {"eq_a": 1.7, "eq_d": 3.4}
+WID = {"eq_a": 1.7, "eq_d": 3.4, "eq_e": 6.0}
 EQ = {
     "eq_a": [r"$L_i = \left\| \mathbf{a}_i - \mathbf{p} \right\|$",
              r"$\mathbf{a}_i$ anchor, $\mathbf{p}$ claw"],
@@ -18,6 +18,7 @@ EQ = {
              r"$\tau_{\mathrm{run}} \approx 0.7\,\tau_{\mathrm{hold}}$ (assumed)     $F = \dfrac{\tau}{r}$",
              r"8: A4988 current-sense constant (datasheet)"],
     "eq_c": [r"$T = \dfrac{W}{4\,\sin\varphi}$     $\sin\varphi = \dfrac{d}{\sqrt{d^2 + D_h^2}}$"],
+    "eq_e": [r"$q_{\mathrm{rad}} = \varepsilon\,\sigma\,A\,(T_s^4 - T_\infty^4)$,   i.e.   $h_{\mathrm{rad}} = \varepsilon\,\sigma\,(T_s + T_\infty)(T_s^2 + T_\infty^2)$"],
     "eq_d": [r"reachable$(\mathbf{p})\;\Leftrightarrow\;\left\| \mathbf{a}_i - \mathbf{p} \right\| \geq L_{i,\mathrm{home}}$  for every $i$"],
 }
 for name, lines in EQ.items():

@@ -190,7 +190,7 @@ const LIFT = { labels: ["Claw + jeans", "Claw + 1 lb", "Claw, weighed", "Claw, C
 const WL = [["Set screw, printed", 22, 64], ["Motor slip (fuse)", 34, 59], ["Set screw, metal", 53, 118], ["Tab as drawn", 70, 82],
             ["Tab 6 mm", 125, 147], ["Motor shaft", 149, 255], ["Line knot", 267, 480], ["Screws in stud", 531, 600]].reverse();   // weakest at top
 // Bead homing: reachable share of the working volume vs homing height (calculations/bead_reach.json).
-const BEAD = [[0.3, 0.0], [0.6, 0.4], [0.8, 1.8], [1.0, 4.7], [1.2, 9.1], [1.5, 17.1], [1.8, 25.0], [2.0, 29.1]];
+const BEAD = [[0.3, 0.0], [0.6, 0.4], [0.8, 1.8], [1.0, 4.7], [1.2, 9.1], [1.5, 17.1], [1.8, 25.0], [2.0, 29.1], [2.19, 32.0]];
 
 // ================================================================================================ 1. Title
 section("Opening");
@@ -280,13 +280,14 @@ section("Fundamentals");
 {
   const sl = slide("How cable length becomes position, and torque becomes pull",
     "Fundamentals. Card A: straight taut cable, L_i = ||a_i - p|| (roomcleaner/cdpr/kinematics.py docstring; the full form adds R b_i for the spaced " +
-    "attachments). Line per revolution 47.1 to 62.8 mm on the O15 core as layers build (FUNDAMENTALS.md section 2, spool-core study table). Four cable lengths " +
+    "attachments). Line per revolution 2 pi r: 47.1 mm at r 7.5 mm to 62.8 mm at r 10 mm (FUNDAMENTALS.md section 2, spool-core study table: Ø15 core, full radius 10.0 mm). Four cable lengths " +
     "against three position unknowns: overdetermined, least squares (kinematics.py docstring; the TENSION split is the indeterminate one); the camera on the floor board fits the anchors and cable lengths at startup " +
     "(DECK_V9_NOTES slide 15); held-out poses check the fit (CALIBRATION_SIMPLE step 5, 'surprise spots'): SIMULATED, no physical position measurement. " +
     "Card B: I = Vref / (8 R_s), tau_hold = tau_rated I / I_rated, tau_run = 0.7 tau_hold assumed, F = tau / r (FUNDAMENTALS section 2); at 1.5 A, the motor's " +
-    "rated current (DECISIONS D37), tau_hold 0.36 N.m, running pull 33.6 N at r 7.5 mm and 25.2 N at r 10 mm (calculations/lift_chain_weakest_link.json " +
+    "rated current (DECISIONS D37), tau_hold 0.36 N.m, tau_run 0.7 x 0.36 = 0.252 N.m, running pull 0.252 / 0.0075 = 33.6 N and 0.252 / 0.010 = 25.2 N (calculations/lift_chain_weakest_link.json " +
     "fuse.run_empty / run_full). Vref MEASURED on the board; 0.7 ASSUMED; pull test PLANNED (FUNDAMENTALS section 2 evidence line). " +
-    "Card C: T = W / (4 sin phi), sin phi = d / sqrt(d^2 + D_h^2); 32.1 / 16.2 / 8.3 / 4.6 N at 0.15 / 0.3 / 0.6 / 1.2 m for 1 lb + the 0.45 kg claw budget; " +
+    "Card C: T = W / (4 sin phi), sin phi = d / sqrt(d^2 + D_h^2); W = (0.4536 + 0.45) x 9.81 = 8.86 N (1 lb + the 0.45 kg claw budget), D_h = sqrt(1.676^2 + 1.372^2) = 2.166 m; " +
+    "32.1 / 16.2 / 8.3 / 4.6 N at 0.15 / 0.3 / 0.6 / 1.2 m (FUNDAMENTALS section 1 table, recomputed); T ~ W D_h / (4 d) for a shallow cable; " +
     "keep the claw at least 0.4 m below the anchors; CALCULATED, no tension measured on the rig (FUNDAMENTALS section 1). Figure: deck_v3/fig/position_vectors.png.",
     { titleSize: 20 });
   const g = 0.2, cw = (W - 2 * M - 2 * g) / 3, ch = BOT - TOP;
@@ -302,17 +303,18 @@ section("Fundamentals");
   };
   const cards3 = [
     ["Cable length → position", ["eq_a", "L_i = ‖ a_i − p ‖", "a_i: anchor exit, p: claw", "straight, taut cable"], [
-      "Each spool turn pays out line: 47.1 → 62.8 mm per rev on the Ø15 core as layers build (calculated)",
+      "Line per spool turn = 2π·r: 2π·7.5 mm = 47.1 mm (empty) → 2π·10 mm = 62.8 mm (full) (calculated)",
       "Four cable lengths, three position unknowns: overdetermined, solved by least squares",
       "The camera on the floor board fixes the anchors and cable lengths at startup (calibration)",
       "Validated in the simulator and by held-out poses during calibration (simulated); no physical position measurement yet",
     ]],
     ["Torque → pull on the line", ["eq_b", "I = Vref / (8·R_s)", "τ_hold = τ_rated · I / I_rated", "τ_run ≈ 0.7 τ_hold (assumed)", "F = τ / r"], [
-      "At 1.5 A: τ_hold 0.36 N·m → running pull 34 N on the empty spool (r 7.5 mm), 25 N on a full spool (r 10 mm) (calculated)",
+      "At 1.5 A: τ_run = 0.7 × 0.36 N·m = 0.252 N·m; F = 0.252 / 0.0075 m = 34 N empty, 0.252 / 0.010 m = 25 N full (calculated)",
       "Validated: Vref measured on the board; the 0.7 running fraction is assumed; the pull test is planned",
     ]],
     ["Pull → what four cables hold", ["eq_c", "T = W / (4 sin φ)", "sin φ = d / √(d² + D_h²)"], [
-      "Tension doubles each time the depth below the anchors halves: 32 / 16 / 8 / 5 N at 0.15 / 0.3 / 0.6 / 1.2 m for 1 lb + claw (calculated)",
+      "W = (0.454 + 0.45 kg) × 9.81 = 8.86 N, D_h = 2.166 m; d = 0.15 m: 8.86 / (4 × 0.069) = 32 N; 16 / 8.3 / 4.6 N at 0.3 / 0.6 / 1.2 m (calculated)",
+      "Shallow cable: T ≈ W·D_h / (4d), so halving the depth doubles the tension",
       "Why the planner keeps the claw at least 0.4 m below the anchors",
       "Validated: calculated only; no cable tension has been measured on the rig",
     ]],
@@ -361,32 +363,72 @@ section("Generation 1");
 // ================================================================================================ 6. Problems with Generation 1
 {
   const sl = slide("Problems with Generation 1",
-    "Problems with Gen 1. Everything wired back to one place (DESIGN_INTENT 'Iteration 1'). Bench finds: 18 V on the meter from a supply labelled 12 V; the " +
-    "homing switch would have zeroed without moving, logic inverted; the switch had to move below the pulley (DECK_V9_NOTES slide 9 row). Bead homing capped " +
-    "the room at 5-29 % of the working volume (slide 10 row; calculations/bead_reach.json: 4.7 % at 1.0 m, 29.1 % at 2.0 m); by floor area at grab height " +
-    "45 % at 1 m, 93 % at 1.5 m (PANEL_FEEDBACK_ANSWERS 'floor area'). One central board stepping four motors skews them 2.5 mm per 50 ms (slide 10 row). " +
-    "Ceiling camera retired: one more device to mount and calibrate per room; the claw and cables hide the grasp spot from above (DECISIONS D33 via v9 slide 7 notes). " +
-    "Chart: bead_reach.json, calculated.");
-  const cw = 3.0, ch = BOT - TOP, g = 0.2;
-  card(sl, M, TOP, cw, ch, "Wiring and the bench", [
+    "Problems with Gen 1. Every motor and sensor wired back to one place (DESIGN_INTENT_20261027.md 'Iteration 1'). One board stepping four motors: " +
+    "the cables skew by dx = v dt = 50 mm/s x 0.05 s = 2.5 mm per 50 ms of timing error (DECK_V9_NOTES.md slide 10 row; 50 mm/s maximum cable speed, " +
+    "FUNDAMENTALS.md section 2 supplied facts). The ceiling camera: one more device to mount, wire and calibrate in every room; the claw and cables hide the " +
+    "grasp spot from above; its floor map assumes a flat floor; retired Oct 21 (DECISIONS.md D33). Bead homing limits the reachable volume: next slide. " +
+    "Photo 14 (README row 14). Bench fixes from this period are in DOWN_THE_LINE.md.");
+  const g = 0.2, pwid = 2.6, cw = (W - 2 * M - pwid - 2 * g) / 2, ch = BOT - TOP;
+  card(sl, M, TOP, cw, ch, "One central board", [
     "Every motor and every sensor wired back to one place",
-    "18 V on the meter from a supply labelled 12 V (measured)",
-    "A homing switch that would have zeroed without moving: logic inverted",
-    "The switch had to move below the pulley",
-  ], { space: 5 });
-  card(sl, M + cw + g, TOP, cw, ch, "The architecture", [
-    "One board stepping four motors skews them: 2.5 mm per 50 ms (calculated)",
-    "Bead homing: a cable can never be shorter than at home",
-    "So it capped the room at 5-29 % of the working volume (calculated)",
-    "The ceiling camera: one more device per room; the claw and cables hide the grasp spot",
-  ], { space: 5 });
-  const cx = M + 2 * (cw + g), cwid = W - M - cx;
-  CHART_DATA.bead = { title: "Reachable share of the working volume (%)", points: BEAD, box: { w: cwid, h: ch - 0.3 } };
-  chartImage(sl, "bead", cx, TOP, cwid, ch - 0.3, "Reachable share of the working volume vs bead homing height (calculated)");
-  caption(sl, "Calculated (bead reach model)", cx, BOT - 0.22, cwid);
+    "One board steps all four motors; a timing error skews the cables",
+    "Skew Δx = v·Δt = 50 mm/s × 0.05 s = 2.5 mm per 50 ms (calculated)",
+    "Moving a winch means re-running wire to the box",
+  ], { space: 6 });
+  card(sl, M + cw + g, TOP, cw, ch, "Ceiling camera and bead homing", [
+    "The ceiling camera: one more device to mount, wire and calibrate per room",
+    "From above, the claw and cables hide the grasp spot",
+    "Its floor map assumes a flat floor; retired Oct 21",
+    "Bead homing fixes a minimum length on every cable: next slide",
+  ], { space: 6 });
+  const px = W - M - pwid;
+  coverImage(sl, PH("14_gen1_cnc_shield_a4988.jpg"), px, TOP, pwid, ch - 0.26, "CNC shield with four A4988 drivers");
+  caption(sl, "The central board: one shield, four drivers", px, BOT - 0.22, pwid);
 }
 
-// ================================================================================================ 7. What a winch on a wall needs
+// ================================================================================================ 7. Homing: beads vs floor board
+section("Homing");
+{
+  const sl = slide("Homing: one floor board instead of four beads",
+    "Homing. Bead homing: a stopper bead cannot pass its outlet, so after homing no cable can be shorter than at home; homing all four with the claw at one " +
+    "pose fixes a minimum length on every cable at once: reachable(p) iff ||a_i - p|| >= L_i,home for every i (calculations/bead_reach.py docstring). " +
+    "Reachable share = fraction of grid points in the working volume (60 x 50 x 50 grid, 0.2 m wall margin, z 0.3 to 2.19 m) that satisfy it, home at the room " +
+    "centre: 0.0 % at 0.3 m up, 4.7 % at 1.0 m, 29.1 % at 2.0 m, 32.0 % at 2.19 m (calculations/bead_reach.json). Floor board: nine US-Letter sheets, one " +
+    "AprilTag 36h11 per sheet, 150 mm tags, 250 mm pitch, id 0 = origin (tools/print_floor_board.py; make_floor_board_figure.py). The camera measures the claw " +
+    "pose against the board; cable lengths follow from L_i = ||a_i - p|| (roomcleaner/cdpr/kinematics.py docstring); the startup fit estimates anchors and " +
+    "zero lengths (roomcleaner/cdpr/startup.py, SLACK_TAKEUP to CALIBRATION). No length is clamped, so the whole working volume stays available. Beads stay on " +
+    "the cables as end-of-travel switches (startup.py docstring, REFERENCE_VERIFICATION).");
+  const g = 0.15, ch = BOT - TOP;
+  const lw = 2.95, cwid = 2.05, rw = W - 2 * M - lw - cwid - 2 * g;
+  // Left card: equation panel under the heading, then the bullets.
+  const eqFile = path.join(CHARTDIR, "eq_d.png"), ed = imgSize(eqFile);
+  const pad = 0.16, eqW = lw - 2 * pad, eqH = (eqW - 0.16) * ed.h / ed.w + 0.16;
+  card(sl, M, TOP, lw, ch, "Bead homing", [
+    "A stopper bead cannot pass its outlet: after homing, no cable can be shorter than at home",
+    "Homing all four at once fixes a minimum length on every cable at the same time",
+    "Reachable volume, grid count (calculated): 0.0 % (home 0.3 m) to 32.0 % (home 2.19 m); 4.7 % at 1.0 m, 29.1 % at 2.0 m",
+  ], { size: 10, space: 5, headSize: 12, gapIn: eqH + 0.18 });
+  sl.addShape(pres.shapes.RECTANGLE, { x: M + pad, y: TOP + 0.44, w: eqW, h: eqH, fill: { color: HEX.white }, line: { color: HEX.ink, width: 0.75 }, objectName: "equation box" });
+  sl.addImage({ path: eqFile, x: M + pad + 0.08, y: TOP + 0.44 + 0.08, w: eqW - 0.16, h: (eqW - 0.16) * ed.h / ed.w,
+                altText: "reachable(p) if and only if ||a_i - p|| >= L_i,home for every cable i", objectName: "equation" });
+  // Bead-reach chart beside it.
+  const cx = M + lw + g;
+  CHART_DATA.bead = { title: "Reachable volume (%)", points: BEAD, box: { w: cwid, h: ch - 0.3 } };
+  chartImage(sl, "bead", cx, TOP, cwid, ch - 0.3, "Reachable share of the working volume vs bead homing height (calculated)");
+  caption(sl, "Grid count of the condition above", cx, BOT - 0.22, cwid);
+  // Right card: the floor board, figure in the lower part of the card.
+  const rx = cx + cwid + g;
+  card(sl, rx, TOP, rw, ch, "Floor-board homing", [
+    "The camera measures the claw pose against tag 0",
+    "Cable lengths follow from L_i = ‖a_i − p‖",
+    "No length is clamped: the whole working volume stays available",
+    "Nine sheets, 150 mm tags, 250 mm pitch, id 0 = origin",
+  ], { size: 10, space: 4, headSize: 12 });
+  const fd = imgSize(path.join(CHARTDIR, "floor_board.png")), fh = 2.3, fw = fh * fd.w / fd.h;
+  fitImage(sl, path.join(CHARTDIR, "floor_board.png"), rx + (rw - fw) / 2, BOT - fh - 0.1, fw, fh, "Floor board: nine AprilTag 36h11 sheets, 150 mm tags, 250 mm pitch, id 0 is the origin");
+}
+
+// ================================================================================================ 8. What a winch on a wall needs
 section("What a winch needs");
 {
   const sl = slide("What a winch on a wall needs to work",
@@ -394,7 +436,8 @@ section("What a winch needs");
     "so each winch gets a switch (button) and a spool encoder (DESIGN_INTENT 'Why it changed'). The encoder measures discrepancies while testing; if the " +
     "camera proves good enough it can go later; data first (same). Its two jobs today: confirm every commanded step, catch slip as the tension sensor " +
     "(DECK_V9_NOTES slide 20 row). Fail-safe switch wiring: LOW at rest, HIGH pressed or with a broken wire (slide 20 row). Beads stay as end-of-travel " +
-    "switches (PANEL_FEEDBACK_ANSWERS 'bead homing'). Wiring from one box: 10 conductors per corner, 250 m (820 ft) of wire (v9.2 slide 10 row). " +
+    "switches (PANEL_FEEDBACK_ANSWERS 'bead homing'). Wiring from one box: routes 6 + 21 + 23 + 32 = 82 ft, x 10 conductors = 820 ft (250 m) " +
+    "(DECK_V2_OUTLINE.md line 85; DECK_V9_NOTES v9.2 slide 10 row). " +
     "Photos 09, 23, 39 (README rows).");
   const cw = (W - 2 * M - 0.2 - 3.0) / 2, ch = 2.55, g = 0.2;
   card(sl, M, TOP, cw, ch, "The switch (button)", [
@@ -410,7 +453,7 @@ section("What a winch needs");
   ], { space: 5 });
   card(sl, M, TOP + ch + 0.15, 2 * cw + g, BOT - TOP - ch - 0.15, "And now all this wiring, from one box", [
     "Motor, switch and encoder in every corner: 10 conductors per corner",
-    "250 m (820 ft) of wire back to one place (calculated)",
+    "Routes 6 + 21 + 23 + 32 = 82 ft; × 10 conductors = 820 ft (250 m) of wire to one box (calculated)",
   ], { space: 5 });
   const px = W - M - 2.8;
   photoRow(sl, [[PH("09_homing_switch_perfboard.jpg"), "Homing switch"], [PH("23_slide_in_switch_pressfit.jpg"), "Switch pressed into the slide-in"]], px, TOP, 2.8, 2.0, { cover: true });
@@ -418,29 +461,31 @@ section("What a winch needs");
   caption(sl, "One slide-in, its harness hanging", px, BOT - 0.22, 2.8);
 }
 
-// ================================================================================================ 8. The solution: a modular box
+// ================================================================================================ 9. The solution: a modular box
 section("Modular box");
 {
   const sl = slide("The solution: a modular box that only needs power",
     "Modular box. Each box has its own ESP32 and everything it needs; the only thing entering is power, on a thicker wire (DESIGN_INTENT 'Iteration 2'). " +
-    "50 m (164 ft) of wire instead of 250 m (DECK_V9_NOTES v9.2 slide 13 row). Any position and orientation (DESIGN_INTENT). Wire drop: drop = current x loop " +
-    "resistance; longest branch 32 ft one way, 64 ft of loop; at 2 A 0.82 V on 18 AWG, 0.51 V on 16 AWG, calculated with 2 A illustrative (FUNDAMENTALS.md section 10; " +
+    "82 ft of routes x 2 conductors = 164 ft (50 m) instead of x 10 = 820 ft (250 m) (DECK_V2_OUTLINE.md line 85). Any position and orientation (DESIGN_INTENT). Wire drop: V = I R' L_loop; " +
+    "longest branch 32 ft one way, 64 ft of loop; 16 AWG loop resistance 0.257 ohm over 64 ft = 4.02 ohm/kft; at 2 A: 2 x 0.257 = 0.51 V, 2 A illustrative (FUNDAMENTALS.md section 10; " +
+    "Gen 1 ran the motors' own driver-to-motor leads back to one central box (Jasper, 10/27); their gauge is not recorded, so no Gen 1 drop is shown. " +
+    "[[Jasper: motor lead gauge, printed on the insulation]] " +
     "PANEL_FEEDBACK_ANSWERS 'How longer wires increase voltage drop'). Cost: 16 AWG 100 ft roll $30.00 (est.), 65 ft used for three stations, $19.50 prorated " +
     "(COST_BREAKDOWN_20261026.md section 1, 16 AWG row). Photos 33, 46 (README rows); SolidWorks screenshot of the station shell, transparent (deck_assets/screens).");
   const cw = (W - 2 * M - 0.2 - 3.1) / 2, ch = BOT - TOP, g = 0.2;
   card(sl, M, TOP, cw, ch, "A box with its own brain", [
     "An ESP32 in each box, with its driver, buck, switch and encoder",
     "The only thing going in is power: one 12 V pair",
-    "50 m of wire instead of 250 m (calculated)",
+    "82 ft × 2 conductors = 164 ft (50 m) of wire, not 820 ft (calculated)",
     "Power can come from anywhere, so a box sits in any position and orientation",
     "The room's geometry no longer limits where the winches go",
   ], { space: 5 });
-  card(sl, M + cw + g, TOP, cw, ch, "Why 16 AWG", [
-    "Drop = current x loop resistance",
-    "Longest branch 32 ft one way: 64 ft of loop",
-    "At 2 A: 0.82 V lost on 18 AWG, 0.51 V on 16 AWG (calculated)",
-    "That is 7 % against 4 % of 12 V; less heat in the wall",
-    "Cost: a 100 ft roll about $30; 65 ft used for three stations, about $19.50 (estimated)",
+  card(sl, M + cw + g, TOP, cw, ch, "Power wire: 16 AWG", [
+    "Gen 1: the motor's own driver-to-motor leads run back to one central box",
+    "Now: one 16 AWG pair per box; longest branch 32 ft one way, 64 ft of loop",
+    "V = I·R′·L_loop = 2 A × 4.02 Ω/kft × 0.064 kft = 0.51 V, 4.3 % of 12 V (calculated)",
+    "2 A is an illustrative current; the branch current is not measured",
+    "Cost: $30 per 100 ft × 65 ft for three stations = $19.50 (price estimated)",
   ], { space: 5 });
   const px = W - M - 2.9;
   coverImage(sl, PH("46_wall_mount_bracket_xt60_power_lead.jpg"), px, TOP, 2.9, 1.95, "Wall mount with its XT60 power connector");
@@ -449,7 +494,7 @@ section("Modular box");
   caption(sl, "The station: board, driver, motor, fin (CAD)", px, BOT - 0.22, 2.9);
 }
 
-// ================================================================================================ 9. Modular, for the everyday user
+// ================================================================================================ 10. Modular, for the everyday user
 {
   const sl = slide("Modular, for the everyday user",
     "Everyday use. Plug and play: once a box works it works; it slides on and off the wall and plugs and unplugs; guests come, each box slips off and goes " +
@@ -473,7 +518,7 @@ section("Modular box");
                 [PH("31_station_bench_xiao_breadboard_shell_open.jpg"), "Shell open on the bench"]], px, TOP, pw, BOT - TOP, { cover: true });
 }
 
-// ================================================================================================ 10. Trade-offs
+// ================================================================================================ 11. Trade-offs
 section("Trade-offs");
 {
   const sl = slide("Trade-offs: what each component needs",
@@ -483,8 +528,10 @@ section("Trade-offs");
     "(deck_v8/fig/sheet_motor_temperature; calculations/fin_sizing_4w.md coupled results 55.9-58.8 C vented). Winch pull: 0.7 x 0.36 N.m holding (0.7 assumed) " +
     "over the spool radius: 34 N empty core, 25 N full; design force = running / 1.5 = 16.8 N; jeans worst cable 16.2 N (calculations/lift_chain_weakest_link.md " +
     "'Demand and the fuse'; slide 17 row). Weight: 0.45 kg budget (R7), 0.86 kg CAD estimate with battery, 0.60 kg weighed 10/22 (PANEL_FEEDBACK_ANSWERS slide 16); " +
-    "jeans 1.50 kg against 1.56 kg capacity, 4 % (slide 17 row). Weakest link: cable tension at which each part gives, one station at 1.5 A " +
-    "(lift_chain_weakest_link.md ranking table): motor slips at 34-59 N, the designed fuse; the set screw in the printed thread 22-64 N may give first, so it moves " +
+    "capacity m = F_design / (k g) = 16.8 / (1.101 x 9.81) = 1.56 kg, k = 1.101 the worst-cable tension per unit weight (LP, lift_chain_weakest_link.md; winch_gear3.json direct_drive.capacity_kg 1.555); " +
+    "jeans 1.50 kg: (1.56 - 1.50) / 1.50 = 4 %. Motor temperature chart: two-node thermal network (fin_sizing_4w.py), input P = I^2 R = 1.5^2 x 1.8 = 4.05 W; no temperature measured. " +
+    "Tension Need line: 1 lb + 0.60 kg claw at d 0.4 m: 1.054 x 11.81 / (4 x 0.1816) = 17.1 N; jeans + claw 1.50 kg at d 0.6 m: 16.6 N. Weakest link: cable tension at which each part gives, one station at 1.5 A " +
+    "(lift_chain_weakest_link.md ranking table): motor slip 0.36 / 0.0075 = 48 N; low 48 / sqrt 2 = 33.9 N; high 0.36 x 40/36 / 0.0075 / cos 26.05 deg = 59.4 N (json fuse); the set screw in the printed thread 22-64 N may give first, so it moves " +
     "into a metal insert; screws in a stud 531 N and up (bar capped at 600).");
   const g = 0.15, cols = 3, cw = (W - 2 * M - (cols - 1) * g) / cols, ch = (BOT - TOP - g) / 2;
   const at = (c, r) => ({ x: M + c * (cw + g), y: TOP + r * (ch + g) });
@@ -495,52 +542,54 @@ section("Trade-offs");
   let p = at(0, 0);
   CHART_DATA.tension = { title: "Tension per cable (N) vs depth (m)", depths, static: depths.map(d => tension(d, 0)), dynamic: depths.map(d => tension(d, A_DYN)), limit: WINCH_LIMIT, box };
   chartImage(sl, "tension", p.x, p.y, cw, ch - 0.3, "Tension per cable vs depth below the anchors: static, with 2 m/s2, winch limit (calculated)");
-  need(p, "Need: stay 0.4 m below the anchors with 1 lb, 0.6 m with jeans");
+  need(p, "T = m(g + a) / (4 sin φ): 1 lb at d 0.4 m → 17.1 N vs 16.8 N limit; jeans need d ≥ 0.6 m (16.6 N)");
   // 2. Motor temperature
   p = at(1, 0);
   CHART_DATA.temperature = { title: "Motor case (°C) at 1.5 A; PETG limit 60 °C", labels: TEMP.labels, noFin: TEMP.noFin, thin: TEMP.thin, plate: TEMP.plate, limit: TEMP.limit, box };
   chartImage(sl, "temperature", p.x, p.y, cw, ch - 0.3, "Motor case temperature at 1.5 A, vented and sealed shell, by fin (calculated)");
-  need(p, "Need: below 60 °C; vented shell + built fin 56-59 °C (calculated)");
+  need(p, "Need < 60 °C. Two-node thermal network; input P = I²R = 1.5² × 1.8 Ω = 4.05 W");
   // 3. Winch pull
   p = at(2, 0);
   CHART_DATA.pull = { title: "Pull per winch (N) vs spool radius (mm), 1.5 A", radii, running: radii.map(runPull), design: radii.map(designPull), jeans: JEANS_PEAK, box };
   chartImage(sl, "pull", p.x, p.y, cw, ch - 0.3, "Pull per winch vs spool radius at 1.5 A: running pull, design force, jeans worst cable (calculated)");
-  need(p, "Need: 16.2 N worst cable for jeans; 34 N empty, 25 N full (calculated)");
+  need(p, "F = 0.252 N·m / r: 34 N (7.5 mm), 25 N (10 mm); ÷ 1.5 = 16.8 N ≥ 16.2 N jeans");
   // 4. Weight budget
   p = at(0, 1);
   CHART_DATA.lift = { title: "Winches can hold vs must hold (kg)", labels: LIFT.labels, values: LIFT.values, colors: ["#1F3A5F", "#8A8F98", "#8A8F98", "#BFC4CB", "#1F3A5F"], box };
   chartImage(sl, "lift", p.x, p.y, cw, ch - 0.3, "What the winches can hold vs what they must hold, kg (measured claw, calculated capacity)");
-  need(p, "Need: a 0.45 kg claw; 0.86 estimated (CAD), 0.60 weighed; jeans 1.50 vs 1.56 (4 %)");
+  need(p, "16.8 N / (1.101 × 9.81) = 1.56 kg vs 1.50 kg: +4 %; claw 0.60 kg weighed vs 0.45 budget");
   // 5. Weakest link
   p = at(1, 1);
   CHART_DATA.weakest = { title: "Tension at which each part gives (N)", rows: WL, box };
   chartImage(sl, "weakest", p.x, p.y, cw, ch - 0.3, "Cable tension at which each part of the lifting chain gives, one station at 1.5 A (calculated)");
-  need(p, "Need: the motor gives first (34-59 N); the printed set screw may not, so: metal insert");
+  need(p, "Motor slip 0.36 N·m / 7.5 mm = 48 N; × 1/√2 = 34 N, × 1.11 / cos 26° = 59 N");
   // 6. The factors, in words
   p = at(2, 1);
   card(sl, p.x, p.y, cw, ch, "The factors", [
-    "Pull rises with current; heat rises with current squared",
-    "1.0 to 1.5 A: 50 % more pull for 2.25 x the heat",
+    "Pull ∝ I; heat P = I²R ∝ I²",
+    "1.0 → 1.5 A: pull × 1.5, heat × 1.5² = 2.25 (calculated)",
     "Every gram on the claw is a gram of payload",
-    "The pull test and the hold test are still planned",
+    "The printed set screw (22–64 N) may slip before the motor: metal insert",
+    "The pull test and the hold test are planned",
   ], { size: 10, space: 4 });
 }
 
-// ================================================================================================ 11. Mount assembly: the design
+// ================================================================================================ 12. Mount assembly: the design
 section("Mount assembly");
 {
   const sl = slide("The mount assembly: slide-in on a dovetail",
     "Mount assembly 1. Slide-in wall mount: the station lifts off its dovetail; the wall mount and its screws stay in the stud (DECK_V9_NOTES slide 12 row). " +
     "Load path: cable, spool, set screw, motor, PETG tab, slide-in, wall mount, screws, stud (same row; lift_chain_weakest_link.md 'The chain and the rule'). " +
     "The motor slips at 34-59 N before anything breaks, the designed fuse; the spool encoder sees the spool fall behind the commanded steps: a tracking fault, " +
-    "every station holds (slide 13 row). Dovetail fit 0.175 mm a side on 30 deg flanks, from fit coupons (PANEL_FEEDBACK_ANSWERS 'Manufacturing fits', row " +
-    "'Slide-in mount'; slide 19 title 'fits came from coupons'). Photos 45, 46, 24; snap_dovetail.png (deck_v8/fig); station_shell_transparent_1022.png.");
+    "every station holds (slide 13 row). Fuse: 0.36 / 0.0075 = 48 N, 33.9 to 59.4 N (lift_chain_weakest_link.md 'The chain and the rule'). Dovetail 0.175 mm a side " +
+    "on 30 deg flanks, measured on Jasper's STEP files (PANEL_FEEDBACK_ANSWERS 'Manufacturing fits', row 'Slide-in mount'; deck_v8 fits table). Photos 45, 24; " +
+    "snap_dovetail.png (deck_v8/fig); station_shell_transparent_1022.png.");
   const cw = 3.5, ch = BOT - TOP;
   card(sl, M, TOP, cw, ch, "Slide-in mount and load path", [
     "The wall mount screws into a stud; the station slides onto it on a dovetail",
-    "Dovetail fit: 0.175 mm a side, from fit coupons (measured)",
+    "Dovetail clearance 0.175 mm per side on 30° flanks (measured on the CAD)",
     "Load path: cable, spool, set screw, motor, tab, mount, screws, stud",
-    "The motor slips at 34-59 N before anything breaks: the designed fuse (calculated)",
+    "Motor slips first: F = τ/r = 0.36 N·m / 7.5 mm = 48 N; 34–59 N over torque vector and cable angle (calculated)",
     "The spool encoder sees the slip: tracking fault, every station holds",
   ], { space: 5 });
   const px = M + cw + 0.25, pw = W - M - px, g = 0.12;
@@ -554,17 +603,17 @@ section("Mount assembly");
   caption(sl, "Rib in the dovetail groove (CAD); the station with its shell transparent (CAD)", px, BOT - 0.22, pw);
 }
 
-// ================================================================================================ 12. Mount assembly: on the wall
+// ================================================================================================ 13. Mount assembly: on the wall
 {
   const sl = slide("The mount assembly: fin, vents and the wall",
     "Mount assembly 2. The aluminium fin bolts to the motor face and goes out through a slot in the top of the shell; the shell is vented (DECK_V9_NOTES slide 16 " +
-    "and 22 rows; README rows 27, 34, 36). Prototype fin 0.019 in sheet, 56-59 C vented with the fin, calculated; 1/8 in design fin 45-49 C (slide 16 row; " +
-    "fin_sizing_4w.md). First station in a stud on the TV wall, 12 V down the wall (slide 22 row). Load path and fuse as on the previous slide. A 1 deg draft " +
+    "and 22 rows; README rows 27, 34, 36). Heat P = I^2 R = 1.5^2 x 1.8 = 4.05 W, 1.8 ohm assumed (FUNDAMENTALS section 3). The fin temperatures " +
+    "come from a two-node thermal network (fin_sizing_4w.py) and are not on the slide. First station in a stud on the TV wall, 12 V down the wall (slide 22 row). Load path and fuse as on the previous slide. A 1 deg draft " +
     "on the dovetail is the NEXT iteration: the slide-in binds on insertion today (slide 24 row). Photos 32, 33, 44 (README rows).");
   const cw = 3.5, ch = BOT - TOP;
   card(sl, M, TOP, cw, ch, "Fin, vents, stud", [
     "The fin: aluminium on the motor face, out through a slot in the top of the shell",
-    "Vents in the shell; vented shell + fin: 56-59 °C at 1.5 A (calculated)",
+    "Motor heat P = I²R = 1.5² × 1.8 Ω = 4.05 W leaves through vents and fin (calculated)",
     "First station in a stud on the TV wall, 12 V down the wall",
     "The slide-in binds on insertion today; a 1° draft on the dovetail is the next iteration",
   ], { space: 5 });
@@ -573,11 +622,62 @@ section("Mount assembly");
                 [PH("44_wall_station_from_below_line_down.jpg"), "The line leaves the switch tab straight down"]], px, TOP, pw, BOT - TOP, { cover: true });
 }
 
-// ================================================================================================ 13. The claw
+// ================================================================================================ 14. Manufacturing
+section("Manufacturing");
+{
+  const sl = slide("Manufacturing: what was made in-house, and how fits were controlled",
+    "Manufacturing. Process: PETG on a Creality K1, 0.4 mm nozzle, 0.20 mm layers, supports at 30 deg (photos 20, 26; deck_v8 'Manufacturing: Fits and Datums' " +
+    "printing rules: loads along the layers, mating faces off supports). Fin: blank sheared 44 x 250 mm (+/-0.5), five holes drilled in one setup on the manual " +
+    "mill; the edges locate only the first hole, which becomes the mill zero, so the pattern holds +/-0.1 (DECISION_STORIES.md T31/T32 line 277; photo 01). " +
+    "Heat-set inserts: M3 in the claw gear housing, M2.5 at the encoder board (deck_v8 fits table). TPU 95A: pad trials (DESIGN_INTENT 'The gripper'); none " +
+    "in the current build, the hands are PETG (COST_BREAKDOWN section 2; D32). Fits: printed holes come out undersize (FUNDAMENTALS section 12); spool bore " +
+    "Ø5.2 printed too tight on the Ø5.0 shaft, opened to Ø5.45 in v3 (FUNDAMENTALS section 12 supplied facts); dovetail 0.175 mm per side on 30 deg flanks, " +
+    "measured on Jasper's STEP files (deck_v8 fits table; PANEL_FEEDBACK_ANSWERS fits row); 687 bearing pocket Ø14.075 behind a Ø14.000 entry lip, 1.95 mm " +
+    "long, 8 T-slots (FUNDAMENTALS section 12; snap_gear_lip.png from make_mfg_snapshots.py). The hole-sweep fit coupon (Ø5, Ø7, Ø14, -0.10 to +0.30 mm) is " +
+    "PLANNED (FUNDAMENTALS section 12 evidence line). One shell kept a failed layer: a shell, not a load path (DECK_V9_NOTES slide 19 row; photo 35). " +
+    "Make vs buy: bought steppers, drivers, controller boards, servo, camera, battery, encoder boards (DECK_V9_NOTES slide 4 row); made: every printed part " +
+    "and the fin. Printed per station 762 g (estimate: CAD volume x 1.27 g/cm^3 x fill factor, COST_BREAKDOWN section 2); filament 0.762 kg x $15/kg = $11.43 " +
+    "per station; station-only bought parts about $23.70 per station; robot $210.78 parts + $37.74 filament for three stations, prices partly estimated " +
+    "(COST_BREAKDOWN headline table and section 1 note).",
+    { titleSize: 17 });
+  const g = 0.15, lw = 3.05, mw = 2.95, rw = W - 2 * M - lw - mw - 2 * g;
+  const h1 = 2.2, h2 = BOT - TOP - h1 - g;
+  card(sl, M, TOP, lw, h1, "Processes", [
+    "PETG, FDM: 0.4 mm nozzle, 0.20 mm layers, supports at 30°; loads along the layers",
+    "Aluminium fin: sheared blank, five holes drilled in one mill setup",
+    "First hole is the mill zero: pattern ±0.1 mm vs ±0.5 mm sheared edges",
+    "Heat-set inserts: M3 gear housing, M2.5 encoder board",
+  ], { size: 9.5, space: 3, headSize: 11.5 });
+  card(sl, M, TOP + h1 + g, lw, h2, "Make vs buy", [
+    "Bought: steppers, drivers, boards, servo, camera, battery, encoders",
+    "Made: every printed part and the fin",
+    "Filament per station: 0.762 kg × $15/kg = $11.43 (estimated)",
+    "Robot: $210.78 parts + $37.74 filament, three stations (partly estimated)",
+  ], { size: 9.5, space: 3, headSize: 11.5 });
+  card(sl, M + lw + g, TOP, mw, BOT - TOP, "Fits", [
+    "Printed holes come out undersize: every printed fit carries an allowance",
+    "Spool bore: Ø5.2 printed too tight on the Ø5.0 shaft; opened to Ø5.45",
+    "Dovetail: 0.175 mm per side, 30° flanks (CAD)",
+    "Bearing pocket Ø14.075 behind a Ø14.000 entry lip, 8 T-slots",
+    "Hole-sweep fit coupon (Ø5, Ø7, Ø14): planned",
+    "A failed layer was kept on one shell only: the shell carries no load",
+    "TPU 95A: pad trials only; none in the current build",
+  ], { size: 9.5, space: 3, headSize: 11.5 });
+  const rx = M + lw + mw + 2 * g, cwid = (rw - 0.1) / 2, ph = 1.15;
+  coverImage(sl, PH("26_slicer_k1_petg_supports.jpg"), rx, TOP, cwid, ph, "Slicing PETG for the K1, supports at 30 degrees");
+  coverImage(sl, PH("01_mill_drilling_fin_closeup.jpg"), rx + cwid + 0.1, TOP, cwid, ph, "Drilling the fin on the manual mill");
+  caption(sl, "Slicer (K1, PETG); drilling the fin", rx, TOP + ph + 0.03, rw);
+  const sy = TOP + ph + 0.32, sh = (BOT - sy - 0.26 - 0.1) / 2;
+  fitImage(sl, V8FIG("snap_dovetail.png"), rx, sy, rw, sh, "Slide-in rib in the wall-mount dovetail (CAD section)", { top: true });
+  fitImage(sl, V8FIG("snap_gear_lip.png"), rx, sy + sh + 0.1, rw, sh, "Gear bearing pocket with its entry lip (CAD)", { top: true });
+  caption(sl, "Dovetail rib; bearing pocket and lip (CAD)", rx, BOT - 0.22, rw);
+}
+
+// ================================================================================================ 15. The claw
 section("Claw");
 {
   const sl = slide("The claw, and why it is modular",
-    "Claw. Four-bar hands stay within 1 deg of parallel over the 53 mm opening; a camera bay on the electronics housing; one 7.4 V two-cell pack, a 6 V regulator " +
+    "Claw. Four-bar hands on the gear crank, 53 mm opening (CAD; the parallelism figure is a linkage model, not shown); a camera bay on the electronics housing; one 7.4 V two-cell pack, a 6 V regulator " +
     "for the servo, a 5 V buck for the board (DECK_V9_NOTES slide 18 row 'The claw'). The gripper attaches modularly at the tube, by design, a test bed for shirts " +
     "(DESIGN_INTENT 'The gripper'; v9.2 slide 18 row). A hard-material pinch was expected to grip better; testing showed alignment problems: the rack-and-pinion " +
     "jaws left a 2 mm gap on thin cloth, Sep 30 (v9.2 slide 18 row; no cloth-test reading logged). TPU and other pad materials being tried " +
@@ -585,7 +685,7 @@ section("Claw");
     "against the 0.45 kg budget (slide 11 and 17 rows). Photos 25, 40, 22; renders gripper1021_head.png, claw_v6.png.");
   const cw = (W - 2 * M - 0.2 - 3.9) / 2, ch = BOT - TOP, g = 0.2;
   card(sl, M, TOP, cw, ch, "The claw today", [
-    "Four-bar hands: within 1° of parallel over the 53 mm opening (calculated)",
+    "Four-bar hands on a geared crank; 53 mm opening (CAD)",
     "A camera bay in the electronics housing; the camera looks down the tube",
     "One 7.4 V two-cell pack: 6 V regulator for the servo, 5 V buck for the board",
     "Weighed 0.60 kg with battery against a 0.45 kg budget",
@@ -606,58 +706,31 @@ section("Claw");
   caption(sl, "Assembled; the hands (CAD); the v6 clamp (CAD); the housing open", px, BOT - 0.22, pw);
 }
 
-// ================================================================================================ 14. Station bench and claw bench
+// ================================================================================================ 16. Electrical and testing
 section("Electrical and testing");
 {
-  const sl = slide("Electrical and testing: on the bench",
-    "Bench. Station checklist: driver off at boot, so a reset cannot move a motor; homing switch LOW at rest, HIGH pressed or with a broken wire; the encoder " +
-    "answers at its address with the magnet detected; one spool turn within 60 encoder counts: PASS on both boards (DECK_V9_NOTES slide 20 row; Jasper's " +
-    "10/25-10/26 bench, to confirm per v9 BUILD_NOTE). The motor that logged steps but did not turn: the logic rail read about 1.14 V instead of 3.3 V, a bad " +
-    "3.3 V connection; now the driver VDD is soldered to the regulated rail and measured before enable (slide 20 row; PANEL_FEEDBACK_ANSWERS slide 17 item). " +
-    "Claw bench: live video on the phone; battery 7.2 V through the divider, matching the meter; the servo only moved once it had its own hardware timer, the " +
-    "camera owned the first (slide 21 row). Photos 29, 31, 37, 43 (README rows).");
-  const cw = (W - 2 * M - 0.2 - 3.4) / 2, ch = BOT - TOP, g = 0.2;
-  card(sl, M, TOP, cw, ch, "Station bench", [
-    "Driver off at boot: a reset cannot move a motor",
-    "Switch logic: LOW at rest, HIGH pressed or with a broken wire",
-    "Encoder answers, magnet detected",
-    "One spool turn within 60 counts: PASS on both boards (measured)",
-    "A motor that logged steps but did not turn: logic rail at 1.14 V, not 3.3 V; VDD now soldered and measured first",
-  ], { space: 4 });
-  card(sl, M + cw + g, TOP, cw, ch, "Claw bench", [
-    "Live view from the claw camera on the phone",
-    "Battery 7.2 V read through the divider, matching the meter (measured)",
-    "The servo only moved once it had its own hardware timer; the camera owned the first",
-    "Still open: servo end points unmeasured; camera not yet calibrated",
+  const sl = slide("Electrical and testing: bench, then wall",
+    "Electrical. Station boards: the bench checklist (firmware/station_bench_test/README.md) passed on both boards, ELEGOO ESP32 and XIAO (DECK_V9_NOTES slide 20 " +
+    "row, 10/25-10/26). Claw Rev B: camera live view, battery sense and servo pass on the bench (DECK_V9_NOTES slide 21 row; DESIGN_STATE 10/26). On the wall: " +
+    "boxed stations boot and join Wi-Fi on their own; firmware updates over Wi-Fi; motors off until the phone arms them; updates accepted only while disarmed " +
+    "(slide 22 row). Planned: pull test at 1.5 A, 90-minute hold test, first three-station lift (slides 25, 26). Bench details in DOWN_THE_LINE.md. Photos 43, 32 (README rows).");
+  const cw = 3.6, g = 0.15, ch1 = 1.75, ch2 = BOT - TOP - ch1 - g;
+  card(sl, M, TOP, cw, ch1, "Bench", [
+    "Station boards: bench checklist passed on both controller boards (measured)",
+    "Claw: camera live view, battery sense and servo pass (measured)",
   ], { space: 5 });
-  const px = M + 2 * (cw + g), pw = W - M - px, ph = (BOT - TOP - 0.12 - 0.26) / 2;
-  coverImage(sl, PH("43_bench_two_stations_laptop_meter_floor.jpg"), px, TOP, pw, ph, "Bench: two stations, laptop, meter, 12 V supply");
-  coverImage(sl, PH("29_station_bench_esp32_wiring_floor.jpg"), px, TOP + ph + 0.12, (pw - 0.1) / 2, ph, "Dev board, driver, spool and end stop");
-  coverImage(sl, PH("37_station_bench_red_shell_fuse_12v.jpg"), px + (pw + 0.1) / 2, TOP + ph + 0.12, (pw - 0.1) / 2, ph, "Red shell, fused 12 V lead");
-  caption(sl, "Two stations on the bench; a dev board and spool; the red shell with its fuse", px, BOT - 0.22, pw);
-}
-
-// ================================================================================================ 15. On the wall
-{
-  const sl = slide("Electrical and testing: on the wall",
-    "On the wall. First station in a stud on the TV wall; boxed stations boot and join Wi-Fi on their own; firmware updates arrive over Wi-Fi, so a boxed " +
-    "station never needs a USB cable again; the motor stays off until the phone arms it; a station accepts an update only while disarmed (DECK_V9_NOTES slide 22 row). " +
-    "Still planned, no result yet: the pull test at 1.5 A, the hold test, the first three-station lift (slide 25 and 26 rows). Photos 31, 32, 44 (README rows). " +
-    "Live view: docs/app_screenshots/02_camera.png is the simulator's view, so it is not shown as the claw camera.");
-  const cw = 3.6, ch = BOT - TOP;
-  card(sl, M, TOP, cw, ch, "Making it work on the wall", [
-    "Wi-Fi auto-join: a boxed station boots and joins the network by itself",
-    "OTA: firmware updates arrive over Wi-Fi; no USB cable after boxing",
-    "The motor stays off until the phone arms it",
-    "A station accepts an update only while disarmed",
-    "Still planned: pull test, hold test, first three-station lift",
+  card(sl, M, TOP + ch1 + g, cw, ch2, "On the wall", [
+    "A boxed station boots and joins Wi-Fi by itself",
+    "Firmware updates over Wi-Fi; no USB cable after boxing",
+    "Motors stay off until the phone arms them; updates only while disarmed",
+    "Planned: pull test, hold test, first three-station lift",
   ], { space: 5 });
   const px = M + cw + 0.25, pw = W - M - px;
-  photoRow(sl, [[PH("32_wall_station_mounted_tv_wall.jpg"), "The first station on the wall"], [PH("44_wall_station_from_below_line_down.jpg"), "From below, line down"],
-                [PH("31_station_bench_xiao_breadboard_shell_open.jpg"), "A station open: board on the bench"]], px, TOP, pw, BOT - TOP, { cover: true });
+  photoRow(sl, [[PH("43_bench_two_stations_laptop_meter_floor.jpg"), "Bench: two stations, laptop, meter, 12 V supply"],
+                [PH("32_wall_station_mounted_tv_wall.jpg"), "The first station on the wall"]], px, TOP, pw, BOT - TOP, { cover: true });
 }
 
-// ================================================================================================ 16. Calibration
+// ================================================================================================ 17. Calibration
 section("Calibration");
 {
   const sl = slide("Startup and self-calibration: six states before the robot is READY",
@@ -676,32 +749,30 @@ section("Calibration");
     ["5  CALIBRATION", ["Local → intermediate → expanded pose sets chosen by D-optimal design; refit between stages", "Held-out witness poses", "Accept on witness residuals, identifiability, predicted length sigma over the work volume"]],
     ["6  REFERENCE_VERIFICATION", ["Optional bead references", "Trust level VERIFIED or LOCAL_ONLY from the margin check"]],
   ];
-  const cols = 3, g = 0.12, cw = (W - 2 * M - 2.55 - (cols - 1) * g) / cols, ch = (BOT - TOP - 0.38 - g) / 2;
+  const cols = 3, g = 0.15, cw = (W - 2 * M - (cols - 1) * g) / cols, ch = (BOT - TOP - 0.38 - g) / 2;
   steps.forEach(([h, items], i) => {
     const x = M + (i % cols) * (cw + g), y = TOP + Math.floor(i / cols) * (ch + g);
-    card(sl, x, y, cw, ch, h, items, { size: 8.5, space: 1, headSize: 8.5 });
+    card(sl, x, y, cw, ch, h, items, { size: 10, space: 3, headSize: 11 });
   });
   sl.addText("No automatic retry; any station reboot forces the full sequence again.",
-             { x: M, y: BOT - 0.32, w: W - 2 * M - 2.55 - 0.1, h: 0.3, fontSize: 10, bold: true, color: C.text1, margin: 0, valign: "middle", isTextBox: true, objectName: "rules" });
-  const px = W - M - 2.4;
-  fitImage(sl, P("docs/presentation/deck_v10/fig", "floor_board.png"), px, TOP, 2.4, BOT - TOP - 0.26, "Floor reference: nine AprilTag 36h11 sheets, 150 mm tags, 250 mm pitch, sheet 0 is the origin", { top: true });
-  caption(sl, "What the camera locks onto: nine AprilTag sheets on the floor, 150 mm tags, 250 mm pitch; sheet 0 sets the room frame", px, BOT - 0.22, 2.4);
+             { x: M, y: BOT - 0.32, w: W - 2 * M, h: 0.3, fontSize: 10, bold: true, color: C.text1, margin: 0, valign: "middle", isTextBox: true, objectName: "rules" });
 }
 
-// ================================================================================================ 17. Next iteration
+// ================================================================================================ 18. Next iteration
 section("Next iteration");
 {
   const sl = slide("Next iteration: what was not working, and what changes",
     "Next iteration (DECK_V9_NOTES slide 24 row, Jasper 10/27). Gear stage: 18T/54T, 3:1, printed PETG pinion, CAD-verified, pinion printed, NOT fitted; " +
     "the mounted stations are direct-drive spools (D40-D42; v9 'correction' update). 2.7x pull at 1.0 A with half the heat (PANEL_FEEDBACK_ANSWERS " +
-    "'larger motors'); the slip fuse moves to about 130 N (slide 24 row). Draft: the slide-in binds on insertion; a 1 deg draft on the dovetail, thicker at the " +
-    "top (slide 24 row, PLANNED). Mount: holds about 200x the motor's pull, 597 cm^3 solid, to about 200 cm^3 (slide 24 row, PLANNED). Still planned, " +
+    "'larger motors'). Draft: the slide-in binds on insertion; a 1 deg draft on the dovetail, thicker at the " +
+    "top (slide 24 row, PLANNED). Mount: 597 cm^3 solid (COST_BREAKDOWN section 2), dovetails 225x and screws in a stud 8.9x the motor (lift_chain_weakest_link.md ranking), to about 200 cm^3 (slide 24 row, PLANNED). " +
+    "Gear stage: ratio 3, efficiency 0.9 (winch_gear3.json ratio, eta): 3 x 0.9 = 2.7x torque at the spool at equal current; heat at 1.0 A vs 1.5 A: (1.0/1.5)^2 = 0.44 (1.8 W vs 4.05 W, winch_gear3.json heat). Still planned, " +
     "no result: pull test, hold test, first three-station lift (slide 25 and 26 rows). The dashed box is for Jasper's new CAD.");
   const cw = 1.9, g = 0.12, ch = 2.6;
   const cards3 = [
-    ["3:1 printed gear stage", ["18T / 54T spur, printed PETG pinion", "Designed and checked in CAD; pinion printed; not fitted", "2.7 x pull at 1.0 A, half the heat (calculated)", "Slip fuse moves to about 130 N (calculated)"]],
+    ["3:1 printed gear stage", ["18T / 54T spur, printed PETG pinion", "Designed and checked in CAD; pinion printed; not fitted", "Pull × 3 × 0.9 (η) = 2.7 at equal current (calculated)", "At 1.0 A: heat × (1.0/1.5)² = 0.44 (calculated)"]],
     ["1° draft on the dovetail", ["Today the slide-in binds on insertion", "Thicker at the top, thinning toward the bottom", "The station self-locates as it slides in (planned)"]],
-    ["Lighter back mount", ["Today: about 200 x the motor's pull, 597 cm³ solid", "Thinner walls and ribs: about 200 cm³ (planned)", "Less print time and filament for anyone building it"]],
+    ["Lighter back mount", ["Today: 597 cm³ solid, far stronger than the motor can pull", "Thinner walls and ribs: about 200 cm³ (planned)", "Less print time and filament"]],
   ];
   cards3.forEach(([h, items], i) => card(sl, M + i * (cw + g), TOP, cw, ch, h, items, { size: 9.5, space: 2, headSize: 11 }));
   card(sl, M, TOP + ch + g, 3 * cw + 2 * g, BOT - TOP - ch - g, "Not working yet / still planned", [
@@ -716,7 +787,7 @@ section("Next iteration");
   caption(sl, "Next iteration (CAD, 10/27). Front: 3:1 spur stage, spool on its own shaft, encoder magnet cap. Back: slide-in rails, window, screw holes", px, BOT - 0.22, pw);
 }
 
-// ================================================================================================ 18. Thank you
+// ================================================================================================ 19. Thank you
 section("Close");
 {
   const sl = pres.addSlide({ masterName: "PLAIN", sectionTitle: SECTION });

@@ -51,10 +51,10 @@ def save(fig, out):
 
 
 def bead(d, out):
-    fig = fig_for(d["box"], d["title"]); ax = fig.add_axes([0.12, 0.14, 0.85, 0.74])
-    ax.plot([p[0] for p in d["points"]], [p[1] for p in d["points"]], color=NAVY, linewidth=1.6)
-    ax.set_xlabel("Homing height above the floor (m)")
-    ax.set_ylim(0, 40); ax.set_yticks([0, 10, 20, 30, 40]); ax.set_xticks([p[0] for p in d["points"]])
+    fig = fig_for(d["box"], d["title"]); ax = fig.add_axes([0.17, 0.12, 0.78, 0.76])
+    ax.plot([p[0] for p in d["points"]], [p[1] for p in d["points"]], color=NAVY, linewidth=1.6, marker="o", markersize=2.5)
+    ax.set_xlabel("Homing height (m)")
+    ax.set_ylim(0, 40); ax.set_yticks([0, 10, 20, 30, 40]); ax.set_xticks([0.5, 1.0, 1.5, 2.0])
     frame(ax); save(fig, out)
 
 

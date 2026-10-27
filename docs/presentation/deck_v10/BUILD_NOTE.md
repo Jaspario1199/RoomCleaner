@@ -7,6 +7,24 @@ only, nothing invented. Emphasis per `DESIGN_INTENT_20261027.md`; calibration te
 blue), two layouts (`CONTENT` with the title placeholder and the footer bar, `PLAIN` for the title and thank-you slides),
 sections per topic. Outputs in this folder: `RoomCleaner_Buntinx_v10.pptx`, `.pdf`, `contact_sheet.png`.
 
+## v10.3 (10/27)
+
+- **Homing slide (7)**: bead homing vs floor-board homing. The bead condition reachable(p) <=> ||a_i - p|| >= L_i,home for every i is
+  typeset by `make_equations.py` (fig/eq_d.png); the reachable share is the grid count of that condition (`calculations/bead_reach.json`:
+  0.0 % at 0.3 m to 32.0 % at 2.19 m). The floor-board figure moved here from the calibration slide; the calibration cards are full width.
+- **Calculated values carry their equation.** Every value tagged (calculated) is shown with its equation and substituted numbers on the
+  same slide, recomputed in Python from the repo inputs. Model results that need a multi-node model are captioned with the governing
+  equation and their numbers are off the cards (fin temperatures: two-node thermal network, P = I²R input). Values that did not
+  reproduce in one line were deleted (about 130 N gear-stage slip fuse; "about 200x" mount margin; four-bar "within 1°").
+- **Wire drop**: only the 16 AWG line is shown (2 A x 4.02 ohm/kft x 0.064 kft = 0.51 V). Gen 1 ran the motors' own driver-to-motor
+  leads back to the central box (Jasper, 10/27); that gauge is not recorded, so the 18 AWG comparison is gone.
+- **Bench minutiae** (18 V supply, inverted switch logic, switch below the pulley, 1.14 V logic rail, servo timer, 7.2 V divider,
+  driver off at boot, encoder address/magnet, 60 counts) moved to `DOWN_THE_LINE.md`; the two electrical slides are one.
+- **Manufacturing slide (14)** for the manufacturing role: processes, fits, make vs buy, cost per station. Two record conflicts handled
+  on the slide: the dovetail 0.175 mm is a CAD dimension (measured on the STEP files), and the hole-sweep fit coupon is planned
+  (FUNDAMENTALS section 12), so the slide does not say fits came from coupons.
+- 19 slides. validate.py PASS; no ppt/charts or ppt/embeddings entries; aspect check 48 pictures, 0 mismatches.
+
 ## v10.1 (10/27)
 
 - **Charts are images.** PowerPoint reported the v10 file as needing repair; the only structural difference from v9 was the six
@@ -41,30 +59,31 @@ NODE_PATH=<node_modules with pptxgenjs> APPLY_THEME=$SK/scripts/apply_theme.js n
 `validate.py` passes. Every slide was rendered through LibreOffice (`pdftoppm -r 70`) and inspected. Chart images need
 `matplotlib`; photo crops need `Pillow` (both under `/usr/bin/python3`).
 
-## Slides and sources
+## Slides and sources (v10.3)
 
-Speaker notes on each slide name the file and line for every number. Summary:
+Speaker notes on each slide name the file for every number and carry the substituted equation for every calculated value.
 
 | # | Slide | Visual | Sources |
 |---|---|---|---|
 | 1 | Title | photo 42 | brief (byline); photos/README row 42 |
-| 2 | About me | about_me collage columns | photos/README about_me row |
+| 2 | About me | about_me collage + three cards | Jasper, 10/27; photos/README about_me row |
 | 3 | Project scope | three cards + photo 42 | DECK_V9_NOTES slide 3 (v9.1 origins); D19, D21; COST_BREAKDOWN headline table |
-| 4 | How cable length becomes position, and torque becomes pull | three cards, boxed equations, position_vectors.png | roomcleaner/cdpr/kinematics.py docstring; FUNDAMENTALS sections 1-2; lift_chain_weakest_link.json; D37 |
+| 4 | How cable length becomes position, and torque becomes pull | three cards, typeset equations, position_vectors.png | kinematics.py docstring; FUNDAMENTALS sections 1-2; lift_chain_weakest_link.json; D37 |
 | 5 | Generation 1: one central unit | photos 14, 05, 13 | DESIGN_INTENT "Iteration 1"; DECK_V9_NOTES v9.2 slide 7, slide 8; D13, D33 |
-| 6 | Problems with Generation 1 | bead-homing chart (fig/bead.png) | DECK_V9_NOTES slides 9, 10; calculations/bead_reach.json; PANEL_FEEDBACK_ANSWERS (floor area); D33 |
-| 7 | What a winch on a wall needs | photos 09, 23, 39 | DESIGN_INTENT "Why it changed"; DECK_V9_NOTES slide 20 (encoder jobs, switch wiring), v9.2 slide 10 (wire) |
-| 8 | The solution: a modular box | photo 46, station_shell_transparent | DESIGN_INTENT "Iteration 2"; FUNDAMENTALS section 10 (0.82 / 0.51 V); COST_BREAKDOWN 16 AWG row |
-| 9 | Modular, for the everyday user | photos 45, 24, 31 | DESIGN_INTENT "Iteration 2"; DECK_V9_NOTES slide 12 |
-| 10 | Trade-offs | five chart images (fig/) + "The factors" card | FUNDAMENTALS 1; sheet_motor_temperature / fin_sizing_4w.md; lift_chain_weakest_link.md and .json; PANEL_FEEDBACK_ANSWERS slide 16 and "larger motors"; DECK_V9_NOTES slides 6, 16, 17 |
-| 11 | Mount assembly: slide-in on a dovetail | photos 45, 24; snap_dovetail; station_shell_transparent | DECK_V9_NOTES slides 12, 13; lift_chain_weakest_link.md; PANEL_FEEDBACK_ANSWERS fits row "Slide-in mount" |
-| 12 | Mount assembly: fin, vents and the wall | photos 32, 33, 44 | DECK_V9_NOTES slides 16, 22, 24; fin_sizing_4w.md |
-| 13 | The claw, and why it is modular | photos 25, 40; gripper1021_head, claw_v6 | DECK_V9_NOTES slides 11, 17, v9.2 slide 18; DESIGN_INTENT "The gripper" |
-| 14 | Electrical and testing: on the bench | photos 43, 29, 37 | DECK_V9_NOTES slides 20, 21; PANEL_FEEDBACK_ANSWERS slide 17 item (1.14 V) |
-| 15 | Electrical and testing: on the wall | photos 32, 44, 31 | DECK_V9_NOTES slides 22, 25, 26 |
-| 16 | Startup and self-calibration: six states before READY | six state cards + photo 42 | roomcleaner/cdpr/startup.py (docstring 1-66; run 669-690; states 693-1619) |
-| 17 | Next iteration | three cards, planned card, "[Jasper: new CAD]" box | DECK_V9_NOTES slide 24 and the 10/27 correction; D40-D42; PANEL_FEEDBACK_ANSWERS "larger motors" |
-| 18 | Thank you | | |
+| 6 | Problems with Generation 1 | two cards + photo 14 | DESIGN_INTENT; DECK_V9_NOTES slide 10; FUNDAMENTALS section 2 (50 mm/s); D33 |
+| 7 | Homing: one floor board instead of four beads | eq_d.png, bead chart, floor_board.png | calculations/bead_reach.py and .json; tools/print_floor_board.py; kinematics.py; startup.py |
+| 8 | What a winch on a wall needs to work | photos 09, 23, 39 | DESIGN_INTENT "Why it changed"; DECK_V9_NOTES slide 20; DECK_V2_OUTLINE line 85 (82 ft of routes) |
+| 9 | The solution: a modular box that only needs power | photo 46, station_shell_transparent | DESIGN_INTENT "Iteration 2"; FUNDAMENTALS section 10 (16 AWG only); COST_BREAKDOWN 16 AWG row |
+| 10 | Modular, for the everyday user | photos 45, 24, 31 | DESIGN_INTENT "Iteration 2"; DECK_V9_NOTES slide 12 |
+| 11 | Trade-offs: what each component needs | five chart images + "The factors" card | FUNDAMENTALS 1-3; fin_sizing_4w.py (chart only); lift_chain_weakest_link.md/.json; winch_gear3.json direct_drive |
+| 12 | The mount assembly: slide-in on a dovetail | photos 45, 24; snap_dovetail; station_shell_transparent | DECK_V9_NOTES slides 12, 13; lift_chain_weakest_link.md; deck_v8 fits table |
+| 13 | The mount assembly: fin, vents and the wall | photos 32, 33, 44 | DECK_V9_NOTES slides 16, 22, 24; FUNDAMENTALS section 3 |
+| 14 | Manufacturing: what was made in-house, and how fits were controlled | photos 26, 01; snap_dovetail, snap_gear_lip | deck_v8 fits table; FUNDAMENTALS section 12; DECISION_STORIES T31/T32; COST_BREAKDOWN sections 1-2; DECK_V9_NOTES slides 4, 19 |
+| 15 | The claw, and why it is modular | photos 25, 40; gripper1021_head, claw_v6 | DECK_V9_NOTES slides 11, 17, v9.2 slide 18; DESIGN_INTENT "The gripper" |
+| 16 | Electrical and testing: bench, then wall | photos 43, 32 | DECK_V9_NOTES slides 20, 21, 22, 25, 26 (details in DOWN_THE_LINE.md) |
+| 17 | Startup and self-calibration: six states before the robot is READY | six state cards | roomcleaner/cdpr/startup.py (docstring 1-66; run 669-690; states 693-1619) |
+| 18 | Next iteration: what was not working, and what changes | three cards, planned card, photos 49, 50 (CAD) | DECK_V9_NOTES slide 24; D40-D42; winch_gear3.json (ratio, eta, heat) |
+| 19 | Thank you | | |
 
 ## Left off because the record does not hold it
 

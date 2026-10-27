@@ -7,6 +7,18 @@ only, nothing invented. Emphasis per `DESIGN_INTENT_20261027.md`; calibration te
 blue), two layouts (`CONTENT` with the title placeholder and the footer bar, `PLAIN` for the title and thank-you slides),
 sections per topic. Outputs in this folder: `RoomCleaner_Buntinx_v10.pptx`, `.pdf`, `contact_sheet.png`.
 
+## v10.6 (10/27): variables defined under every equation
+
+- Every equation on a slide has a "where" line right below it (symbol: meaning (unit), each symbol once per slide): slide 4 (the three
+  typeset panels: first bullet under each panel), 6 (Δx = v·Δt), 7 (reachable condition; L_i = ‖a_i − p‖), 9 (V = I·ρ·2L/A, R, P),
+  11 (Need lines: tension, coil heat, pull, worst-cable factor k), 12 (F = τ/r), 13 (radiation panel, convection, P = I²·R), 15 (grip
+  N = m(g + a)/(2μ); the 2.0 mm gap arithmetic is written out in words), 18 (Niemann H_v and η).
+- Moved to speaker notes to make room: slide 4 "Why the planner keeps the claw at least 0.4 m below the anchors"; slide 13 "First
+  station in a stud on the TV wall, 12 V; 1° dovetail draft next iteration" (both already in that slide's notes); slide 15 "A camera
+  bay in the electronics housing"; slide 18 "TPU grip pads on the jaws (planned)" (it is on slide 15). Slide 18's draft and back-mount
+  cards are merged into one card.
+- Slide 11 Need lines are 8 pt in a taller band (0.74 in); the charts above them are shorter.
+
 ## v10.5 (10/27): DECISIONS D45 applied
 
 - Dynamic load a = 1 m/s² (design, the maximum commanded claw acceleration; was 2 m/s² assumed). A_DYN in the build, the tension

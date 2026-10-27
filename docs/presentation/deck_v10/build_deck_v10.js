@@ -294,7 +294,7 @@ section("Fundamentals");
     "fuse.run_empty / run_full). Vref MEASURED on the board; 0.7 ASSUMED; pull test PLANNED (FUNDAMENTALS section 2 evidence line). " +
     "Card C: T = W / (4 sin phi), sin phi = d / sqrt(d^2 + D_h^2); W = (0.4536 + 0.45) x 9.81 = 8.86 N (1 lb + the 0.45 kg claw budget), D_h = sqrt(1.676^2 + 1.372^2) = 2.166 m; " +
     "32.1 / 16.2 / 8.3 / 4.6 N at 0.15 / 0.3 / 0.6 / 1.2 m (FUNDAMENTALS section 1 table, recomputed); T ~ W D_h / (4 d) for a shallow cable; " +
-    "keep the claw at least 0.4 m below the anchors; CALCULATED, no tension measured on the rig (FUNDAMENTALS section 1). Figure: deck_v3/fig/position_vectors.png.",
+    "keep the claw at least 0.4 m below the anchors (design; moved off the slide in v10.6 to make room for the variable definitions); CALCULATED, no tension measured on the rig (FUNDAMENTALS section 1). Figure: deck_v3/fig/position_vectors.png.",
     { titleSize: 20 });
   const g = 0.2, cw = (W - 2 * M - 2 * g) / 3, ch = BOT - TOP;
   // A white boxed panel (thin black border) for the equations inside a card; returns its height.
@@ -309,21 +309,23 @@ section("Fundamentals");
   };
   const cards3 = [
     ["Cable length → position", ["eq_a", "L_i = ‖ a_i − p ‖", "a_i: anchor exit, p: claw", "straight, taut cable"], [
+      "where L_i: cable length, mount i to claw (m); a_i: cable exit point at mount i; p: claw position; r: spool radius incl. wound line (mm)",
       "Line per spool turn = 2π·r: 2π × 7.5 mm core (design) = 47.1 mm → 2π × 10 mm full spool (calc, 20 ft wound) = 62.8 mm (calc)",
       "Four cable lengths, three position unknowns: overdetermined, solved by least squares",
       "The camera on the floor board fixes the anchors and cable lengths at startup (calibration)",
       "Validated in the simulator and by held-out poses during calibration (sim); no physical position measurement yet",
     ]],
     ["Torque → pull on the line", ["eq_b", "I = Vref / (8·R_s)", "τ_hold = τ_rated · I / I_rated", "τ_run ≈ 0.7 τ_hold (assumed)", "F = τ / r"], [
+      "where I: phase current (A); Vref: driver reference voltage (V); R_s: current-sense resistor (Ω); τ_hold: holding torque at I (N·m); τ_rated, I_rated: listed holding torque and current; τ_run: running torque (N·m); F: line pull (N); r: spool radius (m)",
       "At 1.5 A (rated; chosen, design): τ_run = 0.7 (assumed) × 0.36 N·m = 0.252 N·m (1.5 A, 0.36 N·m: datasheet, SIMAX3D NEMA 17 42-38 seller listing); F = 0.252 / 0.0075 m = 34 N empty, 0.252 / 0.010 m = 25 N full (calc)",
       "Validated: Vref on the board (measured); 0.7 running fraction (assumed); pull test (planned)",
     ]],
     ["Pull → what four cables hold", ["eq_c", "T = W / (4 sin φ)", "sin φ = d / √(d² + D_h²)"], [
+      "where T: tension per cable (N); W: supported weight (N); φ: cable angle above horizontal; d: claw depth below the anchors (m); D_h: horizontal distance, claw to anchor (m)",
       "W = (0.454 kg test, design + 0.45 kg claw budget, design) × 9.81 (handbook) = 8.86 N (calc)",
       "D_h = √(1.676² + 1.372²) = 2.166 m (calc; half the 3.353 × 2.743 m room, measured)",
       "d = 0.15 m: 8.86 / (4 × 0.069) = 32 N; 16 / 8.3 / 4.6 N at d = 0.3 / 0.6 / 1.2 m (calc)",
       "Shallow cable: T ≈ W·D_h / (4d), so halving the depth doubles the tension",
-      "Why the planner keeps the claw at least 0.4 m below the anchors (design)",
       "Validated: calculated only; no cable tension has been measured on the rig",
     ]],
   ];
@@ -336,7 +338,7 @@ section("Fundamentals");
     const d = imgSize(P("docs/presentation/deck_v10/fig", eq[0] + ".png"));
     const eqH = (eqW - 0.2) * d.h / d.w + 0.16;
     const area = i === 0 ? Math.max(eqH, fw) : eqH;
-    card(sl, x, TOP, cw, ch, h, items, { headSize: 12, size: 10, space: 4, gapIn: area + 0.2 });
+    card(sl, x, TOP, cw, ch, h, items, { headSize: 12, size: 9, space: 3, gapIn: area + 0.2 });
     if (i === 0) fitImage(sl, P("docs/presentation/deck_v3/fig/position_vectors.png"), ix + iw - fw, iy, fw, fw, "Cable vectors from the anchors to the claw", { top: true });
     eqBox(ix, iy, eqW, eq);
   });
@@ -381,6 +383,7 @@ section("Generation 1");
     "Every motor and every sensor wired back to one place",
     "One board steps all four motors; a timing error skews the cables",
     "Skew Δx = v·Δt = 50 mm/s max cable speed (design) × 0.05 s timing error (assumed) = 2.5 mm (calc)",
+    "where Δx: cable length mismatch between winches (mm); v: cable speed (mm/s); Δt: timing error between motors (s)",
     "Moving a winch means re-running wire to the box",
   ], { space: 6 });
   card(sl, M + cw + g, TOP, cw, ch, "Ceiling camera and bead homing", [
@@ -412,6 +415,7 @@ section("Homing");
   const eqFile = path.join(CHARTDIR, "eq_d.png"), ed = imgSize(eqFile);
   const pad = 0.16, eqW = lw - 2 * pad, eqH = (eqW - 0.16) * ed.h / ed.w + 0.16;
   card(sl, M, TOP, lw, ch, "Bead homing", [
+    "where a_i: cable exit point at mount i; p: claw position; L_i,home: cable length at the homing pose (m)",
     "A stopper bead cannot pass its outlet: after homing, no cable can be shorter than at home",
     "Homing all four at once fixes a minimum length on every cable at the same time",
     "Reachable volume = grid count of the condition over the working volume (calc): 0.0 % (home 0.3 m) to 32.0 % (home 2.19 m); 4.7 % at 1.0 m, 29.1 % at 2.0 m; homing heights (design)",
@@ -429,10 +433,11 @@ section("Homing");
   card(sl, rx, TOP, rw, ch, "Floor-board homing", [
     "The camera measures the claw pose against tag 0",
     "Cable lengths follow from L_i = ‖a_i − p‖",
+    "where a_i: cable exit point at mount i; p: claw position; L_i: cable length from mount to claw (m)",
     "No length is clamped: the whole working volume stays available",
     "Nine sheets, 150 mm tags, 250 mm pitch, id 0 = origin (all design)",
   ], { size: 10, space: 4, headSize: 12 });
-  const fd = imgSize(path.join(CHARTDIR, "floor_board.png")), fh = 2.3, fw = fh * fd.w / fd.h;
+  const fd = imgSize(path.join(CHARTDIR, "floor_board.png")), fh = 2.0, fw = fh * fd.w / fd.h;
   fitImage(sl, path.join(CHARTDIR, "floor_board.png"), rx + (rw - fw) / 2, BOT - fh - 0.1, fw, fh, "Floor board: nine AprilTag 36h11 sheets, 150 mm tags, 250 mm pitch, id 0 is the origin");
 }
 
@@ -491,11 +496,12 @@ section("Modular box");
   ], { space: 5 });
   card(sl, M + cw + g, TOP, cw, ch, "Wire drop: Gen 1 leads vs one power pair", [
     "V = I·ρ·2L/A; ρ = 1.724×10⁻⁸ Ω·m (handbook), L = 9.75 m / 32 ft one way (measured), I = 2 A (assumed)",
+    "where V: voltage drop (V); I: current (A); ρ: copper resistivity (Ω·m); L: one-way run length (m); A: conductor area (m²); R = ρ·2L/A: loop resistance (Ω); P = I²·R: power lost in the wire (W)",
     "24 AWG Gen 1 motor leads (measured), A = 0.205 mm² (handbook): R = 1.64 Ω, 3.29 V (27 % of 12 V), 6.6 W (calc)",
     "16 AWG power pair (design), A = 1.309 mm² (handbook): R = 0.257 Ω, 0.51 V (4.3 %), 1.0 W (calc)",
     "Thin motor leads over a room-length run lose a quarter of the supply; one thick power pair loses 4 % (calc, above)",
     "16 AWG: $30 per 100 ft (assumed price) × 65 ft (design cut list) = $19.50 (calc)",
-  ], { size: 9.5, space: 3 });
+  ], { size: 9, space: 2 });
   const px = W - M - 2.9;
   coverImage(sl, PH("46_wall_mount_bracket_xt60_power_lead.jpg"), px, TOP, 2.9, 1.95, "Wall mount with its XT60 power connector");
   caption(sl, "The wall mount: one power plug", px, TOP + 1.98, 2.9);
@@ -545,7 +551,7 @@ section("Trade-offs");
     "into a metal insert; screws in a stud 531 N and up (bar capped at 600).");
   const g = 0.15, cols = 3, cw = (W - 2 * M - (cols - 1) * g) / cols, ch = (BOT - TOP - g) / 2;
   const at = (c, r) => ({ x: M + c * (cw + g), y: TOP + r * (ch + g) });
-  const NEED_H = 0.56, chH = ch - NEED_H;
+  const NEED_H = 0.74, chH = ch - NEED_H;
   const need = (p, text) => sl.addText(text, { x: p.x, y: p.y + chH, w: cw, h: NEED_H, fontSize: 8, color: C.text1, bold: true, margin: 0, valign: "top",
                                                 isTextBox: true, objectName: "what we need" });
   const box = { w: cw, h: chH };
@@ -553,22 +559,22 @@ section("Trade-offs");
   let p = at(0, 0);
   CHART_DATA.tension = { title: "Tension per cable (N) vs depth (m), calc", depths, static: depths.map(d => tension(d, 0)), dynamic: depths.map(d => tension(d, A_DYN)), limit: WINCH_LIMIT, box };
   chartImage(sl, "tension", p.x, p.y, cw, chH, "Tension per cable vs depth below the anchors: static, with 1 m/s2, winch limit (calc)");
-  need(p, "T = m(g + a)/(4 sin φ); m = 0.60 kg claw (measured) + 1 lb (design), a = 1 m/s² (design): d 0.4 m → 15.7 N < 16.8 N limit (calc); jeans 0.9 kg (assumed) need d ≥ 0.54 m (calc)");
+  need(p, "T = m(g + a)/(4 sin φ); m = 0.60 kg claw (measured) + 1 lb (design), a = 1 m/s² (design): d 0.4 m → 15.7 N < 16.8 N limit (calc); jeans 0.9 kg (assumed) need d ≥ 0.54 m (calc). where T: tension per cable; m: lifted mass; g: 9.81 m/s²; a: claw acceleration; φ: cable angle; d: depth below anchors");
   // 2. Motor temperature
   p = at(1, 0);
   CHART_DATA.temperature = { title: "Motor case (°C) at 1.5 A (design), sim", labels: TEMP.labels, noFin: TEMP.noFin, thin: TEMP.thin, plate: TEMP.plate, limit: TEMP.limit, box };
   chartImage(sl, "temperature", p.x, p.y, cw, chH, "Motor case temperature at 1.5 A, vented and sealed shell, by fin (two-node thermal network, sim)");
-  need(p, "Need < 60 °C (design). Two-node thermal network (sim); P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W (calc; 1.5 A datasheet; 1.8 Ω research, conservative)");
+  need(p, "Need < 60 °C (design). Two-node thermal network (sim); P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W (calc; 1.5 A datasheet; 1.8 Ω research, conservative). where P: coil heat (W); I: phase current (A); R: coil resistance per phase (Ω)");
   // 3. Winch pull
   p = at(2, 0);
   CHART_DATA.pull = { title: "Pull per winch (N) vs spool radius (mm), calc", radii, running: radii.map(runPull), design: radii.map(designPull), jeans: JEANS_PEAK, box };
   chartImage(sl, "pull", p.x, p.y, cw, chH, "Pull per winch vs spool radius at 1.5 A: running pull, design force, jeans worst cable (calculated)");
-  need(p, "F = 0.7 (assumed) × 0.36 N·m (datasheet: SIMAX3D 42-38 listing) / r: 34 N at 7.5 mm (design), 25 N at 10 mm (calc); ÷ 1.5 skip margin (design) = 16.8 N ≥ 14.8 N jeans (calc)");
+  need(p, "F = 0.7 (assumed) × 0.36 N·m (datasheet: SIMAX3D 42-38 listing) / r: 34 N at 7.5 mm (design), 25 N at 10 mm (calc); ÷ 1.5 skip margin (design) = 16.8 N ≥ 14.8 N jeans (calc). where F: line pull; τ: motor torque, 0.7 × holding when running; r: spool radius");
   // 4. Weight budget
   p = at(0, 1);
   CHART_DATA.lift = { title: "Winches can hold vs must hold (kg)", labels: LIFT.labels, values: LIFT.values, colors: ["#1F3A5F", "#8A8F98", "#8A8F98", "#BFC4CB", "#1F3A5F"], box };
   chartImage(sl, "lift", p.x, p.y, cw, chH, "What the winches can hold vs what they must hold, kg (measured claw, calculated capacity)");
-  need(p, "k = 0.915 LP worst-cable factor (sim) × (1 + a/g) 1.102 = 1.008; 16.8 N / (1.008 × 9.81) = 1.70 kg vs 0.60 (measured) + 0.9 (assumed) = 1.50 kg: +13 % (calc); jeans 1.50 × 1.008 × 9.81 = 14.8 N");
+  need(p, "k = 0.915 LP worst-cable factor (sim) × (1 + a/g) 1.102 = 1.008; 16.8 N / (1.008 × 9.81) = 1.70 kg vs 0.60 (measured) + 0.9 (assumed) = 1.50 kg: +13 % (calc); jeans 1.50 × 1.008 × 9.81 = 14.8 N. where k: worst-cable tension per unit m·g");
   // 5. Weakest link
   p = at(1, 1);
   CHART_DATA.weakest = { title: "Tension at which each part gives (N), calc", rows: WL, box };
@@ -600,6 +606,7 @@ section("Mount assembly");
     "Dovetail: wall mount offset outward 0.175 mm per side (design); clearance set from fit coupons (measured)",
     "Load path: cable, spool, set screw, motor, tab, mount, screws, stud",
     "Motor slips first: F = τ/r = 0.36 N·m (datasheet: SIMAX3D NEMA 17 42-38 listing) / 7.5 mm (design) = 48 N (calc)",
+    "where F: cable tension at the spool (N); τ: motor holding torque (N·m); r: spool core radius (m)",
     "The spool encoder sees the slip: tracking fault, every station holds",
   ], { space: 5 });
   const px = M + cw + 0.25, pw = W - M - px, g = 0.12;
@@ -624,15 +631,16 @@ section("Mount assembly");
   const eqFile = path.join(CHARTDIR, "eq_e.png"), ed = imgSize(eqFile);
   const eqW = 4.4, eqH = (eqW - 0.16) * ed.h / ed.w + 0.16;
   card(sl, M, TOP, cw, ch, "Fin, vents, stud", [
+    "where q_rad: radiated heat (W); ε: emissivity; σ: Stefan–Boltzmann constant (W/m²K⁴); A: fin area (m²); Ts: fin surface temperature (K); T∞: room temperature (K); h_rad: radiation coefficient (W/m²K); h: convection coefficient (W/m²K); ΔT = Ts − T∞ (K); L: plate height (m)",
     "The fin: aluminium 6061 (design) on the motor face, out through a slot in the top of the shell",
     "Motor heat: P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W (calc; 1.5 A rated, datasheet: SIMAX3D NEMA 17 42-38 seller listing; 1.8 Ω per phase, research: comparable 42×38 NEMA 17 datasheets list 1.5–1.65 Ω, 1.8 used as conservative)",
+    "where P: coil heat (W); I: phase current (A); I_peak: peak phase current (A); R: coil resistance per phase (Ω)",
     "With microstepping the two phase currents follow sin and cos, so total heat = I_peak²·R",
     "That heat leaves through the vents and the fin",
     "At Ts 50 °C, T∞ 23 °C: h_rad = 6.75·ε W/m²K (calc; σ = 5.67×10⁻⁸ W/m²K⁴, handbook; temperatures, design)",
     "Bare aluminium ε ≈ 0.05–0.09, black paint 0.92–0.96 (handbook)",
     "Natural convection: h = 1.42 (ΔT/L)^0.25 = 1.42 × (27 K / 0.2 m)^0.25 = 4.8 W/m²K on a 0.2 m vertical plate (calc, handbook correlation)",
     "Black paint: total 4.8 + 0.07 × 6.75 = 5.3 → 4.8 + 0.9 × 6.75 = 10.9 W/m²K, about 2× the heat per degree (calc); the motor contact square stays bare",
-    "First station in a stud on the TV wall, 12 V down the wall (datasheet); 1° dovetail draft (design) next iteration",
   ], { size: 9, space: 2, gapIn: eqH + 0.12 });
   sl.addShape(pres.shapes.RECTANGLE, { x: M + pad, y: TOP + 0.44, w: eqW, h: eqH, fill: { color: HEX.white }, line: { color: HEX.ink, width: 0.75 }, objectName: "equation box" });
   sl.addImage({ path: eqFile, x: M + pad + 0.08, y: TOP + 0.44 + 0.08, w: eqW - 0.16, h: (eqW - 0.16) * ed.h / ed.w,
@@ -697,25 +705,25 @@ section("Manufacturing");
 section("Claw");
 {
   const sl = slide("The claw, and why it is modular",
-    "Grip: N = m(g + a)/(2 mu) = 0.9 x 10.81 / 0.6 = 16.2 N per jaw at mu 0.3, 8.1 N at mu 0.6 (was 17.7 / 8.9 N at 2 m/s^2); a = 1 m/s^2 (D45). Cloth friction (DECISIONS D45): garment fabrics 0.22-0.38, special fabrics 0.52-0.62, denim on skin 0.14-0.44, simulation guidance for cotton/polyester twills 0.5-0.65, an informal incline test 0.74-0.89 for denim/cotton on plastic; none is fabric on PETG; mu 0.3 kept as the worst case until a sled pull on the printed jaws (ASTM D1894-style). Claw. Four-bar hands on the gear crank, 53 mm opening (CAD; the parallelism figure is a linkage model, not shown); a camera bay on the electronics housing; one 7.4 V two-cell pack, a 6 V regulator " +
+    "Grip: N = m(g + a)/(2 mu) = 0.9 x 10.81 / 0.6 = 16.2 N per jaw at mu 0.3, 8.1 N at mu 0.6 (was 17.7 / 8.9 N at 2 m/s^2); a = 1 m/s^2 (D45). Cloth friction (DECISIONS D45): garment fabrics 0.22-0.38, special fabrics 0.52-0.62, denim on skin 0.14-0.44, simulation guidance for cotton/polyester twills 0.5-0.65, an informal incline test 0.74-0.89 for denim/cotton on plastic; none is fabric on PETG; mu 0.3 kept as the worst case until a sled pull on the printed jaws (ASTM D1894-style). Camera bay in the electronics housing, the camera looks down the tube (moved off the slide in v10.6). Claw. Four-bar hands on the gear crank, 53 mm opening (CAD; the parallelism figure is a linkage model, not shown); a camera bay on the electronics housing; one 7.4 V two-cell pack, a 6 V regulator " +
     "for the servo, a 5 V buck for the board (DECK_V9_NOTES slide 18 row 'The claw'). The gripper attaches modularly at the tube, by design, a test bed for shirts " +
     "(DESIGN_INTENT 'The gripper'; v9.2 slide 18 row). A hard-material pinch was expected to grip better; testing showed alignment problems: the rack-and-pinion " +
     "jaws left a 2 mm gap on thin cloth, Sep 30 (v9.2 slide 18 row; no cloth-test reading logged). TPU and other pad materials being tried " +
     "(DESIGN_INTENT). The v6 clamp came out at 4.6x its mass budget in CAD, Oct 20; since then mass is tracked per part; the claw weighed 0.60 kg with battery " +
     "against the 0.45 kg budget (slide 11 and 17 rows). Photos 25, 40, 22; renders gripper1021_head.png, claw_v6.png.");
-  const cw = (W - 2 * M - 0.2 - 3.9) / 2, ch = BOT - TOP, g = 0.2;
+  const cw = (W - 2 * M - 0.2 - 3.5) / 2, ch = BOT - TOP, g = 0.2;
   card(sl, M, TOP, cw, ch, "The claw today", [
     "Four-bar hands on a geared crank; 53 mm opening (design)",
-    "A camera bay in the electronics housing; the camera looks down the tube",
     "One 7.4 V two-cell pack (datasheet): 6 V regulator for the servo, 5 V buck for the board (design setpoints)",
     "Weighed 0.60 kg with battery (measured) against a 0.45 kg budget (design)",
     "Grip per jaw, jeans: N = m(g + a)/(2μ) = 0.9 × (9.81 + 1)/(2 × 0.3) = 16.2 N; 8.1 N at μ 0.6 (calc; 0.9 kg assumed; a = 1 m/s² design; μ 0.3 worst case, from published ranges)",
+    "where N: normal force per jaw (N); m: garment mass (kg); g: 9.81 m/s²; a: claw acceleration (m/s²); μ: cloth-on-jaw friction coefficient",
     "Published fabric friction: 0.22–0.38 garment fabrics, 0.52–0.62 special fabrics, denim on skin 0.14–0.44; none is fabric on PETG, so 0.3 is the design worst case (handbook / literature)",
   ], { size: 9, space: 3 });
   card(sl, M + cw + g, TOP, cw, ch, "Modular, on purpose", [
     "The gripper attaches at the tube, so other grippers can be tried",
     "A hard pinch was expected to grip better; testing showed alignment problems",
-    "The first rack-and-pinion jaws left a gap on thin cloth (Sep 30): 77.4 − 2 × 18 mm × 2.09 rad = 2.0 mm (calc; CAD dimensions, design)",
+    "The first rack-and-pinion jaws left a gap on thin cloth (Sep 30): closed width 77.4 mm − 2 × pinion radius 18 mm × travel 2.09 rad = 2.0 mm (calc; CAD dimensions, design)",
     "TPU grip pads go on in the next iteration",
     "The v6 clamp: 2,061 g in CAD at solid density (calc) / 450 g budget (design) = 4.6 (calc); mass tracked per part since",
   ], { space: 5 });
@@ -790,23 +798,19 @@ section("Next iteration");
     "top (slide 24 row, PLANNED). Mount: 597 cm^3 solid (COST_BREAKDOWN section 2), dovetails 225x and screws in a stud 8.9x the motor (lift_chain_weakest_link.md ranking), to about 200 cm^3 (slide 24 row, PLANNED). " +
     "Gear stage: ratio 3, efficiency 0.9, assumed and conservative (DECISIONS D45: Niemann mesh-loss factor H_v = 0.167 for 18T/54T module 1, 20 deg, eps1 0.765, eps2 0.884; eta_mesh = 1 - mu H_v = 0.92-0.97 for mu 0.2-0.5; no published efficiency for printed PETG spur gears; a torque-in/torque-out test replaces it; winch_gear3.json ratio, eta): 3 x 0.9 = 2.7x torque at the spool at equal current; heat at 1.0 A vs 1.5 A: (1.0/1.5)^2 = 0.44 (1.8 W vs 4.05 W, winch_gear3.json heat). Still planned, " +
     "no result: pull test, hold test, first three-station lift (slide 25 and 26 rows). The dashed box is for Jasper's new CAD.");
-  const g = 0.12, fullW = 3 * 1.9 + 2 * g, h1 = 1.72, h2 = 0.98, h3 = BOT - TOP - h1 - h2 - 2 * g, halfW = (fullW - g) / 2;
+  const g = 0.12, fullW = 3 * 1.9 + 2 * g, h1 = 2.15, h2 = 0.78, h3 = BOT - TOP - h1 - h2 - 2 * g, halfW = (fullW - g) / 2;
   card(sl, M, TOP, fullW, h1, "3:1 printed gear stage", [
     "18T / 54T spur, module 1, 20° (design); printed PETG pinion; checked in CAD, pinion printed, not fitted",
     "Pull × 3 (design) × 0.9 η (assumed, conservative) = 2.7 at equal current (calc); at 1.0 A (design): heat × (1.0/1.5)² = 0.44 (calc)",
     "Mesh loss (Niemann): H_v = π(u+1)/(z1·u)·(1 − εα + ε1² + ε2²) = 0.167; η = 1 − μ·H_v = 0.92–0.97 for μ 0.2–0.5 (calc)",
     "z1 18, z2 54, u 3 (design); ε1 0.765, ε2 0.884 (calc); μ 0.2–0.5 dry polymer (assumed); 0.9 leaves room for bearing and print-roughness losses",
+    "where η: efficiency (mesh, or stage); H_v: tooth loss factor; u = z2/z1: gear ratio; z1, z2: pinion and gear teeth; εα = ε1 + ε2: contact ratio; ε1, ε2: approach and recess contact ratios; μ: tooth friction coefficient",
   ], { size: 9, space: 2, headSize: 11 });
-  card(sl, M, TOP + h1 + g, halfW, h2, "1° draft on the dovetail (design)", [
-    "Today the slide-in binds on insertion",
-    "Thicker at the top: the station self-locates as it slides in (planned)",
-  ], { size: 9, space: 2, headSize: 11 });
-  card(sl, M + halfW + g, TOP + h1 + g, halfW, h2, "Lighter back mount", [
-    "Today 597 cm³ solid (design, CAD volume), far stronger than the motor can pull",
-    "Thinner walls and ribs: about 200 cm³ (planned)",
+  card(sl, M, TOP + h1 + g, fullW, h2, "1° dovetail draft and a lighter back mount", [
+    "Draft 1° (design): the slide-in binds today; thicker at the top, it self-locates (planned)",
+    "Back mount: 597 cm³ solid (design, CAD volume) → about 200 cm³, thinner walls and ribs (planned)",
   ], { size: 9, space: 2, headSize: 11 });
   card(sl, M, TOP + h1 + h2 + 2 * g, fullW, h3, "Also next / still planned", [
-    "TPU grip pads on the jaws (planned)",
     "Pull test at 1.5 A (design): the measured limit goes into the planner (planned)",
     "Hold test: 90 minutes at 1.5 A, motor below 60 °C (planned; 60 °C limit, design)",
     "First three-station lift: self-check, calibration, a short move with 1 lb (planned; 1 lb, design)",

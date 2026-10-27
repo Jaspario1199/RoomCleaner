@@ -85,3 +85,6 @@ Slide 4 equations are typeset PNGs from `make_equations.py` (matplotlib mathtext
 
 ## v10.1 floor board and next-iteration views
 `make_floor_board_figure.py` draws the nine-sheet AprilTag 36h11 floor reference (FloorBoardLayout.nominal_positions, 150 mm tags, 250 mm pitch) to `fig/floor_board.png`, shown on slide 16. Slide 17 shows photos 49 (front) and 50 (back) of the next-iteration station CAD.
+
+## v10.2 cards are single shapes
+Each grey card is ONE rectangle with its heading and bullets inside it (`card()`), no rounded corners, hex fill. The earlier grey-shape-plus-text-box build rendered with text hidden behind the cards in iOS Quick Look. Slide 4 reserves space under each heading (`gapIn`) and places the equation panel on top of the card.

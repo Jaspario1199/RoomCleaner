@@ -99,14 +99,26 @@ function bullets(sl, items, x, y, w, h, size = 11, o = {}) {
   });
   sl.addText(arr, { x, y, w, h, valign: "top", align: "left", margin: [0, 2, 0, 0], isTextBox: true, objectName: o.name || "bullets" });
 }
-// Light-grey card with a bold heading and bullets. Returns the inner box below the heading for extra content.
+// Light-grey card: ONE rectangle shape that carries its own heading and bullets (v10.2). Earlier builds drew a grey shape and
+// separate text boxes on top; the iOS/macOS Quick Look renderer layered those wrongly and hid the text. With the text inside the
+// shape there is nothing to mis-layer. o.gapIn leaves empty space under the heading for content placed on top (slide 4).
 function card(sl, x, y, w, h, heading, items, o = {}) {
-  sl.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, rectRadius: 0.06, fill: { color: C.background2 }, line: { color: C.background2 }, objectName: `card ${heading}` });
-  const pad = 0.16;
-  sl.addText(heading, { x: x + pad, y: y + 0.1, w: w - 2 * pad, h: 0.3, fontSize: o.headSize || 12.5, bold: true, color: C.text1,
-                        valign: "middle", margin: 0, isTextBox: true, objectName: `heading ${heading}` });
+  const pad = 0.16, size = o.size || 11, headSize = o.headSize || 12.5;
+  const gapPt = o.gapIn ? o.gapIn * 72 : 6;
+  const arr = [{ text: heading, options: { fontSize: headSize, bold: true, color: HEX.ink, paraSpaceAfter: gapPt, align: "left",
+                                            breakLine: !!(items && items.length) } }];
+  (items || []).forEach((it, i) => {
+    const sub = it.startsWith("- ");
+    const t = sub ? it.slice(2) : it;
+    const base = { fontSize: sub ? size - 1 : size, color: sub ? HEX.mid : HEX.ink, bullet: { indent: sub ? 10 : 12 },
+                   indentLevel: sub ? 1 : 0, paraSpaceAfter: o.space == null ? 4 : o.space, align: "left" };
+    const rs = runs(t, base);
+    rs.forEach((r, j) => { r.options.breakLine = j === rs.length - 1 && i < items.length - 1; });
+    arr.push(...rs);
+  });
+  sl.addText(arr, { shape: pres.shapes.RECTANGLE, x, y, w, h, fill: { color: HEX.light }, line: { color: HEX.light, width: 0 },
+                    valign: "top", align: "left", margin: [pad * 72, pad * 72, pad * 72, pad * 72], objectName: `card ${heading}` });
   const by = y + 0.44;
-  if (items && items.length) bullets(sl, items, x + pad, by, w - 2 * pad, (o.listH || (h - 0.54)), o.size || 11, { space: o.space, name: `bullets ${heading}` });
   return { x: x + pad, y: by, w: w - 2 * pad, h: h - 0.54 };
 }
 function fitImage(sl, file, x, y, w, h, alt, o = {}) {
@@ -143,7 +155,7 @@ function photoRow(sl, list, x, y, w, h, o = {}) {
   });
 }
 function placeholderBox(sl, text, x, y, w, h) {
-  sl.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, rectRadius: 0.06, fill: { color: HEX.white }, line: { color: HEX.grey, width: 1, dashType: "dash" }, objectName: "placeholder" });
+  sl.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: HEX.white }, line: { color: HEX.grey, width: 1, dashType: "dash" }, objectName: "placeholder" });
   sl.addText(text, { x: x + 0.15, y, w: w - 0.3, h, fontSize: 12, color: C.text2, align: "center", valign: "middle", margin: 0, isTextBox: true, objectName: "placeholder text" });
 }
 // v10.1: charts are PNGs. The build writes chart_data.json (data + box size in inches) and runs make_charts.py, then places the
@@ -211,7 +223,7 @@ section("Opening");
     cx += iw + g;
   });
   // Three stacked cards in the left column (text supplied by Jasper, 10/27)
-  const cw2 = bx - M - 0.25, gap = 0.1, hEdu = 0.68, hHob = 1.5, hExp = (BOT - TOP) - hEdu - hHob - 2 * gap;
+  const cw2 = bx - M - 0.25, gap = 0.1, hEdu = 0.78, hHob = 1.62, hExp = (BOT - TOP) - hEdu - hHob - 2 * gap;
   card(sl, M, TOP, cw2, hEdu, "Education: Texas A&M", [
     "Bachelor's, Mechanical Engineering, August 2027",
   ], { size: 10.5, space: 4 });
@@ -307,17 +319,16 @@ section("Fundamentals");
   ];
   cards3.forEach(([h, eq, items], i) => {
     const x = M + i * (cw + g);
-    const inner = card(sl, x, TOP, cw, ch, h, [], { headSize: 12 });
-    let y = inner.y;
-    if (i === 0) {
-      const fw = 0.86;
-      fitImage(sl, P("docs/presentation/deck_v3/fig/position_vectors.png"), inner.x + inner.w - fw, y, fw, fw, "Cable vectors from the anchors to the claw", { top: true });
-      y += eqBox(inner.x, y, inner.w - fw - 0.1, eq) + 0.12;
-      y = Math.max(y, inner.y + fw + 0.1);
-    } else {
-      y += eqBox(inner.x, y, inner.w, eq) + 0.12;
-    }
-    bullets(sl, items, inner.x, y, inner.w, TOP + ch - y - 0.1, 10, { space: 4, name: `bullets ${h}` });
+    const pad = 0.16, ix = x + pad, iw = cw - 2 * pad, iy = TOP + 0.44;
+    // height of the equation area first, so the card's own text can start below it
+    const fw = 0.86;
+    const eqW = i === 0 ? iw - fw - 0.1 : iw;
+    const d = imgSize(P("docs/presentation/deck_v10/fig", eq[0] + ".png"));
+    const eqH = (eqW - 0.2) * d.h / d.w + 0.16;
+    const area = i === 0 ? Math.max(eqH, fw) : eqH;
+    card(sl, x, TOP, cw, ch, h, items, { headSize: 12, size: 10, space: 4, gapIn: area + 0.2 });
+    if (i === 0) fitImage(sl, P("docs/presentation/deck_v3/fig/position_vectors.png"), ix + iw - fw, iy, fw, fw, "Cable vectors from the anchors to the claw", { top: true });
+    eqBox(ix, iy, eqW, eq);
   });
 }
 
@@ -668,7 +679,7 @@ section("Calibration");
   const cols = 3, g = 0.12, cw = (W - 2 * M - 2.55 - (cols - 1) * g) / cols, ch = (BOT - TOP - 0.38 - g) / 2;
   steps.forEach(([h, items], i) => {
     const x = M + (i % cols) * (cw + g), y = TOP + Math.floor(i / cols) * (ch + g);
-    card(sl, x, y, cw, ch, h, items, { size: 8.5, space: 1, headSize: 9.5 });
+    card(sl, x, y, cw, ch, h, items, { size: 8.5, space: 1, headSize: 8.5 });
   });
   sl.addText("No automatic retry; any station reboot forces the full sequence again.",
              { x: M, y: BOT - 0.32, w: W - 2 * M - 2.55 - 0.1, h: 0.3, fontSize: 10, bold: true, color: C.text1, margin: 0, valign: "middle", isTextBox: true, objectName: "rules" });

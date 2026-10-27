@@ -42,3 +42,11 @@ Technical Presentation — v2 draft"). Suggested placement:
 | 38 | the claw assembled on the bench: four-bar jaws, white gear housing, aluminium tube, blue electronics housing lit from inside, XIAO S3 beside it (Jasper, 10/26) | deck v9 project picture; website |
 | 39 | slide-in held up: NEMA 17, red spool, end-stop, the full breadboard harness hanging below (Jasper, 10/26) | deck v9 "Bring-up" |
 | 40 | claw electronics housing open: ZTW UBEC, MP1584, WAGOs, battery, XIAO S3 Sense on its carrier (Jasper, 10/26) | deck v9 "Claw electronics"; website |
+| 41 | the claw hanging on its cables, electronics housing open (UBEC, WAGOs, XIAO S3 on its carrier lit blue), tube and gear housing below (Jasper, 10/27) | deck v9 "Claw electronics"; website |
+| 42 | **the claw suspended from three cables in the room corner**, jaws hanging above the chair; the first time it hangs (Jasper, 10/27) | deck v9 title / "Three stations first"; website hero |
+| 43 | bench from above: two stations on their slide-ins, red shell, laptop with the serial monitor, meter, 12 V supply and power strip (Jasper, 10/27) | deck v9 "Station electronics on the bench" |
+| 44 | a mounted wall station from below: shell on its grey mount, the line leaving the switch tab straight down, 12 V lead with a WAGO (Jasper, 10/27) | deck v9 "On the wall" |
+| 45 | the printed wall mount alone in a room corner, 12 V lead hanging, before the station slides in (Jasper, 10/27) | deck v9 "One plug per station" |
+| 46 | wall mount with its XT60 power connector and the 12 V lead run along the wall (Jasper, 10/27) | deck v9 "One plug per station" |
+| 47 | shell with the failed print layer kept, fin through the slot, window behind (Jasper, 10/27) | deck v9 "Printing and machining" |
+| 48 | shell with the failed layer, line leaving the slot, "Rhyno" logo (Jasper, 10/27) | website "Building it" |

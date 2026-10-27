@@ -512,19 +512,21 @@ content("The first physics: cable tension climbs toward the ceiling", [
     { eyebrow: "WINCH MOTOR", title: "NEMA 17 steppers",
       why: ["Cheap, and one shield drives all four", "Holds position without a feedback loop"],
       cost: ["No brake: it holds only while powered, so a power loss drops the claw", "Runs hot: holding current is heat, 4.05 W per motor at 1.5 A"] },
-    { eyebrow: "GRIPPER", title: "Five tendon fingers",
-      why: ["Gathers crumpled cloth with one servo", "Printable in flexible TPU"],
-      cost: ["Designed in CAD only, 419 g of a 450 g budget, never built", "Replaced by a clamp, then by the geared four-bar (Act 3)"] },
+    { eyebrow: "ITERATION 1 ARCHITECTURE", title: "One central unit",
+      why: ["One Uno and one shield drove four corner motors over wires run to each corner", "An overhead ceiling camera scanned the room"],
+      cost: ["Every motor and every sensor wired back to one place", "Once each corner had a switch and an encoder: 250 m of wire (Act 2)"] },
     { eyebrow: "EMERGENCY STOP", title: "The power strip",
       why: ["A guaranteed stop with no extra part", "The only stop that cannot be overridden by software"],
       cost: ["Cutting power drops the claw", "Nobody stands under the robot; a brake is on the next-steps list"] },
   ], M, 1.3, W - 2 * M, 5.4);
   sl.addNotes("Talk track (55 s): Three July choices that each came back later. Steppers: cheap, one shield drives four, and they hold position without a loop. " +
-              "The cost: no brake, so they hold only while powered, and holding current is heat, which becomes the thermal story in Act 4. The gripper: five tendon " +
-              "fingers in flexible TPU, pulled by one servo, meant to gather crumpled cloth. It stayed in CAD at 419 g of a 450 g budget and was never built. The " +
-              "emergency stop: the switched power strip, the one stop software cannot override; the cost is that it drops the claw, so the rule is nobody under the " +
-              "robot. If asked: a worm-gear DC motor would self-lock and hold with zero current, at about $32 each and with a control loop per motor; I chose the " +
-              "stepper for cost and simplicity and accepted the drop. " +
+              "The cost: no brake, so they hold only while powered, and holding current is heat, which becomes the thermal story in Act 4. The architecture: one " +
+              "central unit, an Uno with a CNC shield, driving four motors in the four corners over wires run to each corner, with an overhead camera on the " +
+              "ceiling scanning the room. It worked; the cost was that every motor and every sensor had to be wired back to that one place, and Act 2 shows " +
+              "where that leads. The emergency stop: the switched power strip, the one stop software cannot override; the cost is that it drops the claw, so " +
+              "the rule is nobody under the robot. If asked: a worm-gear DC motor would self-lock and hold with zero current, at about $32 each and with a " +
+              "control loop per motor; I chose the stepper for cost and simplicity and accepted the drop. The overhead camera was retired on Oct 21 (D33): " +
+              "one more device to mount and calibrate in every room, the claw and cables hide the grasp spot from above, and its floor map assumes a flat floor. " +
               "If asked for the idea behind each trade (the v8 trade-off table). Why heat matters: pull rises with current but coil heat with current squared, " +
               "P = I²R, 2.0 W at 1.06 A and 4.05 W at 1.5 A with the assumed 1.8 Ω phase; the motor is bolted to a printed PETG tab that carries the whole cable " +
               "load, PETG conducts about 1/800 as well as aluminium, so the tab climbs toward motor temperature, and above about 60 °C loaded PETG creeps, the " +
@@ -574,40 +576,26 @@ photoSlide("Bench week found what the drawings could not", [
 "If asked: whether the 18 V was an open-circuit reading is not recorded; the supply was later identified as 12 V, 6 A, and the station buck accepts up to 20 V.",
 { tags: ["MEASURED"] });
 
-content("Why Generation 1 could not be the final design", [
-  "Bead homing (a stopper bead on each cable trips the outlet switch, so no cable can ever be shorter than at home) left 5–29 % of the room's volume reachable: home 1 m up, 5 %; 2 m up, 29 %. Caught on paper",
-  "Floor area at grab height reads better, 45 % with home 1 m up and 93 % at 1.5 m: what bead homing loses is height, for the scan and the hamper, not footprint",
-  "One central board would need 10 wires to every corner once each winch had sensors: 250 m (820 ft) of wire",
-  "A central board also skews the winches: 50 ms of skew is 2.5 mm of cable error, about 7.5 N",
+content("A motor on a wall needs a switch and an encoder", [
+  "A motor bolted to a wall cannot just run: a camera can fail, a spool can overwind, tension can rip a mount out, a motor can stall. So each winch gets a switch and a spool encoder",
+  "The encoder is there to measure discrepancies while testing; if the camera proves good enough on its own it can go later. Data first",
+  "With a motor, a switch and an encoder in every corner, one central box over long, thin wire stops making sense: 10 conductors per corner, 250 m (820 ft) of wire, 0.82 V lost on the 32 ft run, 2.5 mm of skew per 50 ms",
+  "Homing from that central box with beads on the cables also capped the room (chart: 5–29 % of the volume reachable); the claw camera replaced it (Act 3)",
 ], { sheet: "bead_homing", tab: "Bead homing" },
-"Talk track (55 s): Three calculations killed Generation 1 on paper. Homing: a bead on each cable trips a switch at the outlet, so a cable can never be shorter than " +
-"at home. The chart shows what that costs: with home one metre up, 5 % of the room is reachable; two metres up, 29 %. Wiring: once each winch has a switch and an " +
-"encoder, a central board needs ten wires to every corner, and with the supply on a stand and the runs down the wall and back up, that is 250 metres of wire. " +
-"Timing: one board stepping four motors from one loop skews them; 50 ms of skew is 2.5 mm of cable error, about 7.5 N on a 3 N/mm line. Each of these drives one " +
-"decision in Act 3. If asked why not home each cable at its own shortest length: that drags the claw into the high-tension zone next to an anchor. " +
-"If asked whether floor area is the better measure (it is the honest one for where clothes are picked): same model as the chart, room 11 by 9 ft, anchors " +
-"2.59 m up, 0.2 m wall margin, a floor point counts when the claw can reach it at the lowest working height, 0.3 m. With home 1 m up, 45 % of the floor is " +
-"reachable at grab height, not 5 %; at 1.2 m, 67 %; at 1.5 m, 93 %; from 1.8 m up, all of it. Bead homing does not lose floor, it loses height: the claw cannot " +
-"rise above the home pose anywhere, and near the walls much less, and the robot needs that height to scan from 1.6 m, lift a garment over the hamper and keep " +
-"the cables off furniture; a high home pose also sits in the high-tension zone next to the anchors. So the volume figure is the right one for the robot's job, " +
-"and I lead with the floor figure because it is the fair one. Calculated, both.",
-{ tags: ["CALCULATED"], size: 16, space: 9 });
+"Talk track (55 s): Here is why Iteration 1 changed. A motor bolted to a wall cannot just run. Things go wrong: the camera malfunctions, a spool winds too " +
+"tight, cable tension rips something out of the wall, a motor stalls. So every winch needs a switch, a button it can hit, and an encoder on the spool. The " +
+"encoder is there to measure the discrepancies while I test; if the camera later turns out to be good enough on its own, the encoder can go, but the data " +
+"comes first. And once every corner carries a motor, a switch and an encoder, driving all of them from one box over a long run of thin wire does not hold " +
+"up: ten conductors to each corner, 250 metres of wire with the supply on a stand and the runs down the wall and back up, 0.82 V lost on the 32 ft branch " +
+"at 2 A on 18 AWG, and one loop stepping four motors skews them, 2.5 mm per 50 ms, about 7.5 N on a 3 N/mm line. The chart is the smaller point: homing " +
+"each cable against a bead from that box capped the room at 5 to 29 % of the volume. If asked why not home each cable at its own shortest length: that " +
+"drags the claw into the high-tension zone next to an anchor. If asked about floor area instead of volume: 45 % of the floor is reachable at grab height " +
+"with the beads set 1 m up, 93 % at 1.5 m; what bead homing loses is height, for the scan and the hamper. The encoder's two jobs today: confirm every " +
+"commanded step, and catch slip as the tension sensor. The switch wiring is fail-safe, LOW at rest and HIGH pressed or with a broken wire (Act 2 bench).",
+{ tags: ["CALCULATED"], size: 15, space: 8 });
 
 // ================================================================================================ ACT 3: REDESIGN
 section("Redesign"); ACT = "Act 3 of 5: Redesign (September to early October)";
-content("The clamp that could not close on thin cloth (Sep 30)", [
-  "Rack-and-pinion jaws could not pinch thin fabric: the pinion travel left a 2 mm gap, so the pads never met",
-  "The v6 clamp came out at 4.6 times its mass budget in CAD (Oct 20), with no torque path from the servo",
-  "Lesson: mass tracked through every version from then on; the final claw was weighed on Oct 22",
-  "Final: a geared four-bar with parallel jaws (Act 4)",
-], { grid: [R("gen1_tentacle_claw.png"), R("claw_v6.png"), R("gripper1021_head.png"), PH("22_gear_train_printed_servo.jpg")],
-     alt: "Claw versions", caption: "Finger claw (CAD only), v6 clamp (CAD), final four-bar (CAD), printed gear train" },
-"Talk track (55 s): The claw went through four versions, and each failed for a reason I can name. The fingers never left CAD. The first clamp, September 30: " +
-"rack-and-pinion jaws whose pinion travel left a 2 mm gap, so on thin cloth on a hard floor the pads never met. The v6 clamp, October 20: in CAD it came out at " +
-"4.6 times its mass budget, up to 2.06 kg against 0.45, and with no torque path from the servo to the jaws. That was the moment I started tracking mass through " +
-"every version, and the final claw was weighed two days later. The final design is the geared four-bar with parallel jaws, in Act 4. " +
-"If asked: the mass problem was never the budget; it was that I did not re-check the budget as the claw changed.",
-{ tags: ["CAD"] });
 
 {
   const WL = require(P("calculations", "lift_chain_weakest_link.json"));
@@ -657,14 +645,14 @@ content("The drive slips before the wall does: a designed fuse", [
 "torque; the slip has not been measured yet, the pull test does that.",
 { tags: ["CALCULATED"], size: 15, space: 9 });
 
-content("One controller per winch", [
-  "Generation 1's central box worked within about a day and a half; it had to go: 250 m (820 ft) of wire once each winch had sensors, 2.5 mm of skew per 50 ms, a tangle to unplug and shelve, no modularity",
-  "Now: a controller in each station, fed by one 12 V pair: 50 m (164 ft)",
-  "Each station is built, tested and swapped on its own",
-  "The cost: timing moves into software",
+content("Iteration 2: a box with its own brain, and only power going in", [
+  "An ESP32 in each box with everything it needs; the only thing going in is power, one thicker 12 V pair: 50 m (164 ft) of wire instead of 250 m, 0.51 V drop (calculated)",
+  "Power can come from anywhere, so a box sits in any position and orientation; the room's geometry no longer limits where the winches go",
+  "Plug and play: a box slides off its wall mount and unplugs for guests or storage; back on with one plug, it joins Wi-Fi by itself",
+  "A product, not a tangle of wires from a central area; the mount is separate, so later a pole clamp instead of screws in a stud",
 ], (sl, x, y, w, h) => {
-  figure(sl, { file: [PH("14_gen1_cnc_shield_a4988.jpg"), PH("19_station_perfboard_soldered.jpg")], alt: "Central board and station board",
-               caption: "Before: one central driver board. After: a controller in each station." }, x, y, w, 2.45);
+  figure(sl, { file: [PH("14_gen1_cnc_shield_a4988.jpg"), PH("33_wall_station_mounted_closeup_wires.jpg")], alt: "Central board and a boxed station",
+               caption: "Before: one central driver board. After: a box on the wall with one plug." }, x, y, w, 2.45);
   table(sl, ["", "Generation 1", "Final"], [
     ["Where is the claw?", "Assumed from commanded cable lengths", "Measured by the claw camera at every startup"],
     ["Room geometry", "Anchors from a tape measure", "Anchors and cable lengths fitted, with error bars"],
@@ -674,20 +662,23 @@ content("One controller per winch", [
     ["Faults", "Emergency stop only", "PAUSE keeps torque; a power loss drops the claw (no brake) and nothing resumes by itself"],
   ], x, y + 2.5, w, [0.22, 0.33, 0.45], { size: 10.5, rowH: 0.34, name: "control logic" });
 },
-"Talk track (50 s): Generation 1's central box, one Uno and one shield, worked within about a day and a half, and it had to go for four reasons: wire, once each " +
-"winch carried a switch and an encoder, 250 metres against 50; timing, one loop stepping four motors skews them, 2.5 mm per 50 ms; packaging and storage, " +
-"every test meant unplugging and handling all of that wiring to put it on a shelf; and no modularity, one box for four winches. So: a controller in each station instead of one central board. Each station gets one 12 V pair, " +
-"50 metres of wire in total instead of 250, and it can be built and tested on its own, which is exactly how the bench week in Act 5 went. The cost is that the " +
-"four winches now have to agree on time in software: each station runs time-stamped segments on its own clock and holds if the link drops, with a 40 ms skew " +
-"budget that keeps the error to 2 mm. The table is the wider change: Generation 1 trusted its model; the final logic measures before it trusts and checks " +
-"after it acts. If asked: cable routes are 6, 21, 23 and 32 ft; line stiffness is about 3 N/mm over a 3 m run. " +
+"Talk track (55 s): Iteration 2 puts the brain in the box. Each station has its own ESP32, its driver, its buck, its switch and its encoder, and the only " +
+"thing that enters is power, on one thicker 12 V pair: 50 metres of wire in total instead of 250, with 0.51 V of drop on the longest run, calculated for " +
+"16 AWG. Because power can come from anywhere, a box can sit in any position and orientation; the room's geometry no longer limits where the winches go. " +
+"Plug and play: once a box works, it works; it slides off its wall mount and unplugs when guests come or the robot is not wanted in the room, and goes in " +
+"a drawer; back on, one plug, it joins the Wi-Fi by itself and takes its firmware over the air. That is a product, individual packaged boxes with one " +
+"plug and a Wi-Fi setup, not a tangle of wires from a central area. And the mount is separate from the box, so it can be customised later: a slide-in " +
+"screwed into a stud today, a clamp on a pole the way gym equipment attaches next. The table is the wider change: Generation 1 trusted its model; the " +
+"final logic measures before it trusts and checks after it acts. The cost: the four winches now have to agree on time in software; each station runs " +
+"time-stamped segments on its own clock and holds if the link drops, with a 40 ms skew budget that keeps the error to 2 mm. " +
+"If asked: cable routes are 6, 21, 23 and 32 ft; line stiffness is about 3 N/mm over a 3 m run; the 0.51 V is calculated at 2 A, not yet measured under load. " +
 "If asked what happens when the motors lose power: a stepper holds only while it is powered, and there is no brake and no self-locking stage, so if the 12 V " +
 "goes, from the power strip, a blown fuse or a pulled plug, all four motors lose holding torque and the claw falls, up to 1.5 kg from about 2 m. That is " +
 "deliberate: the power strip is the one category-0 stop software cannot override, and the mitigation is that nobody stands under the robot. Each station's " +
 "controller runs from the same 12 V pair, so a power loss is also a reboot: the driver's enable line is pulled high at boot so a reset can never move a motor, " +
 "and nothing resumes by itself, the host comes back disarmed or in recovery and waits for a person. A lost Wi-Fi link is different: the stations stop and hold " +
 "on their own clocks with torque on. A brake or a non-backdrivable stage is on the next-steps list. Designed and simulated; not yet run on four stations.",
-{ size: 16, space: 10 });
+{ size: 15, space: 9 });
 
 content("The claw camera replaces bead homing", [
   "The claw camera reads a printed floor board, and a fit finds the anchors and cable lengths: the whole room is reachable",
@@ -811,6 +802,23 @@ photoSlide("The claw: geared four-bar hands, camera bay, one 2S pack", [
   "N ≥ m (g + a) / (2μ) = 0.9 × 11.81 / 0.6 = **17.7 N**",
   "Jaws: **13.3 N** narrowest, 25 N at a 70 mm grab",
 ] } });
+
+content("The gripper is a modular attachment, on purpose", [
+  "The gripper attaches modularly at the tube, so a different gripper can be tried without touching the rest: a test bed for what works on shirts",
+  "A hard-material pinch was expected to grip better; testing showed alignment problems: the rack-and-pinion jaws left a 2 mm gap and never met on thin cloth (Sep 30)",
+  "Other materials are being tried, TPU pads among them: at a friction of 0.6 instead of the assumed 0.3, jeans need half the jaw force. Still testing",
+  "The v6 clamp came out at 4.6 × its mass budget in CAD (Oct 20): since then mass is tracked per part and the claw is weighed",
+], { file: [R("claw_v6.png"), R("gripper1021_head.png"), PH("22_gear_train_printed_servo.jpg")], alt: "Gripper experiments",
+     caption: "v6 clamp (CAD), the four-bar hands (CAD), the printed gear train" },
+"Talk track (50 s): The gripper is not the story; it is a modular attachment by design, so I can try different grippers and find what works on shirts. " +
+"I expected a hard-material pinch to work better than a soft one. Testing showed it does not, because of alignment: the first rack-and-pinion clamp's " +
+"pinion travel left a 2 mm gap, so on thin cloth on a hard floor the pads never met. So the hands became the geared four-bar on the previous slide, and " +
+"I am trying other materials on the pads, TPU among them: at a friction of 0.6 instead of the 0.3 I assume for bare PETG, jeans need half the jaw force. " +
+"Still testing; this part is not a big deal to the system. One lesson did come out of it: the v6 clamp came out at 4.6 times its mass budget in CAD, " +
+"and since then every part carries a mass budget and the claw goes on the scale. If asked: the 2 mm gap is from the geometry audit of the Sep 30 clamp " +
+"(pinion radius 18 mm times 120° of travel per rack against a 77.4 mm closed width); no cloth-test reading is logged; the pad-to-cloth friction has not " +
+"been measured, which is why the jeans case is marked short at narrow grabs.",
+{ tags: ["MEASURED", "CAD"], figW: 6.2, size: 15, space: 9 });
 
 // ================================================================================================ ACT 5: BUILD AND BRING-UP
 section("Build and bring-up"); ACT = "Act 5 of 5: Build and bring-up (October 22-27)";
@@ -1019,12 +1027,12 @@ section("Results and close"); ACT = "";
     ["A mass budget per part", "The claw was weighed; the next iteration's gear stage sized to the lift margin"],
   ], M, 1.3, lw, cw, { size: 13, rowH: 0.45, name: "good decisions" });
   table(sl, ["Poor decision", "Result"], [
-    ["Mass not tracked through four claw versions", "v6 reached 4.6 times its budget in CAD; the claw is 0.15 kg over"],
+    ["Mass not tracked per part until Oct 20", "The v6 clamp reached 4.6 times its budget in CAD; the claw is 0.15 kg over"],
     ["Prototype fin cut from scrap sheet", "Only 1–4 K of thermal margin"],
     ["Build and test week ending on presentation day", "System results arrive at the last minute"],
   ], M, 3.45, lw, cw, { size: 13, rowH: 0.45, headColor: HEX.red, name: "poor decisions" });
   bullets(sl, [
-    "Half the time: pull-test one winch and weigh a mock claw in week 1; kill the central board, bead homing and the fingers on paper; prove one station first",
+    "Half the time: pull-test one winch and weigh a mock claw in week 1; kill the central board and bead homing on paper; prove one station first",
   ], M, 5.65, lw, 1.1, 14, { space: 6, name: "half time" });
   label(sl, "Next", x2, 1.3, rw, 0.4, { size: 18, bold: true, color: HEX.navy });
   bullets(sl, [
@@ -1038,14 +1046,14 @@ section("Results and close"); ACT = "";
   ], x2, 1.8, rw, 5.0, 14, { space: 8, name: "next steps" });
   sl.addNotes("Talk track (55 s): Three decisions I would make again: a controller in every station, which is why the bench week worked station by station; " +
               "the camera calibration instead of bead homing, killed on paper before anything was built; and a mass budget per part, late, but it is why the " +
-              "claw got weighed and the gear stage got sized. Three I would not: not re-checking the claw's mass through four versions; cutting the prototype fin " +
+              "claw got weighed and the gear stage got sized. Three I would not: not tracking the claw's mass per part until the v6 clamp came in at 4.6 times its budget; cutting the prototype fin " +
               "from scrap sheet, which left one to four degrees of margin; and a build week that ends on presentation day. In half the time I would pull-test one " +
               "winch and weigh a mock claw in week one and prove one full station before copying it. Next, in order: flash and commission the three stations, " +
               "the pull test, the first lift with a pound, and then the robot scans its own room and proposes the obstacles in the app. Two more: a pole-clamp back " +
               "for the wall mount, a gym-pole clamp, so a station can go on a pole where there is no stud; and the build goes up open-source on GitHub so others can build it. " +
               "Leave this slide up for questions. If asked: the lighter redesign takes about 60 % of the plastic out of the station and brings the claw to its " +
               "0.45 kg budget, lifting the jeans margin from 4 % to about 16 %. " +
-              "If asked how the weaker decisions affected the deliverable: each shows up in the results table. Not tracking mass through four claw versions put " +
+              "If asked how the weaker decisions affected the deliverable: each shows up in the results table. Not tracking mass per part put " +
               "the claw at 0.60 kg against 0.45, which turned the jeans lift margin into 4 % and made the gear stage necessary before any jeans pickup; it is why " +
               "the demo load is 1 lb. Cutting the prototype fin from scrap sheet left 1 to 4 K of thermal margin at 1.5 A, so the stations cannot run at full " +
               "current until a hold test passes, with 1.35 A as the fallback. Ending the build week on presentation day means the first three-station lift, the " +

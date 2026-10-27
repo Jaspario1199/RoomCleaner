@@ -6,8 +6,8 @@ estimated; filament kept separate; and, separately, everything ordered versus wh
 **Definition of the build (10/26):** three wall stations mounted or being mounted (A, B, C; station D's parts exist and
 count as spare, `docs/THREE_STATION_MODE.md`), each with a NEMA 17, an A4988 carrier, a controller (two XIAO ESP32-C3 and
 one ELEGOO ESP32 DevKit on the station that lost its XIAO, `docs/electrical/station_revD_20261021/BREADBOARD_LAYOUT_ESP32.md`),
-a DROK buck, an AS5600 board with a Ø4 magnet (D43), a KW12-3 switch, two 687 bearings and a Ø7 shaft (D40–D42 winch stage),
-a fuse, WAGOs, C1, R1–R4 and a board; the Rev B claw (D31, `docs/electrical/claw_revB_20261021/`); shared line, power,
+a DROK buck, an AS5600 board with a Ø4 magnet (D43), a KW12-3 switch, a direct-drive spool on the motor shaft (the D40–D42 3:1
+stage is the next iteration: designed, pinion printed, not fitted; Jasper 10/27), a fuse, WAGOs, C1, R1–R4 and a board; the Rev B claw (D31, `docs/electrical/claw_revB_20261021/`); shared line, power,
 hardware and wire. Both a **3-station** and a **4-station** column are given.
 
 **Prices:** 'recorded' = a price written in this repo (SHOPPING_LIST.md 2026 estimates, the 10/18 cost review, D31 sources);
@@ -18,15 +18,15 @@ Prorating = pack price × (quantity used ÷ pack quantity); composite kits are v
 
 | | 3 stations | 4 stations |
 |---|---:|---:|
-| **Parts in the robot, prorated, without filament** | **$220.38** | **$259.84** |
-| Filament in the robot (estimate, §2) | $38.70 | $50.40 |
+| **Parts in the robot, prorated, without filament** | **$210.78** | **$248.04** |
+| Filament in the robot (estimate, §2) | $37.74 | $49.17 |
 | **Everything ordered** (incl. filament and tools; recorded $289.47 + est. $348.00) | **$637.47** | $637.47 |
-| Spares, gen-1 parts and tools on the shelf (ordered − used − filament) | $378.39 | $327.23 |
+| Spares, gen-1 parts, next-iteration parts and tools on the shelf (ordered − used − filament) | $388.95 | $340.26 |
 | of which tools (meter, soldering iron) | $35.00 | $35.00 |
 
-Roughly: of about $637.47 spent, $220.38 (three stations) to $259.84 (four) is in the robot as
-parts, $38.70–$50.40 as filament, and the rest ($378.39 / $327.23) is pack remainders, gen-1 parts
-and tools. The biggest in-robot lines are the motors, the 16 AWG power run, the claw battery, the 12 V supply, the UBEC,
+Roughly: of about $637.47 spent, $210.78 (three stations) to $248.04 (four) is in the robot as
+parts, $37.74–$49.17 as filament, and the rest ($388.95 / $340.26) is pack remainders, gen-1 parts,
+the next-iteration gear-stage parts and tools. (Revised 10/27: the 3:1 gear stage, its 687 bearings and Ø7 shafts are not fitted.) The biggest in-robot lines are the motors, the 16 AWG power run, the claw battery, the 12 V supply, the UBEC,
 the XIAO S3 Sense and the station controllers.
 
 ## 1. Parts in the robot, prorated (no filament)
@@ -60,8 +60,7 @@ the XIAO S3 Sense and the station controllers.
 | Main switch SW1 | SPST rocker/toggle ≥ 5 A DC (multipack, order not recorded) | 5 switch, $6.00 | 1 / 1 | $1.20 | $1.20 | Claw | est. |
 | Aluminium tube | 1-1/8 in OD aluminium tube, 12 in, cut to 10.48 in (D36; order not recorded) | 1 tube, $12.00 | 1 / 1 | $12.00 | $12.00 | Claw | est. |
 | **Subtotal Claw** | | | | **$71.98** | **$71.98** | | |
-| 687 bearing (7×14×5) | 687ZZ bearings, 7×14×5 mm (pack of 20, order not recorded) | 20 bearing, $12.00 | 10 / 12 | $6.00 | $7.20 | Shared | est. |
-| Ø7 steel shaft / dowel pin | Ø7 h6 steel dowel pins ~50–55 mm (pack of 10, order not recorded) | 10 pin, $10.00 | 6 / 7 | $6.00 | $7.00 | Shared | est. |
+| 687 bearing (7×14×5) | 687ZZ bearings, 7×14×5 mm (pack of 20, order not recorded) | 20 bearing, $12.00 | 4 / 4 (claw gear train) | $2.40 | $2.40 | Shared | est. |
 | Blade fuse holder + fuse | SIM&NAT inline ATC/ATO holders (10) + 50 blade fuses | 10 holder+fuse, $12.00 | 5 / 6 | $6.00 | $7.20 | Shared | recorded |
 | WAGO 221 lever nuts | WAGO 221 assortment 2401/412/413/415 (12 pcs) | 12 connector, $12.00 | 8 / 9 | $8.00 | $9.00 | Shared | est. |
 | 1N5819 Schottky diode (D1) | EEEEE 1N5819 DO-41 (150) | 150 diode, $6.00 | 4 / 5 | $0.16 | $0.20 | Shared | est. |
@@ -73,8 +72,9 @@ the XIAO S3 Sense and the station controllers.
 | M3 heat-set inserts | INCLY heat-set insert kit, M2–M6, 580 pcs + tool | 580 insert, $12.00 | 26 / 32 | $0.54 | $0.66 | Shared | recorded |
 | Dyneema line | 9KM DWLIFE X8 braided Dyneema 120 lb, 150 m | 150 m, $8.00 | 18.3 / 24.4 | $0.98 | $1.30 | Shared | recorded |
 | Floor board (AprilTag sheets) | 9 Letter sheets, home-printed (prints/) | 1 board, owned/none | 1 / 1 | $1.00 | $1.00 | Shared | est. |
-| **Subtotal Shared** | | | | **$77.31** | **$93.29** | | |
-| **TOTAL without filament** | | | | **$220.38** | **$259.84** | | |
+| **Subtotal Shared** | | | | **$67.71** | **$81.49** | | |
+| **TOTAL without filament** | | | | **$210.78** | **$248.04** | | |
+| *Next iteration, bought or printed, not fitted (not counted above)* | 687 bearings 2 per station, Ø7 dowel 1 per station, printed 18T pinion and 54T spool-gear (D40–D42) | | 6 / 8 bearings, 3 / 4 pins | *$6.60* | *$8.80* | Next iteration | est. |
 
 Per station (3-station build): about $23.70 of station-only parts plus a share of the shared rows.
 
@@ -93,17 +93,18 @@ Solid CAD volumes come from `exports/stl` (computed here) and `docs/decisions/WE
 | Wall mount (SolidWorks) | 597 cm³ | 758 g | 0.35 | 265 g | per station |
 | Slide-in motor mount (SolidWorks) | 218 cm³ | 277 g | 0.45 | 125 g | per station |
 | Shell (SolidWorks) | 352 cm³ | 447 g | 0.80 | 358 g | per station |
-| Spool / spool-gear54 (`winch_gear3_spool_gear54`) | 23 cm³ | 29 g | 0.85 | 25 g | per station |
-| Pinion18 + spacer + magnet cap | 4.5 cm³ | 6 g | 1.00 | 6 g | per station |
+| Spool, direct drive (Spoolv3: Ø36 × 22, Ø15 core; estimated here) | 9 cm³ | 11 g | 0.85 | 10 g | per station |
+| Magnet cap | ~1 cm³ | 1 g | 1.00 | 1 g | per station |
+| *Next iteration, printed, not fitted: spool-gear54 (23 cm³, 25 g) and pinion18 (4 cm³, 5 g)* | | | | *30 g per station* | not counted |
 | Encoder casing + cap (`encoder1021_*`) | 3.9 cm³ | 5 g | 1.00 | 5 g | per station |
-| **Station total** | 1,198 cm³ | | | **783 g** | ×3 = 2.35 kg, ×4 = 3.13 kg |
+| **Station total** | about 1,180 cm³ | | | **762 g** | ×3 = 2.29 kg, ×4 = 3.05 kg |
 | Claw printed parts (gear housing ×2, electrical housing + bay + cover + lid, hands, cylinder); STL check: housing_cambay_34 154.6 cm³, hands 17.0 ×2, lid 12.4, cover 4.3, gears 44.7 + 22.7 + 8.0 | 677 cm³ (weight proposal) | 860 g | ~0.27 | **230 g** | once (Jasper weighed the claw at 0.60 kg with battery: minus tube 198 g, servo 55 g, battery 99 g, electronics ~20 g) |
-| **In the robot** | | | | **2.58 kg (3 st) / 3.36 kg (4 st)** | |
+| **In the robot** | | | | **2.52 kg (3 st) / 3.28 kg (4 st)** | |
 
 | Filament cost | 3 stations | 4 stations |
 |---|---:|---:|
-| At $15/kg (SUNLU 4 kg pack, est. $60) | $38.69 | $50.43 |
-| At $20/kg (SHOPPING_LIST PETG price) | $51.58 | $67.25 |
+| At $15/kg (SUNLU 4 kg pack, est. $60) | $37.74 | $49.17 |
+| At $20/kg (SHOPPING_LIST PETG price) | $50.32 | $65.56 |
 
 Everything printed, including prototypes, is more: gen-1 `corner_mount` plates (89 g each, one built), the gen-2 shells in
 clear, grey, red and blue (photos 04, 27, 35), the v6/v7 gripper iterations, test coupons, a kept failed layer (photo 35),
@@ -126,8 +127,8 @@ build (bearings, shaft, magnets, tube, wood screws, switch, hookup wire) are inc
 | AS5600 encoder board | UMLIFE AS5600 magnetic encoder boards (5-pack, 10/19 cart) | 5 board | $12.00 | est.; 10/19 cart; in use on the bench 10/22 | partly 3 of 5 board | $7.20 |
 | Ø4 encoder magnet (diametric) | Ø4 × ~2.5 mm diametric magnets (pack of 10, order not recorded) | 10 magnet | $7.00 | est.; order not recorded (D43: measured Ø4.0 on 10/22) | partly 3 of 10 magnet | $2.10 |
 | Homing / end-stop switch | HiLetgo KW12-3 roller micro switch (10-pack) | 10 switch | $6.00 | recorded; SHOPPING_LIST ✅, delivered Aug 7 | partly 3 of 10 switch | $1.80 |
-| 687 bearing (7×14×5) | 687ZZ bearings, 7×14×5 mm (pack of 20, order not recorded) | 20 bearing | $12.00 | est.; order not recorded (in the claw gear housing 10/22; 2 per station per D40) | partly 10 of 20 bearing | $6.00 |
-| Ø7 steel shaft / dowel pin | Ø7 h6 steel dowel pins ~50–55 mm (pack of 10, order not recorded) | 10 pin | $10.00 | est.; order not recorded | partly 6 of 10 pin | $6.00 |
+| 687 bearing (7×14×5) | 687ZZ bearings, 7×14×5 mm (pack of 20, order not recorded) | 20 bearing | $12.00 | est.; order not recorded (4 in the claw gear housing 10/22; 2 per station in the next-iteration gear stage) | partly 4 of 20 bearing | $2.40 |
+| Ø7 steel shaft / dowel pin | Ø7 h6 steel dowel pins ~50–55 mm (pack of 10, order not recorded) | 10 pin | $10.00 | est.; order not recorded | no: next iteration (gear-stage spool shaft) | $0.00 |
 | Blade fuse holder + fuse | SIM&NAT inline ATC/ATO holders (10) + 50 blade fuses | 10 holder+fuse | $12.00 | recorded; SHOPPING_LIST ✅, delivered Aug 7 | partly 5 of 10 holder+fuse | $6.00 |
 | WAGO 221 lever nuts | WAGO 221 assortment 2401/412/413/415 (12 pcs) | 12 connector | $12.00 | est.; delivered Oct 15 | partly 8 of 12 connector | $8.00 |
 | 100 µF / 50 V capacitor (C1 at VMOT) | JCCON 100 µF 50 V electrolytic (10) | 10 cap | $6.00 | est.; delivered Oct 15 | partly 3 of 10 cap | $1.80 |
@@ -171,9 +172,9 @@ build (bearings, shaft, magnets, tube, wood screws, switch, hookup wire) are inc
 | Digital multimeter | DMM with leads | 1 tool | $15.00 | est.; delivered Aug 13 | no: tool | $0.00 |
 | Soldering iron kit | 80 W adjustable soldering iron kit | 1 tool | $20.00 | recorded; SHOPPING_LIST ☐ ($20); delivered Aug 12 | no: tool | $0.00 |
 | **TOTAL ORDERED** | | | **$637.47** | recorded $289.47 + est. $348.00 | | |
-| **TOTAL USED (prorated, no filament)** | | | | | | **$220.38** (4 st: $259.84) |
-| Filament used (prorated) | | | | | | $38.70 (4 st: $50.40) |
-| **Spares, gen-1 parts and tools on the shelf** | | | | | | **$378.39** (4 st: $327.23) |
+| **TOTAL USED (prorated, no filament)** | | | | | | **$210.78** (4 st: $248.04) |
+| Filament used (prorated) | | | | | | $37.74 (4 st: $49.17) |
+| **Spares, gen-1 parts, next-iteration parts and tools on the shelf** | | | | | | **$388.95** (4 st: $340.26) |
 
 Biggest shelf items: the ELEGOO starter kit remainder (~$37), SUNLU PETG not in the robot (~$23), the two spare ELEGOO ESP32s
 and the spare MG996Rs (~$24), the tools ($35), the webcam ($19), the spare motor (~$7), and the 10/19 cart passives.
@@ -201,8 +202,9 @@ history and the totals update by editing the CSV.
    come with it; `BREADBOARD_PARTS.md` (10/25) still links the charger and 1000 µF as 'search', so confirm.
 3. **Station count and controllers:** three stations with 2 × XIAO C3 + 1 × ELEGOO (one XIAO fried, T29). A fourth station
    would use the second ELEGOO. If station D is in fact mounted, use the 4-station column.
-4. **Winch 3:1 stage:** the 687s and Ø7 shaft per station follow D40–D42; the 10/26 photos (28, 39) show direct-drive
-   spools on the motor shaft. If the gear stage is not yet fitted, remove 2 bearings and 1 pin per station (≈ $2.20/station).
+4. **Winch 3:1 stage (resolved 10/27, Jasper):** the gear stage is the next iteration; the mounted stations are direct-drive
+   spools on the motor shaft (photos 28, 39, 44). Its 687s (2 per station), Ø7 shafts and printed gears are listed as
+   "next iteration, not fitted" and are not in the robot totals; the claw's 4 bearings are.
 5. **Dyneema:** 6.1 m per run (5.1 m room diagonal + dead wraps + slack) → 18.3 m / 24.4 m of 150 m. Actual cut lengths not
    recorded.
 6. **Wire:** 16 AWG from the cut list (94 ft for four; ~65 ft for A, B and a mid-wall C); 22–24 AWG hookup ~4 m per station

@@ -7,8 +7,8 @@ Station 5 V buck,"DROK adjustable buck converter, 4.5–20 V in (6-pack)",6,modu
 AS5600 encoder board,"UMLIFE AS5600 magnetic encoder boards (5-pack, 10/19 cart)",5,board,12.00,est.,10/19 cart; in use on the bench 10/22,station,3,partly 3 of 5 board,7.20,4,partly 4 of 5 board,9.60,
 Ø4 encoder magnet (diametric),"Ø4 × ~2.5 mm diametric magnets (pack of 10, order not recorded)",10,magnet,7.00,est.,order not recorded (D43: measured Ø4.0 on 10/22),station,3,partly 3 of 10 magnet,2.10,4,partly 4 of 10 magnet,2.80,K&J D42DIA (Ø6.35) was specified in Oct-1 BOM but never ordered; the magnets on hand are Ø4.0.
 Homing / end-stop switch,HiLetgo KW12-3 roller micro switch (10-pack),10,switch,6.00,recorded,"SHOPPING_LIST ✅, delivered Aug 7",station,3,partly 3 of 10 switch,1.80,4,partly 4 of 10 switch,2.40,
-687 bearing (7×14×5),"687ZZ bearings, 7×14×5 mm (pack of 20, order not recorded)",20,bearing,12.00,est.,order not recorded (in the claw gear housing 10/22; 2 per station per D40),shared,10,partly 10 of 20 bearing,6.00,12,partly 12 of 20 bearing,7.20,"4 in the claw gear train (pinion, compound, follower, idle) + 2 per station (3:1 winch stage, D40–D42). Counted as shared."
-Ø7 steel shaft / dowel pin,"Ø7 h6 steel dowel pins ~50–55 mm (pack of 10, order not recorded)",10,pin,10.00,est.,order not recorded,shared,6,partly 6 of 10 pin,6.00,7,partly 7 of 10 pin,7.00,"3 in the claw gear housing (Ø7 pins, GRIPV7_PIN) + 1 spool shaft per station (D40)."
+687 bearing (7×14×5),"687ZZ bearings, 7×14×5 mm (pack of 20, order not recorded)",20,bearing,12.00,est.,order not recorded (4 in the claw gear housing 10/22),shared,4,partly 4 of 20 bearing,2.40,4,partly 4 of 20 bearing,2.40,"4 in the claw gear train (pinion, compound, follower, idle). The 2 per station of the 3:1 winch stage (D40–D42) are next iteration, not fitted (Jasper 10/27)."
+Ø7 steel shaft / dowel pin,"Ø7 h6 steel dowel pins ~50–55 mm (pack of 10, order not recorded)",10,pin,10.00,est.,order not recorded,next iteration,0,no: next iteration (gear-stage spool shaft; the claw gear pins are printed),0.00,0,no: next iteration,0.00,"1 spool shaft per station in the 3:1 winch stage (D40), not fitted (Jasper 10/27). Next iteration would use 3 / 4 pins ($3.00 / $4.00) and 6 / 8 more bearings ($3.60 / $4.80)."
 Blade fuse holder + fuse,SIM&NAT inline ATC/ATO holders (10) + 50 blade fuses,10,holder+fuse,12.00,recorded,"SHOPPING_LIST ✅, delivered Aug 7",shared,5,partly 5 of 10 holder+fuse,6.00,6,partly 6 of 10 holder+fuse,7.20,1 main 7.5 A at the supply + 1 branch fuse (3 A) per station + 1 claw 5 A fuse (F1).
 WAGO 221 lever nuts,WAGO 221 assortment 2401/412/413/415 (12 pcs),12,connector,12.00,est.,delivered Oct 15,shared,8,partly 8 of 12 connector,8.00,9,partly 9 of 12 connector,9.00,"Claw 3 (two 221-415, one 221-413), supply +12 V/GND bus 2, one per station end."
 100 µF / 50 V capacitor (C1 at VMOT),JCCON 100 µF 50 V electrolytic (10),10,cap,6.00,est.,delivered Oct 15,station,3,partly 3 of 10 cap,1.80,4,partly 4 of 10 cap,2.40,
@@ -53,6 +53,6 @@ Digital multimeter,DMM with leads,1,tool,15.00,est.,delivered Aug 13,tool,0,no: 
 Soldering iron kit,80 W adjustable soldering iron kit,1,tool,20.00,recorded,SHOPPING_LIST ☐ ($20); delivered Aug 12,tool,0,no: tool,0.00,0,no,0.00,
 
 TOTAL ORDERED,,,,637.47,recorded 289.47 + est. 348.00,,,,,,,,,
-"TOTAL USED (prorated, no filament)",,,,,,,,,,220.38,,,259.84,
-FILAMENT USED (prorated),,,,,,,,,,38.70,,,50.40,
-ON THE SHELF (ordered - used - filament; incl. tools),,,,,,,,,,378.39,,,327.23,
+"TOTAL USED (prorated, no filament)",,,,,,,,,,210.78,,,248.04,
+FILAMENT USED (prorated),,,,,,,,,,37.74,,,49.17,
+ON THE SHELF (ordered - used - filament; incl. tools and next-iteration parts),,,,,,,,,,388.95,,,340.26,

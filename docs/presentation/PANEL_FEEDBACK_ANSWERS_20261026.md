@@ -1,7 +1,7 @@
 # Panel feedback on deck v8 (SpaceX engineers, 10/26): answers from the record
 
 Prepared 2026-10-26 from the repository record only. Each item gives the v8 slide the panel named, the matching v9 slide
-(`docs/presentation/deck_v9/`, outline `DECK_V9_NOTES.md`; numbers as of 10/27, after the new slide 13 "The drive slips before the wall does"), an answer a presenter can say, the evidence tag and the source
+(`docs/presentation/deck_v9/`, outline `DECK_V9_NOTES.md`; numbers as of 10/27 evening: slide 13 "The drive slips before the wall does" added, the gear-stage slide removed, slide 24 "What hurts now, and the next iteration" added), an answer a presenter can say, the evidence tag and the source
 file, and where it went: **On slide** (a one-line statement on the v9 slide), **In notes** (the v9 "If asked" speaker notes),
 or **Question for Jasper** (the record does not hold the answer; a `[[Jasper: ...]]` placeholder sits in the notes).
 
@@ -17,12 +17,12 @@ is invented.
 | 9 Gen 1 | 8 Generation 1; 10 Why Gen 1 could not be final | What bead homing is | On slide 10 + In notes 8 and 10 |
 | 10 One Controller per Winch | 14 One controller per winch | What happens when the motors lose power | On slide (table row) + In notes |
 | 11 Camera Calibration | 10 (chart) and 15 The claw camera replaces bead homing | Floor area vs volume | On slide 10 (computed) + In notes 10 and 15 |
-| 12 Claw | 19 The claw | Where the 0.3 friction coefficient came from | In notes: assumed, source named; Question for Jasper |
+| 12 Claw | 18 The claw | Where the 0.3 friction coefficient came from | In notes: assumed, source named; Question for Jasper |
 | 13 Final Wall Station | 16 Heat (fin); 12 One plug per station, 13 the designed fuse | What the fin does | On slide 16 + In notes |
 | 14 Winch Pull | 17 Winch pull and what the four winches can lift | How the pull value was validated | In notes (it is not validated: PLANNED) |
 | 15 Motor Cooling | 16 Heat | Why the 6061 is painted | In notes (model side) + Question for Jasper (the built fin) |
 | 16 Weight Budget | 17 (same slide) | Where the ~25 % mass reduction came from | In notes + Question for Jasper |
-| 17 Build | 21 Station electronics on the bench | How the 3.3 V fault was found; steps when the motor would not turn | In notes (recorded steps) + Question for Jasper |
+| 17 Build | 20 Station electronics on the bench | How the 3.3 V fault was found; steps when the motor would not turn | In notes (recorded steps) + Question for Jasper |
 | 18 Manufacturing fits | Appendix: Manufacturing fits and datums | Which feature each fit belongs to | In notes |
 | 20 Results | 25 Results against targets | What narrow grabs are | On slide (table row) + In notes |
 | 21 Decisions | 26 What I would do first next time | How the weaker decisions affected the deliverable | In notes |
@@ -96,7 +96,7 @@ four stations the same statics says: put the anchors in the corners, as high and
 (linear-program statics and the three-cable solve); nothing measured on the rig. Sources: `FUNDAMENTALS.md` §1,
 `docs/THREE_STATION_MODE.md` §5, `verification/three_station_mode_results.md` §3.
 
-- Placement: **In notes** on v9 slide 6 (and the 3-station numbers already on slide 24).
+- Placement: **In notes** on v9 slide 6 (and the 3-station numbers already on slide 23).
 
 ## v8 slide 9, Gen 1 → v9 slides 8 and 10: what bead homing is
 
@@ -154,7 +154,7 @@ present the floor number first." CALCULATED. Sources: `calculations/bead_reach.p
 
 - Placement: **On slide 10** (one statement with the floor numbers) and **In notes** on slides 10 and 14.
 
-## v8 slide 12, Claw → v9 slide 19: where the 0.3 friction coefficient came from
+## v8 slide 12, Claw → v9 slide 18: where the 0.3 friction coefficient came from
 
 **NOT IN THE RECORD as a measurement.** The 0.3 is an assumption: `calculations/gen2_screening.py` line 49,
 `MU_CLOTH = 0.3  # ASSUMED cloth-on-printed-jaw friction`, carried into the design review R5, `FUNDAMENTALS.md` §5
@@ -166,7 +166,7 @@ also run the numbers at 0.6 for TPU pads. It has not been measured, which is why
 pull test with a force gauge on the real pads is first on the list." CALCULATED on an ASSUMED input.
 
 - **Question for Jasper:** where did 0.3 come from (a handbook value for cotton on plastic, a class note, a guess, or a quick
-  test with a scale)? If a test, what pad, what cloth, what reading? Placeholder `[[Jasper: ...]]` in the slide 19 notes.
+  test with a scale)? If a test, what pad, what cloth, what reading? Placeholder `[[Jasper: ...]]` in the slide 18 notes.
 - Placement: **In notes** + **Question for Jasper**.
 
 ## v8 slide 13, Final Wall Station → v9 slide 16 (and 12): what the aluminium fin does
@@ -240,7 +240,7 @@ Sources: `DESIGN_STATE.md` "Claw weighed (10/22)", `docs/decisions/WEIGHT_REDESI
   solid parts or a slicer mass?
 - Placement: **In notes** + **Question for Jasper**.
 
-## v8 slide 17, Build → v9 slide 21: how the bad 3.3 V connection was found, and the steps when the motor would not turn
+## v8 slide 17, Build → v9 slide 20: how the bad 3.3 V connection was found, and the steps when the motor would not turn
 
 **What the record holds (reported by Jasper, not logged or photographed).** The command output showed step pulses while the
 shaft did not move; the homing switch worked. The recorded approach was to separate the command from the motion and check
@@ -261,7 +261,7 @@ before enable." REPORTED readings (no saved log); design change recorded. Source
 
 - **Question for Jasper:** what did you try before reaching for the meter, how did you narrow it to the 3.3 V feed (which
   pin or wire, and what was physically wrong: a loose jumper, a cold joint, a breadboard contact), and what did VDD read after
-  the repair? Placeholder `[[Jasper: ...]]` in the slide 21 notes.
+  the repair? Placeholder `[[Jasper: ...]]` in the slide 20 notes.
 - Placement: **In notes** + **Question for Jasper**.
 
 ## v8 slide 18, Manufacturing fits → v9 appendix "Manufacturing: fits and datums": which feature each fit belongs to
@@ -327,8 +327,8 @@ payload. Sources: `docs/decisions/WINCH_CAPACITY_20261021.md`, `calculations/win
 ## Questions for Jasper (collected)
 
 1. Slide 4: hours spent, mentors or shop access, and whether a dollar ceiling was set in advance.
-2. Slide 19: the source of the 0.3 friction coefficient (handbook, class note, guess or a scale test; pad and cloth if tested).
+2. Slide 18: the source of the 0.3 friction coefficient (handbook, class note, guess or a scale test; pad and cloth if tested).
 3. Slide 16: is the built prototype fin painted, with what, and is the sheet 6061 (how checked)?
 4. Slide 17: infill and walls on the claw parts; what the 0.86 kg estimate assumed.
-5. Slide 21: what you tried before the meter; which wire or pin was the bad 3.3 V connection and what was physically wrong;
+5. Slide 20: what you tried before the meter; which wire or pin was the bad 3.3 V connection and what was physically wrong;
    VDD after the repair; dates.

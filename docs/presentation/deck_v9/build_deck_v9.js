@@ -647,7 +647,7 @@ content("The drive slips before the wall does: a designed fuse", [
 "If asked: the slip is the stepper's own torque limit, not a clutch; a mechanical clutch would add a part, a calibration and a cost to each of four stations, and " +
 "the stepper already has a sharp, repeatable torque ceiling. What happens after a slip: the station stops and reports; the host does not resume by itself; " +
 "the spool count is the truth, so the cable's zero length is re-referenced from the encoder and the calibration before the next move, and a person approves " +
-"it. The 3:1 gear stage raises the slip force to about 130 N at 1.0 A, so the new station is sized for 200 N. All calculated from the motor's holding " +
+"it. When the 3:1 stage goes in next iteration the slip point must be re-set: about 130 N at 1.0 A, so that station is sized for 200 N. All calculated from the motor's holding " +
 "torque; the slip has not been measured yet, the pull test does that.",
 { tags: ["CALCULATED"], size: 15, space: 9 });
 
@@ -766,7 +766,7 @@ section("Final design"); ACT = "Act 4 of 5: Final design (October 7-21)";
               "0.7 of holding torque. Divided by 1.5 against skipped steps, that is the 16.8 N design force. Bottom chart: what the four winches hold at task " +
               "height against what they must hold. The claw weighed 0.60 kg with its battery, against 0.86 estimated. With jeans that is 1.50 kg against a " +
               "capacity of 1.56: a 4 % margin, which is inside the uncertainty, because at 0.5 times holding torque the capacity is 1.1 kg. The pull test decides " +
-              "whether 1.5 A is enough; the alternative is a gear stage at each winch, which is the next slide. Pause and ask: cut claw mass or add the gear " +
+              "whether 1.5 A is enough; the alternative is a gear stage at each winch, designed for the next iteration (Act 5, next-iteration slide). Pause and ask: cut claw mass or add the gear " +
               "stage? If asked: the current is set by the driver reference voltage, I = Vref / (8 × 0.1 Ω) [[how 1.5 A was reached and the Vref read]]; the A4988 runs " +
               "hot at 1.5 A and shuts down if it overheats, so the hold test watches it. " +
               "If asked how the pull value was validated: it has not been; the pull is calculated and the test is planned. The chain is Vref to current, " +
@@ -780,34 +780,6 @@ section("Final design"); ACT = "Act 4 of 5: Final design (October 7-21)";
               "estimate priced them from CAD solids, and printed parts have walls and infill; the exact assumptions behind the 0.86 are not itemized in my notes. " +
               "The lesson: a CAD mass is an upper bound, the budget is checked on the scale. [[Jasper: infill and wall count on the claw parts; did the 0.86 kg " +
               "estimate assume solid parts or a slicer mass?]]");
-}
-
-{
-  const sl = blank("A 3:1 gear stage, all printed, with the encoder on the spool shaft", ["CALCULATED", "CAD"]);
-  const fx = M, fy = 1.3, fh = 5.45;
-  const cw = 3.55, g = 0.12;
-  // renders cropped of their text strips (deck_v9/fig, from renders/winch_gear3)
-  const r1 = fitImage(sl, path.join(__dirname, "fig", "winch_gear3_iso_crop.png"), fx, fy, cw, 2.35, "Winch gear stage, isometric render", { alignTop: true });
-  caption(sl, "1  Pinion on the motor; gear and spool in one part", r1.x, r1.y + r1.h + 0.03, cw + 0.3);
-  const r2 = fitImage(sl, path.join(__dirname, "fig", "winch_gear3_mesh_crop.png"), fx, fy + 2.75, cw, 2.35, "Gear mesh close-up render", { alignTop: true });
-  caption(sl, "2  Mesh: module 1, 36.3 mm centres", r2.x, r2.y + r2.h + 0.03, cw);
-  const px = fx + cw + g, pw = (fh - 0.3) * 1932 / 2576;
-  const r3 = fitImage(sl, PH("39_slide_in_handheld_wiring_hanging.jpg"), px, fy, pw, fh - 0.3, "Slide-in with motor, spool and end stop, Oct 26", { alignTop: true });
-  caption(sl, "3  Slide-in: motor, spool, end stop, harness (Oct 26)", r3.x, r3.y + r3.h + 0.05, pw);
-  const bx = px + pw + 0.4, bw = W - M - bx;
-  bullets(sl, [
-    "18T pinion, 54T gear, module 1: 3:1 at the spool. Lift capacity 1.98–2.80 kg at 1.0 A (was 1.10–1.56 kg), motor heat 1.8 W (was 4.05)",
-    "Printed PETG pinion: its teeth hold 1.75 × the motor's slip force at 1.0 A",
-    "The spool encoder has two jobs: confirm every commanded step, and detect slip as the tension sensor",
-    "Backlash 0.42 mm at the pitch circle, 10 encoder counts of the 60-count tolerance; the magnet moves to the spool shaft end, measured Ø4.0, not the Ø6 assumed",
-  ], bx, 1.35, bw, 5.4, 15, { space: 10, name: "gear bullets" });
-  sl.addNotes("Talk track (55 s): The gear stage that takes the lift margin from 4 % to a real one. An 18-tooth pinion on the motor drives a 54-tooth gear " +
-              "printed in one piece with the spool, module 1, 3:1. At 1.0 A the capacity goes from 1.10 to 1.56 kg up to 1.98 to 2.80 kg, and the motor heat " +
-              "drops from 4.05 W to 1.8, which also relaxes the fin. I printed the pinion too: its teeth are the weakest tooth in the train, at 1.75 times the " +
-              "most the motor can pull before it slips, so the motor still gives first. Backlash is 0.42 mm, ten encoder counts out of the sixty the tracking " +
-              "fault allows. The encoder magnet moves to the end of the spool shaft, and when I measured it, it was 4 mm, not the 6 the spec had assumed, so the " +
-              "cap was redrawn. If asked: at 1.5 A the pinion teeth drop to 1.17 and the set screw to 1.00, so the recommendation is 1.0 A; the spool shaft is " +
-              "Ø7 steel in two 687 bearings; the stage is verified in CAD, not yet pull-tested.");
 }
 
 photoSlide("The claw: geared four-bar hands, camera bay, one 2S pack", [
@@ -835,7 +807,7 @@ photoSlide("The claw: geared four-bar hands, camera bay, one 2S pack", [
 ] } });
 
 // ================================================================================================ ACT 5: BUILD AND BRING-UP
-section("Build and bring-up"); ACT = "Act 5 of 5: Build and bring-up (October 22-26)";
+section("Build and bring-up"); ACT = "Act 5 of 5: Build and bring-up (October 22-27)";
 {
   const sl = blank("Printing and machining: fits came from coupons, not guesses", ["MEASURED"]);
   const fx = M, fy = 1.3, fh = 5.45, g = 0.12, cw = 2.6;
@@ -870,7 +842,7 @@ section("Build and bring-up"); ACT = "Act 5 of 5: Build and bring-up (October 22
 photoSlide("Station electronics on the bench: every check before the motor turns", [
   "Driver off at boot: a reset cannot move a motor",
   "Homing switch LOW at rest, HIGH pressed or with a broken wire; the encoder answers at its address with the magnet detected",
-  "One spool turn within 60 encoder counts: PASS on both boards",
+  "One spool turn within 60 encoder counts: PASS on both boards. The spool encoder (magnetic, on the spool shaft, Ø4 magnet) has two jobs: confirm every commanded step, and detect slip as the tension sensor",
   "A short found by the board's LED going out, traced to the switch pull-up",
 ], [[PH("43_bench_two_stations_laptop_meter_floor.jpg"), "Bench: two stations, laptop, meter, 12 V supply"], [PH("29_station_bench_esp32_wiring_floor.jpg"), "Dev board, driver, spool and end stop"],
     [PH("37_station_bench_red_shell_fuse_12v.jpg"), "Red shell, fused 12 V lead"], [PH("31_station_bench_xiao_breadboard_shell_open.jpg"), "Second board, shell open"]],
@@ -941,13 +913,53 @@ content("Three stations first: the triangle, the tilt, and no spare cable", [
 "itself; a stud 0.2 m off the midpoint leaves about 0.12 m after the fit; all simulated, not yet run.",
 { tags: ["SIMULATED"], size: 16, space: 10 });
 
+{
+  // Next iteration (Jasper, 10/27): the gear stage is designed and the pinion printed but not fitted; the mounted stations are direct-drive spools.
+  const sl = blank("What hurts now, and the next iteration", ["CAD", "PLANNED"]);
+  const cardsList = [
+    { eyebrow: "WINCH PULL", title: "A 3:1 printed gear stage", tag: "CAD, not fitted", now: "Now: a direct-drive spool on the motor shaft, 34 N on an empty spool at 1.5 A",
+      next: ["18T pinion, 54T gear, module 1, printed PETG pinion: designed and CAD-verified, pinion printed, not fitted",
+             "Lift 1.98–2.80 kg at 1.0 A with half the heat; the slip fuse moves to about 130 N, so that station is sized for 200 N"] },
+    { eyebrow: "SLIDE-IN FIT", title: "A 1° draft on the dovetail", tag: "PLANNED", now: "Now: the slide-in binds on insertion; its ribs run parallel on 0.175 mm a side",
+      next: ["A 1° draft on the dovetail and the interlocking supports, thicker at the top and thinning toward the bottom",
+             "The station self-locates as it slides in and does not bind"] },
+    { eyebrow: "WALL MOUNT", title: "A lighter back mount", tag: "PLANNED", now: "Now: the mount holds about 200 × the motor's pull (dovetails 225 ×, screw heads 93 ×): overbuilt, 597 cm³ solid",
+      next: ["Thinner walls and ribs, about 200 cm³: less print time and filament",
+             "For anyone building it from the open-source files"] },
+  ];
+  const cx0 = M, cy = 1.3, ch = 5.4, g = 0.2, boxW = 3.3, cardsW = W - 2 * M - boxW - 0.35, cw = (cardsW - 2 * g) / 3;
+  cardsList.forEach((c, i) => {
+    const cx = cx0 + i * (cw + g);
+    sl.addShape(pres.shapes.RECTANGLE, { x: cx, y: cy, w: cw, h: ch, fill: { color: HEX.light }, line: { color: HEX.light }, objectName: `card ${c.title}` });
+    label(sl, c.eyebrow, cx + 0.2, cy + 0.15, cw - 0.4, 0.25, { size: 10, bold: true, color: HEX.grey, name: "card eyebrow" });
+    label(sl, c.title, cx + 0.2, cy + 0.4, cw - 0.4, 0.7, { size: 17, bold: true, color: HEX.navy, valign: "top", name: "card title" });
+    label(sl, c.now, cx + 0.2, cy + 1.15, cw - 0.4, 1.05, { size: 12, color: HEX.red, valign: "top", name: "card now" });
+    label(sl, "NEXT ITERATION", cx + 0.2, cy + 2.3, cw - 0.4, 0.25, { size: 10, bold: true, color: HEX.grey, name: "card label" });
+    bullets(sl, c.next, cx + 0.2, cy + 2.55, cw - 0.4, ch - 2.9, 12, { space: 5, name: "card next" });
+    label(sl, c.tag, cx + 0.2, cy + ch - 0.4, cw - 0.4, 0.3, { size: 10, bold: true, color: HEX.navy2, name: "card tag" });
+  });
+  const bx = cx0 + cardsW + 0.35;
+  placeholderBox(sl, "[[Jasper: photos or CAD of the next iteration]]", bx, cy, boxW, ch - 0.4);
+  caption(sl, "Next-iteration parts: gear stage, drafted slide-in, lighter mount", bx, cy + ch - 0.3, boxW);
+  sl.addNotes("Talk track (55 s): Three things that hurt now, and what the next iteration does about them. Pull: the mounted stations are direct-drive spools on " +
+              "the motor shaft, 34 N on an empty spool at 1.5 A, which leaves jeans a 4 % margin. The next station has a 3:1 stage: an 18-tooth pinion into a " +
+              "54-tooth gear printed in one piece with the spool, module 1, 1.98 to 2.80 kg at 1.0 A with half the heat; it is designed and checked in CAD, the " +
+              "pinion is printed, and it is not fitted. When it goes in, the slip fuse moves to about 130 N and that station is sized for 200 N. Fit: the " +
+              "slide-in binds as it goes onto the wall mount, because the dovetail ribs run parallel; a one-degree draft, thicker at the top and thinning toward " +
+              "the bottom, lets the station self-locate as it slides down. Mass: the wall mount holds about two hundred times what the motor can pull, so it is " +
+              "overbuilt at 597 cm³ of solid CAD; the next one gets thinner walls and ribs, about 200 cm³, which matters for anyone printing it from the open-source " +
+              "files. If asked: the gear stage's printed pinion teeth hold 1.75 times the motor's slip force at 1.0 A (1.17 at 1.5 A, so 1.0 A is the setting); " +
+              "backlash 0.42 mm, ten encoder counts; the encoder magnet measured Ø4.0. The draft and the lighter mount are intentions, not drawings yet. " +
+              "[[Jasper: photos or CAD of the next iteration]]");
+}
+
 // ================================================================================================ RESULTS AND CLOSE
 section("Results and close"); ACT = "";
 {
   const sl = blank("Results against targets, and what is still planned", ["MEASURED", "CALCULATED", "PLANNED"]);
   const RED = t => ({ text: t, color: HEX.red, bold: true });
   table(sl, ["Target", "Goal", "Current", "Evidence", "Status"], [
-    ["Lift capacity", "1.50 kg with jeans", "1.56 kg; 1.1 kg at 0.5 × holding torque; 1.98–2.80 kg with the 3:1 stage", "Calculated", "Marginal; pull test"],
+    ["Lift capacity", "1.50 kg with jeans", "1.56 kg; 1.1 kg at 0.5 × holding torque; 1.98–2.80 kg with the 3:1 stage (next iteration)", "Calculated", "Marginal; pull test"],
     ["Grip for jeans", "17.7 N per jaw", "13.3–25 N; a narrow grab is a jaw gap under 22 mm at the cloth (6 V), where the lever arm is longest", "Calculated", RED("Short at narrow grabs")],
     ["Claw mass", "0.45 kg", "0.60 kg with battery", "Weighed", RED("Not met")],
     ["Motor temperature", "Below 60 °C", "56–59 °C prototype fin", "Calculated", "Marginal; hold test"],
@@ -982,7 +994,7 @@ section("Results and close"); ACT = "";
   table(sl, ["Good decision", "Result"], [
     ["One controller per winch", "Five times less wire; each station tested alone"],
     ["Camera calibration instead of bead homing", "Whole room reachable; caught on paper before building"],
-    ["A mass budget per part", "The claw was weighed; the gear stage sized to the lift margin"],
+    ["A mass budget per part", "The claw was weighed; the next iteration's gear stage sized to the lift margin"],
   ], M, 1.3, lw, cw, { size: 13, rowH: 0.45, name: "good decisions" });
   table(sl, ["Poor decision", "Result"], [
     ["Mass not tracked through four claw versions", "v6 reached 4.6 times its budget in CAD; the claw is 0.15 kg over"],

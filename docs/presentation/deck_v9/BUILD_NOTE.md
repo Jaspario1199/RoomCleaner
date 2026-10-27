@@ -108,3 +108,12 @@ slide 13 rewritten as "Iteration 2: a box with its own brain, and only power goi
 modular attachment, on purpose" next to the claw (renders claw_v6 and gripper1021_head, photo 22); the switching narrative removed from
 the closing slide. Slides 11-17 of v9.1 are now 10-16 (one up); 26 main slides. Photo 19 (soldered perfboard) is no longer used on the
 one-controller slide. Both files validated (PASS); slides 7, 10, 13, 18 and 26 rendered at 80 dpi and checked; contact sheets regenerated.
+
+## v9.3 (2026-10-27)
+
+Every panel item now has a line on a slide (see DECK_V9_NOTES v9.3); `recap()` helper draws the muted per-Act strip at y 6.72. Fonts
+shrunk one step where a bullet was added (S6, S10, S13, S14, S16, S17, S19, S20 at 13-15 pt); S15 bullets at 10.5 pt with the fin table
+at 9 pt; S24 card text at 10.5 pt; the appendix fits table at 9 pt with a Part column. Wording shortened to fit: S15 bullets 3-5
+(compact forms), S24 card 1 ("2.7 × pull at 1.0 A, half the heat, parts already in the station: 1.98-2.80 kg; slip fuse to about
+130 N"). Both files validated (PASS); slides 4, 6, 7, 10, 13-20, 24, 26 and appendix 8 rendered at 80 dpi and checked after two
+passes; PDFs and contact sheets regenerated.

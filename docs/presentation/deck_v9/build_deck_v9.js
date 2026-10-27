@@ -103,6 +103,11 @@ function fitImage(sl, file, x, y, w, h, alt, opts = {}) {
 function caption(sl, text, x, y, w) {
   sl.addText(runs(text, { fontSize: 11, color: HEX.grey, fontFace: "Arial" }), { x, y, w, h: 0.3, margin: 0, isTextBox: true, objectName: "caption" });
 }
+// One-line act recap above the footer (muted).
+function recap(sl, text) {
+  sl.addText(runs("**What this act gave the robot:** " + text, { fontSize: 10, color: HEX.mid, fontFace: "Arial" }),
+             { x: M, y: 6.72, w: W - 2 * M, h: 0.28, valign: "top", margin: 0, isTextBox: true, objectName: "act recap" });
+}
 function placeholderBox(sl, text, x, y, w, h) {
   sl.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: HEX.light }, line: { color: HEX.red, width: 1, dashType: "dash" }, objectName: "placeholder" });
   sl.addText(runs(text, { fontSize: 16, color: HEX.grey, fontFace: "Arial" }), { x: x + 0.2, y, w: w - 0.4, h, align: "center", valign: "middle",
@@ -446,8 +451,9 @@ content("The goal: jeans from anywhere on the floor into the hamper, nobody touc
     "Mine: requirements, design decisions, the SolidWorks station and claw, printing, machining, wiring and bring-up",
     "With Claude Code, under my direction: the control software, calculation scripts and CAD checks",
     "Purchased: steppers, drivers, controller boards, servo, camera, battery and encoder boards",
-    "Self-imposed limits: a hobby budget (about $640 spent, $220–260 of it in the robot), a 450 g claw, 60 °C for loaded printed parts, and a build week that ends on presentation day",
-  ], M, gy + 0.6, W - 2 * M, 6.8 - gy - 0.6, 16, { space: 7, name: "scope" });
+    "Self-imposed limits: a hobby budget (about $640 spent, $211–248 of it in the robot), a 450 g claw, 60 °C for loaded printed parts, and a build week that ends on presentation day, which picked $33 steppers over $32-each worm-gear motors, printed parts everywhere but the pulleys, and a 1 lb gate before jeans",
+    "Deliverable on presentation day: three stations built and bench-tested, one on the wall, the claw bench-tested; the first three-station lift is the next milestone",
+  ], M, gy + 0.6, W - 2 * M, 6.8 - gy - 0.6, 15, { space: 6, name: "scope" });
   sl.addNotes("Talk track (45 s): About fifteen weeks, alone, in five acts: concept in July, a first generation in August, the redesign through September, the " +
               "final design in the first three weeks of October, and the build and test week that ends on presentation day. The three red marks are the failures that " +
               "shaped the design, and each gets its own slide. Scope: the requirements, the decisions, the SolidWorks parts, the printing, machining, wiring and bring-up " +
@@ -488,6 +494,7 @@ content("The first physics: cable tension climbs toward the ceiling", [
   "Weighed claw plus 1 lb, centred 0.4 m below the anchors: 14.3 N static, 17.2 N at 2 m/s²",
   "That is at the 16.8 N winch limit; with jeans the claw must stay at least 0.6 m below the anchors",
   "The planner checks every cable at every path point against the measured pull limit",
+  "Cables only pull, so the claw hangs only inside the polygon under the anchors: a corner-offset layout makes floor unreachable, not harder; the three-station triangle covers 47 % of the floor, 20–27 % after edge margins",
 ], { sheet: "cable_tension", tab: "Cable tension" },
 "Talk track (50 s): The first calculation I ran, redone here with the claw as weighed. Tension per cable is the weight over four times the sine of the cable angle, " +
 "so the shallower the cable, the more it carries. Centred 0.4 m below the anchors with the 1 lb test weight, each cable sees 14.3 N static and 17.2 N with the " +
@@ -500,7 +507,7 @@ content("The first physics: cable tension climbs toward the ceiling", [
 "unit of weight climbs from 1.10 at task height to 2.42 at the 0.4 m ceiling line, worst in the middle of a long wall. The three-station layout is the worked " +
 "example: anchors in two corners and one mid-wall span a triangle of 47 % of the floor, and after a 0.23 to 0.31 m edge margin only 20 to 27 % is usable, with the " +
 "start point 0.44 m off the room centre. So: anchors in the corners, as high and as symmetric as the studs allow. All calculated; nothing measured on the rig.",
-{ tags: ["CALCULATED"], eq: { title: "Tension per cable, 1 lb test at 0.4 m", lines: [
+{ tags: ["CALCULATED"], size: 14, space: 7, eq: { title: "Tension per cable, 1 lb test at 0.4 m", lines: [
   "T = m (g + a) / (4 sin φ)",
   "= 1.054 × 11.81 / (4 × 0.181) = **17.2 N**",
   "Winch limit: **16.8 N**",
@@ -518,7 +525,8 @@ content("The first physics: cable tension climbs toward the ceiling", [
     { eyebrow: "EMERGENCY STOP", title: "The power strip",
       why: ["A guaranteed stop with no extra part", "The only stop that cannot be overridden by software"],
       cost: ["Cutting power drops the claw", "Nobody stands under the robot; a brake is on the next-steps list"] },
-  ], M, 1.3, W - 2 * M, 5.4);
+  ], M, 1.3, W - 2 * M, 5.15);
+  recap(sl, "the cable layout, the 16.8 N per-cable limit the planner checks, and the stop rule (the strip drops the claw).");
   sl.addNotes("Talk track (55 s): Three July choices that each came back later. Steppers: cheap, one shield drives four, and they hold position without a loop. " +
               "The cost: no brake, so they hold only while powered, and holding current is heat, which becomes the thermal story in Act 4. The architecture: one " +
               "central unit, an Uno with a CNC shield, driving four motors in the four corners over wires run to each corner, with an overhead camera on the " +
@@ -576,11 +584,11 @@ photoSlide("Bench week found what the drawings could not", [
 "If asked: whether the 18 V was an open-circuit reading is not recorded; the supply was later identified as 12 V, 6 A, and the station buck accepts up to 20 V.",
 { tags: ["MEASURED"] });
 
-content("A motor on a wall needs a switch and an encoder", [
+const s10 = content("A motor on a wall needs a switch and an encoder", [
   "A motor bolted to a wall cannot just run: a camera can fail, a spool can overwind, tension can rip a mount out, a motor can stall. So each winch gets a switch and a spool encoder",
   "The encoder is there to measure discrepancies while testing; if the camera proves good enough on its own it can go later. Data first",
   "With a motor, a switch and an encoder in every corner, one central box over long, thin wire stops making sense: 10 conductors per corner, 250 m (820 ft) of wire, 0.82 V lost on the 32 ft run, 2.5 mm of skew per 50 ms",
-  "Homing from that central box with beads on the cables also capped the room (chart: 5–29 % of the volume reachable); the claw camera replaced it (Act 3)",
+  "Bead homing: a bead crimped on each cable trips a switch at the outlet; that pose is zero, and no cable can ever be shorter than at home, so it capped the room at 5–29 % of the volume (chart); the claw camera replaced it (Act 3)",
 ], { sheet: "bead_homing", tab: "Bead homing" },
 "Talk track (55 s): Here is why Iteration 1 changed. A motor bolted to a wall cannot just run. Things go wrong: the camera malfunctions, a spool winds too " +
 "tight, cable tension rips something out of the wall, a motor stalls. So every winch needs a switch, a button it can hit, and an encoder on the spool. The " +
@@ -592,7 +600,8 @@ content("A motor on a wall needs a switch and an encoder", [
 "drags the claw into the high-tension zone next to an anchor. If asked about floor area instead of volume: 45 % of the floor is reachable at grab height " +
 "with the beads set 1 m up, 93 % at 1.5 m; what bead homing loses is height, for the scan and the hamper. The encoder's two jobs today: confirm every " +
 "commanded step, and catch slip as the tension sensor. The switch wiring is fail-safe, LOW at rest and HIGH pressed or with a broken wire (Act 2 bench).",
-{ tags: ["CALCULATED"], size: 15, space: 8 });
+{ tags: ["CALCULATED"], size: 14, space: 7 });
+recap(s10, "fixed anchors in studs, fail-safe switch wiring, a switch and encoder per winch, and the proof that the central box and bead homing had to go.");
 
 // ================================================================================================ ACT 3: REDESIGN
 section("Redesign"); ACT = "Act 3 of 5: Redesign (September to early October)";
@@ -650,6 +659,7 @@ content("Iteration 2: a box with its own brain, and only power going in", [
   "Power can come from anywhere, so a box sits in any position and orientation; the room's geometry no longer limits where the winches go",
   "Plug and play: a box slides off its wall mount and unplugs for guests or storage; back on with one plug, it joins Wi-Fi by itself",
   "A product, not a tangle of wires from a central area; the mount is separate, so later a pole clamp instead of screws in a stud",
+  "Drop = current × loop resistance: 64 ft of loop at 2 A is 0.82 V on 18 AWG, 0.51 V on 16 AWG (calculated), so 16 AWG went in",
 ], (sl, x, y, w, h) => {
   figure(sl, { file: [PH("14_gen1_cnc_shield_a4988.jpg"), PH("33_wall_station_mounted_closeup_wires.jpg")], alt: "Central board and a boxed station",
                caption: "Before: one central driver board. After: a box on the wall with one plug." }, x, y, w, 2.45);
@@ -678,13 +688,14 @@ content("Iteration 2: a box with its own brain, and only power going in", [
 "controller runs from the same 12 V pair, so a power loss is also a reboot: the driver's enable line is pulled high at boot so a reset can never move a motor, " +
 "and nothing resumes by itself, the host comes back disarmed or in recovery and waits for a person. A lost Wi-Fi link is different: the stations stop and hold " +
 "on their own clocks with torque on. A brake or a non-backdrivable stage is on the next-steps list. Designed and simulated; not yet run on four stations.",
-{ size: 15, space: 9 });
+{ size: 14, space: 7 });
 
-content("The claw camera replaces bead homing", [
+const s14 = content("The claw camera replaces bead homing", [
   "The claw camera reads a printed floor board, and a fit finds the anchors and cable lengths: the whole room is reachable",
   "Camera pose per frame, best case: 6.6 mm with one tag in view, 0.7 mm with four",
   "After the fit, cable lengths are known to about 12–16 mm (simulated); the room opens only when the error bars allow it",
   "Beads stay on the cables as end stops: a bead reaching its switch stops that station",
+  "By floor area at grab height, bead homing read better: 45 % reachable with beads at 1 m, 93 % at 1.5 m; what it loses is height for the scan and the hamper",
 ], { sheet: "floor_board", tab: "Floor board" },
 "Talk track (55 s): Bead homing died on the reachability chart, so the claw camera does the homing instead. At startup the claw looks down at a printed floor " +
 "board; from the tags it sees, a fit finds the anchor positions and the cable lengths, with error bars, and the whole room becomes reachable. The chart is the " +
@@ -696,7 +707,8 @@ content("The claw camera replaces bead homing", [
 "set 1 m up, 45 % of the floor is reachable at grab height, 93 % at 1.5 m, all of it from 1.8 m (same model as the Act 2 chart, calculated). What bead homing " +
 "loses is height, not footprint: the claw can never rise above its home pose, and the robot needs the height to scan from 1.6 m, lift over the hamper and keep " +
 "cables off furniture, and a high home sits in the high-tension zone by the anchors. The camera calibration removes the cap entirely, within the error bars.",
-{ tags: ["SIMULATED"], size: 16, space: 10 });
+{ tags: ["SIMULATED"], size: 14, space: 7 });
+recap(s14, "one plug per station, the motor as the designed fuse (34–59 N) with the encoder as tension sensor, and camera calibration that opens the whole room.");
 
 // ================================================================================================ ACT 4: FINAL DESIGN
 section("Final design"); ACT = "Act 4 of 5: Final design (October 7-21)";
@@ -708,10 +720,11 @@ section("Final design"); ACT = "Act 4 of 5: Final design (October 7-21)";
   bullets(sl, [
     "1.5 A doubles motor heat to 4.05 W; the PETG mount must stay below 60 °C",
     "The fin conducts heat off the motor flange and out of the shell to room air: 35–50 % of the 4.05 W",
-    "Vented shell and fin: 56–59 °C with the 0.019 in prototype, 45–49 °C with the 1/8 in design",
-    "Thin sheet stops gaining by 136 mm; 1/8 in plate keeps gaining to 349 mm",
-  ], bx, 1.35, bw, 1.9, 12, { space: 4, name: "cooling bullets" });
-  label(sl, "If the fin alone carried all 4.05 W (painted 6061, 44 mm wide)", bx, 3.26, bw, 0.24, { size: 11, bold: true, color: HEX.navy });
+    "Vented shell + fin: 56–59 °C (0.019 in prototype), 45–49 °C (1/8 in design)",
+    "Thin sheet stops gaining by 136 mm; the 1/8 in plate by 349 mm",
+    "A matte-black coat would nearly double the plate's radiation (emissivity 0.9 vs 0.1 bare); the prototype fin is bare, as is the contact square either way",
+  ], bx, 1.35, bw, 2.15, 10.5, { space: 2, name: "cooling bullets" });
+  label(sl, "If the fin alone carried all 4.05 W (6061, 44 mm wide, painted)", bx, 3.52, bw, 0.22, { size: 11, bold: true, color: HEX.navy });
   table(sl, ["Thickness", "Mass", "Shortest for ≤ 60 °C"], [
     ["0.019 in (prototype)", "14 g", "None (2.0 W max)"],
     ["1/16 in", "47 g", "None (3.6 W max)"],
@@ -719,7 +732,7 @@ section("Final design"); ACT = "Act 4 of 5: Final design (October 7-21)";
     ["1/8 in (design)", "94 g", "145–185 mm"],
     ["3/16 in", "141 g", "125–140 mm"],
     ["1/4 in", "189 g", "115–125 mm"],
-  ], bx, 3.5, bw, [0.42, 0.18, 0.4], { size: 10, rowH: 0.25, name: "fin sizing" });
+  ], bx, 3.74, bw, [0.42, 0.18, 0.4], { size: 9, rowH: 0.22, name: "fin sizing" });
   eqBox(sl, { title: "Motor heat, P = I² R", lines: ["At 1.06 A: (1.06 A)² × 1.8 Ω = 2.0 W", "At 1.5 A: (1.5 A)² × 1.8 Ω = **4.05 W**"] }, bx, 6.75 - eqHeight({ lines: [1, 2] }), bw);
   sl.addNotes("Talk track (55 s): Raising the drivers to the motor's rated 1.5 A doubles the heat to 4.05 W per motor, and the motor sits in a printed PETG " +
               "mount that softens at 60 °C. A sealed shell would cook it. The answer is a vented shell and an aluminium fin bolted to the motor face and out " +
@@ -740,7 +753,7 @@ section("Final design"); ACT = "Act 4 of 5: Final design (October 7-21)";
               "against 6.2 bare. In the sizing table that is the difference between a 1/8 in fin that works at 145 to 185 mm and a bare one that needs 1/4 in and " +
               "about 300 mm; the motor itself moves less, 1.5 to 3 K, because it also sheds heat into the shell air. The contact square under the motor stays bare " +
               "with thermal paste so paint never sits in the conduction path. The drawing calls for matte black; the photos of the built prototype fin show bare " +
-              "metal and the alloy is unconfirmed. [[Jasper: is the built prototype fin painted, with what and when; is the sheet 6061 and how do you know?]]");
+              "metal and the alloy is unconfirmed. [[Jasper: confirm alloy and whether the final fin gets painted]]");
 }
 
 {
@@ -754,10 +767,10 @@ section("Final design"); ACT = "Act 4 of 5: Final design (October 7-21)";
   ] };
   bullets(sl, [
     "Calculated pull at 1.5 A: 34 N on an empty spool, 25 N when full; running torque assumed 0.7 × holding",
-    "Claw with battery weighed 0.60 kg (0.86 kg estimated)",
+    "Claw with battery weighed 0.60 kg; the 0.86 kg estimate came from CAD volumes at solid density: printed parts are mostly infill, so a CAD mass is an upper bound",
     "Jeans: 1.50 kg against 1.56 kg capacity, a 4 % margin, inside the uncertainty (1.1 kg at 0.5 × holding torque)",
     "The pull test decides: keep 1.5 A, or add a gear stage at each winch",
-  ], bx, 1.35, bw, 6.75 - eqHeight(eq) - 0.2 - 1.35, 15, { space: 8, name: "lift bullets" });
+  ], bx, 1.35, bw, 6.75 - eqHeight(eq) - 0.2 - 1.35, 14, { space: 6, name: "lift bullets" });
   eqBox(sl, eq, bx, 6.75 - eqHeight(eq), bw);
   sl.addNotes("Talk track (55 s): Top chart: what one winch pulls at 1.5 A as the spool fills: 34 N on the empty core, 25 N full, assuming running torque is " +
               "0.7 of holding torque. Divided by 1.5 against skipped steps, that is the 16.8 N design force. Bottom chart: what the four winches hold at task " +
@@ -776,13 +789,15 @@ section("Final design"); ACT = "Act 4 of 5: Final design (October 7-21)";
               "were never in doubt; the printed parts came to about 250 g on the scale against 860 g if they were solid plastic, 677 cm³ of CAD volume. The " +
               "estimate priced them from CAD solids, and printed parts have walls and infill; the exact assumptions behind the 0.86 are not itemized in my notes. " +
               "The lesson: a CAD mass is an upper bound, the budget is checked on the scale. [[Jasper: infill and wall count on the claw parts; did the 0.86 kg " +
-              "estimate assume solid parts or a slicer mass?]]");
+              "estimate assume solid parts or a slicer mass?]] [[Jasper: confirm this is where the estimate came from]]");
 }
 
 photoSlide("The claw: geared four-bar hands, camera bay, one 2S pack", [
   "The hands are four-bar couplers: they stay within 1° of parallel over the 53 mm opening",
   "Grip 13.3–25 N per jaw against 17.7 N for jeans: short at the narrowest grab, enough above a 22 mm grab",
   "One 7.4 V two-cell pack: a 6 V regulator for the servo, a 5 V buck for the board, a 200k/100k divider for battery sense",
+  "The gear train is sized for the servo stalling on every grip: module 1.5, pinion safety factor 2.05 at 6 V against half of PETG's tensile strength; the cost was mass",
+  "μ = 0.3 is assumed for cloth on bare PETG, chosen low, not measured; a force-gauge pull on the real pads is first on the list",
 ], [[PH("25_claw_assembled.jpg"), "Claw assembled (Oct 22)"], [PH("40_claw_housing_ubec_wagos_lit.jpg"), "Electronics housing open (Oct 26)"]],
 "Talk track (55 s): The final claw. The servo drives an 18-tooth pinion into a 54-tooth gear, 3:1, and each hand is a four-bar coupler on the gear's crank and the " +
 "arm, a near-parallelogram, so the hands stay within a degree of parallel across the 53 mm opening. Grip: jeans need 17.7 N per jaw at a friction of 0.3; the " +
@@ -798,12 +813,12 @@ photoSlide("The claw: geared four-bar hands, camera bay, one 2S pack", [
 "hands ride on a gear crank, so the effective lever arm from the crank to the pad is longest when the jaws are nearly closed, 59 mm at a 10 mm gap, and " +
 "shortest at a wide grab, 33 mm at 70 mm; stall torque is fixed, so pad force is lowest at a narrow grab, 13.3 N, and 25 N at 70 mm. Jeans at 0.3 need 17.7 N " +
 "per jaw, so the force is short until the grab is at least 43 mm wide at 4.8 V, 22 mm at the 6 V the servo rail actually runs. Grippy pads halve the need.",
-{ tags: ["CALCULATED"], eq: { title: "Grip force per jaw, jeans", lines: [
+{ tags: ["CALCULATED"], size: 13, space: 5, eq: { title: "Grip force per jaw, jeans", lines: [
   "N ≥ m (g + a) / (2μ) = 0.9 × 11.81 / 0.6 = **17.7 N**",
   "Jaws: **13.3 N** narrowest, 25 N at a 70 mm grab",
 ] } });
 
-content("The gripper is a modular attachment, on purpose", [
+const s18 = content("The gripper is a modular attachment, on purpose", [
   "The gripper attaches modularly at the tube, so a different gripper can be tried without touching the rest: a test bed for what works on shirts",
   "A hard-material pinch was expected to grip better; testing showed alignment problems: the rack-and-pinion jaws left a 2 mm gap and never met on thin cloth (Sep 30)",
   "Other materials are being tried, TPU pads among them: at a friction of 0.6 instead of the assumed 0.3, jeans need half the jaw force. Still testing",
@@ -819,6 +834,7 @@ content("The gripper is a modular attachment, on purpose", [
 "(pinion radius 18 mm times 120° of travel per rack against a 77.4 mm closed width); no cloth-test reading is logged; the pad-to-cloth friction has not " +
 "been measured, which is why the jeans case is marked short at narrow grabs.",
 { tags: ["MEASURED", "CAD"], figW: 6.2, size: 15, space: 9 });
+recap(s18, "vented shell + fin (56–59 °C), 1.56 kg lift against 1.50 kg needed, a 0.60 kg claw with four-bar hands and a modular gripper.");
 
 // ================================================================================================ ACT 5: BUILD AND BRING-UP
 section("Build and bring-up"); ACT = "Act 5 of 5: Build and bring-up (October 22-27)";
@@ -843,7 +859,8 @@ section("Build and bring-up"); ACT = "Act 5 of 5: Build and bring-up (October 22
     "Fin holes drilled in one setup: the first hole became the mill's zero, so the pattern carries ±0.1 mm, not the sheared edges' ±0.5",
     "One shell kept a failed layer: it is a shell, not a load path",
     "Printed holes come out small, so every printed fit carries an allowance; the drilled fin needs none",
-  ], bx, 1.35, bw, 5.4, 15, { space: 10, name: "fits bullets" });
+    "Every fit on this slide belongs to a named part: the appendix table lists feature, part, drawn size and fit",
+  ], bx, 1.35, bw, 5.4, 14, { space: 8, name: "fits bullets" });
   sl.addNotes("Talk track (55 s): Build week, starting with the parts. Everything structural is PETG on a Creality K1, 0.4 mm nozzle, 0.2 mm layers, loads along " +
               "the layers, mating faces away from supports. The fits came from coupons: the first spool bore, 5.2 mm on a 5 mm shaft, would not go on; v3 opened " +
               "it to 5.45 and now every printed fit carries an allowance. The gear bearing pockets are the ones I am proudest of: the bearing presses past a lip, " +
@@ -858,6 +875,7 @@ photoSlide("Station electronics on the bench: every check before the motor turns
   "Homing switch LOW at rest, HIGH pressed or with a broken wire; the encoder answers at its address with the magnet detected",
   "One spool turn within 60 encoder counts: PASS on both boards. The spool encoder (magnetic, on the spool shaft, Ø4 magnet) has two jobs: confirm every commanded step, and detect slip as the tension sensor",
   "A short found by the board's LED going out, traced to the switch pull-up",
+  "A motor that logged steps but did not turn: the meter found the driver's logic rail at 1.14 V instead of 3.3 V; now the driver VDD is soldered to the regulated rail and measured before enable",
 ], [[PH("43_bench_two_stations_laptop_meter_floor.jpg"), "Bench: two stations, laptop, meter, 12 V supply"], [PH("29_station_bench_esp32_wiring_floor.jpg"), "Dev board, driver, spool and end stop"],
     [PH("37_station_bench_red_shell_fuse_12v.jpg"), "Red shell, fused 12 V lead"], [PH("31_station_bench_xiao_breadboard_shell_open.jpg"), "Second board, shell open"]],
 "Talk track (55 s): The station electronics went through a bench script one part at a time, before the station firmware went on. Boot on USB alone with 12 V off: " +
@@ -872,8 +890,8 @@ photoSlide("Station electronics on the bench: every check before the motor turns
 "was a bad 3.3 V connection; after the fix the motor turned, loud and slow. Those readings were on my meter, not logged. The habit that came out of it is this " +
 "slide: a meter on every rail before code, and the driver's logic supply now comes off the same regulated rail as the controller, soldered, with a VDD check " +
 "before enable. [[Jasper: what you tried before the meter; which wire or pin was the bad 3.3 V connection and what was physically wrong (loose jumper, cold " +
-"joint, breadboard contact); VDD after the repair; the date.]]",
-{ tags: ["MEASURED"] });
+"joint, breadboard contact); VDD after the repair; the date.]] [[Jasper: what the physical fault was and the steps you took before metering]]",
+{ tags: ["MEASURED"], size: 15, space: 8 });
 
 {
   const sl = blank("Claw electronics on the bench: camera, battery, servo", ["MEASURED"]);
@@ -931,9 +949,9 @@ content("Three stations first: the triangle, the tilt, and no spare cable", [
   // Next iteration (Jasper, 10/27): the gear stage is designed and the pinion printed but not fitted; the mounted stations are direct-drive spools.
   const sl = blank("What hurts now, and the next iteration", ["CAD", "PLANNED"]);
   const cardsList = [
-    { eyebrow: "WINCH PULL", title: "A 3:1 printed gear stage", tag: "CAD, not fitted", now: "Now: a direct-drive spool on the motor shaft, 34 N on an empty spool at 1.5 A",
-      next: ["18T/54T, module 1, printed PETG pinion: designed and CAD-verified, pinion printed, not fitted",
-             "1.98–2.80 kg at 1.0 A with half the heat; the slip fuse moves to about 130 N, station sized for 200 N"] },
+    { eyebrow: "WINCH PULL", title: "A 3:1 printed gear stage", tag: "CAD, not fitted", now: "Now: direct drive, 34 N at 1.5 A on an empty spool. A bigger motor is not the lever: the mass that matters is on the claw; pull rises with current, heat with current²",
+      next: ["18T/54T, module 1, printed PETG pinion: CAD-verified, pinion printed, not fitted",
+             "2.7 × pull at 1.0 A, half the heat, parts already in the station: 1.98–2.80 kg; slip fuse to about 130 N"] },
     { eyebrow: "SLIDE-IN FIT", title: "A 1° draft on the dovetail", tag: "PLANNED", now: "Now: the slide-in binds on insertion; its ribs run parallel on 0.175 mm a side",
       next: ["A 1° draft on the dovetail and the interlocking supports, thicker at the top and thinning toward the bottom",
              "The station self-locates as it slides in and does not bind"] },
@@ -941,15 +959,15 @@ content("Three stations first: the triangle, the tilt, and no spare cable", [
       next: ["Thinner walls and ribs, about 200 cm³: less print time and filament",
              "For anyone building it from the open-source files"] },
   ];
-  const cx0 = M, cy = 1.3, ch = 4.1, g = 0.2, boxW = 3.3, cardsW = W - 2 * M - boxW - 0.35, cw = (cardsW - 2 * g) / 3;
+  const cx0 = M, cy = 1.3, ch = 4.0, g = 0.2, boxW = 3.3, cardsW = W - 2 * M - boxW - 0.35, cw = (cardsW - 2 * g) / 3;
   cardsList.forEach((c, i) => {
     const cx = cx0 + i * (cw + g);
     sl.addShape(pres.shapes.RECTANGLE, { x: cx, y: cy, w: cw, h: ch, fill: { color: HEX.light }, line: { color: HEX.light }, objectName: `card ${c.title}` });
     label(sl, c.eyebrow, cx + 0.2, cy + 0.15, cw - 0.4, 0.25, { size: 10, bold: true, color: HEX.grey, name: "card eyebrow" });
     label(sl, c.title, cx + 0.2, cy + 0.4, cw - 0.4, 0.7, { size: 17, bold: true, color: HEX.navy, valign: "top", name: "card title" });
-    label(sl, c.now, cx + 0.2, cy + 1.05, cw - 0.4, 0.85, { size: 11, color: HEX.red, valign: "top", name: "card now" });
-    label(sl, "NEXT ITERATION", cx + 0.2, cy + 1.95, cw - 0.4, 0.25, { size: 10, bold: true, color: HEX.grey, name: "card label" });
-    bullets(sl, c.next, cx + 0.2, cy + 2.2, cw - 0.4, ch - 2.55, 11, { space: 4, name: "card next" });
+    label(sl, c.now, cx + 0.2, cy + 1.0, cw - 0.4, 1.0, { size: 10.5, color: HEX.red, valign: "top", name: "card now" });
+    label(sl, "NEXT ITERATION", cx + 0.2, cy + 2.05, cw - 0.4, 0.22, { size: 10, bold: true, color: HEX.grey, name: "card label" });
+    bullets(sl, c.next, cx + 0.2, cy + 2.27, cw - 0.4, ch - 2.6, 10.5, { space: 3, name: "card next" });
     label(sl, c.tag, cx + 0.2, cy + ch - 0.35, cw - 0.4, 0.3, { size: 10, bold: true, color: HEX.navy2, name: "card tag" });
   });
   // Limits strip (record facts): relative positioning, three-station tilt, no people detection.
@@ -959,8 +977,9 @@ content("Three stations first: the triangle, the tilt, and no spare cable", [
     "Relative positioning only: pose from the cable model and the floor-board calibration; no absolute reference beyond the markers",
     "Three stations on the corner holes: the claw tilts 5.5° (abort at 8°), grips refused on 78 % of the floor; the three-hole housing: 0.8°",
     "No person or pet detection: nobody under the robot, with PAUSE and the power strip",
-  ], cx0, ly + 0.22, cardsW, 6.9 - ly - 0.22, 10.5, { space: 2, name: "limits" });
-  const bx = cx0 + cardsW + 0.35, boxH = 6.75 - cy - 0.35;
+  ], cx0, ly + 0.22, cardsW, 6.55 - ly - 0.22, 10, { space: 1, name: "limits" });
+  recap(sl, "fits from coupons, both station boards and the claw PASS on the bench, one station on the wall; still planned: pull test, hold test, first lift.");
+  const bx = cx0 + cardsW + 0.35, boxH = 6.55 - cy - 0.35;
   placeholderBox(sl, "[[Jasper: photos or CAD of the next iteration]]", bx, cy, boxW, boxH);
   caption(sl, "Next-iteration parts: gear stage, drafted slide-in, lighter mount", bx, cy + boxH + 0.05, boxW);
   sl.addNotes("Talk track (55 s): Three things that hurt now, and what the next iteration does about them. Pull: the mounted stations are direct-drive spools on " +
@@ -1027,13 +1046,13 @@ section("Results and close"); ACT = "";
     ["A mass budget per part", "The claw was weighed; the next iteration's gear stage sized to the lift margin"],
   ], M, 1.3, lw, cw, { size: 13, rowH: 0.45, name: "good decisions" });
   table(sl, ["Poor decision", "Result"], [
-    ["Mass not tracked per part until Oct 20", "The v6 clamp reached 4.6 times its budget in CAD; the claw is 0.15 kg over"],
-    ["Prototype fin cut from scrap sheet", "Only 1–4 K of thermal margin"],
-    ["Build and test week ending on presentation day", "System results arrive at the last minute"],
-  ], M, 3.45, lw, cw, { size: 13, rowH: 0.45, headColor: HEX.red, name: "poor decisions" });
+    ["Mass not tracked per part until Oct 20", "Claw 0.15 kg over → 4 % jeans lift margin, demo load 1 lb"],
+    ["Prototype fin cut from scrap sheet", "1–4 K margin → full 1.5 A only after the hold test, 1.35 A fallback"],
+    ["Build and test week ending on presentation day", "Pull test, hold test and first lift still PLANNED (slide 25)"],
+  ], M, 3.45, lw, cw, { size: 12, rowH: 0.45, headColor: HEX.red, name: "poor decisions" });
   bullets(sl, [
     "Half the time: pull-test one winch and weigh a mock claw in week 1; kill the central board and bead homing on paper; prove one station first",
-  ], M, 5.65, lw, 1.1, 14, { space: 6, name: "half time" });
+  ], M, 5.8, lw, 1.0, 14, { space: 6, name: "half time" });
   label(sl, "Next", x2, 1.3, rw, 0.4, { size: 18, bold: true, color: HEX.navy });
   bullets(sl, [
     "Flash and commission the three stations on the wall",
@@ -1173,21 +1192,21 @@ content("Operating sequence", [
     sl.addText(cap, { x, y: y + th + 0.02, w: tw, h: 0.24, fontSize: 10.5, color: HEX.mid, fontFace: "Arial", margin: 0, isTextBox: true, objectName: "tile caption" });
   });
   caption(sl, "My SolidWorks parts; blue and tan are cut faces, dark grey the bought bearing", fx, 6.6, fw);
-  table(sl, ["Feature", "As drawn", "Fit"], [
-    ["Gear bearings (687)", "Ø14.075 pocket behind a Ø14.000 lip, 1.95 long, 8 T-slots", "Snaps past the lip, +0.075 behind it"],
-    ["Gear pins", "Printed Ø7.000 pin into a Ø7.05 socket", "Line-to-line in the bearing; +0.05"],
-    ["Slide-in mount", "0.175 per side; 30° dovetail flanks", "Slip fit, 0.14–0.21 on the flanks"],
-    ["Spool on Ø5 D-shaft", "Ø5.30 bore (10/21), Ø5.45 in v3; 0.5 mm flat", "+0.30 to +0.45: Ø5.2 printed too tight"],
-    ["End-stop switch", "Pocket 6.65 × 20.3 × 9 on a 1 mm ledge, lever window below", "Press fit, no screws"],
-    ["Heat-set inserts", "M3: Ø4.0 × 5 gear housing; M2.5: Ø3.45 × 4 encoder", "Melt-in; hole deeper than the insert"],
-    ["Screw clearance", "M3 Ø3.5 printed, Ø3.4 drilled; wall Ø3.97 (5/32 in)", "+0.5 printed, +0.4 drilled"],
-    ["Motor pilot, Ø22 boss", "Ø22.4 printed tab, Ø22.5 drilled fin", "+0.4 / +0.5"],
-    ["Fin hole zero", "Edges locate the bottom-left hole; drilled, it is the zero for the other 4", "Pattern ±0.1, free of the ±0.5 sheared edges"],
-  ], bx, 1.25, bw, [0.25, 0.44, 0.31], { size: 10.5, rowH: 0.44, name: "fits" });
+  table(sl, ["Feature", "Part", "As drawn", "Fit"], [
+    ["Gear bearings (687)", "Claw gear housing", "Ø14.075 pocket behind a Ø14.000 lip, 1.95 long, 8 T-slots", "Snaps past the lip, +0.075 behind it"],
+    ["Gear pins", "Claw gear housing", "Printed Ø7.000 pin into a Ø7.05 socket", "Line-to-line in the bearing; +0.05"],
+    ["Slide-in mount", "Station housing in the wall mount", "0.175 per side; 30° dovetail flanks", "Slip fit, 0.14–0.21 on the flanks"],
+    ["Spool on Ø5 D-shaft", "Winch spool on the motor shaft", "Ø5.30 bore (10/21), Ø5.45 in v3; 0.5 mm flat", "+0.30 to +0.45: Ø5.2 printed too tight"],
+    ["End-stop switch", "Station slide-in", "Pocket 6.65 × 20.3 × 9 on a 1 mm ledge, lever window below", "Press fit, no screws"],
+    ["Heat-set inserts", "Claw gear housing (M3); encoder board (M2.5)", "M3: Ø4.0 × 5; M2.5: Ø3.45 × 4", "Melt-in; hole deeper than the insert"],
+    ["Screw clearance", "Printed parts, fin, wall mount", "M3 Ø3.5 printed, Ø3.4 drilled; wall Ø3.97 (5/32 in)", "+0.5 printed, +0.4 drilled"],
+    ["Motor pilot, Ø22 boss", "Motor tab and fin", "Ø22.4 printed tab, Ø22.5 drilled fin", "+0.4 / +0.5"],
+    ["Fin hole zero", "Fin drilling datum", "Edges locate the bottom-left hole; drilled, it is the zero for the other 4", "Pattern ±0.1, free of the ±0.5 sheared edges"],
+  ], bx, 1.25, bw, [0.2, 0.2, 0.36, 0.24], { size: 9, rowH: 0.4, name: "fits" });
   bullets(sl, [
     "Printed holes come out small, so every printed fit carries an allowance; the drilled fin needs none",
     "PETG on a Creality K1, 0.4 mm nozzle, 0.2 mm layers; loads along the layers, mating faces off supports",
-  ], bx, 5.85, bw, 0.95, 12, { space: 4, name: "printing rules" });
+  ], bx, 6.15, bw, 0.8, 10.5, { space: 2, name: "printing rules" });
   sl.addNotes("The gear pockets: the bearing presses past a lip, the T-slots let the lip ends flex, and it then sits free in a pocket 0.075 mm larger. " +
               "The slide-in runs on 0.175 mm a side. The fin's sheared edges are only good to half a millimetre, so they locate only the first hole; the rest " +
               "are drilled from it. [[confirm which spool bore is printed, which holes get heat-set inserts, and the insert part number]] " +

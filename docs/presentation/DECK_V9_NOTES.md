@@ -113,3 +113,13 @@ from Act 3; slides 11-17 move up one; a new slide 18 sits next to the claw in Ac
 
 Not supported by the record and therefore worded carefully: the 0.51 V drop is calculated, not measured (the slide says so); the
 pinch-test result is Jasper's account plus the geometry audit's 2 mm gap, no cloth-test reading is logged (said in the notes).
+
+## v9.3 (10/27): every panel item on a slide; per-Act recap lines; deliverable up front
+
+No renumbering (26 main slides). On-slide additions: S4 (limits picked the steppers, printed parts, 1 lb gate; the deliverable on
+presentation day), S6 (cables only pull: polygon under the anchors, corner-offset layout, 47 % / 20-27 %), S10 (bead homing defined),
+S13 (drop = current × loop resistance, 0.82 / 0.51 V), S14 (floor area 45 % / 93 %), S15 (paint would nearly double the radiation; the
+prototype fin is bare; table header no longer says painted), S16 (0.86 kg from CAD volumes at solid density), S17 (gear train sized
+for stall, SF 2.05; μ = 0.3 assumed, not measured), S19 (pointer to the appendix fits table), S20 (the 1.14 V logic-rail fault and the
+VDD fix), S24 (a bigger motor is not the lever; 2.7× at 1.0 A with half the heat), S26 (poor-decision Result cells as consequences),
+appendix fits slide (Part column). Recap strip "What this act gave the robot:" on the last slide of each act: S7, S10, S14, S18, S24.

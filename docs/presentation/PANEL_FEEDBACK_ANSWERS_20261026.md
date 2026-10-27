@@ -1,7 +1,7 @@
 # Panel feedback on deck v8 (SpaceX engineers, 10/26): answers from the record
 
 Prepared 2026-10-26 from the repository record only. Each item gives the v8 slide the panel named, the matching v9 slide
-(`docs/presentation/deck_v9/`, outline `DECK_V9_NOTES.md`; numbers as of 10/27 evening: slide 13 "The drive slips before the wall does" added, the gear-stage slide removed, slide 24 "What hurts now, and the next iteration" added; v9.2 removed the clamp slide and added slide 18 "The gripper is a modular attachment", so slides 11-17 moved up one), an answer a presenter can say, the evidence tag and the source
+(`docs/presentation/deck_v9/`, outline `DECK_V9_NOTES.md`; numbers as of 10/27 evening: slide 13 "The drive slips before the wall does" added, the gear-stage slide removed, slide 24 "What hurts now, and the next iteration" added; v9.2 removed the clamp slide and added slide 18 "The gripper is a modular attachment", so slides 11-17 moved up one; v9.3 put every item on a slide and added per-Act recap lines, no renumbering), an answer a presenter can say, the evidence tag and the source
 file, and where it went: **On slide** (a one-line statement on the v9 slide), **In notes** (the v9 "If asked" speaker notes),
 or **Question for Jasper** (the record does not hold the answer; a `[[Jasper: ...]]` placeholder sits in the notes).
 
@@ -12,21 +12,21 @@ is invented.
 | v8 slide | v9 slide | Item | Placement |
 |---|---|---|---|
 | 5 Timeline and Scope | 4 Five phases in fifteen weeks | Self-imposed budget and schedule limits | On slide + In notes (hours and mentors: Question for Jasper) |
-| 7 Design Trade-offs | 7 July's choices (notes); 11 and 15 (margins, heat) | The idea behind each trade | In notes; "how to read the margins" On slide 12 |
-| 8 Cable Tension | 6 The first physics | Layout offset to a corner | In notes |
+| 7 Design Trade-offs | 7 July's choices (notes); 11, 13, 17 (margins, wire drop, gear train) | The idea behind each trade | On slides 11, 13, 17 + In notes |
+| 8 Cable Tension | 6 The first physics | Layout offset to a corner | On slide 6 + In notes |
 | 9 Gen 1 | 8 Generation 1; 10 Why Gen 1 could not be final | What bead homing is | On slide 10 + In notes 8 and 10 |
 | 10 One Controller per Winch | 13 Iteration 2: a box with its own brain | What happens when the motors lose power | On slide (table row) + In notes |
-| 11 Camera Calibration | 10 (chart) and 14 The claw camera replaces bead homing | Floor area vs volume | On slide 10 (computed) + In notes 10 and 15 |
-| 12 Claw | 17 The claw (and 18, the modular gripper) | Where the 0.3 friction coefficient came from | In notes: assumed, source named; Question for Jasper |
+| 11 Camera Calibration | 10 (chart) and 14 The claw camera replaces bead homing | Floor area vs volume | On slide 14 (computed) + In notes 10 and 14 |
+| 12 Claw | 17 The claw (and 18, the modular gripper) | Where the 0.3 friction coefficient came from | On slide 17 (assumed, not measured) + Question for Jasper |
 | 13 Final Wall Station | 15 Heat (fin); 11 One plug per station, 12 the designed fuse | What the fin does | On slide 15 + In notes |
 | 14 Winch Pull | 16 Winch pull and what the four winches can lift | How the pull value was validated | In notes (it is not validated: PLANNED) |
-| 15 Motor Cooling | 15 Heat | Why the 6061 is painted | In notes (model side) + Question for Jasper (the built fin) |
-| 16 Weight Budget | 16 (same slide) | Where the ~25 % mass reduction came from | In notes + Question for Jasper |
-| 17 Build | 20 Station electronics on the bench | How the 3.3 V fault was found; steps when the motor would not turn | In notes (recorded steps) + Question for Jasper |
-| 18 Manufacturing fits | Appendix: Manufacturing fits and datums | Which feature each fit belongs to | In notes |
+| 15 Motor Cooling | 15 Heat | Why the 6061 is painted | On slide 15 (prototype fin is bare; paint would double the radiation) + Question for Jasper |
+| 16 Weight Budget | 16 (same slide) | Where the ~25 % mass reduction came from | On slide 16 + Question for Jasper |
+| 17 Build | 20 Station electronics on the bench | How the 3.3 V fault was found; steps when the motor would not turn | On slide 20 (recorded readings and the fix) + Question for Jasper |
+| 18 Manufacturing fits | Appendix: Manufacturing fits and datums (Part column); pointer on 19 | Which feature each fit belongs to | On the appendix slide + In notes |
 | 20 Results | 25 Results against targets | What narrow grabs are | On slide (table row) + In notes |
-| 21 Decisions | 26 What I would do first next time | How the weaker decisions affected the deliverable | In notes |
-| 22 Takeaways | 26 (same slide) | Why larger motors were not the answer | In notes |
+| 21 Decisions | 26 What I would do first next time | How the weaker decisions affected the deliverable | On slide 26 (Result cells) + In notes |
+| 22 Takeaways | 24 (winch card) and 26 | Why larger motors were not the answer | On slide 24 + In notes |
 
 ---
 
@@ -81,7 +81,7 @@ and structural SFs are allowable stress over calculated stress, with printed PET
 derated a further 15 % when warm. All of them are CALCULATED against assumed allowables; none is a tested margin." Sources:
 `calculations/lift_chain_weakest_link.md`, `calculations/winch_gear3.md`, `FUNDAMENTALS.md` §2 and §4, D39.
 
-- Placement: **In notes** on v9 slide 7; the margin rule **On slide 11** (one statement) and in its notes; heat on slide 15.
+- Placement (v9.3): **On slide 17** (gear train sized for stall, the cost was mass), **On slide 13** (wire drop mechanism), **On slide 11** (the margin rule), heat on slide 15; full text **In notes** on slide 7.
 
 ## v8 slide 8, Cable Tension → v9 slide 6: a layout offset to a corner of the room
 
@@ -96,7 +96,7 @@ four stations the same statics says: put the anchors in the corners, as high and
 (linear-program statics and the three-cable solve); nothing measured on the rig. Sources: `FUNDAMENTALS.md` §1,
 `docs/THREE_STATION_MODE.md` §5, `verification/three_station_mode_results.md` §3.
 
-- Placement: **In notes** on v9 slide 6 (and the 3-station numbers already on slide 23).
+- Placement (v9.3): **On slide 6** (one statement: cables only pull, polygon under the anchors, 47 % / 20–27 %) and **In notes**; the 3-station numbers also on slide 23.
 
 ## v8 slide 9, Gen 1 → v9 slides 8 and 10: what bead homing is
 
@@ -109,7 +109,7 @@ in a CAD check, and rev D overlaps a 5 mm bead by 3.75 mm. The beads stay on the
 CAD-verified; no bead has tripped a printed arm on real line. Sources: `DECISION_STORIES.md` T16, D14, D26,
 `calculations/bead_reach.py`.
 
-- Placement: **On slide 10** (definition in the first statement) and **In notes** on slides 8 and 10.
+- Placement (v9.3): **On slide 10** (definition: bead crimped on each cable, outlet switch, that pose is zero) and **In notes** on slides 8 and 10.
 
 ## v8 slide 10, One Controller per Winch → v9 slide 13: what happens when the motors lose power
 
@@ -152,7 +152,7 @@ next to the anchors. So the volume chart is the right figure for the robot's job
 present the floor number first." CALCULATED. Sources: `calculations/bead_reach.py` and `.json`, the table above,
 `FUNDAMENTALS.md` §1.
 
-- Placement: **On slide 10** (one statement with the floor numbers) and **In notes** on slides 10 and 14.
+- Placement (v9.3): **On slide 14** (floor area 45 % / 93 %, what bead homing loses is height) and **In notes** on slides 10 and 14.
 
 ## v8 slide 12, Claw → v9 slide 17: where the 0.3 friction coefficient came from
 
@@ -167,7 +167,7 @@ pull test with a force gauge on the real pads is first on the list." CALCULATED 
 
 - **Question for Jasper:** where did 0.3 come from (a handbook value for cotton on plastic, a class note, a guess, or a quick
   test with a scale)? If a test, what pad, what cloth, what reading? Placeholder `[[Jasper: ...]]` in the slide 17 notes.
-- Placement: **In notes** + **Question for Jasper**.
+- Placement (v9.3): **On slide 17** (μ = 0.3 assumed, chosen low, not measured; force-gauge pull first) + **Question for Jasper** in the notes.
 
 ## v8 slide 13, Final Wall Station → v9 slide 15 (and 11): what the aluminium fin does
 
@@ -196,7 +196,7 @@ until the motor skips; its result replaces the 0.7 and goes into the planner as 
 PLANNED; how 1.5 A was reached is not recorded (D37). Sources: `FUNDAMENTALS.md` §2, `DECISIONS.md` D37,
 `docs/decisions/WINCH_CAPACITY_20261021.md`, `verification/deck_factcheck.md` F01.
 
-- Placement: **In notes**.
+- Placement: **In notes** on slide 16 (the pull is CALCULATED; the pull test is PLANNED and the slide says so).
 
 ## v8 slide 15, Motor Cooling → v9 slide 15: why the 6061 is painted
 
@@ -217,7 +217,7 @@ CALCULATED. Sources: `calculations/fin_sizing_4w.md` (results and raw output), `
 
 - **Question for Jasper:** is the built prototype fin painted (the photos show bare metal), and if so with what and when? Is
   the sheet 6061, and how do you know (a magnet or file test, a label)? Placeholder `[[Jasper: ...]]` in the slide 15 notes.
-- Placement: **In notes** + **Question for Jasper**.
+- Placement (v9.3): **On slide 15** (a matte-black coat would nearly double the radiation; the prototype fin is bare; table header no longer says painted) + **Question for Jasper** in the notes.
 
 ## v8 slide 16, Weight Budget → v9 slide 16: where the ~25 % mass reduction from the estimate came from
 
@@ -238,7 +238,7 @@ Sources: `DESIGN_STATE.md` "Claw weighed (10/22)", `docs/decisions/WEIGHT_REDESI
 
 - **Question for Jasper:** what infill and wall count were the claw parts printed with, and did the 0.86 kg estimate assume
   solid parts or a slicer mass?
-- Placement: **In notes** + **Question for Jasper**.
+- Placement (v9.3): **On slide 16** (0.86 kg from CAD volumes at solid density; a CAD mass is an upper bound) + **Question for Jasper** in the notes.
 
 ## v8 slide 17, Build → v9 slide 20: how the bad 3.3 V connection was found, and the steps when the motor would not turn
 
@@ -262,7 +262,7 @@ before enable." REPORTED readings (no saved log); design change recorded. Source
 - **Question for Jasper:** what did you try before reaching for the meter, how did you narrow it to the 3.3 V feed (which
   pin or wire, and what was physically wrong: a loose jumper, a cold joint, a breadboard contact), and what did VDD read after
   the repair? Placeholder `[[Jasper: ...]]` in the slide 20 notes.
-- Placement: **In notes** + **Question for Jasper**.
+- Placement (v9.3): **On slide 20** (logged steps, no motion; logic rail 1.14 V; VDD now soldered to the regulated rail and measured before enable) + **Question for Jasper** in the notes.
 
 ## v8 slide 18, Manufacturing fits → v9 appendix "Manufacturing: fits and datums": which feature each fit belongs to
 
@@ -277,7 +277,7 @@ hole zero: the datum scheme for drilling the fin, the first hole located from th
 MEASURED from Jasper's STEP files (CAD) and his fin method. Sources: v8 slide 18 table, `DESIGN_STATE.md` "Manufacturing
 facts measured from Jasper's parts", `cad/HEAT_FIN_1021_SPEC.md`.
 
-- Placement: **In notes** (appendix slide).
+- Placement (v9.3): **On the appendix fits slide** (new Part column) with a pointer **On slide 19**; **In notes**.
 
 ## v8 slide 20, Results → v9 slide 25: what narrow grabs are
 
@@ -304,7 +304,7 @@ PETG and days of printing per station for no benefit, which the lighter redesign
 (margins), PLANNED (the tests). Sources: v9 slide 25 results table, `DESIGN_STATE.md` "Claw weighed",
 `calculations/fin_sizing_4w.md`, `docs/decisions/WEIGHT_REDESIGN_PROPOSAL_20261022.md`.
 
-- Placement: **In notes**.
+- Placement (v9.3): **On slide 26** (the poor-decision Result cells are consequences: 0.15 kg over → 4 % margin and a 1 lb demo load; 1–4 K → full 1.5 A only after the hold test; pull, hold and first lift still PLANNED) and **In notes**.
 
 ## v8 slide 22, Takeaways → v9 slide 26: why larger motors were not the answer if mass was the constraint
 
@@ -320,7 +320,7 @@ not among the options in the record; the options recorded were the Ø10 core, th
 payload. Sources: `docs/decisions/WINCH_CAPACITY_20261021.md`, `calculations/winch_gear3.md`, `DECISIONS.md` D37, D40,
 `FUNDAMENTALS.md` §2 and §3, `calculations/fin_sizing_4w.md` ("mass is not the constraint" for the station).
 
-- Placement: **In notes**.
+- Placement (v9.3): **On slide 24** (winch card: a bigger motor is not the lever; pull with current, heat with current²; 2.7× at 1.0 A with half the heat) and **In notes** on slide 26.
 
 ---
 

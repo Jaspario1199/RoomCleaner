@@ -9,6 +9,8 @@
 //     node docs/presentation/deck_v10/build_deck_v10.js
 "use strict";
 const path = require("path");
+const fs = require("fs");
+const { execFileSync } = require("child_process");
 const pptxgen = require("pptxgenjs");
 const { applyTheme } = require(process.env.APPLY_THEME);
 const { size: imgSize } = require("../deck_v2/img_size.js");
@@ -20,6 +22,7 @@ const R = f => P("docs/presentation/deck_assets/renders", f);
 const SC = f => P("docs/presentation/deck_assets/screens", f);
 const V8FIG = f => P("docs/presentation/deck_v8/fig", f);
 const OUT = path.join(__dirname, "RoomCleaner_Buntinx_v10.pptx");
+const CHARTDIR = path.join(__dirname, "fig");            // chart PNGs rendered by make_charts.py from chart_data.json (v10.1)
 
 // ------------------------------------------------------------------------------------------------ theme
 const THEME = {
@@ -62,9 +65,11 @@ pres.defineSlideMaster({
 // ------------------------------------------------------------------------------------------------ helpers
 let SECTION = "";
 function section(name) { SECTION = name; pres.addSection({ title: name }); }
-function slide(title, notes) {
+function slide(title, notes, o = {}) {
   const sl = pres.addSlide({ masterName: "CONTENT", sectionTitle: SECTION });
-  sl.addText(title, { placeholder: "title" });
+  if (o.titleSize) sl.addText(title, { x: M, y: 0.28, w: W - 2 * M, h: 0.55, fontSize: o.titleSize, bold: true, color: C.text1, valign: "middle",
+                                       align: "left", margin: 0, isTextBox: true, objectName: "title" });
+  else sl.addText(title, { placeholder: "title" });
   if (notes) sl.addNotes(notes);
   return sl;
 }
@@ -111,9 +116,18 @@ function fitImage(sl, file, x, y, w, h, alt, o = {}) {
   sl.addImage({ path: file, x: dx, y: dy, w: dw, h: dh, altText: alt, objectName: alt.slice(0, 40) });
   return { x: dx, y: dy, w: dw, h: dh };
 }
-// Photo cropped to fill a box (pptxgenjs "cover" sizing: centre crop), so grids stay rectangular.
+// Photo cropped to fill a box (v10.1): the build records a crop job, crop_photos.py (PIL) centre-crops the source to the box's
+// exact aspect ratio into img/<name>_<w>x<h>.jpg, and the picture is placed with plain w/h (no sizing option, no stretch).
+const IMGDIR = path.join(__dirname, "img");
+const CROP_JOBS = [];
 function coverImage(sl, file, x, y, w, h, alt) {
-  sl.addImage({ path: file, x, y, w, h, altText: alt, objectName: alt.slice(0, 40), sizing: { type: "cover", w, h } });
+  const out = path.join(IMGDIR, `${path.basename(file, path.extname(file))}_${w.toFixed(2)}x${h.toFixed(2)}.jpg`);
+  if (!CROP_JOBS.some(j => j.out === out)) CROP_JOBS.push({ src: file, w, h, out });
+  sl.addImage({ path: out, x, y, w, h, altText: alt, objectName: alt.slice(0, 40) });
+}
+function cropPhotos() {
+  fs.writeFileSync(path.join(__dirname, "crop_jobs.json"), JSON.stringify(CROP_JOBS, null, 1));
+  execFileSync("/usr/bin/python3", [path.join(__dirname, "crop_photos.py")], { stdio: "inherit" });
 }
 function caption(sl, text, x, y, w, o = {}) {
   sl.addText(text, { x, y, w, h: 0.22, fontSize: 8.5, color: C.text2, margin: 0, isTextBox: true, align: o.align || "left", objectName: "caption" });
@@ -132,18 +146,15 @@ function placeholderBox(sl, text, x, y, w, h) {
   sl.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, rectRadius: 0.06, fill: { color: HEX.white }, line: { color: HEX.grey, width: 1, dashType: "dash" }, objectName: "placeholder" });
   sl.addText(text, { x: x + 0.15, y, w: w - 0.3, h, fontSize: 12, color: C.text2, align: "center", valign: "middle", margin: 0, isTextBox: true, objectName: "placeholder text" });
 }
-// Chart options in the deck's one style: body font, grey axes, no legend unless asked.
-function chartOpts(x, y, w, h, title, extra = {}) {
-  return {
-    x, y, w, h, showTitle: true, title, titleFontSize: 8.5, titleFontFace: "+mn-lt", titleColor: HEX.ink, titleBold: true,
-    catAxisLabelFontSize: 7.5, valAxisLabelFontSize: 7.5, catAxisLabelFontFace: "+mn-lt", valAxisLabelFontFace: "+mn-lt",
-    catAxisLabelColor: HEX.mid, valAxisLabelColor: HEX.mid, valGridLine: { color: HEX.rule, size: 0.5 }, catGridLine: { style: "none" },
-    catAxisLineColor: HEX.pale, valAxisLineColor: HEX.pale, showLegend: false, dataLabelFontFace: "+mn-lt", dataLabelFontSize: 7.5,
-    dataLabelColor: HEX.mid, legendFontFace: "+mn-lt", legendFontSize: 7.5, legendColor: HEX.mid, catAxisTitleFontFace: "+mn-lt",
-    valAxisTitleFontFace: "+mn-lt", catAxisTitleFontSize: 7.5, valAxisTitleFontSize: 7.5, catAxisTitleColor: HEX.mid, valAxisTitleColor: HEX.mid,
-    plotArea: { fill: { color: "FFFFFF" } }, chartArea: { fill: { color: "FFFFFF" }, roundedCorners: false },
-    ...extra,
-  };
+// v10.1: charts are PNGs. The build writes chart_data.json (data + box size in inches) and runs make_charts.py, then places the
+// images with addImage at the same boxes. (Native pptxgenjs charts made PowerPoint report the file as needing repair.)
+const CHART_DATA = {};
+function chartImage(sl, name, x, y, w, h, alt) {
+  sl.addImage({ path: path.join(CHARTDIR, `${name}.png`), x, y, w, h, altText: alt, objectName: `chart ${name}` });
+}
+function renderCharts() {
+  fs.writeFileSync(path.join(__dirname, "chart_data.json"), JSON.stringify(CHART_DATA, null, 1));
+  execFileSync("/usr/bin/python3", [path.join(__dirname, "make_charts.py")], { stdio: "inherit" });
 }
 const r1 = v => Math.round(v * 10) / 10;
 
@@ -241,7 +252,63 @@ section("Scope");
   caption(sl, "The claw hanging in the room corner (Oct 27)", W - M - 2.1, BOT - 0.22, 2.1);
 }
 
-// ================================================================================================ 4. Generation 1
+// ================================================================================================ 4. Cable length, torque, tension
+section("Fundamentals");
+{
+  const sl = slide("How cable length becomes position, and torque becomes pull",
+    "Fundamentals. Card A: straight taut cable, L_i = ||a_i - p|| (roomcleaner/cdpr/kinematics.py docstring; the full form adds R b_i for the spaced " +
+    "attachments). Line per revolution 47.1 to 62.8 mm on the O15 core as layers build (FUNDAMENTALS.md section 2, spool-core study table). Four cables, " +
+    "three force equations, so the split is indeterminate (kinematics.py docstring); the camera on the floor board fits the anchors and cable lengths at startup " +
+    "(DECK_V9_NOTES slide 15); held-out poses check the fit (CALIBRATION_SIMPLE step 5, 'surprise spots'): SIMULATED, no physical position measurement. " +
+    "Card B: I = Vref / (8 R_s), tau_hold = tau_rated I / I_rated, tau_run = 0.7 tau_hold assumed, F = tau / r (FUNDAMENTALS section 2); at 1.5 A, the motor's " +
+    "rated current (DECISIONS D37), tau_hold 0.36 N.m, running pull 33.6 N at r 7.5 mm and 25.2 N at r 10 mm (calculations/lift_chain_weakest_link.json " +
+    "fuse.run_empty / run_full). Vref MEASURED on the board; 0.7 ASSUMED; pull test PLANNED (FUNDAMENTALS section 2 evidence line). " +
+    "Card C: T = W / (4 sin phi), sin phi = d / sqrt(d^2 + D_h^2); 32.1 / 16.2 / 8.3 / 4.6 N at 0.15 / 0.3 / 0.6 / 1.2 m for 1 lb + the 0.45 kg claw budget; " +
+    "keep the claw at least 0.4 m below the anchors; CALCULATED, no tension measured on the rig (FUNDAMENTALS section 1). Figure: deck_v3/fig/position_vectors.png.",
+    { titleSize: 20 });
+  const g = 0.2, cw = (W - 2 * M - 2 * g) / 3, ch = BOT - TOP;
+  // A white boxed panel (thin black border) for the equations inside a card; returns its height.
+  const eqBox = (x, y, w, lines) => {
+    const h = 0.2 + 0.22 * lines.length;
+    sl.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: HEX.white }, line: { color: HEX.ink, width: 0.75 }, objectName: "equation box" });
+    const arr = lines.map((t, i) => ({ text: t, options: { fontSize: 9.5, color: C.text1, breakLine: i < lines.length - 1, paraSpaceAfter: 2 } }));
+    sl.addText(arr, { x: x + 0.1, y: y + 0.08, w: w - 0.2, h: h - 0.12, valign: "top", margin: 0, isTextBox: true, objectName: "equations" });
+    return h;
+  };
+  const cards3 = [
+    ["Cable length → position", ["L_i = ‖ a_i − p ‖", "a_i: anchor exit, p: claw", "straight, taut cable"], [
+      "Each spool turn pays out line: 47.1 → 62.8 mm per rev on the Ø15 core as layers build (calculated)",
+      "Four cables, three equations: the split is indeterminate; the position is solved by least squares",
+      "The camera on the floor board fixes the anchors and cable lengths at startup (calibration)",
+      "Validated in the simulator and by held-out poses during calibration (simulated); no physical position measurement yet",
+    ]],
+    ["Torque → pull on the line", ["I = Vref / (8·R_s)", "τ_hold = τ_rated · I / I_rated", "τ_run ≈ 0.7 τ_hold (assumed)", "F = τ / r"], [
+      "At 1.5 A: τ_hold 0.36 N·m → running pull 34 N on the empty spool (r 7.5 mm), 25 N on a full spool (r 10 mm) (calculated)",
+      "Validated: Vref measured on the board; the 0.7 running fraction is assumed; the pull test is planned",
+    ]],
+    ["Pull → what four cables hold", ["T = W / (4 sin φ)", "sin φ = d / √(d² + D_h²)"], [
+      "Tension doubles each time the depth below the anchors halves: 32 / 16 / 8 / 5 N at 0.15 / 0.3 / 0.6 / 1.2 m for 1 lb + claw (calculated)",
+      "Why the planner keeps the claw at least 0.4 m below the anchors",
+      "Validated: calculated only; no cable tension has been measured on the rig",
+    ]],
+  ];
+  cards3.forEach(([h, eq, items], i) => {
+    const x = M + i * (cw + g);
+    const inner = card(sl, x, TOP, cw, ch, h, [], { headSize: 12 });
+    let y = inner.y;
+    if (i === 0) {
+      const fw = 0.86;
+      fitImage(sl, P("docs/presentation/deck_v3/fig/position_vectors.png"), inner.x + inner.w - fw, y, fw, fw, "Cable vectors from the anchors to the claw", { top: true });
+      y += eqBox(inner.x, y, inner.w - fw - 0.1, eq) + 0.12;
+      y = Math.max(y, inner.y + fw + 0.1);
+    } else {
+      y += eqBox(inner.x, y, inner.w, eq) + 0.12;
+    }
+    bullets(sl, items, inner.x, y, inner.w, TOP + ch - y - 0.1, 10, { space: 4, name: `bullets ${h}` });
+  });
+}
+
+// ================================================================================================ 5. Generation 1
 section("Generation 1");
 {
   const sl = slide("Generation 1: one central unit",
@@ -249,7 +316,7 @@ section("Generation 1");
     "the room (DESIGN_INTENT_20261027.md 'Iteration 1'; DECK_V9_NOTES.md v9.2 slide 7 row; DECISIONS D33 for the ceiling camera). A printed corner plate " +
     "screwed into a joist replaced hanging hooks: a hook is a pivot, about 1:1 anchor error to claw error (slide 8 row, D13). Each cable homed against a " +
     "crimped bead at the outlet (PANEL_FEEDBACK_ANSWERS, 'what bead homing is'). Bench: the station lifted a test weight (slide 8 row; the weight and height " +
-    "are not recorded). Photos 05, 13, 14 (README rows).");
+    "not logged). Photos 05, 13, 14 (README rows).");
   const cw = 3.6, ch = BOT - TOP;
   card(sl, M, TOP, cw, ch, "The first design", [
     "One Uno and one CNC shield drove four corner motors",
@@ -263,11 +330,11 @@ section("Generation 1");
   const ph = (ch - 0.26 - 0.15) / 2;
   coverImage(sl, PH("14_gen1_cnc_shield_a4988.jpg"), px, TOP, pw / 2 - 0.06, ph, "CNC shield with four A4988 drivers");
   coverImage(sl, PH("05_gen1_spool_plate.jpg"), px + pw / 2 + 0.06, TOP, pw / 2 - 0.06, ph, "Gen-1 corner plate: motor, spool, pulley, switch");
-  coverImage(sl, PH("13_gen1_station_lifting_test_weight.jpg"), px, TOP + ph + 0.15, pw, ph, "Gen-1 station lifting a test weight");
+  fitImage(sl, PH("13_gen1_station_lifting_test_weight.jpg"), px, TOP + ph + 0.15, pw, ph, "Gen-1 station lifting a test weight", { top: true, left: true });
   caption(sl, "The central board; a gen-1 corner plate; a gen-1 station lifting a test weight", px, BOT - 0.22, pw);
 }
 
-// ================================================================================================ 5. Problems with Generation 1
+// ================================================================================================ 6. Problems with Generation 1
 {
   const sl = slide("Problems with Generation 1",
     "Problems with Gen 1. Everything wired back to one place (DESIGN_INTENT 'Iteration 1'). Bench finds: 18 V on the meter from a supply labelled 12 V; the " +
@@ -290,15 +357,12 @@ section("Generation 1");
     "The ceiling camera: one more device per room; the claw and cables hide the grasp spot",
   ], { space: 5 });
   const cx = M + 2 * (cw + g), cwid = W - M - cx;
-  sl.addChart(pres.charts.LINE, [{ name: "Reachable working volume (%)", labels: BEAD.map(b => b[0].toFixed(1)), values: BEAD.map(b => b[1]) }],
-    chartOpts(cx, TOP, cwid, ch - 0.3, "Reachable share of the working volume (%)", {
-      chartColors: [HEX.navy], lineSize: 2, lineDataSymbol: "none", valAxisMinVal: 0, valAxisMaxVal: 40, valAxisMajorUnit: 10,
-      catAxisTitle: "Homing height above the floor (m)", showCatAxisTitle: true, layout: { x: 0.12, y: 0.14, w: 0.85, h: 0.66 },
-    }));
+  CHART_DATA.bead = { title: "Reachable share of the working volume (%)", points: BEAD, box: { w: cwid, h: ch - 0.3 } };
+  chartImage(sl, "bead", cx, TOP, cwid, ch - 0.3, "Reachable share of the working volume vs bead homing height (calculated)");
   caption(sl, "Calculated (bead reach model)", cx, BOT - 0.22, cwid);
 }
 
-// ================================================================================================ 6. What a winch on a wall needs
+// ================================================================================================ 7. What a winch on a wall needs
 section("What a winch needs");
 {
   const sl = slide("What a winch on a wall needs to work",
@@ -330,7 +394,7 @@ section("What a winch needs");
   caption(sl, "One slide-in, its harness hanging", px, BOT - 0.22, 2.8);
 }
 
-// ================================================================================================ 7. The solution: a modular box
+// ================================================================================================ 8. The solution: a modular box
 section("Modular box");
 {
   const sl = slide("The solution: a modular box that only needs power",
@@ -361,7 +425,7 @@ section("Modular box");
   caption(sl, "The station: board, driver, motor, fin (CAD)", px, BOT - 0.22, 2.9);
 }
 
-// ================================================================================================ 8. Modular, for the everyday user
+// ================================================================================================ 9. Modular, for the everyday user
 {
   const sl = slide("Modular, for the everyday user",
     "Everyday use. Plug and play: once a box works it works; it slides on and off the wall and plugs and unplugs; guests come, each box slips off and goes " +
@@ -385,7 +449,7 @@ section("Modular box");
                 [PH("31_station_bench_xiao_breadboard_shell_open.jpg"), "Shell open on the bench"]], px, TOP, pw, BOT - TOP, { cover: true });
 }
 
-// ================================================================================================ 9. Trade-offs
+// ================================================================================================ 10. Trade-offs
 section("Trade-offs");
 {
   const sl = slide("Trade-offs: what each component needs",
@@ -402,56 +466,31 @@ section("Trade-offs");
   const at = (c, r) => ({ x: M + c * (cw + g), y: TOP + r * (ch + g) });
   const need = (p, text) => sl.addText(text, { x: p.x, y: p.y + ch - 0.3, w: cw, h: 0.3, fontSize: 8.5, color: C.text1, bold: true, margin: 0, valign: "middle",
                                                 isTextBox: true, objectName: "what we need" });
+  const box = { w: cw, h: ch - 0.3 };
   // 1. Tension vs depth
   let p = at(0, 0);
-  sl.addChart(pres.charts.LINE, [
-    { name: "Static (N)", labels: depths.map(String), values: depths.map(d => tension(d, 0)) },
-    { name: "With 2 m/s² (N)", labels: depths.map(String), values: depths.map(d => tension(d, A_DYN)) },
-    { name: "Winch limit (N)", labels: depths.map(String), values: depths.map(() => WINCH_LIMIT) },
-  ], chartOpts(p.x, p.y, cw, ch - 0.3, "Tension per cable (N) vs depth (m)", {
-    chartColors: [HEX.navy, HEX.grey, HEX.ink], lineSize: 1.5, lineDataSymbol: "none", lineDash: ["solid", "solid", "dash"],
-    showLegend: true, legendPos: "r", valAxisMinVal: 0, valAxisMaxVal: 50, valAxisMajorUnit: 10, layout: { x: 0.1, y: 0.2, w: 0.55, h: 0.66 },
-  }));
+  CHART_DATA.tension = { title: "Tension per cable (N) vs depth (m)", depths, static: depths.map(d => tension(d, 0)), dynamic: depths.map(d => tension(d, A_DYN)), limit: WINCH_LIMIT, box };
+  chartImage(sl, "tension", p.x, p.y, cw, ch - 0.3, "Tension per cable vs depth below the anchors: static, with 2 m/s2, winch limit (calculated)");
   need(p, "Need: stay 0.4 m below the anchors with 1 lb, 0.6 m with jeans");
   // 2. Motor temperature
   p = at(1, 0);
-  sl.addChart(pres.charts.BAR, [
-    { name: "No fin", labels: TEMP.labels, values: TEMP.noFin },
-    { name: "0.019 in fin (built)", labels: TEMP.labels, values: TEMP.thin },
-    { name: "1/8 in fin (drawn)", labels: TEMP.labels, values: TEMP.plate },
-  ], chartOpts(p.x, p.y, cw, ch - 0.3, "Motor case (°C) at 1.5 A; PETG limit 60 °C", {
-    barDir: "col", barGrouping: "clustered", barGapWidthPct: 60, chartColors: [HEX.pale, HEX.navy, HEX.grey], showValue: true, dataLabelPosition: "outEnd",
-    dataLabelFormatCode: "0", showLegend: true, legendPos: "b", valAxisMinVal: 0, valAxisMaxVal: 120, valAxisMajorUnit: 30, layout: { x: 0.1, y: 0.2, w: 0.86, h: 0.52 },
-  }));
+  CHART_DATA.temperature = { title: "Motor case (°C) at 1.5 A; PETG limit 60 °C", labels: TEMP.labels, noFin: TEMP.noFin, thin: TEMP.thin, plate: TEMP.plate, limit: TEMP.limit, box };
+  chartImage(sl, "temperature", p.x, p.y, cw, ch - 0.3, "Motor case temperature at 1.5 A, vented and sealed shell, by fin (calculated)");
   need(p, "Need: below 60 °C; vented shell + built fin 56-59 °C (calculated)");
   // 3. Winch pull
   p = at(2, 0);
-  sl.addChart(pres.charts.LINE, [
-    { name: "Running pull (N)", labels: radii.map(String), values: radii.map(runPull) },
-    { name: "Design force (N)", labels: radii.map(String), values: radii.map(designPull) },
-    { name: "Jeans, worst (N)", labels: radii.map(String), values: radii.map(() => JEANS_PEAK) },
-  ], chartOpts(p.x, p.y, cw, ch - 0.3, "Pull per winch (N) vs spool radius (mm), 1.5 A", {
-    chartColors: [HEX.navy, HEX.grey, HEX.ink], lineSize: 1.5, lineDataSymbol: "none", lineDash: ["solid", "dash", "dash"],
-    showLegend: true, legendPos: "r", valAxisMinVal: 0, valAxisMaxVal: 50, valAxisMajorUnit: 10, layout: { x: 0.1, y: 0.2, w: 0.55, h: 0.66 },
-  }));
+  CHART_DATA.pull = { title: "Pull per winch (N) vs spool radius (mm), 1.5 A", radii, running: radii.map(runPull), design: radii.map(designPull), jeans: JEANS_PEAK, box };
+  chartImage(sl, "pull", p.x, p.y, cw, ch - 0.3, "Pull per winch vs spool radius at 1.5 A: running pull, design force, jeans worst cable (calculated)");
   need(p, "Need: 16.2 N worst cable for jeans; 34 N empty, 25 N full (calculated)");
   // 4. Weight budget
   p = at(0, 1);
-  sl.addChart(pres.charts.BAR, [{ name: "kg", labels: LIFT.labels, values: LIFT.values }],
-    chartOpts(p.x, p.y, cw, ch - 0.3, "Winches can hold vs must hold (kg)", {
-      barDir: "bar", barGapWidthPct: 40, chartColors: [HEX.navy, HEX.grey, HEX.grey, HEX.pale, HEX.navy], showValue: true, dataLabelPosition: "outEnd",
-      dataLabelFormatCode: "0.00", valAxisMinVal: 0, valAxisMaxVal: 2.0, valAxisMajorUnit: 0.5, layout: { x: 0.34, y: 0.2, w: 0.6, h: 0.68 },
-    }));
+  CHART_DATA.lift = { title: "Winches can hold vs must hold (kg)", labels: LIFT.labels, values: LIFT.values, colors: ["#1F3A5F", "#8A8F98", "#8A8F98", "#BFC4CB", "#1F3A5F"], box };
+  chartImage(sl, "lift", p.x, p.y, cw, ch - 0.3, "What the winches can hold vs what they must hold, kg (measured claw, calculated capacity)");
   need(p, "Need: a 0.45 kg claw; 0.86 estimated (CAD), 0.60 weighed; jeans 1.50 vs 1.56 (4 %)");
   // 5. Weakest link
   p = at(1, 1);
-  sl.addChart(pres.charts.BAR, [
-    { name: "Low estimate", labels: WL.map(w => w[0]), values: WL.map(w => w[1]) },
-    { name: "Up to high estimate", labels: WL.map(w => w[0]), values: WL.map(w => w[2] - w[1]) },
-  ], chartOpts(p.x, p.y, cw, ch - 0.3, "Tension at which each part gives (N)", {
-    barDir: "bar", barGrouping: "stacked", barGapWidthPct: 35, chartColors: [HEX.navy, HEX.pale], valAxisMinVal: 0, valAxisMaxVal: 600, valAxisMajorUnit: 200,
-    showLegend: false, layout: { x: 0.3, y: 0.2, w: 0.66, h: 0.72 },
-  }));
+  CHART_DATA.weakest = { title: "Tension at which each part gives (N)", rows: WL, box };
+  chartImage(sl, "weakest", p.x, p.y, cw, ch - 0.3, "Cable tension at which each part of the lifting chain gives, one station at 1.5 A (calculated)");
   need(p, "Need: the motor gives first (34-59 N); the printed set screw may not, so: metal insert");
   // 6. The factors, in words
   p = at(2, 1);
@@ -463,7 +502,7 @@ section("Trade-offs");
   ], { size: 10, space: 4 });
 }
 
-// ================================================================================================ 10. Mount assembly: the design
+// ================================================================================================ 11. Mount assembly: the design
 section("Mount assembly");
 {
   const sl = slide("The mount assembly: slide-in on a dovetail",
@@ -473,7 +512,7 @@ section("Mount assembly");
     "every station holds (slide 13 row). Dovetail fit 0.175 mm a side on 30 deg flanks, from fit coupons (PANEL_FEEDBACK_ANSWERS 'Manufacturing fits', row " +
     "'Slide-in mount'; slide 19 title 'fits came from coupons'). Photos 45, 46, 24; snap_dovetail.png (deck_v8/fig); station_shell_transparent_1022.png.");
   const cw = 3.5, ch = BOT - TOP;
-  card(sl, M, TOP, cw, ch, "What the record says", [
+  card(sl, M, TOP, cw, ch, "Slide-in mount and load path", [
     "The wall mount screws into a stud; the station slides onto it on a dovetail",
     "Dovetail fit: 0.175 mm a side, from fit coupons (measured)",
     "Load path: cable, spool, set screw, motor, tab, mount, screws, stud",
@@ -491,7 +530,7 @@ section("Mount assembly");
   caption(sl, "Rib in the dovetail groove (CAD); the station with its shell transparent (CAD)", px, BOT - 0.22, pw);
 }
 
-// ================================================================================================ 11. Mount assembly: on the wall
+// ================================================================================================ 12. Mount assembly: on the wall
 {
   const sl = slide("The mount assembly: fin, vents and the wall",
     "Mount assembly 2. The aluminium fin bolts to the motor face and goes out through a slot in the top of the shell; the shell is vented (DECK_V9_NOTES slide 16 " +
@@ -499,7 +538,7 @@ section("Mount assembly");
     "fin_sizing_4w.md). First station in a stud on the TV wall, 12 V down the wall (slide 22 row). Load path and fuse as on the previous slide. A 1 deg draft " +
     "on the dovetail is the NEXT iteration: the slide-in binds on insertion today (slide 24 row). Photos 32, 33, 44 (README rows).");
   const cw = 3.5, ch = BOT - TOP;
-  card(sl, M, TOP, cw, ch, "What the record says", [
+  card(sl, M, TOP, cw, ch, "Fin, vents, stud", [
     "The fin: aluminium on the motor face, out through a slot in the top of the shell",
     "Vents in the shell; vented shell + fin: 56-59 °C at 1.5 A (calculated)",
     "First station in a stud on the TV wall, 12 V down the wall",
@@ -510,14 +549,14 @@ section("Mount assembly");
                 [PH("44_wall_station_from_below_line_down.jpg"), "The line leaves the switch tab straight down"]], px, TOP, pw, BOT - TOP, { cover: true });
 }
 
-// ================================================================================================ 12. The claw
+// ================================================================================================ 13. The claw
 section("Claw");
 {
   const sl = slide("The claw, and why it is modular",
     "Claw. Four-bar hands stay within 1 deg of parallel over the 53 mm opening; a camera bay on the electronics housing; one 7.4 V two-cell pack, a 6 V regulator " +
     "for the servo, a 5 V buck for the board (DECK_V9_NOTES slide 18 row 'The claw'). The gripper attaches modularly at the tube, by design, a test bed for shirts " +
     "(DESIGN_INTENT 'The gripper'; v9.2 slide 18 row). A hard-material pinch was expected to grip better; testing showed alignment problems: the rack-and-pinion " +
-    "jaws left a 2 mm gap on thin cloth, Sep 30 (v9.2 slide 18 row; Jasper's account, no cloth-test reading logged). TPU and other pad materials being tried " +
+    "jaws left a 2 mm gap on thin cloth, Sep 30 (v9.2 slide 18 row; no cloth-test reading logged). TPU and other pad materials being tried " +
     "(DESIGN_INTENT). The v6 clamp came out at 4.6x its mass budget in CAD, Oct 20; since then mass is tracked per part; the claw weighed 0.60 kg with battery " +
     "against the 0.45 kg budget (slide 11 and 17 rows). Photos 25, 40, 22; renders gripper1021_head.png, claw_v6.png.");
   const cw = (W - 2 * M - 0.2 - 3.9) / 2, ch = BOT - TOP, g = 0.2;
@@ -543,7 +582,7 @@ section("Claw");
   caption(sl, "Assembled; the hands (CAD); the v6 clamp (CAD); the housing open", px, BOT - 0.22, pw);
 }
 
-// ================================================================================================ 13. Station bench and claw bench
+// ================================================================================================ 14. Station bench and claw bench
 section("Electrical and testing");
 {
   const sl = slide("Electrical and testing: on the bench",
@@ -574,7 +613,7 @@ section("Electrical and testing");
   caption(sl, "Two stations on the bench; a dev board and spool; the red shell with its fuse", px, BOT - 0.22, pw);
 }
 
-// ================================================================================================ 14. On the wall
+// ================================================================================================ 15. On the wall
 {
   const sl = slide("Electrical and testing: on the wall",
     "On the wall. First station in a stud on the TV wall; boxed stations boot and join Wi-Fi on their own; firmware updates arrive over Wi-Fi, so a boxed " +
@@ -594,34 +633,38 @@ section("Electrical and testing");
                 [PH("31_station_bench_xiao_breadboard_shell_open.jpg"), "A station open: board on the bench"]], px, TOP, pw, BOT - TOP, { cover: true });
 }
 
-// ================================================================================================ 15. Calibration
+// ================================================================================================ 16. Calibration
 section("Calibration");
 {
-  const sl = slide("How the claw calibrates itself",
-    "Calibration, from docs/presentation/CALIBRATION_SIMPLE.md (lead, 10/27; from roomcleaner/cdpr/startup.py). The claw starts on the floor on a printed mat " +
-    "it can see with its camera; six steps in order; any failed check stops everything and waits for a person. Two rules: it never retries by itself, and if a " +
-    "station reboots all six steps run again. Cable lengths after the fit about 12-16 mm (simulated; DECK_V9_NOTES slide 15 row). Photo 42 (README row 42).");
+  const sl = slide("Startup and self-calibration: six states before the robot is READY",
+    "Startup sequencer, roomcleaner/cdpr/startup.py: states and bounds in the module docstring (lines 1-66), run order in StartupSequencer.run (669-690): " +
+    "SELF_CHECK (self_check, 693-761), SLACK_TAKEUP (slack_takeup, 763-848), INITIAL_LIFT (initial_lift, 849-930), VISUAL_INITIALIZATION (visual_init, " +
+    "931-1166), CALIBRATION (calibrate, 1167-1436), REFERENCE_VERIFICATION (verify_references, 1437-1619). An abort holds motion with torque on and returns " +
+    "PAUSED or FAULT; nothing retries by itself (run, 673-686; CALIBRATION_SIMPLE.md rules). Trust level VERIFIED by the margin check or by beads, else " +
+    "LOCAL_ONLY with stated reasons (docstring REFERENCE_VERIFICATION / READY; D26). Tension is not measured in V1: the lift and calibration rely on geometric " +
+    "consistency checks (docstring, last paragraph). All of this is designed and simulated; it has not run on the hardware. Photo 42 (README row 42).",
+    { titleSize: 20 });
   const steps = [
-    ["1  Am I sitting nicely?", ["Camera: upright, right height on the mat", "Every station awake, healthy, switch closed", "Only then: motors armed"]],
-    ["2  Who is pulling me?", ["One station at a time reels in until the claw just slides or tips", "That gives each cable's length and direction", "No tug in the slack budget: cable not attached"]],
-    ["3  Up we go, a little", ["All cables tighten together, a few mm at a time", "Camera checks: rose as commanded, no drift, no tilt"]],
-    ["4  One good look", ["Hanging still, a careful look at the mat", "Now it knows where it really is"]],
-    ["5  Explore, bigger and bigger", ["A few spots nearby, then wider, then wider again", "Refit the model between rounds", "Surprise spots check the guesses"]],
-    ["6  Can I trust myself?", ["From how well the guesses matched: ready to work, or only near home"]],
+    ["1  SELF_CHECK", ["Claw online, battery above minimum", "Camera confirms the claw upright at the known height on the floor board", "Stations healthy, homing switches closed; arm"]],
+    ["2  SLACK_TAKEUP", ["One cable at a time reeled in until the camera sees the claw slide or tip (onset)", "Records spool position and slide bearing; backs off", "Bearings checked against the anchor layout; first fit of cable lengths"]],
+    ["3  INITIAL_LIFT", ["Pretension all cables; lift in small packets", "Abort on lateral drift, tilt, or commanded lift exceeding observed rise (slack cable)"]],
+    ["4  VISUAL_INITIALIZATION", ["Settled frame batch of the floor board", "Refit cable lengths and the room-to-marker transform"]],
+    ["5  CALIBRATION", ["Local → intermediate → expanded pose sets chosen by D-optimal design; refit between stages", "Held-out witness poses", "Accept on witness residuals, identifiability, predicted length sigma over the work volume"]],
+    ["6  REFERENCE_VERIFICATION", ["Optional bead references", "Trust level VERIFIED or LOCAL_ONLY from the margin check"]],
   ];
-  const cols = 3, g = 0.15, cw = (W - 2 * M - 1.55 - (cols - 1) * g) / cols, ch = (BOT - TOP - 0.5 - g) / 2;
+  const cols = 3, g = 0.12, cw = (W - 2 * M - 1.55 - (cols - 1) * g) / cols, ch = (BOT - TOP - 0.38 - g) / 2;
   steps.forEach(([h, items], i) => {
     const x = M + (i % cols) * (cw + g), y = TOP + Math.floor(i / cols) * (ch + g);
-    card(sl, x, y, cw, ch, h, items, { size: 10, space: 3, headSize: 11 });
+    card(sl, x, y, cw, ch, h, items, { size: 9, space: 2, headSize: 10 });
   });
-  sl.addText("Two rules: it never retries by itself; if a station reboots, all six steps run again before it is trusted.",
-             { x: M, y: BOT - 0.4, w: W - 2 * M - 1.55 - 0.1, h: 0.35, fontSize: 10, bold: true, color: C.text1, margin: 0, valign: "middle", isTextBox: true, objectName: "rules" });
+  sl.addText("No automatic retry; any station reboot forces the full sequence again.",
+             { x: M, y: BOT - 0.32, w: W - 2 * M - 1.55 - 0.1, h: 0.3, fontSize: 10, bold: true, color: C.text1, margin: 0, valign: "middle", isTextBox: true, objectName: "rules" });
   const px = W - M - 1.4;
   coverImage(sl, PH("42_claw_hanging_three_cables_room_corner.jpg"), px, TOP, 1.4, BOT - TOP - 0.26, "The claw hanging on three cables");
-  caption(sl, "Hanging, before its first look", px, BOT - 0.22, 1.4);
+  caption(sl, "Suspended, before CALIBRATION", px, BOT - 0.22, 1.4);
 }
 
-// ================================================================================================ 16. Next iteration
+// ================================================================================================ 17. Next iteration
 section("Next iteration");
 {
   const sl = slide("Next iteration: what was not working, and what changes",
@@ -647,7 +690,7 @@ section("Next iteration");
   caption(sl, "Next-iteration parts: gear stage, drafted slide-in, lighter mount", px, BOT - 0.22, pw);
 }
 
-// ================================================================================================ 17. Thank you
+// ================================================================================================ 18. Thank you
 section("Close");
 {
   const sl = pres.addSlide({ masterName: "PLAIN", sectionTitle: SECTION });
@@ -657,7 +700,18 @@ section("Close");
 }
 
 (async () => {
+  renderCharts();                                   // chart_data.json -> fig/*.png, before writeFile reads the images
+  cropPhotos();                                     // crop_jobs.json -> img/*.jpg
   await pres.writeFile({ fileName: OUT });
   await applyTheme(OUT, THEME);
+  // pptxgenjs leaves empty ppt/charts/ and ppt/embeddings/ directory entries even with no charts: drop them.
+  execFileSync("/usr/bin/python3", ["-c", `
+import zipfile, shutil, sys
+src = sys.argv[1]; tmp = src + ".tmp"
+with zipfile.ZipFile(src) as zin, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+    for item in zin.infolist():
+        if item.filename.endswith("/"): continue
+        zout.writestr(item, zin.read(item.filename))
+shutil.move(tmp, src)`, OUT]);
   console.log("wrote", OUT);
 })();

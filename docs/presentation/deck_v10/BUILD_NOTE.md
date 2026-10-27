@@ -5,20 +5,41 @@ only, nothing invented. Emphasis per `DESIGN_INTENT_20261027.md`; calibration te
 
 **Built:** `build_deck_v10.js` (new; pptxgenjs, 16:9, 10 x 5.625 in, Arial). A structured deck: theme (black / grey / one dark
 blue), two layouts (`CONTENT` with the title placeholder and the footer bar, `PLAIN` for the title and thank-you slides),
-sections per topic. Charts are native pptxgenjs charts drawn from the calculation-sheet data used by v8/v9 (`deck_v8/fig` charts),
-restyled. Outputs in this folder: `RoomCleaner_Buntinx_v10.pptx`, `.pdf`, `contact_sheet.png`.
+sections per topic. Outputs in this folder: `RoomCleaner_Buntinx_v10.pptx`, `.pdf`, `contact_sheet.png`.
+
+## v10.1 (10/27)
+
+- **Charts are images.** PowerPoint reported the v10 file as needing repair; the only structural difference from v9 was the six
+  native pptxgenjs charts (`ppt/charts` + embedded xlsx). The build now writes `chart_data.json` (the one source of numbers,
+  with each chart's box size in inches) and runs `make_charts.py` (matplotlib, Agg, 300 dpi, Arial/Liberation Sans, navy / grey /
+  black) into `fig/*.png`, placed with `addImage` at the same boxes. The rebuilt package has no `ppt/charts/` or
+  `ppt/embeddings/` entries (checked with `unzip -l`; the build also strips the empty directory entries pptxgenjs leaves).
+- **Photos are centre-cropped, not stretched.** The build records every photo box in `crop_jobs.json`; `crop_photos.py` (PIL)
+  crops each source to the exact box aspect into `img/<name>_<w>x<h>.jpg` (<= 300 px/in, git-ignored), and the picture is placed
+  with plain w/h and no `sizing`. Renders and CAD images are fitted (letterboxed) with `fitImage`; photo 13 (gen-1 lift) is fitted
+  too, since a crop would cut the station. Check: every picture's displayed w/h equals its file's pixel ratio within 1 %
+  (41 pictures, 0 mismatches).
+- **New slide 4** "How cable length becomes position, and torque becomes pull": three cards with boxed equations
+  (kinematics.py docstring; FUNDAMENTALS.md sections 1 and 2; D37). Slides after it shift by one.
+- **Slide 16 (calibration)** rewritten in the sequencer's terms: the six `StartupSequencer.run` states from
+  `roomcleaner/cdpr/startup.py` (SELF_CHECK, SLACK_TAKEUP, INITIAL_LIFT, VISUAL_INITIALIZATION, CALIBRATION,
+  REFERENCE_VERIFICATION), bullets from the module docstring; notes cite the line ranges. `CALIBRATION_SIMPLE.md` stays on file
+  as the plain-words version; it is no longer the slide text.
+- Wording: no "the record says" on slides or in notes; evidence tags in parentheses only where they change the meaning.
 
 ## Rebuild
 
 ```bash
 SK=<pptx skill directory>
 NODE_PATH=<node_modules with pptxgenjs> APPLY_THEME=$SK/scripts/apply_theme.js node docs/presentation/deck_v10/build_deck_v10.js
+#   the build itself runs make_charts.py (chart_data.json -> fig/*.png) and crop_photos.py (crop_jobs.json -> img/*.jpg)
 /usr/bin/python3 $SK/scripts/office/validate.py docs/presentation/deck_v10/RoomCleaner_Buntinx_v10.pptx
 /usr/bin/python3 $SK/scripts/office/soffice.py --headless --convert-to pdf RoomCleaner_Buntinx_v10.pptx   # in deck_v10/
 /usr/bin/python3 $SK/scripts/thumbnail.py RoomCleaner_Buntinx_v10.pptx v10thumbs --cols 5 && python3 -c "from PIL import Image; Image.open('v10thumbs.jpg').save('contact_sheet.png')"
 ```
 
-`validate.py` passes. Every slide was rendered through LibreOffice (`pdftoppm -r 70`) and inspected.
+`validate.py` passes. Every slide was rendered through LibreOffice (`pdftoppm -r 70`) and inspected. Chart images need
+`matplotlib`; photo crops need `Pillow` (both under `/usr/bin/python3`).
 
 ## Slides and sources
 
@@ -29,28 +50,29 @@ Speaker notes on each slide name the file and line for every number. Summary:
 | 1 | Title | photo 42 | brief (byline); photos/README row 42 |
 | 2 | About me | about_me collage columns | photos/README about_me row |
 | 3 | Project scope | three cards + photo 42 | DECK_V9_NOTES slide 3 (v9.1 origins); D19, D21; COST_BREAKDOWN headline table |
-| 4 | Generation 1: one central unit | photos 14, 05, 13 | DESIGN_INTENT "Iteration 1"; DECK_V9_NOTES v9.2 slide 7, slide 8; D13, D33 |
-| 5 | Problems with Generation 1 | bead-homing chart (native) | DECK_V9_NOTES slides 9, 10; calculations/bead_reach.json; PANEL_FEEDBACK_ANSWERS (floor area); D33 |
-| 6 | What a winch on a wall needs | photos 09, 23, 39 | DESIGN_INTENT "Why it changed"; DECK_V9_NOTES slide 20 (encoder jobs, switch wiring), v9.2 slide 10 (wire) |
-| 7 | The solution: a modular box | photo 46, station_shell_transparent | DESIGN_INTENT "Iteration 2"; FUNDAMENTALS section 10 (0.82 / 0.51 V); COST_BREAKDOWN 16 AWG row |
-| 8 | Modular, for the everyday user | photos 45, 24, 31 | DESIGN_INTENT "Iteration 2"; DECK_V9_NOTES slide 12 |
-| 9 | Trade-offs | five native charts + "The factors" card | FUNDAMENTALS 1; sheet_motor_temperature / fin_sizing_4w.md; lift_chain_weakest_link.md and .json; PANEL_FEEDBACK_ANSWERS slide 16 and "larger motors"; DECK_V9_NOTES slides 6, 16, 17 |
-| 10 | Mount assembly: slide-in on a dovetail | photos 45, 24; snap_dovetail; station_shell_transparent | DECK_V9_NOTES slides 12, 13; lift_chain_weakest_link.md; PANEL_FEEDBACK_ANSWERS fits row "Slide-in mount" |
-| 11 | Mount assembly: fin, vents and the wall | photos 32, 33, 44 | DECK_V9_NOTES slides 16, 22, 24; fin_sizing_4w.md |
-| 12 | The claw, and why it is modular | photos 25, 40; gripper1021_head, claw_v6 | DECK_V9_NOTES slides 11, 17, v9.2 slide 18; DESIGN_INTENT "The gripper" |
-| 13 | Electrical and testing: on the bench | photos 43, 29, 37 | DECK_V9_NOTES slides 20, 21; PANEL_FEEDBACK_ANSWERS slide 17 item (1.14 V) |
-| 14 | Electrical and testing: on the wall | photos 32, 44, 31 | DECK_V9_NOTES slides 22, 25, 26 |
-| 15 | How the claw calibrates itself | six step cards + photo 42 | CALIBRATION_SIMPLE.md (six step names kept) |
-| 16 | Next iteration | three cards, planned card, "[Jasper: new CAD]" box | DECK_V9_NOTES slide 24 and the 10/27 correction; D40-D42; PANEL_FEEDBACK_ANSWERS "larger motors" |
-| 17 | Thank you | | |
+| 4 | How cable length becomes position, and torque becomes pull | three cards, boxed equations, position_vectors.png | roomcleaner/cdpr/kinematics.py docstring; FUNDAMENTALS sections 1-2; lift_chain_weakest_link.json; D37 |
+| 5 | Generation 1: one central unit | photos 14, 05, 13 | DESIGN_INTENT "Iteration 1"; DECK_V9_NOTES v9.2 slide 7, slide 8; D13, D33 |
+| 6 | Problems with Generation 1 | bead-homing chart (fig/bead.png) | DECK_V9_NOTES slides 9, 10; calculations/bead_reach.json; PANEL_FEEDBACK_ANSWERS (floor area); D33 |
+| 7 | What a winch on a wall needs | photos 09, 23, 39 | DESIGN_INTENT "Why it changed"; DECK_V9_NOTES slide 20 (encoder jobs, switch wiring), v9.2 slide 10 (wire) |
+| 8 | The solution: a modular box | photo 46, station_shell_transparent | DESIGN_INTENT "Iteration 2"; FUNDAMENTALS section 10 (0.82 / 0.51 V); COST_BREAKDOWN 16 AWG row |
+| 9 | Modular, for the everyday user | photos 45, 24, 31 | DESIGN_INTENT "Iteration 2"; DECK_V9_NOTES slide 12 |
+| 10 | Trade-offs | five chart images (fig/) + "The factors" card | FUNDAMENTALS 1; sheet_motor_temperature / fin_sizing_4w.md; lift_chain_weakest_link.md and .json; PANEL_FEEDBACK_ANSWERS slide 16 and "larger motors"; DECK_V9_NOTES slides 6, 16, 17 |
+| 11 | Mount assembly: slide-in on a dovetail | photos 45, 24; snap_dovetail; station_shell_transparent | DECK_V9_NOTES slides 12, 13; lift_chain_weakest_link.md; PANEL_FEEDBACK_ANSWERS fits row "Slide-in mount" |
+| 12 | Mount assembly: fin, vents and the wall | photos 32, 33, 44 | DECK_V9_NOTES slides 16, 22, 24; fin_sizing_4w.md |
+| 13 | The claw, and why it is modular | photos 25, 40; gripper1021_head, claw_v6 | DECK_V9_NOTES slides 11, 17, v9.2 slide 18; DESIGN_INTENT "The gripper" |
+| 14 | Electrical and testing: on the bench | photos 43, 29, 37 | DECK_V9_NOTES slides 20, 21; PANEL_FEEDBACK_ANSWERS slide 17 item (1.14 V) |
+| 15 | Electrical and testing: on the wall | photos 32, 44, 31 | DECK_V9_NOTES slides 22, 25, 26 |
+| 16 | Startup and self-calibration: six states before READY | six state cards + photo 42 | roomcleaner/cdpr/startup.py (docstring 1-66; run 669-690; states 693-1619) |
+| 17 | Next iteration | three cards, planned card, "[Jasper: new CAD]" box | DECK_V9_NOTES slide 24 and the 10/27 correction; D40-D42; PANEL_FEEDBACK_ANSWERS "larger motors" |
+| 18 | Thank you | | |
 
 ## Left off because the record does not hold it
 
 - Slide 2: Ironman time, marathon time, EcoFil numbers, the Gladiator Dash total (only in older speaker notes, not the record files named in the brief).
-- Slide 4: the Gen-1 test weight and lift height (not recorded).
-- Slide 13: the live-view screenshot (`docs/app_screenshots/02_camera.png` is the simulator's view, so it is not shown as the claw camera); what the bad 3.3 V connection physically was.
-- Slide 14: "on the wall" is one station; the three stations are not on the network yet (v9 slide 22 notes), so no network result is claimed.
-- Slide 16: the draft and the lighter mount are intentions, not drawings; the box is for Jasper's new CAD.
+- Slide 5: the Gen-1 test weight and lift height (not logged).
+- Slide 14: the live-view screenshot (`docs/app_screenshots/02_camera.png` is the simulator's view, so it is not shown as the claw camera); what the bad 3.3 V connection physically was.
+- Slide 15: "on the wall" is one station; the three stations are not on the network yet (v9 slide 22 notes), so no network result is claimed.
+- Slide 17: the draft and the lighter mount are intentions, not drawings; the box is for Jasper's new CAD.
 
 ## Record caveats carried into the notes
 

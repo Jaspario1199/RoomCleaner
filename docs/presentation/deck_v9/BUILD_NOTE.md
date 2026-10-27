@@ -99,3 +99,12 @@ slides 12, 20 and 24 rendered and inspected; contact sheets regenerated. Cost br
 Limits strip on slide 24 (cards shortened to make room), the one-turn statement above the results table on slide 25 (table at
 10.5 pt, 0.30 in rows), grey origin sub-lines under each requirement on slide 3. Same theme, layouts and card style. Both files
 validated (PASS); slides 3, 24 and 25 rendered at 80 dpi and checked; PDFs and contact sheets regenerated.
+
+## v9.2 (2026-10-27)
+
+Architecture story first, per `docs/presentation/DESIGN_INTENT_20261027.md`: slide 7 card "One central unit" replaces the fingers card;
+slide 10 rewritten as "A motor on a wall needs a switch and an encoder" (chart kept, secondary); the clamp slide removed from Act 3;
+slide 13 rewritten as "Iteration 2: a box with its own brain, and only power going in" (photos 14 and 33); new slide 18 "The gripper is a
+modular attachment, on purpose" next to the claw (renders claw_v6 and gripper1021_head, photo 22); the switching narrative removed from
+the closing slide. Slides 11-17 of v9.1 are now 10-16 (one up); 26 main slides. Photo 19 (soldered perfboard) is no longer used on the
+one-controller slide. Both files validated (PASS); slides 7, 10, 13, 18 and 26 rendered at 80 dpi and checked; contact sheets regenerated.

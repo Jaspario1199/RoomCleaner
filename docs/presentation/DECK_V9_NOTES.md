@@ -95,3 +95,21 @@ floor, 0.8° with the three-hole housing; no person or pet detection). Slide 25 
 direct drive at 1.5 A), cable lengths to about 12–16 mm after calibration (simulated), $210.78 of parts in the robot for three
 stations plus $37.74 of filament. Slide 3's four requirements each carry a grey origin line (room as reported; 0.9 kg screening value,
 CR6; 2 m/s² and the 450 g claw budget assumed, R1/R7; 40 N per cable the motor limit, R17; studs from D13; stop rule D21; 1 lb gate D19).
+
+## v9.2 (10/27): the architecture story first (Jasper's account, `DESIGN_INTENT_20261027.md`)
+
+The early story is the system around the claw, not the gripper. Slide 7's gripper card becomes "Iteration 1 architecture: one central
+unit" (Uno + shield driving four corner motors over wires to each corner; overhead ceiling camera). The clamp slide (old 11) is removed
+from Act 3; slides 11-17 move up one; a new slide 18 sits next to the claw in Act 4. Still 26 main slides.
+
+| # | Title (claim) | Visual | Text (3-4 statements) | Tag |
+|---|---|---|---|---|
+| 7 | **July's choices, and what each one cost later** | three cards | NEMA 17 steppers; **one central unit** (Uno + shield, wires to each corner, overhead camera; cost: everything wired back to one place, 250 m once each corner had a switch and an encoder); the power strip | |
+| 10 | **A motor on a wall needs a switch and an encoder** | v8 bead-homing chart (secondary) | things go wrong (camera, overwind, tension, stall) so each winch gets a switch and a spool encoder; the encoder measures discrepancies while testing, data first; one central box over thin wire then fails: 10 conductors per corner, 250 m, 0.82 V lost on the 32 ft run (18 AWG, 2 A, calculated), 2.5 mm skew per 50 ms; bead homing capped the room 5-29 % | CALCULATED |
+| 13 | **Iteration 2: a box with its own brain, and only power going in** | photos 14 (central board), 33 (box on the wall) + the Gen 1 vs Final table | ESP32 in each box, one thicker 12 V pair (50 m, 0.51 V drop calculated); any position and orientation; slides off and unplugs for guests or storage, one plug and it joins Wi-Fi; a product, not a tangle; the mount is separate (pole clamp later) | |
+| 17 | **The claw: geared four-bar hands, camera bay, one 2S pack** | unchanged | described as it is today | CALCULATED |
+| 18 | **The gripper is a modular attachment, on purpose** | claw_v6 render, gripper1021_head render, photo 22 (small) | attaches modularly at the tube, a test bed for shirts; a hard pinch was expected to be better, testing showed alignment problems (the Sep 30 rack-and-pinion 2 mm gap); TPU and other pad materials being tried (μ 0.6 vs 0.3 halves the force jeans need); the v6 clamp at 4.6× its mass budget is why mass is tracked per part | MEASURED (pinch test, Jasper; no reading logged) / CAD |
+| 26 | **What I would do first next time** | unchanged | poor decision reworded: "mass not tracked per part until Oct 20" | |
+
+Not supported by the record and therefore worded carefully: the 0.51 V drop is calculated, not measured (the slide says so); the
+pinch-test result is Jasper's account plus the geometry audit's 2 mm gap, no cloth-test reading is logged (said in the notes).

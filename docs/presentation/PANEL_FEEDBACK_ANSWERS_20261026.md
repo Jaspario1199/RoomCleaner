@@ -18,7 +18,7 @@ is invented.
 | 10 One Controller per Winch | 13 Iteration 2: a box with its own brain | What happens when the motors lose power | On slide (table row) + In notes |
 | 11 Camera Calibration | 10 (chart) and 14 The claw camera replaces bead homing | Floor area vs volume | On slide 10 (computed) + In notes 10 and 15 |
 | 12 Claw | 17 The claw (and 18, the modular gripper) | Where the 0.3 friction coefficient came from | In notes: assumed, source named; Question for Jasper |
-| 13 Final Wall Station | 16 Heat (fin); 12 One plug per station, 13 the designed fuse | What the fin does | On slide 16 + In notes |
+| 13 Final Wall Station | 15 Heat (fin); 11 One plug per station, 12 the designed fuse | What the fin does | On slide 15 + In notes |
 | 14 Winch Pull | 16 Winch pull and what the four winches can lift | How the pull value was validated | In notes (it is not validated: PLANNED) |
 | 15 Motor Cooling | 15 Heat | Why the 6061 is painted | In notes (model side) + Question for Jasper (the built fin) |
 | 16 Weight Budget | 16 (same slide) | Where the ~25 % mass reduction came from | In notes + Question for Jasper |

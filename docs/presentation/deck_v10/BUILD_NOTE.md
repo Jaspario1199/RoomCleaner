@@ -79,3 +79,6 @@ Speaker notes on each slide name the file and line for every number. Summary:
 - Station bench "PASS on both boards" and the LED-out short come from Jasper's 10/25-10/26 bench (DECK_V9_NOTES); DESIGN_STATE has no entry, so Jasper confirms before the talk.
 - The 0.51 V / 0.82 V drops are calculated at an illustrative 2 A, not measured. The 16 AWG roll price is an estimate (COST_BREAKDOWN "est.").
 - The weakest-link chart caps "Screws in a stud" at 600 N (record: 531 to 2954 N).
+
+## v10.1 equations
+Slide 4 equations are typeset PNGs from `make_equations.py` (matplotlib mathtext, STIX, 400 dpi) in `fig/eq_a|b|c.png`; `eqBox` sizes the white panel to the image. Re-run the script after editing an equation, then rebuild.

@@ -280,24 +280,26 @@ section("Fundamentals");
   const g = 0.2, cw = (W - 2 * M - 2 * g) / 3, ch = BOT - TOP;
   // A white boxed panel (thin black border) for the equations inside a card; returns its height.
   const eqBox = (x, y, w, lines) => {
-    const h = 0.2 + 0.22 * lines.length;
+    // lines[0] names the typeset PNG from make_equations.py (fig/eq_*.png); the box is sized to the image.
+    const file = P("docs/presentation/deck_v10/fig", lines[0] + ".png");
+    const d = imgSize(file);
+    const iw = w - 0.2, ih = iw * d.h / d.w, h = ih + 0.16;
     sl.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: HEX.white }, line: { color: HEX.ink, width: 0.75 }, objectName: "equation box" });
-    const arr = lines.map((t, i) => ({ text: t, options: { fontSize: 9.5, color: C.text1, breakLine: i < lines.length - 1, paraSpaceAfter: 2 } }));
-    sl.addText(arr, { x: x + 0.1, y: y + 0.08, w: w - 0.2, h: h - 0.12, valign: "top", margin: 0, isTextBox: true, objectName: "equations" });
+    sl.addImage({ path: file, x: x + 0.1, y: y + 0.08, w: iw, h: ih, altText: lines.slice(1).join("; "), objectName: "equations" });
     return h;
   };
   const cards3 = [
-    ["Cable length → position", ["L_i = ‖ a_i − p ‖", "a_i: anchor exit, p: claw", "straight, taut cable"], [
+    ["Cable length → position", ["eq_a", "L_i = ‖ a_i − p ‖", "a_i: anchor exit, p: claw", "straight, taut cable"], [
       "Each spool turn pays out line: 47.1 → 62.8 mm per rev on the Ø15 core as layers build (calculated)",
       "Four cable lengths, three position unknowns: overdetermined, solved by least squares",
       "The camera on the floor board fixes the anchors and cable lengths at startup (calibration)",
       "Validated in the simulator and by held-out poses during calibration (simulated); no physical position measurement yet",
     ]],
-    ["Torque → pull on the line", ["I = Vref / (8·R_s)", "τ_hold = τ_rated · I / I_rated", "τ_run ≈ 0.7 τ_hold (assumed)", "F = τ / r"], [
+    ["Torque → pull on the line", ["eq_b", "I = Vref / (8·R_s)", "τ_hold = τ_rated · I / I_rated", "τ_run ≈ 0.7 τ_hold (assumed)", "F = τ / r"], [
       "At 1.5 A: τ_hold 0.36 N·m → running pull 34 N on the empty spool (r 7.5 mm), 25 N on a full spool (r 10 mm) (calculated)",
       "Validated: Vref measured on the board; the 0.7 running fraction is assumed; the pull test is planned",
     ]],
-    ["Pull → what four cables hold", ["T = W / (4 sin φ)", "sin φ = d / √(d² + D_h²)"], [
+    ["Pull → what four cables hold", ["eq_c", "T = W / (4 sin φ)", "sin φ = d / √(d² + D_h²)"], [
       "Tension doubles each time the depth below the anchors halves: 32 / 16 / 8 / 5 N at 0.15 / 0.3 / 0.6 / 1.2 m for 1 lb + claw (calculated)",
       "Why the planner keeps the claw at least 0.4 m below the anchors",
       "Validated: calculated only; no cable tension has been measured on the rig",

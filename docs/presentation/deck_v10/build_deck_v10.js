@@ -570,9 +570,8 @@ section("Trade-offs");
     "Pull ∝ I; heat P = I²R ∝ I²",
     "1.0 → 1.5 A: pull × 1.5, heat × 1.5² = 2.25 (calculated)",
     "Every gram on the claw is a gram of payload",
-    "The printed set screw (22–64 N) may slip before the motor: metal insert",
-    "The pull test and the hold test are planned",
-  ], { size: 10, space: 4 });
+    "Printed set screw (22–64 N) may slip first: metal insert",
+  ], { size: 9.5, space: 3 });
 }
 
 // ================================================================================================ 12. Mount assembly: the design
@@ -626,7 +625,7 @@ section("Mount assembly");
 // ================================================================================================ 14. Manufacturing
 section("Manufacturing");
 {
-  const sl = slide("Manufacturing: what was made in-house, and how fits were controlled",
+  const sl = slide("Manufacturing: in-house processes and fit control",
     "Manufacturing. Process: PETG on a Creality K1, 0.4 mm nozzle, 0.20 mm layers, supports at 30 deg (photos 20, 26; deck_v8 'Manufacturing: Fits and Datums' " +
     "printing rules: loads along the layers, mating faces off supports). Fin: blank sheared 44 x 250 mm (+/-0.5), five holes drilled in one setup on the manual " +
     "mill; the edges locate only the first hole, which becomes the mill zero, so the pattern holds +/-0.1 (DECISION_STORIES.md T31/T32 line 277; photo 01). " +
@@ -782,10 +781,10 @@ section("Next iteration");
     "First three-station lift: self-check, calibration, a short move with 1 lb (planned)",
   ], { size: 10, space: 3, headSize: 11.5 });
   const px = M + 3 * (cw + g), pw = W - M - px;
-  const ph2 = (BOT - TOP - 0.26 - 0.08) / 2;
+  const ph2 = (BOT - TOP - 0.5 - 0.08) / 2;
   fitImage(sl, PH("49_next_iteration_station_gear_stage_cad.png"), px, TOP, pw, ph2, "Next-iteration station (CAD), front: 3:1 spur stage, motor pinion to spool gear, spool on its own shaft, encoder magnet cap", { top: true });
   fitImage(sl, PH("50_next_iteration_station_back_dovetail_cad.png"), px, TOP + ph2 + 0.08, pw, ph2, "Next-iteration station (CAD), back: slide-in rails on the mount plate, window, screw holes", { top: true });
-  caption(sl, "Next iteration (CAD, 10/27). Front: 3:1 spur stage, spool on its own shaft, encoder magnet cap. Back: slide-in rails, window, screw holes", px, BOT - 0.22, pw);
+  caption(sl, "Next iteration (CAD, 10/27). Front: 3:1 spur stage, spool on its own shaft, encoder magnet cap. Back: slide-in rails, window, screw holes", px, BOT - 0.44, pw);
 }
 
 // ================================================================================================ 19. Thank you

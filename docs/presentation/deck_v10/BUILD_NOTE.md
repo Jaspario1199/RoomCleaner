@@ -82,3 +82,6 @@ Speaker notes on each slide name the file and line for every number. Summary:
 
 ## v10.1 equations
 Slide 4 equations are typeset PNGs from `make_equations.py` (matplotlib mathtext, STIX, 400 dpi) in `fig/eq_a|b|c.png`; `eqBox` sizes the white panel to the image. Re-run the script after editing an equation, then rebuild.
+
+## v10.1 floor board and next-iteration views
+`make_floor_board_figure.py` draws the nine-sheet AprilTag 36h11 floor reference (FloorBoardLayout.nominal_positions, 150 mm tags, 250 mm pitch) to `fig/floor_board.png`, shown on slide 16. Slide 17 shows photos 49 (front) and 50 (back) of the next-iteration station CAD.

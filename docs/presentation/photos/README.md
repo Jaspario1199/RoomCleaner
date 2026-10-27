@@ -51,3 +51,4 @@ Technical Presentation — v2 draft"). Suggested placement:
 | 47 | shell with the failed print layer kept, fin through the slot, window behind (Jasper, 10/27) | deck v9 "Printing and machining" |
 | 48 | shell with the failed layer, line leaving the slot, "Rhyno" logo (Jasper, 10/27) | website "Building it" |
 | 49 | next-iteration station, CAD render: 3:1 spur stage from the motor pinion to the spool gear, spool on its own shaft with the encoder magnet cap (Jasper, 10/27) | deck v10 "Next iteration" |
+| 50 | next-iteration station, CAD render from the back: slide-in rails on the mount plate, window, screw holes (Jasper, 10/27) | deck v10 "Next iteration" |

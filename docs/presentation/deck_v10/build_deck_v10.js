@@ -665,16 +665,16 @@ section("Calibration");
     ["5  CALIBRATION", ["Local → intermediate → expanded pose sets chosen by D-optimal design; refit between stages", "Held-out witness poses", "Accept on witness residuals, identifiability, predicted length sigma over the work volume"]],
     ["6  REFERENCE_VERIFICATION", ["Optional bead references", "Trust level VERIFIED or LOCAL_ONLY from the margin check"]],
   ];
-  const cols = 3, g = 0.12, cw = (W - 2 * M - 1.55 - (cols - 1) * g) / cols, ch = (BOT - TOP - 0.38 - g) / 2;
+  const cols = 3, g = 0.12, cw = (W - 2 * M - 2.55 - (cols - 1) * g) / cols, ch = (BOT - TOP - 0.38 - g) / 2;
   steps.forEach(([h, items], i) => {
     const x = M + (i % cols) * (cw + g), y = TOP + Math.floor(i / cols) * (ch + g);
-    card(sl, x, y, cw, ch, h, items, { size: 9, space: 2, headSize: 10 });
+    card(sl, x, y, cw, ch, h, items, { size: 8.5, space: 1, headSize: 9.5 });
   });
   sl.addText("No automatic retry; any station reboot forces the full sequence again.",
-             { x: M, y: BOT - 0.32, w: W - 2 * M - 1.55 - 0.1, h: 0.3, fontSize: 10, bold: true, color: C.text1, margin: 0, valign: "middle", isTextBox: true, objectName: "rules" });
-  const px = W - M - 1.4;
-  coverImage(sl, PH("42_claw_hanging_three_cables_room_corner.jpg"), px, TOP, 1.4, BOT - TOP - 0.26, "The claw hanging on three cables");
-  caption(sl, "Suspended, before CALIBRATION", px, BOT - 0.22, 1.4);
+             { x: M, y: BOT - 0.32, w: W - 2 * M - 2.55 - 0.1, h: 0.3, fontSize: 10, bold: true, color: C.text1, margin: 0, valign: "middle", isTextBox: true, objectName: "rules" });
+  const px = W - M - 2.4;
+  fitImage(sl, P("docs/presentation/deck_v10/fig", "floor_board.png"), px, TOP, 2.4, BOT - TOP - 0.26, "Floor reference: nine AprilTag 36h11 sheets, 150 mm tags, 250 mm pitch, sheet 0 is the origin", { top: true });
+  caption(sl, "What the camera locks onto: nine AprilTag sheets on the floor, 150 mm tags, 250 mm pitch; sheet 0 sets the room frame", px, BOT - 0.22, 2.4);
 }
 
 // ================================================================================================ 17. Next iteration
@@ -699,8 +699,10 @@ section("Next iteration");
     "First three-station lift: self-check, calibration, a short move with 1 lb (planned)",
   ], { size: 10, space: 3, headSize: 11.5 });
   const px = M + 3 * (cw + g), pw = W - M - px;
-  fitImage(sl, PH("49_next_iteration_station_gear_stage_cad.png"), px, TOP, pw, BOT - TOP - 0.26, "Next-iteration station (CAD): 3:1 spur stage, motor pinion to spool gear; spool on its own shaft with the encoder magnet cap", { top: true });
-  caption(sl, "Next iteration (CAD, 10/27): 3:1 spur stage from the motor pinion to the spool gear; spool on its own shaft, encoder magnet cap in green", px, BOT - 0.22, pw);
+  const ph2 = (BOT - TOP - 0.26 - 0.08) / 2;
+  fitImage(sl, PH("49_next_iteration_station_gear_stage_cad.png"), px, TOP, pw, ph2, "Next-iteration station (CAD), front: 3:1 spur stage, motor pinion to spool gear, spool on its own shaft, encoder magnet cap", { top: true });
+  fitImage(sl, PH("50_next_iteration_station_back_dovetail_cad.png"), px, TOP + ph2 + 0.08, pw, ph2, "Next-iteration station (CAD), back: slide-in rails on the mount plate, window, screw holes", { top: true });
+  caption(sl, "Next iteration (CAD, 10/27). Front: 3:1 spur stage, spool on its own shaft, encoder magnet cap. Back: slide-in rails, window, screw holes", px, BOT - 0.22, pw);
 }
 
 // ================================================================================================ 18. Thank you

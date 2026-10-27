@@ -149,3 +149,6 @@ Slide 4 equations are typeset PNGs from `make_equations.py` (matplotlib mathtext
 
 ## v10.2 cards are single shapes
 Each grey card is ONE rectangle with its heading and bullets inside it (`card()`), no rounded corners, hex fill. The earlier grey-shape-plus-text-box build rendered with text hidden behind the cards in iOS Quick Look. Slide 4 reserves space under each heading (`gapIn`) and places the equation panel on top of the card.
+
+## v10.7 worked mount-finding slide (slide 18)
+New slide after the calibration states: ‖a − p_k‖ − ‖a − p_0‖ = ΔL_k with ΔL_k = n_k·2πr/N, one move checked against a tape-measure guess, and one Gauss-Newton correction. Illustrative calc: true mount (0.05, 0.05, 2.59) m, guess (0.20, 0.15, 2.45) m, home (1.68, 1.37, 1.00) m, six 100 mm moves, perfect camera, microstep-rounded counts; error 228 → 21 → 1.4 mm. Equations typeset in fig/eq_f.png and fig/eq_g.png (make_equations.py).

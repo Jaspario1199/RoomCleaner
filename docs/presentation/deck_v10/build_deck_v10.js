@@ -788,6 +788,52 @@ section("Calibration");
              { x: M, y: BOT - 0.32, w: W - 2 * M, h: 0.3, fontSize: 10, bold: true, color: C.text1, margin: 0, valign: "middle", isTextBox: true, objectName: "rules" });
 }
 
+// ================================================================================================ 17b. Finding a mount, one step worked
+{
+  const sl = slide("Finding a mount from small moves, worked through",
+    "Worked example (illustrative calc, lead 10/27, numbers from a Python run of the same equations; the robot's solver is roomcleaner/cdpr/calibration.py, " +
+    "MAP least squares over all mounts, L0 and the camera poses together). True mount a = (0.05, 0.05, 2.59) m (design, sim room); tape-measure guess " +
+    "a0 = (0.20, 0.15, 2.45) m (228 mm off). Home p0 = (1.68, 1.37, 1.00) m. Six 100 mm moves (+x, +y, +z, -x, -y, diagonal). Spool counts from the true " +
+    "geometry, rounded to whole microsteps: 4283, 3500, -4018, -4124, -3307, 3403. Microstep length 2 pi x 7.5 mm / 3200 = 0.01473 mm (r design, N = 200 x 16 " +
+    "design). Move 1: predicted 2.4672 - 2.4044 m = 62.81 mm vs measured 63.07 mm, residual -0.26 mm. Gauss-Newton step: da = (-136, -91, +127) mm; error " +
+    "228 -> 21 -> 1.4 mm in two iterations; the floor is the microstep rounding. A perfect camera is assumed here; the robot weights camera noise and uses the " +
+    "local -> intermediate -> expanded move sets (startup.py CALIBRATION).");
+  const g = 0.16, cw = (W - 2 * M - 2 * g) / 3, ch = BOT - TOP;
+  const pad = 0.16;
+  const eqF = P("docs/presentation/deck_v10/fig", "eq_f.png"), dF = imgSize(eqF);
+  const eqG = P("docs/presentation/deck_v10/fig", "eq_g.png"), dG = imgSize(eqG);
+  const hF = (cw - 2 * pad - 0.2) * dF.h / dF.w + 0.16, hG = (cw - 2 * pad - 0.2) * dG.h / dG.w + 0.16;
+  const eqBox = (x, y, w, names) => {
+    const file = P("docs/presentation/deck_v10/fig", names[0] + ".png"), d = imgSize(file);
+    const iw = w - 0.2, ih = iw * d.h / d.w, h = ih + 0.16;
+    sl.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: HEX.white }, line: { color: HEX.ink, width: 0.75 }, objectName: "equation box" });
+    sl.addImage({ path: file, x: x + 0.1, y: y + 0.08, w: iw, h: ih, altText: names[0], objectName: "equations" });
+    return h;
+  };
+  card(sl, M, TOP, cw, ch, "1. The equation, one per move", [
+    "where a: mount position (unknown, m); p_0: claw at home, p_k: claw after move k (camera, m); ΔL_k: cable length change (m); n_k: microsteps counted; r: spool radius 7.5 mm (design); N: 3200 microsteps/rev (design)",
+    "The change in distance from the mount to the claw must equal the change in cable length",
+    "One microstep = 2π × 7.5 mm / 3200 = 0.01473 mm (calc)",
+    "No absolute length needed: only changes",
+  ], { size: 9, space: 3, headSize: 11, gapIn: hF + 0.18 });
+  eqBox(M + pad, TOP + 0.44, cw - 2 * pad, ["eq_f"]);
+  card(sl, M + cw + g, TOP, cw, ch, "2. One move, checked against the guess", [
+    "Home p_0 = (1.68, 1.37, 1.00) m; move +100 mm in x → p_1 = (1.78, 1.37, 1.00) m (camera)",
+    "Spool counts n_1 = 4283 microsteps → ΔL_1 = 63.07 mm (calc)",
+    "Tape-measure guess a⁰ = (0.20, 0.15, 2.45) m, 228 mm from the true mount (illustrative)",
+    "Predicted: ‖a⁰ − p_1‖ − ‖a⁰ − p_0‖ = 2.4672 − 2.4044 m = 62.81 mm (calc)",
+    "Residual r_1 = 62.81 − 63.07 = −0.26 mm: the guess is wrong",
+    "Six moves (±x, ±y, +z, diagonal) give six residuals",
+  ], { size: 9, space: 3, headSize: 11 });
+  card(sl, M + 2 * (cw + g), TOP, cw, ch, "3. Correct the guess, repeat", [
+    "where r_k: residual of move k (m); J_k: how r_k changes as a moves (unit vectors from claw to mount); Δa: correction (m)",
+    "Gauss–Newton: Δa = (−136, −91, +127) mm (calc)",
+    "Mount error 228 → 21 → 1.4 mm in two iterations (calc)",
+    "Illustrative: perfect camera, one mount; the robot solves all mounts and length offsets together, weights camera noise, and grows the moves from local to expanded",
+  ], { size: 9, space: 3, headSize: 11, gapIn: hG + 0.18 });
+  eqBox(M + 2 * (cw + g) + pad, TOP + 0.44, cw - 2 * pad, ["eq_g"]);
+}
+
 // ================================================================================================ 18. Next iteration
 section("Next iteration");
 {

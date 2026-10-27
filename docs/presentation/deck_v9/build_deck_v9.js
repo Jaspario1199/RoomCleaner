@@ -373,19 +373,22 @@ section("Introduction");
 {
   // 1. Title: claim, name, school, dates; photo 38 (the assembled claw, 10/26) full-bleed on the right.
   const sl = pres.addSlide({ masterName: "SECTION", sectionTitle: SECTION });
-  const d = imgSize(PH("38_claw_assembled_tube_jaws_housing_lit.jpg")), pw = H * d.w / d.h;
-  sl.addImage({ path: PH("38_claw_assembled_tube_jaws_housing_lit.jpg"), x: W - pw, y: 0, w: pw, h: H, altText: "The claw assembled on the bench, Oct 26", objectName: "title photo" });
+  const d = imgSize(PH("42_claw_hanging_three_cables_room_corner.jpg")), pw = H * d.w / d.h;
+  sl.addImage({ path: PH("42_claw_hanging_three_cables_room_corner.jpg"), x: W - pw, y: 0, w: pw, h: H, altText: "The claw hanging from three cables in the room corner, Oct 27", objectName: "title photo" });
   const tw = W - pw - M - 0.4;
   sl.addText("RoomCleaner", { x: M, y: 1.5, w: tw, h: 0.9, fontSize: 44, bold: true, color: "FFFFFF", fontFace: "Arial", margin: 0, isTextBox: true, objectName: "title" });
   sl.addText("A four-cable ceiling robot that picks laundry off the floor", { x: M, y: 2.45, w: tw, h: 1.3, fontSize: 26, color: HEX.pale, fontFace: "Arial", margin: 0, isTextBox: true, objectName: "subtitle" });
   sl.addText("Jasper Buntinx", { x: M, y: 4.5, w: tw, h: 0.5, fontSize: 24, bold: true, color: "FFFFFF", fontFace: "Arial", margin: 0, isTextBox: true, objectName: "name" });
   sl.addText("Mechanical Engineering, Texas A&M University", { x: M, y: 5.0, w: tw, h: 0.45, fontSize: 18, color: HEX.pale, fontFace: "Arial", margin: 0, isTextBox: true, objectName: "school" });
   sl.addText("Built July to October 2026", { x: M, y: 5.5, w: tw, h: 0.45, fontSize: 18, color: HEX.pale, fontFace: "Arial", margin: 0, isTextBox: true, objectName: "dates" });
-  sl.addNotes("Talk track (45 s): This is RoomCleaner. Four winches near the ceiling corners of my room hold one claw on cables; the claw descends on a " +
-              "garment, grips it, and drops it in a hamper. The photo is the claw as it sat on my bench yesterday. I built it between July and October, " +
-              "alone, and this talk goes through it in the order it happened: the concept, a first generation that taught me what the drawings could not, " +
-              "the redesign, the final design, and the build and bring-up week. Every number carries a tag: measured, calculated, simulated or planned. " +
-              "If asked: it has not picked up a garment yet; the first three-station lift is the next milestone.");
+  sl.addNotes("Pitch (30 s): I'm building a cable-driven parallel robot that picks laundry off my floor. Three or four winches on the walls, each a " +
+              "self-contained module with a stepper, a spool encoder and an ESP32, driving a battery-powered claw on the cables; the photo is the claw hanging " +
+              "from the first three stations in my room yesterday. The hardest problem was safety: four cables can pull against each other hard enough to rip a " +
+              "mount out of the wall. So the drive is designed to slip at a set tension, 34 to 59 N, well below what the mount can hold, and the spool encoder " +
+              "sees the spool fall behind the commanded steps and stops the system. It is in bench testing: both station boards and the claw electronics pass, " +
+              "and the first station is on the wall. The talk goes through the build in the order it happened. Every number carries a tag: measured, " +
+              "calculated, simulated or planned. If asked: it has not picked up a garment yet; the first three-station lift is the next milestone; the slip " +
+              "tension is calculated from the motor's holding torque, not yet measured.");
 }
 
 {
@@ -608,8 +611,9 @@ content("The clamp that could not close on thin cloth (Sep 30)", [
     "Load path: cable, spool, set screw, motor, PETG tab, slide-in, wall mount, screws, stud",
     `The motor is the weakest link: it slips at ${n0(WL.fuse.slip_low)}–${n0(WL.fuse.upper)} N before anything breaks, and the spool encoder reports the overload`,
     "Reading the margins: every other part must give at 1.5 × the motor's slip force (calculated, against derated PETG); the 1.5 on the winch pull is the skipped-step margin",
-  ], { file: [SC("station_shell_transparent_1022.png"), PH("24_station_housing_on_wall.jpg")], alt: "Final wall station: CAD and built",
-       caption: "SolidWorks, shell transparent (left); the printed shell on the wall, Oct 22 (right)" },
+  ], { grid: [SC("station_shell_transparent_1022.png"), PH("24_station_housing_on_wall.jpg"), PH("45_wall_mount_bracket_alone_corner.jpg"), PH("46_wall_mount_bracket_xt60_power_lead.jpg")],
+       alt: "Final wall station: CAD, on the wall, and the wall mount alone",
+       caption: "SolidWorks, shell transparent; the shell on the wall (Oct 22); the wall mount alone in a corner, and with its XT60 power lead (Oct 27)" },
   "Talk track (55 s): The station that came out of the redesign. One plug per station: the wall mount is screwed into a stud, and the station slides onto it " +
   "on a dovetail, so it lifts off for service while the anchor stays put. Walk the load from the cable to the stud: cable, spool, set screw, motor shaft, the " +
   "printed motor tab, the slide-in, the wall mount, the screws, the stud. The design idea is to make the motor the part that gives first. At 1.5 A it slips at " +
@@ -627,11 +631,31 @@ content("The clamp that could not close on thin cloth (Sep 30)", [
   ] } });
 }
 
+content("The drive slips before the wall does: a designed fuse", [
+  "Four cables on three axes can pull against each other; a length error becomes tension, up to a snag that could tear a mount out",
+  "The motor's rotor skips at 34–59 N of cable tension, the designed fuse: every other part gives higher, the wall screws in a stud at 9 × and the slide-in dovetails at 225 × the motor's pull",
+  "The spool encoder sees the spool fall behind the commanded steps: a TRACKING fault, and every station holds",
+  "The same mechanism catches an overweight pickup and a missed over-tension; the one exception as drawn, the set screw in printed plastic (22–64 N), moves into a metal insert",
+], { sheet: "weakest_link", tab: "Weakest link" },
+"Talk track (55 s): The safety idea in one chart: the cable tension at which each part of the lifting chain gives, from the set screw to the screws in the stud. " +
+"Cables only pull, and four of them on three axes are over-constrained, so a length error turns into tension, and a snag can pull far harder than the load. " +
+"Rather than make every part strong enough for any snag, I made the motor the fuse: at 1.5 A its rotor skips at 34 to 59 N of cable tension, depending on " +
+"the spool fill and the cable angle, and everything else in the chain gives at a higher tension, the wall screws in a stud at nine times the motor, the " +
+"dovetails at over two hundred. When the rotor skips, the encoder on the spool sees the spool fall behind the commanded steps, the station raises a tracking " +
+"fault and every station holds with torque on. The same mechanism catches a pickup that is too heavy and an over-tension the planner missed. The one part " +
+"that may give before the motor as drawn is the set screw in its printed thread, so it moves into a metal insert. " +
+"If asked: the slip is the stepper's own torque limit, not a clutch; a mechanical clutch would add a part, a calibration and a cost to each of four stations, and " +
+"the stepper already has a sharp, repeatable torque ceiling. What happens after a slip: the station stops and reports; the host does not resume by itself; " +
+"the spool count is the truth, so the cable's zero length is re-referenced from the encoder and the calibration before the next move, and a person approves " +
+"it. The 3:1 gear stage raises the slip force to about 130 N at 1.0 A, so the new station is sized for 200 N. All calculated from the motor's holding " +
+"torque; the slip has not been measured yet, the pull test does that.",
+{ tags: ["CALCULATED"], size: 15, space: 9 });
+
 content("One controller per winch", [
-  "Generation 1: one central board; with sensors it would need 250 m (820 ft) of wire",
+  "Generation 1's central box worked within about a day and a half; it had to go: 250 m (820 ft) of wire once each winch had sensors, 2.5 mm of skew per 50 ms, a tangle to unplug and shelve, no modularity",
   "Now: a controller in each station, fed by one 12 V pair: 50 m (164 ft)",
-  "Each station is built and tested on its own",
-  "The cost: timing moves into software; 50 ms of skew is 2.5 mm of cable error",
+  "Each station is built, tested and swapped on its own",
+  "The cost: timing moves into software",
 ], (sl, x, y, w, h) => {
   figure(sl, { file: [PH("14_gen1_cnc_shield_a4988.jpg"), PH("19_station_perfboard_soldered.jpg")], alt: "Central board and station board",
                caption: "Before: one central driver board. After: a controller in each station." }, x, y, w, 2.45);
@@ -644,7 +668,9 @@ content("One controller per winch", [
     ["Faults", "Emergency stop only", "PAUSE keeps torque; a power loss drops the claw (no brake) and nothing resumes by itself"],
   ], x, y + 2.5, w, [0.22, 0.33, 0.45], { size: 10.5, rowH: 0.34, name: "control logic" });
 },
-"Talk track (50 s): The wiring calculation became this decision: a controller in each station instead of one central board. Each station gets one 12 V pair, " +
+"Talk track (50 s): Generation 1's central box, one Uno and one shield, worked within about a day and a half, and it had to go for four reasons: wire, once each " +
+"winch carried a switch and an encoder, 250 metres against 50; timing, one loop stepping four motors skews them, 2.5 mm per 50 ms; packaging and storage, " +
+"every test meant unplugging and handling all of that wiring to put it on a shelf; and no modularity, one box for four winches. So: a controller in each station instead of one central board. Each station gets one 12 V pair, " +
 "50 metres of wire in total instead of 250, and it can be built and tested on its own, which is exactly how the bench week in Act 5 went. The cost is that the " +
 "four winches now have to agree on time in software: each station runs time-stamped segments on its own clock and holds if the link drops, with a 40 ms skew " +
 "budget that keeps the error to 2 mm. The table is the wider change: Generation 1 trusted its model; the final logic measures before it trusts and checks " +
@@ -772,8 +798,8 @@ section("Final design"); ACT = "Act 4 of 5: Final design (October 7-21)";
   bullets(sl, [
     "18T pinion, 54T gear, module 1: 3:1 at the spool. Lift capacity 1.98–2.80 kg at 1.0 A (was 1.10–1.56 kg), motor heat 1.8 W (was 4.05)",
     "Printed PETG pinion: its teeth hold 1.75 × the motor's slip force at 1.0 A",
-    "Backlash 0.42 mm at the pitch circle: 10 encoder counts of the 60-count tracking tolerance",
-    "The encoder magnet moves to the end of the spool shaft; measured Ø4.0, not the Ø6 the spec had assumed",
+    "The spool encoder has two jobs: confirm every commanded step, and detect slip as the tension sensor",
+    "Backlash 0.42 mm at the pitch circle, 10 encoder counts of the 60-count tolerance; the magnet moves to the spool shaft end, measured Ø4.0, not the Ø6 assumed",
   ], bx, 1.35, bw, 5.4, 15, { space: 10, name: "gear bullets" });
   sl.addNotes("Talk track (55 s): The gear stage that takes the lift margin from 4 % to a real one. An 18-tooth pinion on the motor drives a 54-tooth gear " +
               "printed in one piece with the spool, module 1, 3:1. At 1.0 A the capacity goes from 1.10 to 1.56 kg up to 1.98 to 2.80 kg, and the motor heat " +
@@ -846,8 +872,8 @@ photoSlide("Station electronics on the bench: every check before the motor turns
   "Homing switch LOW at rest, HIGH pressed or with a broken wire; the encoder answers at its address with the magnet detected",
   "One spool turn within 60 encoder counts: PASS on both boards",
   "A short found by the board's LED going out, traced to the switch pull-up",
-], [[PH("29_station_bench_esp32_wiring_floor.jpg"), "Station bench: dev board, driver, spool and end stop"], [PH("37_station_bench_red_shell_fuse_12v.jpg"), "Red shell, fused 12 V lead"],
-    [PH("31_station_bench_xiao_breadboard_shell_open.jpg"), "Second board, shell open"]],
+], [[PH("43_bench_two_stations_laptop_meter_floor.jpg"), "Bench: two stations, laptop, meter, 12 V supply"], [PH("29_station_bench_esp32_wiring_floor.jpg"), "Dev board, driver, spool and end stop"],
+    [PH("37_station_bench_red_shell_fuse_12v.jpg"), "Red shell, fused 12 V lead"], [PH("31_station_bench_xiao_breadboard_shell_open.jpg"), "Second board, shell open"]],
 "Talk track (55 s): The station electronics went through a bench script one part at a time, before the station firmware went on. Boot on USB alone with 12 V off: " +
 "the board's LED on, the board cool. The homing switch reads LOW at rest and HIGH when pressed or when a wire breaks, the fail-safe wiring from Act 2. The encoder " +
 "answers at its address and reports the magnet detected. Then 12 V on: the driver must stay off at boot, so a reset can never move a motor. Enable, jog a quarter " +
@@ -891,10 +917,10 @@ photoSlide("On the wall", [
   "First station in a stud on the TV wall: 12 V down the wall, the fin out through the slot in the top",
   "Boxed stations boot and join Wi-Fi on their own; firmware updates arrive over Wi-Fi, so a boxed station never needs a USB cable again",
   "The motor stays off until the phone arms it; a station accepts an update only while disarmed",
-], [[PH("32_wall_station_mounted_tv_wall.jpg"), "Station mounted high on the TV wall, 12 V leads down"], [PH("33_wall_station_mounted_closeup_wires.jpg"), "From below: fin in its slot"],
+], [[PH("32_wall_station_mounted_tv_wall.jpg"), "Station mounted high on the TV wall, 12 V leads down"], [PH("44_wall_station_from_below_line_down.jpg"), "From below: the line leaves the switch tab straight down"],
     [PH("36_shell_front_vents_fin_tab.jpg"), "Shell front: vents, fin tab"]],
 "Talk track (50 s): The first station on the wall, in a stud on the TV wall, with the 12 V pair running down the wall and the fin out through the slot in the " +
-"top of the shell. From below you can see the shell sitting on its grey wall mount, the slide-in from Act 3. Because a station is a sealed box up at the " +
+"top of the shell. From below you can see the shell on its grey wall mount, the slide-in from Act 3, and the line leaving the switch tab straight down, with the 12 V lead in a lever nut. Because a station is a sealed box up at the " +
 "ceiling, it has to look after itself: it boots, joins Wi-Fi at a fixed address and keeps retrying until the router is up, and firmware updates arrive over " +
 "Wi-Fi, so a boxed station never needs a USB cable again. The motor stays off until the phone arms it, and a station only accepts an update while it is " +
 "disarmed, so an update can never drop a load. If asked: the one USB flash happens on the bench before boxing; the claw accepts updates only while its grip " +
@@ -973,13 +999,16 @@ section("Results and close"); ACT = "";
     "First lift: self-check, calibration, a short move with 1 lb",
     "Then the robot scans its own room: height map and obstacle proposals in the app",
     "A brake or non-backdrivable stage, so a power loss cannot drop the claw",
-  ], x2, 1.8, rw, 5.0, 15, { space: 10, name: "next steps" });
+    "A pole-clamp back for the wall mount (a gym-pole clamp), so a station mounts to a pole, not only a wall",
+    "Open-source build on GitHub, so others can build it",
+  ], x2, 1.8, rw, 5.0, 14, { space: 8, name: "next steps" });
   sl.addNotes("Talk track (55 s): Three decisions I would make again: a controller in every station, which is why the bench week worked station by station; " +
               "the camera calibration instead of bead homing, killed on paper before anything was built; and a mass budget per part, late, but it is why the " +
               "claw got weighed and the gear stage got sized. Three I would not: not re-checking the claw's mass through four versions; cutting the prototype fin " +
               "from scrap sheet, which left one to four degrees of margin; and a build week that ends on presentation day. In half the time I would pull-test one " +
               "winch and weigh a mock claw in week one and prove one full station before copying it. Next, in order: flash and commission the three stations, " +
-              "the pull test, the first lift with a pound, and then the robot scans its own room and proposes the obstacles in the app. " +
+              "the pull test, the first lift with a pound, and then the robot scans its own room and proposes the obstacles in the app. Two more: a pole-clamp back " +
+              "for the wall mount, a gym-pole clamp, so a station can go on a pole where there is no stud; and the build goes up open-source on GitHub so others can build it. " +
               "Leave this slide up for questions. If asked: the lighter redesign takes about 60 % of the plastic out of the station and brings the claw to its " +
               "0.45 kg budget, lifting the jeans margin from 4 % to about 16 %. " +
               "If asked how the weaker decisions affected the deliverable: each shows up in the results table. Not tracking mass through four claw versions put " +

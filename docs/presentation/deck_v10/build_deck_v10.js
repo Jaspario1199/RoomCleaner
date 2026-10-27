@@ -245,34 +245,33 @@ section("Opening");
 // ================================================================================================ 3. Project scope
 section("Scope");
 {
-  const sl = slide("Project scope",
-    "Scope. Room 3.35 x 2.74 m under a 2.74 m ceiling, as reported (DECK_V9_NOTES.md slide 3; v9.1 origins). Design load 0.9 kg jeans, a screening value, " +
-    "plus 2 m/s^2 assumed (REQUIREMENTS R1/R7 via v9.1). Four winches in the studs, one claw on four cables (slide 3 row). PAUSE holds torque; the switched " +
-    "power strip is the emergency stop and drops the claw (D21 via slide 3). Success: one garment floor to hamper, each move approved on the phone; first gate " +
-    "a 1 lb test weight (D19). Cost: $210.78 of parts in the robot for three stations plus $37.74 filament, prices partly estimated (COST_BREAKDOWN_20261026.md headline table). " +
-    "Photo 42 (README row 42).");
-  const cw = (W - 2 * M - 2 * 0.2 - 2.3) / 3, ch = BOT - TOP;
+  const sl = slide("Project scope: a robot that picks laundry off the floor",
+    "Pitch. Problem and goal: DESIGN_INTENT_20261027.md; DECK_V9_NOTES slide 3 row (goal: jeans from anywhere on the floor into the hamper, nobody touching it). " +
+    "Concept comparison: deck_v8 'Why a cable robot' table (floor robot: furniture blocks it, robot on the floor; gantry: frame spans the room, heavy beam; " +
+    "cable robot: whole floor, floor left clear, 0.6 kg claw moving). How it works: modular boxes, claw camera, floor board, phone approval, PAUSE / strip (D21). " +
+    "Success: one garment floor to hamper with no human touch; design load jeans 0.9 kg (screening value); first gate a 1 lb test weight (D19). Photo 42.");
+  const g = 0.18, pw = 2.0, cw = (W - 2 * M - 3 * g - pw) / 3, ch = BOT - TOP;
   card(sl, M, TOP, cw, ch, "The problem", [
-    "Laundry on the floor of a 3.35 x 2.74 m room (as reported)",
-    "Ceiling 2.74 m; four studs near the ceiling corners",
-    "Design load: a pair of jeans, 0.9 kg (screening value)",
-    "Plus 2 m/s² for stops and snags (assumed)",
-  ]);
-  card(sl, M + cw + 0.2, TOP, cw, ch, "The solution", [
-    "Four ceiling winches, one claw on four cables",
-    "Nothing on the floor; the room is the frame",
-    "A camera on the claw finds the laundry",
-    "Floor to hamper with no human touch",
-  ]);
-  card(sl, M + 2 * (cw + 0.2), TOP, cw, ch, "How we do it", [
-    "I approve each move on the phone",
-    "PAUSE holds position with torque on",
-    "The switched power strip is the emergency stop; it drops the claw",
-    "First gate: a 1 lb test weight, then jeans",
-    "Parts in the robot: about $211 for three stations, plus $38 filament (partly estimated)",
-  ]);
-  coverImage(sl, PH("42_claw_hanging_three_cables_room_corner.jpg"), W - M - 2.1, TOP, 2.1, ch - 0.26, "The claw hanging in the room corner");
-  caption(sl, "The claw hanging in the room corner (Oct 27)", W - M - 2.1, BOT - 0.22, 2.1);
+    "Clothes end up on the floor every day; picking them up is a chore",
+    "A floor robot fights the clutter it is meant to clear: furniture, rugs, cords",
+    "A gantry would put a frame across the whole room",
+    "Goal: any garment, anywhere on the floor, into the hamper, with nobody touching it",
+  ], { size: 10.5, space: 6 });
+  card(sl, M + cw + g, TOP, cw, ch, "The proposed solution", [
+    "A cable robot: four winch boxes high on the walls hold one claw on four cables",
+    "Changing the four cable lengths moves the claw anywhere in the room",
+    "Nothing on the floor; only a 0.6 kg claw moves",
+    "Each box is self-contained: slides off the wall and unplugs when not needed",
+  ], { size: 10.5, space: 6 });
+  card(sl, M + 2 * (cw + g), TOP, cw, ch, "How it works", [
+    "The claw camera locates itself on a printed floor board and finds the garment",
+    "Descend, grip, lift, carry, release over the hamper",
+    "Each move approved on the phone; PAUSE holds; the power strip is the stop",
+    "Success: one garment floor to hamper, no human touch",
+    "Test path: 1 lb weight first, then jeans (0.9 kg)",
+  ], { size: 10.5, space: 6 });
+  coverImage(sl, PH("42_claw_hanging_three_cables_room_corner.jpg"), W - M - pw, TOP, pw, ch - 0.26, "The claw hanging on its cables in the room corner");
+  caption(sl, "The claw on its cables, room corner", W - M - pw, BOT - 0.22, pw);
 }
 
 // ================================================================================================ 4. Cable length, torque, tension

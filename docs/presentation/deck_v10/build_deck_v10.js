@@ -210,13 +210,24 @@ section("Opening");
     caption(sl, cap, cx, TOP + scale + 0.04, iw);
     cx += iw + g;
   });
-  card(sl, M, TOP, bx - M - 0.25, scale, "Jasper Buntinx", [
-    "Mechanical Engineering, Texas A&M",
-    "Outdoors and endurance: hikes, Ironman 70.3, 2025 marathon",
-    "EcoFil: a filament recycler, built with a team",
-    "Gladiator Dash build logistics, for Still Creek Ranch",
-    "RoomCleaner: built July to October 2026",
-  ], { size: 11.5, space: 7 });
+  // Three stacked cards in the left column (text supplied by Jasper, 10/27)
+  const cw2 = bx - M - 0.25, gap = 0.1, hEdu = 0.68, hHob = 1.5, hExp = (BOT - TOP) - hEdu - hHob - 2 * gap;
+  card(sl, M, TOP, cw2, hEdu, "Education: Texas A&M", [
+    "Bachelor's, Mechanical Engineering, August 2027",
+  ], { size: 10.5, space: 4 });
+  card(sl, M, TOP + hEdu + gap, cw2, hExp, "Experience", [
+    "ITP Lab, undergraduate research",
+    "Rochester Sensors, mechanical intern",
+    "Petrobras, mechanical intern",
+    "Aggies Create, EcoFil electrical lead",
+  ], { size: 10.5, space: 4 });
+  card(sl, M, TOP + hEdu + hExp + 2 * gap, cw2, hHob, "Hobbies", [
+    "Personal projects",
+    "Soccer",
+    "Running",
+    "Bouldering",
+    "And man, do I love hiking.",
+  ], { size: 10.5, space: 4 });
 }
 
 // ================================================================================================ 3. Project scope

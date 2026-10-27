@@ -560,9 +560,9 @@ section("Trade-offs");
   need(p, "16.8 N / (1.101 × 9.81) = 1.56 kg vs 1.50 kg: +4 %; claw 0.60 kg weighed vs 0.45 budget");
   // 5. Weakest link
   p = at(1, 1);
-  CHART_DATA.weakest = { title: "Tension at which each part gives (N)", rows: WL, box };
+  CHART_DATA.weakest = { title: "Tension at which each part gives (N), estimated", rows: WL, box };
   chartImage(sl, "weakest", p.x, p.y, cw, ch - 0.3, "Cable tension at which each part of the lifting chain gives, one station at 1.5 A (calculated)");
-  need(p, "Motor slip 0.36 N·m / 7.5 mm = 48 N; × 1/√2 = 34 N, × 1.11 / cos 26° = 59 N");
+  need(p, "Estimates from hand calcs and published strengths; no stress concentrations. Motor slip: 0.36 N·m / 7.5 mm = 48 N");
   // 6. The factors, in words
   p = at(2, 1);
   card(sl, p.x, p.y, cw, ch, "The factors", [

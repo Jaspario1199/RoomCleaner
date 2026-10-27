@@ -412,17 +412,23 @@ section("Introduction");
 
 content("The goal: jeans from anywhere on the floor into the hamper, nobody touching it", [
   "Pick up laundry in a 3.35 × 2.74 m (11 × 9 ft) room under a 2.74 m (9 ft) ceiling; design load 0.9 kg (jeans) plus a 2 m/s² dynamic allowance",
+  "- Room: my room, as reported; 0.9 kg: screening value, not weighed; 2 m/s²: assumed; 450 g claw: the cable-tension budget",
   "Four winches screwed into the studs near the ceiling corners, one claw on four cables, nothing on the floor",
+  "- Studs: an anchor must not move, about 1:1 into claw error; 40 N per cable: motor limit",
   "PAUSE holds position with torque on; the switched power strip is the emergency stop, and it drops the claw",
+  "- Stop never disables, the strip is the only category-0 stop; no safety rating claimed",
   "Success: one garment from floor to hamper with no human touch; I approve each move on the phone",
+  "- First gate: a 1 lb test weight; no payload or accuracy rating until measured",
 ], (sl, x, y, w, h) => roomSketch(sl, x, y, w, h),
 "Talk track (50 s): The problem in one picture. Four anchors 0.15 m below the ceiling, one claw, a hamper. The shaded bands are the margins the planner keeps: " +
 "0.2 m from the walls, 0.4 m below the anchors. The load case is a pair of jeans, 0.9 kg, with a 2 m/s² allowance for stops and snags. The safe state is PAUSE: " +
 "every station holds with torque on. The emergency stop is the power strip, and because steppers hold only while powered, it drops the claw; nobody stands under " +
 "the robot. Success means one garment from floor to hamper with no human touch; I approve each move on the phone. " +
 "If asked: 0.9 kg is a screening value, not weighed. Top speed is 50 mm/s, so a diagonal move takes about a minute and a half. Where it stands today: the " +
-"stations, their electronics and the claw are built and bench-tested; nothing has picked up a garment yet.",
-{ size: 16, space: 10 });
+"stations, their electronics and the claw are built and bench-tested; nothing has picked up a garment yet. The grey lines under each requirement say where it " +
+"came from: the room is mine as reported, 0.9 kg is a screening value (CR6), 2 m/s² and the 450 g claw budget are assumptions the tension analysis used (R1, R7), " +
+"40 N per cable is the motor limit written into the claw requirement (R17), the studs follow from the fixed-anchor decision (D13), the stop rule is D21, the 1 lb gate D19.",
+{ size: 15, space: 7 });
 
 {
   // 4. Timeline and authorship (v8 Gantt; dates per the outline).
@@ -918,29 +924,37 @@ content("Three stations first: the triangle, the tilt, and no spare cable", [
   const sl = blank("What hurts now, and the next iteration", ["CAD", "PLANNED"]);
   const cardsList = [
     { eyebrow: "WINCH PULL", title: "A 3:1 printed gear stage", tag: "CAD, not fitted", now: "Now: a direct-drive spool on the motor shaft, 34 N on an empty spool at 1.5 A",
-      next: ["18T pinion, 54T gear, module 1, printed PETG pinion: designed and CAD-verified, pinion printed, not fitted",
-             "Lift 1.98–2.80 kg at 1.0 A with half the heat; the slip fuse moves to about 130 N, so that station is sized for 200 N"] },
+      next: ["18T/54T, module 1, printed PETG pinion: designed and CAD-verified, pinion printed, not fitted",
+             "1.98–2.80 kg at 1.0 A with half the heat; the slip fuse moves to about 130 N, station sized for 200 N"] },
     { eyebrow: "SLIDE-IN FIT", title: "A 1° draft on the dovetail", tag: "PLANNED", now: "Now: the slide-in binds on insertion; its ribs run parallel on 0.175 mm a side",
       next: ["A 1° draft on the dovetail and the interlocking supports, thicker at the top and thinning toward the bottom",
              "The station self-locates as it slides in and does not bind"] },
-    { eyebrow: "WALL MOUNT", title: "A lighter back mount", tag: "PLANNED", now: "Now: the mount holds about 200 × the motor's pull (dovetails 225 ×, screw heads 93 ×): overbuilt, 597 cm³ solid",
+    { eyebrow: "WALL MOUNT", title: "A lighter back mount", tag: "PLANNED", now: "Now: the mount holds about 200 × the motor's pull (dovetails 225 ×): overbuilt, 597 cm³ solid",
       next: ["Thinner walls and ribs, about 200 cm³: less print time and filament",
              "For anyone building it from the open-source files"] },
   ];
-  const cx0 = M, cy = 1.3, ch = 5.4, g = 0.2, boxW = 3.3, cardsW = W - 2 * M - boxW - 0.35, cw = (cardsW - 2 * g) / 3;
+  const cx0 = M, cy = 1.3, ch = 4.1, g = 0.2, boxW = 3.3, cardsW = W - 2 * M - boxW - 0.35, cw = (cardsW - 2 * g) / 3;
   cardsList.forEach((c, i) => {
     const cx = cx0 + i * (cw + g);
     sl.addShape(pres.shapes.RECTANGLE, { x: cx, y: cy, w: cw, h: ch, fill: { color: HEX.light }, line: { color: HEX.light }, objectName: `card ${c.title}` });
     label(sl, c.eyebrow, cx + 0.2, cy + 0.15, cw - 0.4, 0.25, { size: 10, bold: true, color: HEX.grey, name: "card eyebrow" });
     label(sl, c.title, cx + 0.2, cy + 0.4, cw - 0.4, 0.7, { size: 17, bold: true, color: HEX.navy, valign: "top", name: "card title" });
-    label(sl, c.now, cx + 0.2, cy + 1.15, cw - 0.4, 1.05, { size: 12, color: HEX.red, valign: "top", name: "card now" });
-    label(sl, "NEXT ITERATION", cx + 0.2, cy + 2.3, cw - 0.4, 0.25, { size: 10, bold: true, color: HEX.grey, name: "card label" });
-    bullets(sl, c.next, cx + 0.2, cy + 2.55, cw - 0.4, ch - 2.9, 12, { space: 5, name: "card next" });
-    label(sl, c.tag, cx + 0.2, cy + ch - 0.4, cw - 0.4, 0.3, { size: 10, bold: true, color: HEX.navy2, name: "card tag" });
+    label(sl, c.now, cx + 0.2, cy + 1.05, cw - 0.4, 0.85, { size: 11, color: HEX.red, valign: "top", name: "card now" });
+    label(sl, "NEXT ITERATION", cx + 0.2, cy + 1.95, cw - 0.4, 0.25, { size: 10, bold: true, color: HEX.grey, name: "card label" });
+    bullets(sl, c.next, cx + 0.2, cy + 2.2, cw - 0.4, ch - 2.55, 11, { space: 4, name: "card next" });
+    label(sl, c.tag, cx + 0.2, cy + ch - 0.35, cw - 0.4, 0.3, { size: 10, bold: true, color: HEX.navy2, name: "card tag" });
   });
-  const bx = cx0 + cardsW + 0.35;
-  placeholderBox(sl, "[[Jasper: photos or CAD of the next iteration]]", bx, cy, boxW, ch - 0.4);
-  caption(sl, "Next-iteration parts: gear stage, drafted slide-in, lighter mount", bx, cy + ch - 0.3, boxW);
+  // Limits strip (record facts): relative positioning, three-station tilt, no people detection.
+  const ly = cy + ch + 0.12;
+  label(sl, "LIMITS TODAY", cx0, ly, cardsW, 0.22, { size: 10, bold: true, color: HEX.grey, name: "limits label" });
+  bullets(sl, [
+    "Relative positioning only: pose from the cable model and the floor-board calibration; no absolute reference beyond the markers",
+    "Three stations on the corner holes: the claw tilts 5.5° (abort at 8°), grips refused on 78 % of the floor; the three-hole housing: 0.8°",
+    "No person or pet detection: nobody under the robot, with PAUSE and the power strip",
+  ], cx0, ly + 0.22, cardsW, 6.9 - ly - 0.22, 10.5, { space: 2, name: "limits" });
+  const bx = cx0 + cardsW + 0.35, boxH = 6.75 - cy - 0.35;
+  placeholderBox(sl, "[[Jasper: photos or CAD of the next iteration]]", bx, cy, boxW, boxH);
+  caption(sl, "Next-iteration parts: gear stage, drafted slide-in, lighter mount", bx, cy + boxH + 0.05, boxW);
   sl.addNotes("Talk track (55 s): Three things that hurt now, and what the next iteration does about them. Pull: the mounted stations are direct-drive spools on " +
               "the motor shaft, 34 N on an empty spool at 1.5 A, which leaves jeans a 4 % margin. The next station has a 3:1 stage: an 18-tooth pinion into a " +
               "54-tooth gear printed in one piece with the spool, module 1, 1.98 to 2.80 kg at 1.0 A with half the heat; it is designed and checked in CAD, the " +
@@ -948,7 +962,10 @@ content("Three stations first: the triangle, the tilt, and no spare cable", [
               "slide-in binds as it goes onto the wall mount, because the dovetail ribs run parallel; a one-degree draft, thicker at the top and thinning toward " +
               "the bottom, lets the station self-locate as it slides down. Mass: the wall mount holds about two hundred times what the motor can pull, so it is " +
               "overbuilt at 597 cm³ of solid CAD; the next one gets thinner walls and ribs, about 200 cm³, which matters for anyone printing it from the open-source " +
-              "files. If asked: the gear stage's printed pinion teeth hold 1.75 times the motor's slip force at 1.0 A (1.17 at 1.5 A, so 1.0 A is the setting); " +
+              "files. Limits today, on the strip: positioning is relative, from the cable model and the floor-board calibration, no absolute reference beyond the " +
+              "markers; three stations on the corner holes tilt the claw 5.5° at the start, abort at 8°, and the 5° grip limit refuses grips over 78 % of the floor " +
+              "until the three-hole housing (0.8°); and the robot cannot see a person or a pet, so the rule is nobody under it. " +
+              "If asked: the gear stage's printed pinion teeth hold 1.75 times the motor's slip force at 1.0 A (1.17 at 1.5 A, so 1.0 A is the setting); " +
               "backlash 0.42 mm, ten encoder counts; the encoder magnet measured Ø4.0. The draft and the lighter mount are intentions, not drawings yet. " +
               "[[Jasper: photos or CAD of the next iteration]]");
 }
@@ -957,6 +974,8 @@ content("Three stations first: the triangle, the tilt, and no spare cable", [
 section("Results and close"); ACT = "";
 {
   const sl = blank("Results against targets, and what is still planned", ["MEASURED", "CALCULATED", "PLANNED"]);
+  label(sl, "Today: the four winches lift 1.56 kg at task height (calculated, direct drive at 1.5 A); cable lengths known to about 12–16 mm after calibration (simulated); $210.78 of parts in the robot for three stations, plus $37.74 of filament.",
+        M, 1.25, W - 2 * M, 0.5, { size: 13, bold: true, color: HEX.navy, valign: "top", name: "one-turn statement" });
   const RED = t => ({ text: t, color: HEX.red, bold: true });
   table(sl, ["Target", "Goal", "Current", "Evidence", "Status"], [
     ["Lift capacity", "1.50 kg with jeans", "1.56 kg; 1.1 kg at 0.5 × holding torque; 1.98–2.80 kg with the 3:1 stage (next iteration)", "Calculated", "Marginal; pull test"],
@@ -971,16 +990,19 @@ section("Results and close"); ACT = "";
     ["Accuracy", "≤ 2 mm cable mismatch", "40 ms skew budget gives 2 mm", "Not measured", "To be tested"],
     ["Obstacle map in the app", "Drawn shapes kept out of every path", "Built; two findings being fixed", "Simulated", "Planned"],
     ["First three-station lift", "Self-check, calibration, short move", "Not yet run", "None", "Planned"],
-    ["Cost", "Hobby budget", "About $640 ordered; $220–260 in the robot (3–4 stations), prices partly estimated", "Receipts", "Met"],
-  ], M, 1.3, W - 2 * M, [0.17, 0.22, 0.3, 0.12, 0.19], { size: 11, rowH: 0.34 });
+    ["Cost", "Hobby budget", "About $640 ordered; $211–248 in the robot (3–4 stations), prices partly estimated", "Receipts", "Met"],
+  ], M, 1.8, W - 2 * M, [0.17, 0.22, 0.3, 0.12, 0.19], { size: 10.5, rowH: 0.3 });
   sl.addNotes("Talk track (55 s): Back to the targets, with the evidence for each. Measured so far: the claw mass, the two bench tests and the wiring. Three are not " +
               "met: grip for jeans at narrow grabs, claw mass at 0.60 against 0.45, and the weakest link, which has two cheap fixes. Two are marginal and the next " +
               "tests decide them: lift capacity, where the gear stage is the answer if the pull test comes in low, and the prototype fin's temperature. Planned: the " +
               "map of obstacles in the phone app is built and under independent verification, with two findings being fixed before it runs on hardware; and the " +
               "first three-station lift, which is the next milestone. If asked about the map: the user draws shapes on a top view of the room and every cable and " +
               "the claw body are checked against them before a move; the two findings are a descent that could enter a refused shape and a calibration detour that " +
-              "strands the claw at the top of the workspace. Cost: about $640 ordered in total, $220 to $260 of it in the robot as parts for three or four " +
-              "stations, plus $40 to $50 of filament; prices partly recorded, partly typical, so say 'about'. " +
+              "strands the claw at the top of the workspace. Cost: about $640 ordered in total, $211 to $248 of it in the robot as parts for three or four " +
+              "stations (the next-iteration gear parts excluded), plus $38 to $49 of filament; prices partly recorded, partly typical, so say 'about'. " +
+              "The one-line statement at the top: 1.56 kg is the calculated worst-point lift at task height with the direct-drive spools at 1.5 A; " +
+              "12 to 16 mm is the simulated cable-length sigma after the floor-board calibration; $210.78 is the prorated parts cost for three stations without " +
+              "filament, $37.74 the filament estimate at $15/kg. " +
               "If asked what narrow grabs are: a grip where the jaw tips are close together when the pads meet the cloth, a thin fold rather than a bunched " +
               "handful. The hands ride on a gear crank, so the lever arm from the crank to the pad is longest at a small gap, 59 mm at 10 mm, and shortest at " +
               "a wide one, 33 mm at 70 mm; with a fixed stall torque the pad force is 13.3 N at the narrowest grab and 25 N at 70 mm. Jeans at a friction of 0.3 " +

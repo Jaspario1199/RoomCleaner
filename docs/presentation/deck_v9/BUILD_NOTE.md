@@ -93,3 +93,9 @@ two jobs are stated on the station-bench slide (20). New slide 24 in Act 5, "Wha
 The fuse slide's note, the winch-pull note, the results row and the good-decision row now say "next iteration". Act 5 footer
 reads October 22-27. Slides 19-24 of the morning build are 18-23; still 26 main slides. Rebuilt, validated (PASS on both files),
 slides 12, 20 and 24 rendered and inspected; contact sheets regenerated. Cost breakdown revised the same day (gear-stage parts out).
+
+## v9.1 (2026-10-27)
+
+Limits strip on slide 24 (cards shortened to make room), the one-turn statement above the results table on slide 25 (table at
+10.5 pt, 0.30 in rows), grey origin sub-lines under each requirement on slide 3. Same theme, layouts and card style. Both files
+validated (PASS); slides 3, 24 and 25 rendered at 80 dpi and checked; PDFs and contact sheets regenerated.

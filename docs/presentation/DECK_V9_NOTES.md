@@ -87,3 +87,11 @@ The mounted stations are direct-drive spools on the motor shaft. The gear-stage 
 two jobs moved to the station-bench slide (20); a new slide 24 "What hurts now, and the next iteration" sits in Act 5 before the
 results (gear stage, 1° draft on the slide-in dovetail, lighter back mount; placeholder box for Jasper's photos). Still 26 main slides.
 Slides 19-24 of the 10/27 morning numbering are now 18-23.
+
+## v9.1 (10/27): limits strip, one-line results, requirement origins
+
+Slide 24 gains a "Limits today" strip (relative positioning only; three-station corner-hole tilt 5.5°/8°, grips refused on 78 % of the
+floor, 0.8° with the three-hole housing; no person or pet detection). Slide 25 opens with one statement: 1.56 kg lift (calculated,
+direct drive at 1.5 A), cable lengths to about 12–16 mm after calibration (simulated), $210.78 of parts in the robot for three
+stations plus $37.74 of filament. Slide 3's four requirements each carry a grey origin line (room as reported; 0.9 kg screening value,
+CR6; 2 m/s² and the 450 g claw budget assumed, R1/R7; 40 N per cable the motor limit, R17; studs from D13; stop rule D21; 1 lb gate D19).

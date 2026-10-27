@@ -15,7 +15,8 @@ EQ = {
     "eq_a": [r"$L_i = \left\| \mathbf{a}_i - \mathbf{p} \right\|$",
              r"$\mathbf{a}_i$ anchor, $\mathbf{p}$ claw"],
     "eq_b": [r"$I = \dfrac{V_{\mathrm{ref}}}{8\,R_s}$     $\tau_{\mathrm{hold}} = \tau_{\mathrm{rated}}\,\dfrac{I}{I_{\mathrm{rated}}}$",
-             r"$\tau_{\mathrm{run}} \approx 0.7\,\tau_{\mathrm{hold}}$ (assumed)     $F = \dfrac{\tau}{r}$"],
+             r"$\tau_{\mathrm{run}} \approx 0.7\,\tau_{\mathrm{hold}}$ (assumed)     $F = \dfrac{\tau}{r}$",
+             r"8: A4988 current-sense constant (datasheet)"],
     "eq_c": [r"$T = \dfrac{W}{4\,\sin\varphi}$     $\sin\varphi = \dfrac{d}{\sqrt{d^2 + D_h^2}}$"],
     "eq_d": [r"reachable$(\mathbf{p})\;\Leftrightarrow\;\left\| \mathbf{a}_i - \mathbf{p} \right\| \geq L_{i,\mathrm{home}}$  for every $i$"],
 }

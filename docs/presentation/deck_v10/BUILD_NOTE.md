@@ -7,6 +7,21 @@ only, nothing invented. Emphasis per `DESIGN_INTENT_20261027.md`; calibration te
 blue), two layouts (`CONTENT` with the title placeholder and the footer bar, `PLAIN` for the title and thank-you slides),
 sections per topic. Outputs in this folder: `RoomCleaner_Buntinx_v10.pptx`, `.pdf`, `contact_sheet.png`.
 
+## v10.4 (10/27): a source tag on every number
+
+- Every number on a slide (cards, chart titles and legends, "Need:" lines, captions, equation panels) carries one short tag in
+  parentheses: (datasheet), (handbook), (measured), (design), (assumed), (calc), (sim), (planned). A (calc) value has its equation
+  with substituted numbers on the same slide, and each input is tagged once per slide. Dates and part designations (M3, 18T) are not tagged.
+- Speaker notes end with "Sources (value — tag — file/section)", one line per number, from `sources_v104.js` (keyed by slide title).
+- Slide 13 motor heat follows the specified form (P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W; 1.5 A rated, datasheet; 1.8 Ω per phase,
+  assumed, not metered; microstepping: total heat = I_peak²·R); slide 11's temperature Need line uses the same pattern.
+- The A4988 constant 8 in I = Vref/(8·R_s) is tagged in the typeset equation (fig/eq_b.png).
+- Numbers dropped because their equation cannot sit on the slide: the 34–59 N slip range on slide 12 (48 N kept with its equation)
+  and the 22–64 N printed set-screw range on slide 11's factors card (the weakest-link chart still shows it, tagged calc).
+- (calc) values whose own derivation is in a repo file but not on the slide, flagged for the lead: 10 mm full-spool radius
+  (FUNDAMENTALS §2 winding), 1.101 worst-cable factor (linear program, tagged sim), 0.86 kg CAD claw estimate, 2,061 g v6 clamp
+  CAD mass (DECISION_STORIES T35), 0.762 / 2.52 kg filament (COST_BREAKDOWN §2), $210.78 (sum of listing prices).
+
 ## v10.3 (10/27)
 
 - **Homing slide (7)**: bead homing vs floor-board homing. The bead condition reachable(p) <=> ||a_i - p|| >= L_i,home for every i is

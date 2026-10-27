@@ -61,36 +61,36 @@ def bead(d, out):
 def tension(d, out):
     fig = fig_for(d["box"], d["title"]); ax = fig.add_axes([0.1, 0.18, 0.86, 0.66])
     x = d["depths"]
-    ax.plot(x, d["static"], color=NAVY, linewidth=1.4, label="Static (N)")
-    ax.plot(x, d["dynamic"], color=GREY, linewidth=1.4, label="With 2 m/s² (N)")
-    ax.plot(x, [d["limit"]] * len(x), color=INK, linewidth=1.1, linestyle="--", label="Winch limit (N)")
+    ax.plot(x, d["static"], color=NAVY, linewidth=1.4, label="Static (calc)")
+    ax.plot(x, d["dynamic"], color=GREY, linewidth=1.4, label="With 2 m/s² (assumed)")
+    ax.plot(x, [d["limit"]] * len(x), color=INK, linewidth=1.1, linestyle="--", label="Limit 16.8 N (calc)")
     ax.set_ylim(0, 50); ax.set_yticks(range(0, 51, 10)); ax.set_xticks([0.2, 0.4, 0.6, 0.8, 1.0, 1.2])
     ax.legend(loc="upper right", handlelength=1.6, fontsize=7)
     frame(ax); save(fig, out)
 
 
 def temperature(d, out):
-    fig = fig_for(d["box"], d["title"]); ax = fig.add_axes([0.1, 0.2, 0.86, 0.62])
+    fig = fig_for(d["box"], d["title"]); ax = fig.add_axes([0.1, 0.3, 0.86, 0.54])
     n = len(d["labels"]); w = 0.22; xs = range(n)
-    for k, (name, vals, col) in enumerate([("No fin", d["noFin"], PALE), ("0.019 in fin (built)", d["thin"], NAVY), ("1/8 in fin (drawn)", d["plate"], GREY)]):
+    for k, (name, vals, col) in enumerate([("No fin", d["noFin"], PALE), ("0.019 in fin (measured)", d["thin"], NAVY), ("1/8 in fin (design)", d["plate"], GREY)]):
         pos = [i + (k - 1) * w for i in xs]
         bars = ax.bar(pos, vals, width=w * 0.92, color=col, label=name)
         for b, v in zip(bars, vals):
             ax.text(b.get_x() + b.get_width() / 2, v + 2, f"{v:.0f}", ha="center", va="bottom", fontsize=7, color=MID)
-    ax.axhline(d["limit"], color=INK, linewidth=0.9, linestyle="--")
+    ax.axhline(d["limit"], color=INK, linewidth=0.9, linestyle="--", label="60 °C limit (design)")
     ax.set_xticks(list(xs)); ax.set_xticklabels(d["labels"]); ax.set_ylim(0, 120); ax.set_yticks(range(0, 121, 30))
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=3, handlelength=1.0, columnspacing=1.0, fontsize=7)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=2, handlelength=1.0, columnspacing=1.0, fontsize=6.5)
     frame(ax); save(fig, out)
 
 
 def pull(d, out):
-    fig = fig_for(d["box"], d["title"]); ax = fig.add_axes([0.1, 0.18, 0.86, 0.66])
+    fig = fig_for(d["box"], d["title"]); ax = fig.add_axes([0.1, 0.3, 0.86, 0.54])
     x = d["radii"]
-    ax.plot(x, d["running"], color=NAVY, linewidth=1.4, label="Running pull (N)")
-    ax.plot(x, d["design"], color=GREY, linewidth=1.4, linestyle="--", label="Design force (N)")
-    ax.plot(x, [d["jeans"]] * len(x), color=INK, linewidth=1.1, linestyle="--", label="Jeans, worst (N)")
-    ax.set_ylim(0, 50); ax.set_yticks(range(0, 51, 10)); ax.set_xticks(x)
-    ax.legend(loc="upper right", handlelength=1.6, fontsize=7)
+    ax.plot(x, d["running"], color=NAVY, linewidth=1.4, label="Running pull (calc)")
+    ax.plot(x, d["design"], color=GREY, linewidth=1.4, linestyle="--", label="÷ 1.5 (design)")
+    ax.plot(x, [d["jeans"]] * len(x), color=INK, linewidth=1.1, linestyle="--", label="Jeans 16.2 N (calc)")
+    ax.set_ylim(0, 50); ax.set_yticks(range(0, 51, 10)); ax.set_xticks([6, 7, 8, 9, 10, 11])
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=2, handlelength=1.4, columnspacing=1.0, fontsize=6.5)
     frame(ax); save(fig, out)
 
 

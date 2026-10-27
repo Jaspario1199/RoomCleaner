@@ -65,8 +65,11 @@ pres.defineSlideMaster({
 // ------------------------------------------------------------------------------------------------ helpers
 let SECTION = "";
 function section(name) { SECTION = name; pres.addSection({ title: name }); }
+// v10.4: one line per number on the slide, "value — tag — file/section", appended to the notes.
+const SRC = require("./sources_v104.js");
 function slide(title, notes, o = {}) {
   const sl = pres.addSlide({ masterName: "CONTENT", sectionTitle: SECTION });
+  if (SRC[title]) notes = (notes || "") + "\n\nSources (value — tag — file/section):\n" + SRC[title].join("\n");
   if (o.titleSize) sl.addText(title, { x: M, y: 0.28, w: W - 2 * M, h: 0.55, fontSize: o.titleSize, bold: true, color: C.text1, valign: "middle",
                                        align: "left", margin: 0, isTextBox: true, objectName: "title" });
   else sl.addText(title, { placeholder: "title" });
@@ -184,7 +187,7 @@ const JEANS_PEAK = 16.2;                        // worst cable, jeans, lift_chai
 // Motor case temperature at 1.5 A, 23 C room: deck_v8/fig/sheet_motor_temperature (Sheet "Motor temperature"); PETG limit 60 C.
 const TEMP = { labels: ["Vented shell", "Sealed shell"], noFin: [77.2, 99.1], thin: [57.6, 66.3], plate: [48.9, 53.8], limit: 60 };
 // Lift budget (kg): sheet_lift_budget; 0.86 kg CAD estimate with battery (DESIGN_STATE 10/22; PANEL_FEEDBACK_ANSWERS slide 16).
-const LIFT = { labels: ["Claw + jeans", "Claw + 1 lb", "Claw, weighed", "Claw, CAD estimate", "Capacity, worst point"],   // bottom to top
+const LIFT = { labels: ["+ jeans (assumed)", "+ 1 lb (design)", "Claw (measured)", "Claw, CAD (calc)", "Capacity (calc)"],   // bottom to top
                values: [1.50, 1.05, 0.60, 0.86, 1.56], budget: 0.45 };
 // Weakest link: cable tension at which each part gives, low / high (lift_chain_weakest_link.md ranking; chart capped at 600 N).
 const WL = [["Set screw, printed", 22, 64], ["Motor slip (fuse)", 34, 59], ["Set screw, metal", 53, 118], ["Tab as drawn", 70, 82],
@@ -260,7 +263,7 @@ section("Scope");
   card(sl, M + cw + g, TOP, cw, ch, "The proposed solution", [
     "A cable robot: four winch boxes high on the walls hold one claw on four cables",
     "Changing the four cable lengths moves the claw anywhere in the room",
-    "Nothing on the floor; only a 0.6 kg claw moves",
+    "Nothing on the floor; only the claw moves: 0.60 kg (measured)",
     "Each box is self-contained: slides off the wall and unplugs when not needed",
   ], { size: 10.5, space: 6 });
   card(sl, M + 2 * (cw + g), TOP, cw, ch, "How it works", [
@@ -268,7 +271,7 @@ section("Scope");
     "Descend, grip, lift, carry, release over the hamper",
     "Each move approved on the phone; PAUSE holds; the power strip is the stop",
     "Success: one garment floor to hamper, no human touch",
-    "Test path: 1 lb weight first, then jeans (0.9 kg)",
+    "Test path: 1 lb weight first (design), then jeans, 0.9 kg (assumed)",
   ], { size: 10.5, space: 6 });
   coverImage(sl, PH("42_claw_hanging_three_cables_room_corner.jpg"), W - M - pw, TOP, pw, ch - 0.26, "The claw hanging on its cables in the room corner");
   caption(sl, "The claw on its cables, room corner", W - M - pw, BOT - 0.22, pw);
@@ -302,19 +305,21 @@ section("Fundamentals");
   };
   const cards3 = [
     ["Cable length → position", ["eq_a", "L_i = ‖ a_i − p ‖", "a_i: anchor exit, p: claw", "straight, taut cable"], [
-      "Line per spool turn = 2π·r: 2π·7.5 mm = 47.1 mm (empty) → 2π·10 mm = 62.8 mm (full) (calculated)",
+      "Line per spool turn = 2π·r: 2π × 7.5 mm core (design) = 47.1 mm → 2π × 10 mm full spool (calc, 20 ft wound) = 62.8 mm (calc)",
       "Four cable lengths, three position unknowns: overdetermined, solved by least squares",
       "The camera on the floor board fixes the anchors and cable lengths at startup (calibration)",
-      "Validated in the simulator and by held-out poses during calibration (simulated); no physical position measurement yet",
+      "Validated in the simulator and by held-out poses during calibration (sim); no physical position measurement yet",
     ]],
     ["Torque → pull on the line", ["eq_b", "I = Vref / (8·R_s)", "τ_hold = τ_rated · I / I_rated", "τ_run ≈ 0.7 τ_hold (assumed)", "F = τ / r"], [
-      "At 1.5 A: τ_run = 0.7 × 0.36 N·m = 0.252 N·m; F = 0.252 / 0.0075 m = 34 N empty, 0.252 / 0.010 m = 25 N full (calculated)",
-      "Validated: Vref measured on the board; the 0.7 running fraction is assumed; the pull test is planned",
+      "At 1.5 A (rated, datasheet; chosen, design): τ_run = 0.7 (assumed) × 0.36 N·m (datasheet) = 0.252 N·m; F = 0.252 / 0.0075 m = 34 N empty, 0.252 / 0.010 m = 25 N full (calc)",
+      "Validated: Vref on the board (measured); 0.7 running fraction (assumed); pull test (planned)",
     ]],
     ["Pull → what four cables hold", ["eq_c", "T = W / (4 sin φ)", "sin φ = d / √(d² + D_h²)"], [
-      "W = (0.454 + 0.45 kg) × 9.81 = 8.86 N, D_h = 2.166 m; d = 0.15 m: 8.86 / (4 × 0.069) = 32 N; 16 / 8.3 / 4.6 N at 0.3 / 0.6 / 1.2 m (calculated)",
+      "W = (0.454 kg test, design + 0.45 kg claw budget, design) × 9.81 (handbook) = 8.86 N (calc)",
+      "D_h = √(1.676² + 1.372²) = 2.166 m (calc; half the 3.353 × 2.743 m room, measured)",
+      "d = 0.15 m: 8.86 / (4 × 0.069) = 32 N; 16 / 8.3 / 4.6 N at d = 0.3 / 0.6 / 1.2 m (calc)",
       "Shallow cable: T ≈ W·D_h / (4d), so halving the depth doubles the tension",
-      "Why the planner keeps the claw at least 0.4 m below the anchors",
+      "Why the planner keeps the claw at least 0.4 m below the anchors (design)",
       "Validated: calculated only; no cable tension has been measured on the rig",
     ]],
   ];
@@ -371,7 +376,7 @@ section("Generation 1");
   card(sl, M, TOP, cw, ch, "One central board", [
     "Every motor and every sensor wired back to one place",
     "One board steps all four motors; a timing error skews the cables",
-    "Skew Δx = v·Δt = 50 mm/s × 0.05 s = 2.5 mm per 50 ms (calculated)",
+    "Skew Δx = v·Δt = 50 mm/s max cable speed (design) × 0.05 s timing error (assumed) = 2.5 mm (calc)",
     "Moving a winch means re-running wire to the box",
   ], { space: 6 });
   card(sl, M + cw + g, TOP, cw, ch, "Ceiling camera and bead homing", [
@@ -405,14 +410,14 @@ section("Homing");
   card(sl, M, TOP, lw, ch, "Bead homing", [
     "A stopper bead cannot pass its outlet: after homing, no cable can be shorter than at home",
     "Homing all four at once fixes a minimum length on every cable at the same time",
-    "Reachable volume, grid count (calculated): 0.0 % (home 0.3 m) to 32.0 % (home 2.19 m); 4.7 % at 1.0 m, 29.1 % at 2.0 m",
+    "Reachable volume = grid count of the condition over the working volume (calc): 0.0 % (home 0.3 m) to 32.0 % (home 2.19 m); 4.7 % at 1.0 m, 29.1 % at 2.0 m; homing heights (design)",
   ], { size: 10, space: 5, headSize: 12, gapIn: eqH + 0.18 });
   sl.addShape(pres.shapes.RECTANGLE, { x: M + pad, y: TOP + 0.44, w: eqW, h: eqH, fill: { color: HEX.white }, line: { color: HEX.ink, width: 0.75 }, objectName: "equation box" });
   sl.addImage({ path: eqFile, x: M + pad + 0.08, y: TOP + 0.44 + 0.08, w: eqW - 0.16, h: (eqW - 0.16) * ed.h / ed.w,
                 altText: "reachable(p) if and only if ||a_i - p|| >= L_i,home for every cable i", objectName: "equation" });
   // Bead-reach chart beside it.
   const cx = M + lw + g;
-  CHART_DATA.bead = { title: "Reachable volume (%)", points: BEAD, box: { w: cwid, h: ch - 0.3 } };
+  CHART_DATA.bead = { title: "Reachable volume (%), calc", points: BEAD, box: { w: cwid, h: ch - 0.3 } };
   chartImage(sl, "bead", cx, TOP, cwid, ch - 0.3, "Reachable share of the working volume vs bead homing height (calculated)");
   caption(sl, "Grid count of the condition above", cx, BOT - 0.22, cwid);
   // Right card: the floor board, figure in the lower part of the card.
@@ -421,7 +426,7 @@ section("Homing");
     "The camera measures the claw pose against tag 0",
     "Cable lengths follow from L_i = ‖a_i − p‖",
     "No length is clamped: the whole working volume stays available",
-    "Nine sheets, 150 mm tags, 250 mm pitch, id 0 = origin",
+    "Nine sheets, 150 mm tags, 250 mm pitch, id 0 = origin (all design)",
   ], { size: 10, space: 4, headSize: 12 });
   const fd = imgSize(path.join(CHARTDIR, "floor_board.png")), fh = 2.3, fw = fh * fd.w / fd.h;
   fitImage(sl, path.join(CHARTDIR, "floor_board.png"), rx + (rw - fw) / 2, BOT - fh - 0.1, fw, fh, "Floor board: nine AprilTag 36h11 sheets, 150 mm tags, 250 mm pitch, id 0 is the origin");
@@ -451,8 +456,8 @@ section("What a winch needs");
     "If the camera proves good enough, it can go later",
   ], { space: 5 });
   card(sl, M, TOP + ch + 0.15, 2 * cw + g, BOT - TOP - ch - 0.15, "And now all this wiring, from one box", [
-    "Motor, switch and encoder in every corner: 10 conductors per corner",
-    "Routes 6 + 21 + 23 + 32 = 82 ft; × 10 conductors = 820 ft (250 m) of wire to one box (calculated)",
+    "Motor, switch and encoder in every corner: 10 conductors per corner (design)",
+    "Routes 6 + 21 + 23 + 32 ft (measured) = 82 ft; × 10 = 820 ft (250 m) of wire to one box (calc)",
   ], { space: 5 });
   const px = W - M - 2.8;
   photoRow(sl, [[PH("09_homing_switch_perfboard.jpg"), "Homing switch"], [PH("23_slide_in_switch_pressfit.jpg"), "Switch pressed into the slide-in"]], px, TOP, 2.8, 2.0, { cover: true });
@@ -475,18 +480,18 @@ section("Modular box");
   const cw = (W - 2 * M - 0.2 - 3.1) / 2, ch = BOT - TOP, g = 0.2;
   card(sl, M, TOP, cw, ch, "A box with its own brain", [
     "An ESP32 in each box, with its driver, buck, switch and encoder",
-    "The only thing going in is power: one 12 V pair",
-    "82 ft × 2 conductors = 164 ft (50 m) of wire, not 820 ft (calculated)",
+    "The only thing going in is power: one 12 V pair (supply label, datasheet)",
+    "82 ft of routes (measured) × 2 conductors = 164 ft (50 m), not 820 ft (calc)",
     "Power can come from anywhere, so a box sits in any position and orientation",
     "The room's geometry no longer limits where the winches go",
   ], { space: 5 });
   card(sl, M + cw + g, TOP, cw, ch, "Wire drop: Gen 1 leads vs one power pair", [
-    "V = I·ρ·2L/A; copper ρ = 1.724×10⁻⁸ Ω·m, L = 9.75 m (32 ft) one way, I = 2 A",
-    "24 AWG Gen 1 motor leads, A = 0.205 mm²: R = 1.64 Ω, 3.29 V (27 % of 12 V), 6.6 W (calculated)",
-    "16 AWG power pair, A = 1.309 mm²: R = 0.257 Ω, 0.51 V (4.3 %), 1.0 W (calculated)",
-    "Thin motor leads over a room-length run lose a quarter of the supply; one thick power pair loses 4 %",
-    "16 AWG: $30 per 100 ft × 65 ft = $19.50 (price estimated)",
-  ], { size: 10, space: 4 });
+    "V = I·ρ·2L/A; ρ = 1.724×10⁻⁸ Ω·m (handbook), L = 9.75 m / 32 ft one way (measured), I = 2 A (assumed)",
+    "24 AWG Gen 1 motor leads (measured), A = 0.205 mm² (handbook): R = 1.64 Ω, 3.29 V (27 % of 12 V), 6.6 W (calc)",
+    "16 AWG power pair (design), A = 1.309 mm² (handbook): R = 0.257 Ω, 0.51 V (4.3 %), 1.0 W (calc)",
+    "Thin motor leads over a room-length run lose a quarter of the supply; one thick power pair loses 4 % (calc, above)",
+    "16 AWG: $30 per 100 ft (assumed price) × 65 ft (design cut list) = $19.50 (calc)",
+  ], { size: 9.5, space: 3 });
   const px = W - M - 2.9;
   coverImage(sl, PH("46_wall_mount_bracket_xt60_power_lead.jpg"), px, TOP, 2.9, 1.95, "Wall mount with its XT60 power connector");
   caption(sl, "The wall mount: one power plug", px, TOP + 1.98, 2.9);
@@ -535,41 +540,42 @@ section("Trade-offs");
     "into a metal insert; screws in a stud 531 N and up (bar capped at 600).");
   const g = 0.15, cols = 3, cw = (W - 2 * M - (cols - 1) * g) / cols, ch = (BOT - TOP - g) / 2;
   const at = (c, r) => ({ x: M + c * (cw + g), y: TOP + r * (ch + g) });
-  const need = (p, text) => sl.addText(text, { x: p.x, y: p.y + ch - 0.3, w: cw, h: 0.3, fontSize: 8.5, color: C.text1, bold: true, margin: 0, valign: "middle",
+  const NEED_H = 0.56, chH = ch - NEED_H;
+  const need = (p, text) => sl.addText(text, { x: p.x, y: p.y + chH, w: cw, h: NEED_H, fontSize: 8, color: C.text1, bold: true, margin: 0, valign: "top",
                                                 isTextBox: true, objectName: "what we need" });
-  const box = { w: cw, h: ch - 0.3 };
+  const box = { w: cw, h: chH };
   // 1. Tension vs depth
   let p = at(0, 0);
-  CHART_DATA.tension = { title: "Tension per cable (N) vs depth (m)", depths, static: depths.map(d => tension(d, 0)), dynamic: depths.map(d => tension(d, A_DYN)), limit: WINCH_LIMIT, box };
-  chartImage(sl, "tension", p.x, p.y, cw, ch - 0.3, "Tension per cable vs depth below the anchors: static, with 2 m/s2, winch limit (calculated)");
-  need(p, "T = m(g + a) / (4 sin φ): 1 lb at d 0.4 m → 17.1 N vs 16.8 N limit; jeans need d ≥ 0.6 m (16.6 N)");
+  CHART_DATA.tension = { title: "Tension per cable (N) vs depth (m), calc", depths, static: depths.map(d => tension(d, 0)), dynamic: depths.map(d => tension(d, A_DYN)), limit: WINCH_LIMIT, box };
+  chartImage(sl, "tension", p.x, p.y, cw, chH, "Tension per cable vs depth below the anchors: static, with 2 m/s2, winch limit (calculated)");
+  need(p, "T = m(g + a)/(4 sin φ); m = 0.60 kg claw (measured) + 1 lb (design), a = 2 m/s² (assumed): d 0.4 m → 17.1 N vs 16.8 N limit (calc); jeans 0.9 kg (assumed) need d ≥ 0.6 m (16.6 N, calc)");
   // 2. Motor temperature
   p = at(1, 0);
-  CHART_DATA.temperature = { title: "Motor case (°C) at 1.5 A; PETG limit 60 °C", labels: TEMP.labels, noFin: TEMP.noFin, thin: TEMP.thin, plate: TEMP.plate, limit: TEMP.limit, box };
-  chartImage(sl, "temperature", p.x, p.y, cw, ch - 0.3, "Motor case temperature at 1.5 A, vented and sealed shell, by fin (calculated)");
-  need(p, "Need < 60 °C. Two-node thermal network; input P = I²R = 1.5² × 1.8 Ω = 4.05 W");
+  CHART_DATA.temperature = { title: "Motor case (°C) at 1.5 A (design), sim", labels: TEMP.labels, noFin: TEMP.noFin, thin: TEMP.thin, plate: TEMP.plate, limit: TEMP.limit, box };
+  chartImage(sl, "temperature", p.x, p.y, cw, chH, "Motor case temperature at 1.5 A, vented and sealed shell, by fin (two-node thermal network, sim)");
+  need(p, "Need < 60 °C (design). Two-node thermal network (sim); input P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W (calc; 1.5 A rated, datasheet; 1.8 Ω per phase, assumed, not metered); microstepping: total heat = I_peak²·R");
   // 3. Winch pull
   p = at(2, 0);
-  CHART_DATA.pull = { title: "Pull per winch (N) vs spool radius (mm), 1.5 A", radii, running: radii.map(runPull), design: radii.map(designPull), jeans: JEANS_PEAK, box };
-  chartImage(sl, "pull", p.x, p.y, cw, ch - 0.3, "Pull per winch vs spool radius at 1.5 A: running pull, design force, jeans worst cable (calculated)");
-  need(p, "F = 0.252 N·m / r: 34 N (7.5 mm), 25 N (10 mm); ÷ 1.5 = 16.8 N ≥ 16.2 N jeans");
+  CHART_DATA.pull = { title: "Pull per winch (N) vs spool radius (mm), calc", radii, running: radii.map(runPull), design: radii.map(designPull), jeans: JEANS_PEAK, box };
+  chartImage(sl, "pull", p.x, p.y, cw, chH, "Pull per winch vs spool radius at 1.5 A: running pull, design force, jeans worst cable (calculated)");
+  need(p, "F = 0.7 (assumed) × 0.36 N·m (datasheet) / r: 34 N at 7.5 mm (design), 25 N at 10 mm (calc); ÷ 1.5 skip margin (design) = 16.8 N ≥ 16.2 N jeans (calc)");
   // 4. Weight budget
   p = at(0, 1);
   CHART_DATA.lift = { title: "Winches can hold vs must hold (kg)", labels: LIFT.labels, values: LIFT.values, colors: ["#1F3A5F", "#8A8F98", "#8A8F98", "#BFC4CB", "#1F3A5F"], box };
-  chartImage(sl, "lift", p.x, p.y, cw, ch - 0.3, "What the winches can hold vs what they must hold, kg (measured claw, calculated capacity)");
-  need(p, "16.8 N / (1.101 × 9.81) = 1.56 kg vs 1.50 kg: +4 %; claw 0.60 kg weighed vs 0.45 budget");
+  chartImage(sl, "lift", p.x, p.y, cw, chH, "What the winches can hold vs what they must hold, kg (measured claw, calculated capacity)");
+  need(p, "16.8 N / (1.101 worst-cable factor, sim × 9.81, handbook) = 1.56 kg vs 0.60 (measured) + 0.9 (assumed) = 1.50 kg: +4 % (calc); 1.50 × 1.101 × 9.81 = 16.2 N; budget 0.45 kg (design)");
   // 5. Weakest link
   p = at(1, 1);
-  CHART_DATA.weakest = { title: "Tension at which each part gives (N), estimated", rows: WL, box };
-  chartImage(sl, "weakest", p.x, p.y, cw, ch - 0.3, "Cable tension at which each part of the lifting chain gives, one station at 1.5 A (calculated)");
-  need(p, "Estimates from hand calcs and published strengths; no stress concentrations. Motor slip: 0.36 N·m / 7.5 mm = 48 N");
+  CHART_DATA.weakest = { title: "Tension at which each part gives (N), calc", rows: WL, box };
+  chartImage(sl, "weakest", p.x, p.y, cw, chH, "Cable tension at which each part of the lifting chain gives, one station at 1.5 A (calculated)");
+  need(p, "Estimates from hand calcs and published strengths (handbook); no stress concentrations. Motor slip: 0.36 N·m (datasheet) / 7.5 mm (design) = 48 N (calc)");
   // 6. The factors, in words
   p = at(2, 1);
   card(sl, p.x, p.y, cw, ch, "The factors", [
     "Pull ∝ I; heat P = I²R ∝ I²",
-    "1.0 → 1.5 A: pull × 1.5, heat × 1.5² = 2.25 (calculated)",
+    "1.0 A earlier setting (design) → 1.5 A: pull × 1.5, heat × 1.5² = 2.25 (calc)",
     "Every gram on the claw is a gram of payload",
-    "Printed set screw (22–64 N) may slip first: metal insert",
+    "The printed set screw may slip before the motor: metal insert",
   ], { size: 9.5, space: 3 });
 }
 
@@ -586,9 +592,9 @@ section("Mount assembly");
   const cw = 3.5, ch = BOT - TOP;
   card(sl, M, TOP, cw, ch, "Slide-in mount and load path", [
     "The wall mount screws into a stud; the station slides onto it on a dovetail",
-    "Dovetail: wall mount offset outward 0.175 mm per side; clearance set from fit coupons",
+    "Dovetail: wall mount offset outward 0.175 mm per side (design); clearance set from fit coupons (measured)",
     "Load path: cable, spool, set screw, motor, tab, mount, screws, stud",
-    "Motor slips first: F = τ/r = 0.36 N·m / 7.5 mm = 48 N; 34–59 N over torque vector and cable angle (calculated)",
+    "Motor slips first: F = τ/r = 0.36 N·m (datasheet) / 7.5 mm (design) = 48 N (calc)",
     "The spool encoder sees the slip: tracking fault, every station holds",
   ], { space: 5 });
   const px = M + cw + 0.25, pw = W - M - px, g = 0.12;
@@ -612,12 +618,14 @@ section("Mount assembly");
   const cw = 3.5, ch = BOT - TOP;
   card(sl, M, TOP, cw, ch, "Fin, vents, stud", [
     "The fin: aluminium on the motor face, out through a slot in the top of the shell",
-    "Motor heat P = I²R = 1.5² × 1.8 Ω = 4.05 W leaves through vents and fin (calculated)",
-    "First station in a stud on the TV wall, 12 V down the wall",
-    "The slide-in binds on insertion today; a 1° draft on the dovetail is the next iteration",
+    "Motor heat: P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W (calc; 1.5 A rated, datasheet; 1.8 Ω per phase, assumed, not metered)",
+    "With microstepping the two phase currents follow sin and cos, so total heat = I_peak²·R",
+    "That heat leaves through the vents and the fin",
+    "First station in a stud on the TV wall, 12 V down the wall (datasheet)",
+    "The slide-in binds on insertion today; a 1° draft on the dovetail (design) is the next iteration",
   ], { space: 5 });
   const px = M + cw + 0.25, pw = W - M - px;
-  photoRow(sl, [[PH("32_wall_station_mounted_tv_wall.jpg"), "On the TV wall, 12 V leads down"], [PH("33_wall_station_mounted_closeup_wires.jpg"), "From below: fin through the slot"],
+  photoRow(sl, [[PH("32_wall_station_mounted_tv_wall.jpg"), "On the TV wall, 12 V leads (datasheet)"], [PH("33_wall_station_mounted_closeup_wires.jpg"), "From below: fin through the slot"],
                 [PH("44_wall_station_from_below_line_down.jpg"), "The line leaves the switch tab straight down"]], px, TOP, pw, BOT - TOP, { cover: true });
 }
 
@@ -640,27 +648,27 @@ section("Manufacturing");
     "(COST_BREAKDOWN headline table and section 1 note).",
     { titleSize: 17 });
   const g = 0.15, lw = 3.05, mw = 2.95, rw = W - 2 * M - lw - mw - 2 * g;
-  const h1 = 2.2, h2 = BOT - TOP - h1 - g;
+  const h1 = 1.95, h2 = BOT - TOP - h1 - g;
   card(sl, M, TOP, lw, h1, "Processes", [
-    "PETG, FDM: 0.4 mm nozzle, 0.20 mm layers, supports at 30°; loads along the layers",
+    "PETG, FDM: 0.4 mm nozzle, 0.20 mm layers, supports at 30° (all design); loads along the layers",
     "Aluminium fin: sheared blank, five holes drilled in one mill setup",
-    "First hole is the mill zero: pattern ±0.1 mm vs ±0.5 mm sheared edges",
+    "First hole is the mill zero: pattern ±0.1 mm vs ±0.5 mm sheared edges (design tolerances)",
     "Heat-set inserts: M3 gear housing, M2.5 encoder board",
-  ], { size: 9.5, space: 3, headSize: 11.5 });
+  ], { size: 9, space: 2, headSize: 11 });
   card(sl, M, TOP + h1 + g, lw, h2, "Make vs buy", [
     "Bought: steppers, drivers, boards, servo, camera, battery, encoders",
     "Made: every printed part and the fin",
-    "Filament per station: 0.762 kg × $15/kg = $11.43 (estimated)",
-    "Robot: $210.78 parts + $37.74 filament, three stations (partly estimated)",
-  ], { size: 9.5, space: 3, headSize: 11.5 });
+    "Filament per station: 0.762 kg (calc: CAD volume × 1.27 g/cm³, handbook × fill, assumed) × $15/kg (assumed) = $11.43 (calc)",
+    "Robot, three stations: $210.78 parts (listing prices, partly assumed) + 2.52 kg × $15/kg = $37.74 filament (calc)",
+  ], { size: 9, space: 2, headSize: 11 });
   card(sl, M + lw + g, TOP, mw, BOT - TOP, "Fits", [
     "Printed holes come out undersize: every printed fit carries an allowance",
-    "Spool bore: Ø5.2 printed too tight on the Ø5.0 shaft; opened to Ø5.45",
-    "Dovetail: wall mount offset outward 0.175 mm per side for clearance, 30° flanks",
-    "Bearing pocket Ø14.075 behind a Ø14.000 entry lip, 8 T-slots",
+    "Spool bore: Ø5.2 (design) printed too tight (measured) on the Ø5.0 shaft (datasheet); opened to Ø5.45 (design)",
+    "Dovetail: wall mount offset outward 0.175 mm per side, 30° flanks (design)",
+    "Bearing pocket Ø14.075 behind a Ø14.000 entry lip, 8 T-slots (design)",
     "Fit coupons printed first; the allowances above came from them (measured)",
     "A failed layer was kept on one shell only: the shell carries no load",
-    "TPU 95A grip pads: next iteration",
+    "TPU 95A (datasheet) grip pads: next iteration",
   ], { size: 9.5, space: 3, headSize: 11.5 });
   const rx = M + lw + mw + 2 * g, cwid = (rw - 0.1) / 2, ph = 1.15;
   coverImage(sl, PH("26_slicer_k1_petg_supports.jpg"), rx, TOP, cwid, ph, "Slicing PETG for the K1, supports at 30 degrees");
@@ -684,17 +692,17 @@ section("Claw");
     "against the 0.45 kg budget (slide 11 and 17 rows). Photos 25, 40, 22; renders gripper1021_head.png, claw_v6.png.");
   const cw = (W - 2 * M - 0.2 - 3.9) / 2, ch = BOT - TOP, g = 0.2;
   card(sl, M, TOP, cw, ch, "The claw today", [
-    "Four-bar hands on a geared crank; 53 mm opening (CAD)",
+    "Four-bar hands on a geared crank; 53 mm opening (design)",
     "A camera bay in the electronics housing; the camera looks down the tube",
-    "One 7.4 V two-cell pack: 6 V regulator for the servo, 5 V buck for the board",
-    "Weighed 0.60 kg with battery against a 0.45 kg budget",
+    "One 7.4 V two-cell pack (datasheet): 6 V regulator for the servo, 5 V buck for the board (design setpoints)",
+    "Weighed 0.60 kg with battery (measured) against a 0.45 kg budget (design)",
   ], { space: 5 });
   card(sl, M + cw + g, TOP, cw, ch, "Modular, on purpose", [
     "The gripper attaches at the tube, so other grippers can be tried",
     "A hard pinch was expected to grip better; testing showed alignment problems",
-    "The first rack-and-pinion jaws left a 2 mm gap on thin cloth (Sep 30)",
+    "The first rack-and-pinion jaws left a gap on thin cloth (Sep 30): 77.4 − 2 × 18 mm × 2.09 rad = 2.0 mm (calc; CAD dimensions, design)",
     "TPU grip pads go on in the next iteration",
-    "The v6 clamp was 4.6 x its mass budget in CAD: mass is tracked per part since",
+    "The v6 clamp: 2,061 g in CAD at solid density (calc) / 450 g budget (design) = 4.6 (calc); mass tracked per part since",
   ], { space: 5 });
   const px = M + 2 * (cw + g), pw = W - M - px;
   coverImage(sl, PH("25_claw_assembled.jpg"), px, TOP, pw, 2.2, "The claw assembled (Oct 22)");
@@ -725,7 +733,7 @@ section("Electrical and testing");
     "Planned: pull test, hold test, first three-station lift",
   ], { space: 5 });
   const px = M + cw + 0.25, pw = W - M - px;
-  photoRow(sl, [[PH("43_bench_two_stations_laptop_meter_floor.jpg"), "Bench: two stations, laptop, meter, 12 V supply"],
+  photoRow(sl, [[PH("43_bench_two_stations_laptop_meter_floor.jpg"), "Bench: two stations, laptop, meter, 12 V supply (datasheet)"],
                 [PH("32_wall_station_mounted_tv_wall.jpg"), "The first station on the wall"]], px, TOP, pw, BOT - TOP, { cover: true });
 }
 
@@ -769,16 +777,16 @@ section("Next iteration");
     "no result: pull test, hold test, first three-station lift (slide 25 and 26 rows). The dashed box is for Jasper's new CAD.");
   const cw = 1.9, g = 0.12, ch = 2.6;
   const cards3 = [
-    ["3:1 printed gear stage", ["18T / 54T spur, printed PETG pinion", "Designed and checked in CAD; pinion printed; not fitted", "Pull × 3 × 0.9 (η) = 2.7 at equal current (calculated)", "At 1.0 A: heat × (1.0/1.5)² = 0.44 (calculated)"]],
-    ["1° draft on the dovetail", ["Today the slide-in binds on insertion", "Thicker at the top, thinning toward the bottom", "The station self-locates as it slides in (planned)"]],
-    ["Lighter back mount", ["Today: 597 cm³ solid, far stronger than the motor can pull", "Thinner walls and ribs: about 200 cm³ (planned)", "Less print time and filament"]],
+    ["3:1 printed gear stage", ["18T / 54T spur (design), printed PETG pinion", "Designed and checked in CAD; pinion printed; not fitted", "Pull × 3 (design) × 0.9 η (assumed) = 2.7 at equal current (calc)", "At 1.0 A (design): heat × (1.0/1.5)² = 0.44 (calc)"]],
+    ["1° draft on the dovetail", ["Today the slide-in binds on insertion; 1° (design)", "Thicker at the top, thinning toward the bottom", "The station self-locates as it slides in (planned)"]],
+    ["Lighter back mount", ["Today: 597 cm³ solid (design, CAD volume), far stronger than the motor can pull", "Thinner walls and ribs: about 200 cm³ (planned)", "Less print time and filament"]],
   ];
   cards3.forEach(([h, items], i) => card(sl, M + i * (cw + g), TOP, cw, ch, h, items, { size: 9.5, space: 2, headSize: 11 }));
   card(sl, M, TOP + ch + g, 3 * cw + 2 * g, BOT - TOP - ch - g, "Also next / still planned", [
     "TPU grip pads on the jaws (planned)",
-    "Pull test at 1.5 A: the measured limit goes into the planner (planned)",
-    "Hold test: 90 minutes at 1.5 A, motor below 60 °C (planned)",
-    "First three-station lift: self-check, calibration, a short move with 1 lb (planned)",
+    "Pull test at 1.5 A (design): the measured limit goes into the planner (planned)",
+    "Hold test: 90 minutes at 1.5 A, motor below 60 °C (planned; 60 °C limit, design)",
+    "First three-station lift: self-check, calibration, a short move with 1 lb (planned; 1 lb, design)",
   ], { size: 10, space: 3, headSize: 11.5 });
   const px = M + 3 * (cw + g), pw = W - M - px;
   const ph2 = (BOT - TOP - 0.5 - 0.08) / 2;

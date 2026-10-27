@@ -587,7 +587,7 @@ section("Mount assembly");
   const cw = 3.5, ch = BOT - TOP;
   card(sl, M, TOP, cw, ch, "Slide-in mount and load path", [
     "The wall mount screws into a stud; the station slides onto it on a dovetail",
-    "Dovetail clearance 0.175 mm per side on 30° flanks (measured on the CAD)",
+    "Dovetail: wall mount offset outward 0.175 mm per side; clearance set from fit coupons",
     "Load path: cable, spool, set screw, motor, tab, mount, screws, stud",
     "Motor slips first: F = τ/r = 0.36 N·m / 7.5 mm = 48 N; 34–59 N over torque vector and cable angle (calculated)",
     "The spool encoder sees the slip: tracking fault, every station holds",
@@ -629,11 +629,11 @@ section("Manufacturing");
     "Manufacturing. Process: PETG on a Creality K1, 0.4 mm nozzle, 0.20 mm layers, supports at 30 deg (photos 20, 26; deck_v8 'Manufacturing: Fits and Datums' " +
     "printing rules: loads along the layers, mating faces off supports). Fin: blank sheared 44 x 250 mm (+/-0.5), five holes drilled in one setup on the manual " +
     "mill; the edges locate only the first hole, which becomes the mill zero, so the pattern holds +/-0.1 (DECISION_STORIES.md T31/T32 line 277; photo 01). " +
-    "Heat-set inserts: M3 in the claw gear housing, M2.5 at the encoder board (deck_v8 fits table). TPU 95A: pad trials (DESIGN_INTENT 'The gripper'); none " +
+    "Heat-set inserts: M3 in the claw gear housing, M2.5 at the encoder board (deck_v8 fits table). TPU 95A grip pads: next iteration (Jasper 10/27); none " +
     "in the current build, the hands are PETG (COST_BREAKDOWN section 2; D32). Fits: printed holes come out undersize (FUNDAMENTALS section 12); spool bore " +
     "Ø5.2 printed too tight on the Ø5.0 shaft, opened to Ø5.45 in v3 (FUNDAMENTALS section 12 supplied facts); dovetail 0.175 mm per side on 30 deg flanks, " +
     "measured on Jasper's STEP files (deck_v8 fits table; PANEL_FEEDBACK_ANSWERS fits row); 687 bearing pocket Ø14.075 behind a Ø14.000 entry lip, 1.95 mm " +
-    "long, 8 T-slots (FUNDAMENTALS section 12; snap_gear_lip.png from make_mfg_snapshots.py). The hole-sweep fit coupon (Ø5, Ø7, Ø14, -0.10 to +0.30 mm) is " +
+    "long, 8 T-slots (FUNDAMENTALS section 12; snap_gear_lip.png from make_mfg_snapshots.py). Fit coupons were printed and the allowances came from them (Jasper 10/27: accurate, no photos). The hole-sweep coupon spec (Ø5, Ø7, Ø14, -0.10 to +0.30 mm) is " +
     "PLANNED (FUNDAMENTALS section 12 evidence line). One shell kept a failed layer: a shell, not a load path (DECK_V9_NOTES slide 19 row; photo 35). " +
     "Make vs buy: bought steppers, drivers, controller boards, servo, camera, battery, encoder boards (DECK_V9_NOTES slide 4 row); made: every printed part " +
     "and the fin. Printed per station 762 g (estimate: CAD volume x 1.27 g/cm^3 x fill factor, COST_BREAKDOWN section 2); filament 0.762 kg x $15/kg = $11.43 " +
@@ -657,11 +657,11 @@ section("Manufacturing");
   card(sl, M + lw + g, TOP, mw, BOT - TOP, "Fits", [
     "Printed holes come out undersize: every printed fit carries an allowance",
     "Spool bore: Ø5.2 printed too tight on the Ø5.0 shaft; opened to Ø5.45",
-    "Dovetail: 0.175 mm per side, 30° flanks (CAD)",
+    "Dovetail: wall mount offset outward 0.175 mm per side for clearance, 30° flanks",
     "Bearing pocket Ø14.075 behind a Ø14.000 entry lip, 8 T-slots",
-    "Hole-sweep fit coupon (Ø5, Ø7, Ø14): planned",
+    "Fit coupons printed first; the allowances above came from them (measured)",
     "A failed layer was kept on one shell only: the shell carries no load",
-    "TPU 95A: pad trials only; none in the current build",
+    "TPU 95A grip pads: next iteration",
   ], { size: 9.5, space: 3, headSize: 11.5 });
   const rx = M + lw + mw + 2 * g, cwid = (rw - 0.1) / 2, ph = 1.15;
   coverImage(sl, PH("26_slicer_k1_petg_supports.jpg"), rx, TOP, cwid, ph, "Slicing PETG for the K1, supports at 30 degrees");
@@ -694,7 +694,7 @@ section("Claw");
     "The gripper attaches at the tube, so other grippers can be tried",
     "A hard pinch was expected to grip better; testing showed alignment problems",
     "The first rack-and-pinion jaws left a 2 mm gap on thin cloth (Sep 30)",
-    "TPU and other pad materials are being tried; still testing",
+    "TPU grip pads go on in the next iteration",
     "The v6 clamp was 4.6 x its mass budget in CAD: mass is tracked per part since",
   ], { space: 5 });
   const px = M + 2 * (cw + g), pw = W - M - px;
@@ -775,7 +775,8 @@ section("Next iteration");
     ["Lighter back mount", ["Today: 597 cm³ solid, far stronger than the motor can pull", "Thinner walls and ribs: about 200 cm³ (planned)", "Less print time and filament"]],
   ];
   cards3.forEach(([h, items], i) => card(sl, M + i * (cw + g), TOP, cw, ch, h, items, { size: 9.5, space: 2, headSize: 11 }));
-  card(sl, M, TOP + ch + g, 3 * cw + 2 * g, BOT - TOP - ch - g, "Not working yet / still planned", [
+  card(sl, M, TOP + ch + g, 3 * cw + 2 * g, BOT - TOP - ch - g, "Also next / still planned", [
+    "TPU grip pads on the jaws (planned)",
     "Pull test at 1.5 A: the measured limit goes into the planner (planned)",
     "Hold test: 90 minutes at 1.5 A, motor below 60 °C (planned)",
     "First three-station lift: self-check, calibration, a short move with 1 lb (planned)",

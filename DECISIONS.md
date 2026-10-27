@@ -453,3 +453,20 @@ write the spec and start with the map tab"). This is the "later" half of D35, sp
   the user to accept it. Unknown cells count as obstacles.
 - **Order:** the Map tab (D35 "now", `docs/ROOM_MAP_SPEC.md` §1 to 5) is built first, then phases S1 to S5. Each phase is
   independently verified.
+
+D45. **Design inputs revised (Jasper, 10/27): dynamic load, cloth friction, gear efficiency, motor and fin sources.**
+- **Dynamic load 1 m/s²** (was 2 m/s², assumed): the maximum claw acceleration commanded. Every load case uses
+  m(g + a) with a = 1 m/s², factor 1 + a/g = 1.102.
+- **Cloth friction μ = 0.3 is the worst case.** Published fabric friction: 0.22–0.38 for garment fabrics and 0.52–0.62 for
+  special fabrics; denim against skin 0.14–0.44; simulation guidance for cotton/polyester twills (denim) 0.5–0.65; an informal
+  incline test gave 0.74–0.89 for denim/cotton on plastic. None is fabric-on-PETG. Grip sizing keeps μ = 0.3; a sled pull on
+  the printed jaws (ASTM D1894-style) replaces it.
+- **Gear-stage efficiency η = 0.9, conservative.** Mesh loss from Niemann's loss factor for the 18T/54T module-1, 20° pair:
+  ε1 = 0.765, ε2 = 0.884, H_v = π(u+1)/(z1 u)·(1 − εα + ε1² + ε2²) = 0.167; η_mesh = 1 − μ·H_v = 0.92–0.97 for dry
+  polymer μ = 0.2–0.5. 0.9 covers bearing and print-roughness losses on top. No published efficiency for printed PETG spur gears
+  was found; a torque-in/torque-out test replaces it.
+- **Motor: SIMAX3D NEMA 17 42-38, 36 N·cm holding, 1.5 A rated** (seller listing, SHOPPING_LIST row; ordered Aug 7). Phase
+  resistance is not on the listing: 1.8 Ω stays assumed until metered.
+- **Fin alloy 6061 confirmed.** Paint: radiation h_rad = ε·σ·(Ts + T∞)(Ts² + T∞²); at 50 °C fin, 23 °C room this is 6.74·ε
+  W/m²K. Bare aluminium ε ≈ 0.05–0.09, black paint 0.92–0.96 (handbook tables). With natural convection about 4.8 W/m²K on a
+  0.2 m vertical plate (h = 1.42(ΔT/L)^0.25), painting raises the total surface coefficient about 2× (5.3 → 10.9 W/m²K).

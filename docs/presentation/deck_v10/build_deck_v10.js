@@ -684,21 +684,21 @@ section("Next iteration");
     "'larger motors'); the slip fuse moves to about 130 N (slide 24 row). Draft: the slide-in binds on insertion; a 1 deg draft on the dovetail, thicker at the " +
     "top (slide 24 row, PLANNED). Mount: holds about 200x the motor's pull, 597 cm^3 solid, to about 200 cm^3 (slide 24 row, PLANNED). Still planned, " +
     "no result: pull test, hold test, first three-station lift (slide 25 and 26 rows). The dashed box is for Jasper's new CAD.");
-  const cw = 2.15, g = 0.15, ch = 2.45;
+  const cw = 1.9, g = 0.12, ch = 2.6;
   const cards3 = [
     ["3:1 printed gear stage", ["18T / 54T spur, printed PETG pinion", "Designed and checked in CAD; pinion printed; not fitted", "2.7 x pull at 1.0 A, half the heat (calculated)", "Slip fuse moves to about 130 N (calculated)"]],
     ["1° draft on the dovetail", ["Today the slide-in binds on insertion", "Thicker at the top, thinning toward the bottom", "The station self-locates as it slides in (planned)"]],
     ["Lighter back mount", ["Today: about 200 x the motor's pull, 597 cm³ solid", "Thinner walls and ribs: about 200 cm³ (planned)", "Less print time and filament for anyone building it"]],
   ];
-  cards3.forEach(([h, items], i) => card(sl, M + i * (cw + g), TOP, cw, ch, h, items, { size: 10, space: 3, headSize: 11.5 }));
+  cards3.forEach(([h, items], i) => card(sl, M + i * (cw + g), TOP, cw, ch, h, items, { size: 9.5, space: 2, headSize: 11 }));
   card(sl, M, TOP + ch + g, 3 * cw + 2 * g, BOT - TOP - ch - g, "Not working yet / still planned", [
     "Pull test at 1.5 A: the measured limit goes into the planner (planned)",
     "Hold test: 90 minutes at 1.5 A, motor below 60 °C (planned)",
     "First three-station lift: self-check, calibration, a short move with 1 lb (planned)",
   ], { size: 10, space: 3, headSize: 11.5 });
   const px = M + 3 * (cw + g), pw = W - M - px;
-  placeholderBox(sl, "[Jasper: new CAD]", px, TOP, pw, BOT - TOP - 0.26);
-  caption(sl, "Next-iteration parts: gear stage, drafted slide-in, lighter mount", px, BOT - 0.22, pw);
+  fitImage(sl, PH("49_next_iteration_station_gear_stage_cad.png"), px, TOP, pw, BOT - TOP - 0.26, "Next-iteration station (CAD): 3:1 spur stage, motor pinion to spool gear; spool on its own shaft with the encoder magnet cap", { top: true });
+  caption(sl, "Next iteration (CAD, 10/27): 3:1 spur stage from the motor pinion to the spool gear; spool on its own shaft, encoder magnet cap in green", px, BOT - 0.22, pw);
 }
 
 // ================================================================================================ 18. Thank you

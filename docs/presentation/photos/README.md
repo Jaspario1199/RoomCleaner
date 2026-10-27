@@ -50,3 +50,4 @@ Technical Presentation — v2 draft"). Suggested placement:
 | 46 | wall mount with its XT60 power connector and the 12 V lead run along the wall (Jasper, 10/27) | deck v9 "One plug per station" |
 | 47 | shell with the failed print layer kept, fin through the slot, window behind (Jasper, 10/27) | deck v9 "Printing and machining" |
 | 48 | shell with the failed layer, line leaving the slot, "Rhyno" logo (Jasper, 10/27) | website "Building it" |
+| 49 | next-iteration station, CAD render: 3:1 spur stage from the motor pinion to the spool gear, spool on its own shaft with the encoder magnet cap (Jasper, 10/27) | deck v10 "Next iteration" |

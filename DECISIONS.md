@@ -470,3 +470,8 @@ D45. **Design inputs revised (Jasper, 10/27): dynamic load, cloth friction, gear
 - **Fin alloy 6061 confirmed.** Paint: radiation h_rad = ε·σ·(Ts + T∞)(Ts² + T∞²); at 50 °C fin, 23 °C room this is 6.74·ε
   W/m²K. Bare aluminium ε ≈ 0.05–0.09, black paint 0.92–0.96 (handbook tables). With natural convection about 4.8 W/m²K on a
   0.2 m vertical plate (h = 1.42(ΔT/L)^0.25), painting raises the total surface coefficient about 2× (5.3 → 10.9 W/m²K).
+
+D46. **Motor heat inputs are from research (Jasper, 10/27).** The SIMAX3D 42-38 listing gives no phase resistance. Comparable
+42×38 mm NEMA 17 datasheets list 1.5–1.65 Ω per phase (Pololu #2267: 1.65 Ω at 1.68 A; a similar 1.68 A listing: 1.5 Ω).
+The heat model keeps 1.8 Ω, the conservative (higher-heat) end: P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W; with 1.65 Ω it is 3.7 W.
+A meter reading across one coil pair replaces it.

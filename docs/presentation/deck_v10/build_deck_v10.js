@@ -558,7 +558,7 @@ section("Trade-offs");
   p = at(1, 0);
   CHART_DATA.temperature = { title: "Motor case (°C) at 1.5 A (design), sim", labels: TEMP.labels, noFin: TEMP.noFin, thin: TEMP.thin, plate: TEMP.plate, limit: TEMP.limit, box };
   chartImage(sl, "temperature", p.x, p.y, cw, chH, "Motor case temperature at 1.5 A, vented and sealed shell, by fin (two-node thermal network, sim)");
-  need(p, "Need < 60 °C (design). Two-node thermal network (sim); input P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W (calc; 1.5 A rated, datasheet; 1.8 Ω per phase, assumed, not metered); microstepping: total heat = I_peak²·R");
+  need(p, "Need < 60 °C (design). Two-node thermal network (sim); P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W (calc; 1.5 A datasheet; 1.8 Ω research, conservative)");
   // 3. Winch pull
   p = at(2, 0);
   CHART_DATA.pull = { title: "Pull per winch (N) vs spool radius (mm), calc", radii, running: radii.map(runPull), design: radii.map(designPull), jeans: JEANS_PEAK, box };
@@ -625,7 +625,7 @@ section("Mount assembly");
   const eqW = 4.4, eqH = (eqW - 0.16) * ed.h / ed.w + 0.16;
   card(sl, M, TOP, cw, ch, "Fin, vents, stud", [
     "The fin: aluminium 6061 (design) on the motor face, out through a slot in the top of the shell",
-    "Motor heat: P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W (calc; 1.5 A rated, datasheet: SIMAX3D NEMA 17 42-38 seller listing; 1.8 Ω per phase, assumed, not on the listing, to be metered)",
+    "Motor heat: P = I²·R = (1.5 A)² × 1.8 Ω = 4.05 W (calc; 1.5 A rated, datasheet: SIMAX3D NEMA 17 42-38 seller listing; 1.8 Ω per phase, research: comparable 42×38 NEMA 17 datasheets list 1.5–1.65 Ω, 1.8 used as conservative)",
     "With microstepping the two phase currents follow sin and cos, so total heat = I_peak²·R",
     "That heat leaves through the vents and the fin",
     "At Ts 50 °C, T∞ 23 °C: h_rad = 6.75·ε W/m²K (calc; σ = 5.67×10⁻⁸ W/m²K⁴, handbook; temperatures, design)",

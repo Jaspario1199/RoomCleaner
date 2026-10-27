@@ -808,7 +808,7 @@ section("Next iteration");
   ], { size: 9, space: 2, headSize: 11 });
   card(sl, M, TOP + h1 + g, fullW, h2, "1° dovetail draft and a lighter back mount", [
     "Draft 1° (design): the slide-in binds today; thicker at the top, it self-locates (planned)",
-    "Back mount: 597 cm³ solid (design, CAD volume) → about 200 cm³, thinner walls and ribs (planned)",
+    "Back mount: 597 cm³ solid (design, CAD) → about 200 cm³, thinner walls (planned)",
   ], { size: 9, space: 2, headSize: 11 });
   card(sl, M, TOP + h1 + h2 + 2 * g, fullW, h3, "Also next / still planned", [
     "Pull test at 1.5 A (design): the measured limit goes into the planner (planned)",

@@ -468,8 +468,9 @@ section("Modular box");
     "Modular box. Each box has its own ESP32 and everything it needs; the only thing entering is power, on a thicker wire (DESIGN_INTENT 'Iteration 2'). " +
     "82 ft of routes x 2 conductors = 164 ft (50 m) instead of x 10 = 820 ft (250 m) (DECK_V2_OUTLINE.md line 85). Any position and orientation (DESIGN_INTENT). Wire drop: V = I R' L_loop; " +
     "longest branch 32 ft one way, 64 ft of loop; 16 AWG loop resistance 0.257 ohm over 64 ft = 4.02 ohm/kft; at 2 A: 2 x 0.257 = 0.51 V, 2 A illustrative (FUNDAMENTALS.md section 10; " +
-    "Gen 1 ran the motors' own driver-to-motor leads back to one central box (Jasper, 10/27); their gauge is not recorded, so no Gen 1 drop is shown. " +
-    "[[Jasper: motor lead gauge, printed on the insulation]] " +
+    "Gen 1 comparison: 24 AWG motor leads, Jasper 10/27, computed with the same formula: R = rho 2L / A, rho = 1.724e-8 ohm m, L = 32 ft = 9.75 m one way, " +
+    "AWG diameter 0.127 mm x 92^((36 - n)/39): 24 AWG A = 0.205 mm^2, R = 1.64 ohm, V = 2 x 1.64 = 3.29 V (27 % of 12 V), P = I^2 R = 6.6 W; " +
+    "16 AWG A = 1.309 mm^2, R = 0.257 ohm, 0.51 V (4.3 %), 1.0 W (FUNDAMENTALS section 10 table). " +
     "PANEL_FEEDBACK_ANSWERS 'How longer wires increase voltage drop'). Cost: 16 AWG 100 ft roll $30.00 (est.), 65 ft used for three stations, $19.50 prorated " +
     "(COST_BREAKDOWN_20261026.md section 1, 16 AWG row). Photos 33, 46 (README rows); SolidWorks screenshot of the station shell, transparent (deck_assets/screens).");
   const cw = (W - 2 * M - 0.2 - 3.1) / 2, ch = BOT - TOP, g = 0.2;
@@ -480,13 +481,13 @@ section("Modular box");
     "Power can come from anywhere, so a box sits in any position and orientation",
     "The room's geometry no longer limits where the winches go",
   ], { space: 5 });
-  card(sl, M + cw + g, TOP, cw, ch, "Power wire: 16 AWG", [
-    "Gen 1: the motor's own driver-to-motor leads run back to one central box",
-    "Now: one 16 AWG pair per box; longest branch 32 ft one way, 64 ft of loop",
-    "V = I·R′·L_loop = 2 A × 4.02 Ω/kft × 0.064 kft = 0.51 V, 4.3 % of 12 V (calculated)",
-    "2 A is an illustrative current; the branch current is not measured",
-    "Cost: $30 per 100 ft × 65 ft for three stations = $19.50 (price estimated)",
-  ], { space: 5 });
+  card(sl, M + cw + g, TOP, cw, ch, "Wire drop: Gen 1 leads vs one power pair", [
+    "V = I·ρ·2L/A; copper ρ = 1.724×10⁻⁸ Ω·m, L = 9.75 m (32 ft) one way, I = 2 A",
+    "24 AWG Gen 1 motor leads, A = 0.205 mm²: R = 1.64 Ω, 3.29 V (27 % of 12 V), 6.6 W (calculated)",
+    "16 AWG power pair, A = 1.309 mm²: R = 0.257 Ω, 0.51 V (4.3 %), 1.0 W (calculated)",
+    "Thin motor leads over a room-length run lose a quarter of the supply; one thick power pair loses 4 %",
+    "16 AWG: $30 per 100 ft × 65 ft = $19.50 (price estimated)",
+  ], { size: 10, space: 4 });
   const px = W - M - 2.9;
   coverImage(sl, PH("46_wall_mount_bracket_xt60_power_lead.jpg"), px, TOP, 2.9, 1.95, "Wall mount with its XT60 power connector");
   caption(sl, "The wall mount: one power plug", px, TOP + 1.98, 2.9);

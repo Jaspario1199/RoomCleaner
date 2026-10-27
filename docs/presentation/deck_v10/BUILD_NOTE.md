@@ -16,8 +16,9 @@ sections per topic. Outputs in this folder: `RoomCleaner_Buntinx_v10.pptx`, `.pd
   same slide, recomputed in Python from the repo inputs. Model results that need a multi-node model are captioned with the governing
   equation and their numbers are off the cards (fin temperatures: two-node thermal network, P = I²R input). Values that did not
   reproduce in one line were deleted (about 130 N gear-stage slip fuse; "about 200x" mount margin; four-bar "within 1°").
-- **Wire drop**: only the 16 AWG line is shown (2 A x 4.02 ohm/kft x 0.064 kft = 0.51 V). Gen 1 ran the motors' own driver-to-motor
-  leads back to the central box (Jasper, 10/27); that gauge is not recorded, so the 18 AWG comparison is gone.
+- **Wire drop (v10.3, corrected)**: Gen 1 ran the motors' own 24 AWG driver-to-motor leads back to the central box (Jasper, 10/27). The
+  slide compares them with the 16 AWG power pair by the FUNDAMENTALS section 10 method, V = I·ρ·2L/A (ρ 1.724e-8 Ω·m, 32 ft one way,
+  2 A): 24 AWG 1.64 Ω, 3.29 V (27 %), 6.6 W; 16 AWG 0.257 Ω, 0.51 V (4.3 %), 1.0 W. The earlier 18 AWG comparison is gone.
 - **Bench minutiae** (18 V supply, inverted switch logic, switch below the pulley, 1.14 V logic rail, servo timer, 7.2 V divider,
   driver off at boot, encoder address/magnet, 60 counts) moved to `DOWN_THE_LINE.md`; the two electrical slides are one.
 - **Manufacturing slide (14)** for the manufacturing role: processes, fits, make vs buy, cost per station. Two record conflicts handled

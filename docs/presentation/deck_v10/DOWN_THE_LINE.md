@@ -24,4 +24,4 @@ Bench and build details taken off the v10 slides in v10.3 to keep the deck short
 
 ## Wiring
 
-- The Gen 1 motor leads (driver to motor) ran back to the central box; their gauge is not recorded, so v10.3 shows no Gen 1 voltage-drop figure. Open: motor lead gauge from the insulation print. Source: Jasper, 10/27.
+- The Gen 1 motor leads (driver to motor) were 24 AWG (Jasper, 10/27); the modular-box slide compares them with the 16 AWG power pair (FUNDAMENTALS section 10 method).

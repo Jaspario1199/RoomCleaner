@@ -1,0 +1,16 @@
+Process,Reference,Qty/board,Qty/10 boards,Value,Description,Footprint,Manufacturer part,Supplier / note
+"machine placed (SMD, top, reflow)",D1,1,10,SS14,"Schottky 40 V 1 A, SMA (replaces 1N5819 DO-41, same function)",Diode_SMD:D_SMA,onsemi SS14 / MDD SS14,LCSC C2480 (verify before ordering)
+"machine placed (SMD, top, reflow)",R1 R2 R3 R4,4,40,10k,"10k 1% 1/4 W thick film, 1206",Resistor_SMD:R_1206_3216Metric,Yageo RC1206FR-0710KL,LCSC C17902 (verify before ordering)
+"hand soldered (THT, after reflow)",C1,1,10,100uF 50V,"100 uF 50 V aluminium electrolytic, radial 8 mm, 3.5 mm pitch",RoomCleanerRevE:CP_Radial_D8.0mm_P3.50mm_BigPad,Panasonic EEU-FR1H101,
+"hand soldered (THT, after reflow)",J1,1,10,12V IN,Screw terminal 2-pole 5.08 mm,"RoomCleanerRevE:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal_BigPad","Phoenix Contact 1729128 (MKDS 1,5/ 2-5,08)",
+"hand soldered (THT, after reflow)",J2,1,10,MOTOR,"JST-XH 4-pin, top entry",RoomCleanerRevE:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical_BigPad,JST B4B-XH-A(LF)(SN),mating XHP-4 + SXH-001T-P0.6 crimps
+"hand soldered (THT, after reflow)",J3,1,10,SWITCH,"JST-XH 2-pin, top entry",RoomCleanerRevE:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical_BigPad,JST B2B-XH-A(LF)(SN),mating XHP-2 + SXH-001T-P0.6 crimps
+"hand soldered (THT, after reflow)",J5,1,10,ENCODER,"JST-XH 4-pin, top entry",RoomCleanerRevE:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical_BigPad,JST B4B-XH-A(LF)(SN),mating XHP-4 + SXH-001T-P0.6 crimps
+"hand soldered (THT, after reflow)",JP1,1,10,USB/EXT 5V link,1x2 male header 2.54 mm + jumper shunt,RoomCleanerRevE:PinHeader_1x02_P2.54mm_Vertical_BigPad,Sullins PRPC002SAAN-RC + QPC02SXGN-RC,
+"hand soldered (THT, after reflow)",U1,1,10,DROK buck 5.00V,"Socket: 1x5 female header 2.54 mm (module: DROK mini buck, set to 5.00 V)",RoomCleanerRevE:DROK_Buck_Socket_1x5,Sullins PPTC051LFBN-RC,
+"hand soldered (THT, after reflow)",U2,2,20,XIAO ESP32-C3,"Socket: 2 x 1x7 female header 2.54 mm (module: Seeed XIAO ESP32-C3, 113991054)",RoomCleanerRevE:XIAO_ESP32C3_Socket_2x7,Sullins PPTC071LFBN-RC,2 strips per board
+"hand soldered (THT, after reflow)",U3,2,20,A4988 carrier,"Socket: 2 x 1x8 female header 2.54 mm (module: Pololu A4988 carrier, #1182)",RoomCleanerRevE:Pololu_A4988_Socket_2x8,Sullins PPTC081LFBN-RC,2 strips per board
+not a part,TP1 TP2 TP3 TP4,4,40,test pads,bare plated pads,,,
+not a part,FID1 FID2 FID3,3,30,fiducials,"1 mm copper, 2 mm mask opening",,,
+not a part,H1 H2 H3 H4,4,40,M3 holes,3.2 mm unplated,,,
+modules (plug in),U1 U2 U3,1 each,10 each,"DROK buck, XIAO ESP32-C3, A4988 carrier","plugged into the sockets, not soldered to this board",,,

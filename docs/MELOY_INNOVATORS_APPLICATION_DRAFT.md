@@ -89,9 +89,11 @@ pinion, tools and spares (about $640 spent so far). No hiring: all design, assem
 
 ## 6. Involvement with the Meloy Engineering Incubator
 
-[Be accurate. If not yet involved: "I am joining the Meloy Engineering Incubator this semester to get mentorship on
-customer discovery and the path from a developer kit to a consumer product, and I would welcome an assigned mentor
-with consumer-hardware or product-safety experience."]
+[The undergraduate incubator is **Engineering Inc.**, the College of Engineering's student incubator, directed by
+Chris Curran (chriscurran@tamu.edu, ZACH 451). No public page gives its meeting time or sign-up; ask him or
+meloyprogram@tamu.edu, attend a meeting, then write what is true, e.g.: "I joined Engineering Inc. in [month] and
+attend its meetings, where I am working through customer discovery for RoomCleaner and the path from a developer kit
+to a consumer product. I would welcome an assigned mentor with consumer-hardware or product-safety experience."]
 
 ## 7. Additional information
 

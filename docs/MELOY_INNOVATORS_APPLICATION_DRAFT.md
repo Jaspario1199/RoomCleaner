@@ -16,29 +16,37 @@ Jasper Buntinx, Mechanical Engineering (B.S. expected August 2027), [TAMU email]
 
 ## 2. Brief description of the innovation
 
-RoomCleaner is a ceiling cable robot that picks laundry and clutter off the floor and drops it in a hamper. Winch
-boxes mount high on the walls and hold one claw on cables; changing the cable lengths moves the claw anywhere in the
-room, with nothing on the floor. Each box is self-contained: it slides off its wall mount and unplugs, joins Wi-Fi
-by itself and updates over the air. The robot calibrates itself at startup from a printed floor mat its claw camera
-reads, so a buyer never measures anchor positions. A spool encoder in every box confirms each step and detects slip,
-so a snag stops the robot instead of pulling a mount out of the wall.
+**RoomCleaner: minimally invasive home robotics.** Home robots today either crawl across the floor, where the
+clutter they are meant to clear blocks them, or they are humanoids that cost as much as a car. RoomCleaner takes a
+third path: it works from the ceiling down and leaves the floor, the furniture and the walls almost untouched.
+
+A few small winch boxes slide onto wall mounts near the ceiling and hold one claw on thin cables. Changing the cable
+lengths moves the claw anywhere in the room, so it can pick up laundry and clutter and drop it in a hamper. When it
+is not wanted, each box slides off its mount and unplugs; the room goes back to normal. Each box joins Wi-Fi by
+itself and updates over the air, and the robot calibrates itself at startup from a printed floor mat its camera
+reads, so nobody has to measure anything.
+
+The people this helps most are the ones for whom bending down is hard: older adults, people with back injuries or
+limited mobility, and the family members who care for them. Picking clothes off the floor is a small task that
+becomes a real barrier to living independently; a robot that does it from above, without a machine roaming the
+floor to trip over, is a quiet kind of help.
 
 **Where it stands today (self-funded, about $640 spent, July to November 2026):**
 - **Generation 1 built and retired:** one central board driving four corner motors with bead homing. It lifted a
-  test weight, and it showed why the design had to change: bead homing leaves at most about a third of the room
+  test weight and showed why the design had to change: bead homing leaves at most about a third of the room
   reachable, and a central box means about 250 m of wire.
 - **Generation 2 built:** three winch stations printed, machined and wired, each with its own ESP32, driver, homing
   switch, spool encoder and aluminium heat fin. Both controller boards pass the bench checklist; the first station
-  is mounted on the wall on its slide-in dovetail mount.
-- **Claw built:** four-bar hands, camera bay, its own battery. Live camera view, battery sensing and servo all pass
-  on the bench; it hangs from three cables in the room.
+  is on the wall on its slide-in mount.
+- **Claw built:** four-bar hands, camera, its own battery. Live view, battery sensing and servo pass on the bench;
+  it hangs from three cables in the room.
 - **Software written and tested in simulation:** six-state startup and self-calibration, motion planning with
-  tension limits, obstacle map, phone app, over-the-air updates.
-- **Next iteration designed:** a 3:1 printed gear stage (pinion printed), a drafted slide-in mount that cannot bind,
-  a lighter back mount, TPU grip pads, and a Rev E circuit board (socketed modules, keyed connectors, routed and
-  design-rule clean) built for the Fab Lab's automated assembly line.
-- **Presented:** the full engineering story (homing, self-calibration math, load paths, thermal and manufacturing)
-  in a 20-slide technical presentation.
+  tension limits, an obstacle map, a phone app, over-the-air updates.
+- **Next iteration designed:** a 3:1 printed gear stage, a drafted slide-in mount that cannot bind, a lighter back
+  mount, TPU grip pads, and a circuit board built for automated assembly in the Fab Lab.
+- **Now experimenting with sensing beyond the camera:** fusing lidar, Bluetooth and Wi-Fi signals with video to map
+  the room and detect people, training the models in simulation and refining them by trial on the real robot. The
+  aim is a robot that knows when someone is underneath it and stops, without depending on a camera alone.
 
 ## 3. Team members
 
@@ -47,24 +55,26 @@ firmware and control software. [Add any teammates and their roles.]
 
 ## 4. Plans for the innovation
 
-The prototype exists. The award funds the step from "it works on my bench" to "someone else can install it":
+The prototype exists. The award funds the step from "it works in my room" to "someone else can safely install it":
 
 1. **Measure what is still calculated (weeks 1–3).** Pull test of each winch with a calibrated hanging scale, a
    90-minute hold test of motor temperature, the first three-station lift with a 1 lb load, then 100 pick-and-place
-   cycles with every fault logged. These replace the last calculated and assumed numbers on the critical path.
-2. **Fix the one safety blocker (weeks 2–6).** Today a power cut drops the claw, because the motors only hold while
-   powered. I will switch to steppers with power-off brakes: the brake's 0.25 N·m friction torque on the 7.5 mm
-   spool holds about 33 N of cable tension, double the 16.8 N design limit per cable.
-3. **Build the next iteration (weeks 4–8).** Fit the 3:1 gear stage (2.7× the pull at the same current), print the
-   drafted slide-in and lighter back mounts, add TPU grip pads, and order the Rev E boards and stencil so every
-   station is assembled on the Fab Lab's stencil printer, pick-and-place and reflow oven instead of hand-wired.
-4. **Make it plug and play (weeks 6–10).** Power each box from a standard USB-C charger through a 12 V PD trigger,
-   and replace hard-coded Wi-Fi with setup from the phone.
-5. **Five-unit alpha (weeks 10–16).** Five people who are not me install kits from printed instructions; every
-   setup problem and failure gets logged.
-6. **Protect and position (alongside).** File a provisional patent on the self-calibrating, modular winch system and
-   enter Aggie PITCH with the alpha results. The closest competitor (Stringman, about $1,000) needs drilled anchors
-   and an external PC; RoomCleaner's slide-off boxes, phone setup and self-calibration are the difference.
+   cycles with every fault logged.
+2. **Make it safe to live under (weeks 2–8).** A power cut currently drops the claw, because the motors only hold
+   while powered. Power-off brakes fix that: the brake's 0.25 N·m friction torque on the 7.5 mm spool holds about
+   33 N of cable tension, double the 16.8 N design limit per cable. In parallel, the lidar and radio sensing work
+   becomes a person-detection layer that keeps the claw away from anyone below it.
+3. **Build the next iteration (weeks 4–8).** Fit the 3:1 gear stage (2.7x the pull at the same current), print the
+   drafted and lighter mounts, add TPU grip pads, and assemble the new boards on the Fab Lab's stencil printer,
+   pick-and-place and reflow oven so every station is built the same way.
+4. **Make it plug and play (weeks 6–10).** Power each box from a standard USB-C charger and set up Wi-Fi from the
+   phone instead of in code.
+5. **Five-unit alpha (weeks 10–16).** Five homes, including at least one person with limited mobility, install kits
+   from printed instructions; every setup problem and failure is logged.
+6. **Protect and position (alongside).** File a provisional patent on the self-calibrating, slide-off winch system
+   and enter Aggie PITCH with the alpha results. The closest competitor (Stringman, about $1,000) needs drilled
+   corner anchors and a desktop PC; RoomCleaner's slide-off boxes, phone setup and self-calibration are the
+   difference.
 
 ## 5. Goods and services to procure (researched costs; confirm before ordering)
 
@@ -81,19 +91,17 @@ The prototype exists. The award funds the step from "it works on my bench" to "s
 | Claw parts for 4 alpha kits (servo, camera board, battery, charger, regulators) | 4 | ~$60 | ~$240 | estimate from the claw bill of materials |
 | PETG and TPU filament, Dyneema line, fasteners, heat-set inserts | — | — | ~$250 | estimate; 0.76 kg PETG per station at ~$15/kg |
 | Printed floor mats (9 sheets each, laminated) | 5 | ~$10 | ~$50 | estimate |
+| Low-cost 2D lidar module for the sensing experiments | 1 | ~$90 | ~$90 | estimate; confirm model and price |
 | USPTO provisional patent filing fee (micro entity) | 1 | check fee schedule | ~$65 | uspto.gov fee schedule |
-| **Total** | | | **~$1,840** | remaining ~$660 covers shipping, price changes and one round of board fixes |
+| **Total** | | | **~$1,930** | remaining ~$570 covers shipping, price changes and one round of board fixes |
 
 Already owned and not requested: the three built stations, the claw, the gen-1 parts, the printed next-iteration
 pinion, tools and spares (about $640 spent so far). No hiring: all design, assembly and testing is my own labor. Software runs on my own hardware and free tools.
 
 ## 6. Involvement with the Meloy Engineering Incubator
 
-[The undergraduate incubator is **Engineering Inc.**, the College of Engineering's student incubator, directed by
-Chris Curran (chriscurran@tamu.edu, ZACH 451). No public page gives its meeting time or sign-up; ask him or
-meloyprogram@tamu.edu, attend a meeting, then write what is true, e.g.: "I joined Engineering Inc. in [month] and
-attend its meetings, where I am working through customer discovery for RoomCleaner and the path from a developer kit
-to a consumer product. I would welcome an assigned mentor with consumer-hardware or product-safety experience."]
+Not yet. I have built the project on my own time and money so far, and I would welcome an assigned mentor with
+consumer-hardware or product-safety experience.
 
 ## 7. Additional information
 

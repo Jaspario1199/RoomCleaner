@@ -16,15 +16,29 @@ Jasper Buntinx, Mechanical Engineering (B.S. expected August 2027), [TAMU email]
 
 ## 2. Brief description of the innovation
 
-RoomCleaner is a ceiling cable robot that picks laundry and clutter off the floor and drops it in a hamper. Four
-small winch boxes mount high on the walls and hold one claw on four cables; changing the cable lengths moves the
-claw anywhere in the room, with nothing on the floor. Each box is self-contained: it slides off its wall mount and
-unplugs, joins Wi-Fi by itself and updates over the air. The robot calibrates itself at startup from a printed
-floor mat that its claw camera reads, so a buyer never measures anchor positions. A spool encoder in every box
-confirms each step and detects slip, so a snag stops the robot instead of pulling a mount out of the wall.
+RoomCleaner is a ceiling cable robot that picks laundry and clutter off the floor and drops it in a hamper. Winch
+boxes mount high on the walls and hold one claw on cables; changing the cable lengths moves the claw anywhere in the
+room, with nothing on the floor. Each box is self-contained: it slides off its wall mount and unplugs, joins Wi-Fi
+by itself and updates over the air. The robot calibrates itself at startup from a printed floor mat its claw camera
+reads, so a buyer never measures anchor positions. A spool encoder in every box confirms each step and detects slip,
+so a snag stops the robot instead of pulling a mount out of the wall.
 
-I have built and bench-tested working winch stations and the claw (camera, battery, servo), and written the
-control software, simulator and phone app. The goal is a self-calibrating, plug-and-play kit for home automation.
+**Where it stands today (self-funded, about $640 spent, July to November 2026):**
+- **Generation 1 built and retired:** one central board driving four corner motors with bead homing. It lifted a
+  test weight, and it showed why the design had to change: bead homing leaves at most about a third of the room
+  reachable, and a central box means about 250 m of wire.
+- **Generation 2 built:** three winch stations printed, machined and wired, each with its own ESP32, driver, homing
+  switch, spool encoder and aluminium heat fin. Both controller boards pass the bench checklist; the first station
+  is mounted on the wall on its slide-in dovetail mount.
+- **Claw built:** four-bar hands, camera bay, its own battery. Live camera view, battery sensing and servo all pass
+  on the bench; it hangs from three cables in the room.
+- **Software written and tested in simulation:** six-state startup and self-calibration, motion planning with
+  tension limits, obstacle map, phone app, over-the-air updates.
+- **Next iteration designed:** a 3:1 printed gear stage (pinion printed), a drafted slide-in mount that cannot bind,
+  a lighter back mount, TPU grip pads, and a Rev E circuit board (socketed modules, keyed connectors, routed and
+  design-rule clean) built for the Fab Lab's automated assembly line.
+- **Presented:** the full engineering story (homing, self-calibration math, load paths, thermal and manufacturing)
+  in a 20-slide technical presentation.
 
 ## 3. Team members
 
@@ -33,29 +47,30 @@ firmware and control software. [Add any teammates and their roles.]
 
 ## 4. Plans for the innovation
 
-The next milestone is turning the prototype into a kit a stranger can install. The award funds that milestone:
+The prototype exists. The award funds the step from "it works on my bench" to "someone else can install it":
 
-1. **Prove it with measurements (weeks 1–3).** Pull test of each winch with a calibrated hanging scale, a 90-minute
-   hold test for motor temperature, the first three-station lift, then 100 pick-and-place cycles with every fault
-   logged.
+1. **Measure what is still calculated (weeks 1–3).** Pull test of each winch with a calibrated hanging scale, a
+   90-minute hold test of motor temperature, the first three-station lift with a 1 lb load, then 100 pick-and-place
+   cycles with every fault logged. These replace the last calculated and assumed numbers on the critical path.
 2. **Fix the one safety blocker (weeks 2–6).** Today a power cut drops the claw, because the motors only hold while
    powered. I will switch to steppers with power-off brakes: the brake's 0.25 N·m friction torque on the 7.5 mm
    spool holds about 33 N of cable tension, double the 16.8 N design limit per cable.
-3. **Make it plug and play (weeks 4–8).** Order my Rev E circuit board (already designed: socketed modules, keyed
-   connectors, DRC clean) and assemble it on the Fab Lab's stencil printer, pick-and-place and reflow oven, so
-   every station is built the same way instead of hand-wired. Power each box from a standard USB-C charger through
-   a 12 V PD trigger, and replace hard-coded Wi-Fi with setup from the phone.
-4. **Five-unit alpha (weeks 8–14).** Build kits for five people who are not me to install from printed
-   instructions, and log every setup problem and failure.
-5. **Protect and position (alongside).** File a provisional patent on the self-calibrating, modular winch system,
-   and enter Aggie PITCH with the alpha results. The closest competitor (Stringman, about $1,000) needs drilled
-   anchors and an external PC; RoomCleaner's slide-off boxes, phone setup and self-calibration are the difference.
+3. **Build the next iteration (weeks 4–8).** Fit the 3:1 gear stage (2.7× the pull at the same current), print the
+   drafted slide-in and lighter back mounts, add TPU grip pads, and order the Rev E boards and stencil so every
+   station is assembled on the Fab Lab's stencil printer, pick-and-place and reflow oven instead of hand-wired.
+4. **Make it plug and play (weeks 6–10).** Power each box from a standard USB-C charger through a 12 V PD trigger,
+   and replace hard-coded Wi-Fi with setup from the phone.
+5. **Five-unit alpha (weeks 10–16).** Five people who are not me install kits from printed instructions; every
+   setup problem and failure gets logged.
+6. **Protect and position (alongside).** File a provisional patent on the self-calibrating, modular winch system and
+   enter Aggie PITCH with the alpha results. The closest competitor (Stringman, about $1,000) needs drilled anchors
+   and an external PC; RoomCleaner's slide-off boxes, phone setup and self-calibration are the difference.
 
 ## 5. Goods and services to procure (researched costs; confirm before ordering)
 
 | Item | Qty | Unit price | Total | Source / note |
 |---|---|---|---|---|
-| NEMA 17 stepper with 24 V power-off brake (StepperOnline 17HS19-2004D-B025, 0.59 N·m, brake 0.25 N·m) | 8 | $47.44 | $379.52 | omc-stepperonline.com list price; 4 for my robot, 4 for alpha kits |
+| NEMA 17 stepper with 24 V power-off brake (StepperOnline 17HS19-2004D-B025, 0.59 N·m, brake 0.25 N·m) | 8 | $47.44 | $379.52 | omc-stepperonline.com list price; 4 to retrofit my robot, 4 for alpha kits (my existing motors go into further alpha kits) |
 | 24 V supply / boost for the brake coils (5 W each) | 8 | ~$10 | ~$80 | estimate; brakes are 24 V, my bus is 12 V |
 | Rev E station PCBs + matching stencil (board house) | 20 boards + 1 stencil | quote | ~$80 | estimate; get a JLCPCB quote with the fab zip |
 | SMD/THT parts for 20 boards (resistors, SS14, headers, JST-XH, terminals, C1) | 20 sets | ~$6 | ~$120 | estimate from the Rev E BOM |
@@ -69,7 +84,8 @@ The next milestone is turning the prototype into a kit a stranger can install. T
 | USPTO provisional patent filing fee (micro entity) | 1 | check fee schedule | ~$65 | uspto.gov fee schedule |
 | **Total** | | | **~$1,840** | remaining ~$660 covers shipping, price changes and one round of board fixes |
 
-No hiring: all design, assembly and testing is my own labor. Software runs on my own hardware and free tools.
+Already owned and not requested: the three built stations, the claw, the gen-1 parts, the printed next-iteration
+pinion, tools and spares (about $640 spent so far). No hiring: all design, assembly and testing is my own labor. Software runs on my own hardware and free tools.
 
 ## 6. Involvement with the Meloy Engineering Incubator
 
@@ -82,8 +98,7 @@ with consumer-hardware or product-safety experience."]
 - The engineering is documented end to end: requirements, decisions, calculations, CAD, circuit boards, firmware and
   tests, all in one repository, with every number tagged by where it came from (measured, datasheet, calculated,
   assumed).
-- [Optional, only if you are comfortable citing it: "I presented this project's engineering (homing method,
-  self-calibration math, manufacturing approach) in a technical interview presentation for an engineering role."]
+- [Optional, only if you are comfortable naming it: "I presented this project at my SpaceX onsite interview."]
 - Safety is designed in, not bolted on: the motor is the deliberate weak link (it slips near 48 N before any part
   of the mount fails), the encoder turns slip into a fault, and the startup sequence never retries on its own.
 

@@ -1,0 +1,27 @@
+
+=== 2. top copper on single-sided THT pads ===
+single-sided THT pads checked: 55; closest other-side copper: 0.439 mm (J1.1 <-> F.Cu fill GND_F)
+pads of J1 J2 J3 J5 U1 U2 U3 C1: bottom copper only, no top copper within 0.4 mm: PASS
+
+=== 3. mill rules ===
+track widths          : ok (signals/+3V3 >= 0.6, 5 V and GND >= 0.8, 12 V/VMOT/coils >= 1.2)
+drills / pads         : ok (drills 0.8/1.0/1.3 + 3.2 holes; THT pads >= 2.0 mm, ring >= 0.5 mm; wire vias 2.0/0.8)
+wire vias             : 11 (all routing vias; GND stitching vias: 0)
+   #  net    x_top  y_top   X_file Y_file  nearest body (pad edge to courtyard)
+  W1 +3V3    15.24  38.35    15.24  11.65  J5 3.49 mm ok
+  W2 +3V3    29.72  36.07    29.72  13.93  R4 2.17 mm ok
+  W3 +3V3    56.90  42.16    56.90   7.84  TP4 3.24 mm ok
+  W4 5VB     25.65  16.51    25.65  33.49  TP2 2.20 mm ok
+  W5 DIR     35.81  33.53    35.81  16.47  U3 2.10 mm ok
+  W6 EN      11.68  30.23    11.68  19.77  U2 2.22 mm ok
+  W7 EN      34.54  15.75    34.54  34.25  U3 2.05 mm ok
+  W8 GND     34.54  19.56    34.54  30.44  U3 2.05 mm ok
+  W9 HOME    21.08  39.88    21.08  10.12  J5 2.00 mm ok
+  W10 HOME    31.75  19.56    31.75  30.44  U3 4.84 mm ok
+  W11 STEP    34.54  22.35    34.54  27.65  U3 2.05 mm ok
+   (x_top, y_top: from the top-left board corner, y down;  X_file, Y_file: Gerber/drill origin =
+    lower-left board corner, Y up)
+mill rules            : PASS
+
+net check PASS; top-copper check PASS; mill rules PASS; wire vias 11
+PASS

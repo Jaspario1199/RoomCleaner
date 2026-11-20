@@ -31,6 +31,10 @@ limited mobility, and the family members who care for them. Picking clothes off 
 becomes a real barrier to living independently; a robot that does it from above, without a machine roaming the
 floor to trip over, is a quiet kind of help.
 
+The end goal is an affordable product. Getting there takes a premium prototype first: trying different sensors,
+motor types and mechanisms until the design is proven, then cutting cost from a design that works rather than from
+one that does not.
+
 **Where it stands today (self-funded, about $640 spent, July to November 2026):**
 - **Generation 1 built and retired:** one central board driving four corner motors with bead homing. It lifted a
   test weight and showed why the design had to change: bead homing leaves at most about a third of the room
@@ -50,8 +54,13 @@ floor to trip over, is a quiet kind of help.
 
 ## 3. Team members
 
-Jasper Buntinx: mechanical design (SolidWorks/CadQuery), printing and machining, electronics and PCB design,
-firmware and control software. [Add any teammates and their roles.]
+- **Jasper Buntinx** (Mechanical Engineering): founder; built the first prototype iterations himself: mechanical
+  design, printing and machining, electronics, firmware and control software. Leads hardware and system design.
+- **Muhammet Alsaka** (Electrical Engineering): circuit boards, power and motor electronics, sensors.
+- **Diego Prozzi** (Business): software and logistics: app and setup experience, sourcing, cost tracking, alpha
+  logistics and go-to-market.
+
+All design, fabrication, assembly and testing is done by the team; no part of the award pays for labor.
 
 ## 4. Plans for the innovation
 
@@ -65,8 +74,10 @@ The prototype exists. The award funds the step from "it works in my room" to "so
    33 N of cable tension, double the 16.8 N design limit per cable. In parallel, the lidar and radio sensing work
    becomes a person-detection layer that keeps the claw away from anyone below it.
 3. **Build the next iteration (weeks 4–8).** Fit the 3:1 gear stage (2.7x the pull at the same current), print the
-   drafted and lighter mounts, add TPU grip pads, and assemble the new boards on the Fab Lab's stencil printer,
-   pick-and-place and reflow oven so every station is built the same way.
+   drafted and lighter mounts, add TPU grip pads, and make the station circuit boards in-house: milled on the Fab
+   Lab's Makera Carvera, then pasted, placed and reflowed on its stencil printer, pick-and-place and reflow oven, so
+   every station is built the same way instead of hand-wired. Test alternative sensors and motor types side by side
+   on the same boards.
 4. **Make it plug and play (weeks 6–10).** Power each box from a standard USB-C charger and set up Wi-Fi from the
    phone instead of in code.
 5. **Five-unit alpha (weeks 10–16).** Five homes, including at least one person with limited mobility, install kits
@@ -82,7 +93,8 @@ The prototype exists. The award funds the step from "it works in my room" to "so
 |---|---|---|---|---|
 | NEMA 17 stepper with 24 V power-off brake (StepperOnline 17HS19-2004D-B025, 0.59 N·m, brake 0.25 N·m) | 8 | $47.44 | $379.52 | omc-stepperonline.com list price; 4 to retrofit my robot, 4 for alpha kits (my existing motors go into further alpha kits) |
 | 24 V supply / boost for the brake coils (5 W each) | 8 | ~$10 | ~$80 | estimate; brakes are 24 V, my bus is 12 V |
-| Rev E station PCBs + matching stencil (board house) | 20 boards + 1 stencil | quote | ~$80 | estimate; get a JLCPCB quote with the fab zip |
+| Copper-clad FR4 blanks for milling station boards | 20 | ~$2 | ~$40 | estimate; check Fab Lab stock first |
+| PCB milling bits for the Carvera (V-bits / small end mills, drills) | 1 set | ~$50 | ~$50 | estimate; confirm sizes with Fab Lab staff |
 | SMD/THT parts for 20 boards (resistors, SS14, headers, JST-XH, terminals, C1) | 20 sets | ~$6 | ~$120 | estimate from the Rev E BOM |
 | XIAO ESP32-C3 + A4988 + 5 V buck per station | 16 | ~$12 | ~$190 | estimate from the cost breakdown |
 | USB-C PD 12 V trigger boards (10-pack) | 2 | $13.99 | $27.98 | Newegg listing |
@@ -93,7 +105,7 @@ The prototype exists. The award funds the step from "it works in my room" to "so
 | Printed floor mats (9 sheets each, laminated) | 5 | ~$10 | ~$50 | estimate |
 | Low-cost 2D lidar module for the sensing experiments | 1 | ~$90 | ~$90 | estimate; confirm model and price |
 | USPTO provisional patent filing fee (micro entity) | 1 | check fee schedule | ~$65 | uspto.gov fee schedule |
-| **Total** | | | **~$1,930** | remaining ~$570 covers shipping, price changes and one round of board fixes |
+| **Total** | | | **~$1,940** | remaining ~$560 covers shipping, price changes and one round of board fixes |
 
 Already owned and not requested: the three built stations, the claw, the gen-1 parts, the printed next-iteration
 pinion, tools and spares (about $640 spent so far). No hiring: all design, assembly and testing is my own labor. Software runs on my own hardware and free tools.
